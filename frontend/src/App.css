@@ -11,22 +11,31 @@
   --reactif-primary-dark: #3730a3;
   --reactif-secondary: #06b6d4;
   --reactif-accent: #c7d2fe;
-  --reactif-bg: #ffffff;
-  --reactif-card: #ffffff;
-  --reactif-text: #0f172a;
-  --reactif-text-light: #64748b;
+  --reactif-bg: #0a1628;
+  --reactif-card: #0f2035;
+  --reactif-text: #ffffff;
+  --reactif-text-light: #9ca3af;
   --reactif-success: #10b981;
   --reactif-warning: #f59e0b;
   --reactif-danger: #ef4444;
-  --reactif-border: #e2e8f0;
+  --reactif-border: rgba(255, 255, 255, 0.1);
   
-  /* DE'CLIC PRO Theme */
+  /* DE'CLIC PRO Theme - Dark Mode */
   --declic-orange: #F97316;
   --declic-orange-light: #FB923C;
-  --declic-orange-pale: #FFE4D6;
+  --declic-orange-pale: rgba(249, 115, 22, 0.15);
   --declic-yellow: #FBBF24;
-  --declic-indigo: #2D3561;
-  --declic-gray: #64748B;
+  --declic-indigo: #ffffff;
+  --declic-gray: #9ca3af;
+  --declic-green: #22c55e;
+  
+  /* Dark theme colors */
+  --bg-dark: #0a1628;
+  --bg-card: #0f2035;
+  --bg-card-hover: #152a45;
+  --border-dark: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
 }
 
 * {
@@ -35,18 +44,20 @@
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: var(--reactif-bg);
-  color: var(--reactif-text);
+  background: var(--bg-dark);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
 }
 
 .App {
   min-height: 100vh;
+  background: var(--bg-dark);
 }
 
 .app-container {
   min-height: 100vh;
+  background: var(--bg-dark);
 }
 
 /* ============================================================================
@@ -132,18 +143,27 @@ body {
   transform-origin: center;
 }
 
-/* DE'CLIC Theme Landing */
+/* DE'CLIC Theme Landing - DARK MODE */
 .landing-page.declic-theme {
-  background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 50%, #FFF7ED 100%);
+  background: var(--bg-dark);
   position: relative;
+  min-height: 100vh;
 }
 
 .landing-page.declic-theme::before {
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at 30% 30%, rgba(249, 115, 22, 0.15) 0%, transparent 50%);
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .landing-page.declic-theme::after {
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle at 70% 70%, rgba(34, 197, 94, 0.1) 0%, transparent 50%);
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 /* Landing page logos row - DE'CLIC PRO left, RE'ACTIF PRO right */
@@ -207,7 +227,10 @@ body {
 .declic-title {
   font-size: 3rem;
   font-weight: 800;
-  color: var(--declic-indigo);
+  background: linear-gradient(90deg, #f97316, #fbbf24, #a3e635, #22c55e, #14b8a6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -1px;
   margin: 0;
   line-height: 1;
@@ -219,7 +242,7 @@ body {
 
 .declic-tagline {
   font-size: 0.875rem;
-  color: var(--declic-gray);
+  color: var(--text-secondary);
   font-weight: 500;
   letter-spacing: 2px;
   margin-top: 0.5rem;
@@ -252,7 +275,7 @@ body {
 }
 
 .phase-badge .phase-number {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+  background: linear-gradient(135deg, #f97316 0%, #22c55e 100%);
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 30px;
@@ -267,7 +290,7 @@ body {
 
 .phase-description {
   font-size: 1.25rem;
-  color: #1f2937;
+  color: var(--text-secondary);
   margin: 0;
   max-width: 600px;
   line-height: 1.6;
@@ -275,7 +298,7 @@ body {
 
 .phase-description-below-cards {
   font-size: 1.125rem;
-  color: #1f2937;
+  color: var(--text-secondary);
   margin: -1.5rem auto 0;
   max-width: 600px;
   line-height: 1.6;
@@ -283,13 +306,13 @@ body {
 }
 
 .phase-description strong {
-  color: #4338ca;
+  color: var(--declic-orange);
 }
 
 .phase-2-section {
   margin-top: 2.5rem;
   padding-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-dark);
 }
 
 /* Path cards highlight */
@@ -355,15 +378,17 @@ body {
   }
 }
 
-/* DE'CLIC Cards */
+/* DE'CLIC Cards - DARK MODE */
 .declic-card {
-  border: 2px solid var(--declic-orange-pale);
+  border: 1px solid var(--border-dark);
+  background: var(--bg-card);
   transition: all 0.3s ease;
 }
 
 .declic-card:hover {
-  border-color: var(--declic-orange);
+  border-color: rgba(249, 115, 22, 0.5);
   box-shadow: 0 12px 40px rgba(249, 115, 22, 0.15);
+  background: var(--bg-card-hover);
 }
 
 .declic-icon {
@@ -372,30 +397,32 @@ body {
 }
 
 .declic-icon-secondary {
-  background: linear-gradient(135deg, var(--declic-indigo) 0%, #4F46E5 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
   color: white;
 }
 
 .declic-button {
-  background: linear-gradient(135deg, var(--declic-orange) 0%, var(--declic-orange-light) 100%);
+  background: linear-gradient(135deg, var(--declic-orange) 0%, var(--declic-green) 100%);
   color: white;
   border: none;
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
 .declic-button:hover {
-  background: linear-gradient(135deg, #EA580C 0%, var(--declic-orange) 100%);
+  background: linear-gradient(135deg, #EA580C 0%, #16a34a 100%);
   transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(249, 115, 22, 0.4);
 }
 
 .declic-button-secondary {
-  background: white;
-  color: var(--declic-indigo);
-  border: 2px solid var(--declic-indigo);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border: 1px solid var(--border-dark);
 }
 
 .declic-button-secondary:hover {
-  background: var(--declic-indigo);
-  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* DE'CLIC Features */
@@ -430,36 +457,38 @@ body {
   opacity: 0.7;
 }
 
-/* DE'CLIC Questionnaire */
+/* DE'CLIC Questionnaire - DARK MODE */
 .declic-questionnaire {
-  background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 100%);
+  background: var(--bg-dark);
+  min-height: 100vh;
 }
 
 .declic-back-btn {
-  color: var(--declic-indigo);
+  color: var(--text-secondary);
 }
 
 .declic-back-btn:hover {
   color: var(--declic-orange);
-  background: var(--declic-orange-pale);
+  background: rgba(249, 115, 22, 0.1);
 }
 
 .declic-progress {
-  background: var(--declic-orange-pale);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .declic-progress > div {
-  background: linear-gradient(90deg, var(--declic-orange) 0%, var(--declic-yellow) 100%);
+  background: linear-gradient(90deg, var(--declic-orange) 0%, var(--declic-green) 100%);
 }
 
 .declic-option.selected {
   border-color: var(--declic-orange);
-  background: var(--declic-orange-pale);
+  background: rgba(249, 115, 22, 0.15);
 }
 
-/* DE'CLIC Results */
+/* DE'CLIC Results - DARK MODE */
 .declic-results {
-  background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 50%, #FFF7ED 100%);
+  background: var(--bg-dark);
+  min-height: 100vh;
 }
 
 .declic-results .results-header {
@@ -1485,7 +1514,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 100%);
+  background: var(--bg-dark);
 }
 
 .questionnaire-header {
@@ -1499,7 +1528,7 @@ body {
 
 .progress-info {
   font-size: 0.875rem;
-  color: var(--reactif-text-light);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -1508,26 +1537,27 @@ body {
   max-width: 700px;
   margin-bottom: 2rem;
   height: 8px;
-  background: var(--reactif-accent);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .questionnaire-progress > div {
-  background: linear-gradient(90deg, var(--reactif-primary) 0%, var(--reactif-secondary) 100%);
+  background: linear-gradient(90deg, var(--declic-orange) 0%, var(--declic-green) 100%);
 }
 
 .question-card {
   width: 100%;
   max-width: 800px;
   padding: 1.5rem 2rem;
-  background: var(--reactif-card);
+  background: var(--bg-card);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(67, 56, 202, 0.1);
+  border: 1px solid var(--border-dark);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .question-text {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--reactif-text);
+  color: var(--text-primary);
   line-height: 1.4;
   margin-bottom: 1.5rem;
 }
@@ -1543,25 +1573,26 @@ body {
   align-items: center;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
-  border: 2px solid var(--reactif-border);
+  border: 1px solid var(--border-dark);
   border-radius: 12px;
   transition: all 0.2s ease;
   cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .option-item:hover {
-  border-color: var(--reactif-secondary);
-  background: #f8faff;
+  border-color: rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.1);
 }
 
 .option-item.selected {
-  border-color: var(--reactif-primary);
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: var(--declic-orange);
+  background: rgba(249, 115, 22, 0.15);
 }
 
 .option-label {
   font-size: 1rem;
-  color: var(--reactif-text);
+  color: var(--text-primary);
   cursor: pointer;
   flex: 1;
 }
@@ -2077,6 +2108,7 @@ body {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  background: var(--bg-dark);
 }
 
 /* Layout avec navigation sidebar */
@@ -2092,7 +2124,7 @@ body {
   max-width: 1000px;
 }
 
-/* Navigation Sidebar */
+/* Navigation Sidebar - DARK MODE */
 .navigation-sidebar {
   width: 280px;
   flex-shrink: 0;
@@ -2100,14 +2132,14 @@ body {
   top: 2rem;
   max-height: calc(100vh - 4rem);
   overflow-y: auto;
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-dark);
 }
 
 .nav-sidebar-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+  background: linear-gradient(135deg, var(--declic-orange) 0%, var(--declic-green) 100%);
   color: white;
   padding: 1rem 1.25rem;
   display: flex;
@@ -2137,12 +2169,12 @@ body {
 }
 
 .nav-sidebar-item:hover {
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-sidebar-item.active {
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-  border-left: 3px solid #4338ca;
+  background: rgba(249, 115, 22, 0.15);
+  border-left: 3px solid var(--declic-orange);
 }
 
 .nav-item-icon {
@@ -2152,13 +2184,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .nav-sidebar-item.active .nav-item-icon {
-  background: #4338ca;
+  background: var(--declic-orange);
   color: white;
 }
 
@@ -2171,7 +2204,7 @@ body {
   display: block;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2180,17 +2213,17 @@ body {
 .nav-item-subtitle {
   display: block;
   font-size: 0.6875rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 0.125rem;
 }
 
 .nav-item-arrow {
-  color: #9ca3af;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .nav-sidebar-item:hover .nav-item-arrow {
-  color: #4338ca;
+  color: var(--declic-orange);
 }
 
 /* Hide sidebar on smaller screens */
@@ -2250,11 +2283,12 @@ body {
   margin: 2rem 0;
 }
 
-/* Profile Summary Card */
+/* Profile Summary Card - DARK MODE */
 .profile-summary-card {
-  background: var(--reactif-card);
+  background: var(--bg-card);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(67, 56, 202, 0.08);
+  border: 1px solid var(--border-dark);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
 
@@ -2264,7 +2298,7 @@ body {
   gap: 0.75rem;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--reactif-primary);
+  color: var(--declic-orange);
 }
 
 .profile-grid {
@@ -3574,9 +3608,10 @@ body {
    ============================================================================ */
 
 .radar-card {
-  background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%);
+  background: var(--bg-card);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-dark);
   margin-bottom: 1.5rem;
   overflow: visible;
 }
@@ -3591,7 +3626,7 @@ body {
   gap: 0.75rem;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--reactif-primary);
+  color: var(--declic-orange);
 }
 
 .radar-container {
