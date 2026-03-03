@@ -217,8 +217,9 @@ body {
 }
 
 .declic-logo-container.centered {
-  flex-direction: column;
-  text-align: center;
+  flex-direction: row;
+  text-align: left;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
