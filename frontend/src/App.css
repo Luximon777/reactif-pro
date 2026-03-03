@@ -236,14 +236,16 @@ body {
 
 .declic-title {
   font-size: 3rem;
-  font-weight: 800;
+  font-weight: 900;
   background: linear-gradient(90deg, #f97316, #fbbf24, #a3e635, #22c55e, #14b8a6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -1px;
+  letter-spacing: 2px;
   margin: 0;
   line-height: 1;
+  font-family: 'Poppins', sans-serif;
+  text-transform: uppercase;
 }
 
 .declic-highlight {
@@ -2291,11 +2293,14 @@ body {
 
 .results-header-title {
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 900;
   background: linear-gradient(90deg, #f97316, #fbbf24, #a3e635, #22c55e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 /* Disclaimer */
