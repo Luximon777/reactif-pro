@@ -1532,8 +1532,8 @@ body {
 .footer-compliance {
   font-size: 0.8125rem;
   margin-top: 0.75rem;
-  opacity: 0.7;
-  color: var(--declic-orange-pale);
+  opacity: 0.9;
+  color: #9ca3af;
 }
 
 /* ============================================================================
