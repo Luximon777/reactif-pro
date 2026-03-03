@@ -223,9 +223,9 @@ const LandingPage = ({ onSelectPath }) => {
   return (
     <div className="landing-page declic-theme">
       <div className="landing-hero">
-        {/* Header row with both logos */}
-        <div className="landing-logos-row">
-          <div className="declic-logo-container">
+        {/* Header centered logo */}
+        <div className="landing-logos-row centered">
+          <div className="declic-logo-container centered">
             <DeclicProLogo size={140} animated={true} />
             <div className="declic-brand">
               <h1 className="declic-title">
@@ -233,10 +233,6 @@ const LandingPage = ({ onSelectPath }) => {
               </h1>
               <p className="declic-tagline">L'APPLY RE'ACTIF PRO</p>
             </div>
-          </div>
-          
-          <div className="landing-reactif-logo" data-testid="landing-reactif-logo">
-            <img src="/reactif-pro-logo.png" alt="RE'ACTIF PRO" className="reactif-logo-img-landing" />
           </div>
         </div>
         

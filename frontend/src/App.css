@@ -180,11 +180,15 @@ body {
 /* Landing page logos row - DE'CLIC PRO left, RE'ACTIF PRO right */
 .landing-logos-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   width: 100%;
   max-width: 900px;
   margin-bottom: 2rem;
+}
+
+.landing-logos-row.centered {
+  justify-content: center;
 }
 
 /* DE'CLIC Logo Container - keep original styling */
@@ -192,26 +196,15 @@ body {
   margin-bottom: 0;
 }
 
-/* RE'ACTIF PRO Logo on Landing Page - aligned with DE'CLIC PRO center */
+/* RE'ACTIF PRO Logo on Landing Page - hidden */
 .landing-reactif-logo {
-  padding: 0.5rem;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(238, 242, 255, 0.9) 0%, rgba(224, 231, 255, 0.9) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-  align-self: center;
-  margin-left: 4rem;
+  display: none;
 }
 
 @media (max-width: 768px) {
   .landing-logos-row {
     flex-direction: column;
     gap: 1.5rem;
-  }
-  
-  .landing-reactif-logo svg {
-    width: 50px;
-    height: 50px;
   }
 }
 
@@ -221,6 +214,11 @@ body {
   align-items: center;
   gap: 1.5rem;
   margin-bottom: 2rem;
+}
+
+.declic-logo-container.centered {
+  flex-direction: column;
+  text-align: center;
 }
 
 @media (max-width: 768px) {
