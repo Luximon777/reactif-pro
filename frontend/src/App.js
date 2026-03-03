@@ -7,7 +7,7 @@ import { CarteIdentitePage } from "./pages/CarteIdentitePage";
 function App() {
   return (
     <div className="App min-h-screen">
-      <BrowserRouter basename="/reactif-pro">
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/questionnaire" element={<QuestionnairePage />} />
