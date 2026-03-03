@@ -1884,7 +1884,7 @@ body {
   padding-top: 0.75rem;
   border-top: 1px solid rgba(2, 132, 199, 0.2);
   font-size: 0.875rem;
-  color: var(--reactif-text-light);
+  color: #475569;
 }
 
 /* Soft Skills Section */
@@ -2083,7 +2083,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--reactif-text-light);
+  color: #64748b;
 }
 
 .zone-sublabel {
@@ -2094,7 +2094,7 @@ body {
 
 .zone-value {
   font-size: 0.875rem;
-  color: var(--reactif-text);
+  color: #1f2937;
   font-weight: 500;
 }
 
@@ -2108,7 +2108,7 @@ body {
 .zone-recommandation p {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--reactif-text);
+  color: #1f2937;
   margin: 0.25rem 0 0;
   font-style: italic;
 }
@@ -2770,9 +2770,10 @@ body {
 }
 
 .top-job-card {
-  background: var(--reactif-card);
+  background: #ffffff;
   border-radius: 12px;
   transition: all 0.2s ease;
+  border: 1px solid #e5e7eb;
 }
 
 .top-job-card:hover {
@@ -2807,13 +2808,13 @@ body {
 .top-job-info h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--reactif-text);
+  color: #1f2937;
   margin: 0;
 }
 
 .top-job-info p {
   font-size: 0.75rem;
-  color: var(--reactif-text-light);
+  color: #64748b;
   margin: 0.125rem 0 0;
 }
 
@@ -3564,7 +3565,7 @@ body {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--reactif-text);
+  color: #1f2937;
   white-space: nowrap;
 }
 
@@ -3703,7 +3704,7 @@ body {
   gap: 0.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--reactif-text);
+  color: #1f2937;
   margin: 0 0 0.5rem 0;
   padding-left: 0.5rem;
 }
@@ -3763,13 +3764,13 @@ body {
   margin: 0 0 0.25rem;
   font-weight: 700;
   font-size: 0.9375rem;
-  color: var(--reactif-text);
+  color: #1f2937;
 }
 
 .radar-tooltip-desc {
   margin: 0 0 0.5rem;
   font-size: 0.8125rem;
-  color: var(--reactif-text-light);
+  color: #64748b;
 }
 
 .radar-tooltip-score {
@@ -3819,7 +3820,7 @@ body {
 .radar-legend-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--reactif-text);
+  color: #1f2937;
 }
 
 .radar-legend-score {
@@ -4082,14 +4083,14 @@ body {
 
 .pyramid-description {
   font-size: 0.8125rem;
-  color: var(--reactif-text-light);
+  color: #64748b;
   margin: 0 0 0.5rem;
   font-style: italic;
 }
 
 .pyramid-content {
   font-size: 0.9375rem;
-  color: var(--reactif-text);
+  color: #1f2937;
   margin: 0;
   line-height: 1.5;
 }
@@ -4118,9 +4119,10 @@ body {
 }
 
 .profile-narrative-card {
-  background: var(--reactif-card);
+  background: #ffffff;
   border-radius: 20px;
   box-shadow: 0 8px 32px rgba(67, 56, 202, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 .narrative-title {
@@ -5646,7 +5648,7 @@ body {
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--reactif-text);
+  color: #1f2937;
   margin: 0;
 }
 
@@ -5706,7 +5708,7 @@ body {
 
 .more-info-content p {
   font-size: 0.8125rem;
-  color: var(--reactif-text-light);
+  color: #475569;
   line-height: 1.6;
   margin: 0;
 }
