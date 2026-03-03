@@ -316,6 +316,15 @@ body {
   text-align: center;
 }
 
+.phase-description-below-phase {
+  font-size: 1.125rem;
+  color: #ffffff;
+  margin: 1.5rem auto 0;
+  max-width: 600px;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .phase-description strong {
   color: var(--declic-orange);
 }

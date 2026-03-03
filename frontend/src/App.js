@@ -202,6 +202,9 @@ const LandingPage = ({ onSelectPath }) => {
           <div className="phase-badge phase-1-badge">
             <span className="phase-number">PHASE 1</span>
           </div>
+          <p className="phase-description-below-phase">
+            Je débute par un questionnaire <strong style={{color: '#f97316'}}>TOTALEMENT ANONYME</strong> et <strong style={{color: '#f97316'}}>GRATUIT</strong> en moins de 5 mn.
+          </p>
         </div>
       </div>
 
@@ -248,10 +251,6 @@ const LandingPage = ({ onSelectPath }) => {
           </CardContent>
         </Card>
       </div>
-
-      <p className="phase-description-below-cards">
-        Je débute par un questionnaire <strong style={{color: '#f97316'}}>TOTALEMENT ANONYME</strong> et <strong style={{color: '#f97316'}}>GRATUIT</strong> en moins de 5 mn.
-      </p>
 
       {/* PHASE 2 */}
       <div className="landing-phase-section phase-2-section">
