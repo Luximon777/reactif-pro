@@ -3198,31 +3198,69 @@ def score_job(profile: Dict[str, Any], job: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def normalize_text(text: str) -> str:
+    """Normalize text for search: remove accents, special chars, and lowercase."""
+    import re
+    import unicodedata
+    # Normalize unicode and remove accents
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    # Remove special characters but keep spaces
+    text = re.sub(r'[^\w\s]', ' ', text)
+    # Convert to lowercase and clean up spaces
+    text = ' '.join(text.lower().split())
+    return text
+
+
 def search_job_by_query(query: str) -> List[Dict[str, Any]]:
     """Search jobs matching query with flexible matching (base locale)."""
-    query_lower = query.lower().strip()
-    query_words = set(query_lower.split())
-    matches = []
+    query_normalized = normalize_text(query)
+    query_words = set(query_normalized.split())
+    # Remove common stop words from query
+    stop_words = {'de', 'du', 'des', 'le', 'la', 'les', 'un', 'une', 'en', 'et', 'ou'}
+    query_words_significant = query_words - stop_words
+    
     scored_matches = []
     
     for job in METIERS:
         job_text = f"{job['label']} {job.get('secteur', '')} {job.get('filiere', '')} {job.get('intitule_rome', '')} {job.get('definition', '')}".lower()
+        job_text_normalized = normalize_text(job_text)
+        job_words = set(job_text_normalized.split())
         
-        # Exact substring match (high priority)
-        if query_lower in job_text:
-            scored_matches.append((job, 100))
-            continue
+        score = 0
         
-        # Word-based matching
-        job_words = set(job_text.split())
-        matching_words = query_words & job_words
-        if matching_words:
-            # Score based on percentage of query words found
-            score = (len(matching_words) / len(query_words)) * 80
+        # 1. Exact normalized substring match (highest priority)
+        if query_normalized in job_text_normalized:
+            score = 100
+        else:
+            # 2. Check if all significant query words appear in job text (high priority)
+            if query_words_significant and query_words_significant <= job_words:
+                score = 95
+            else:
+                # 3. Partial word matching - check if query words are substrings of job words
+                partial_matches = 0
+                for qw in query_words_significant:
+                    if len(qw) >= 3:  # Only match words with 3+ chars
+                        for jw in job_words:
+                            if qw in jw or jw in qw:
+                                partial_matches += 1
+                                break
+                
+                if partial_matches > 0 and query_words_significant:
+                    # Score based on percentage of significant words matched
+                    score = (partial_matches / len(query_words_significant)) * 85
+                
+                # 4. Fallback: Check exact word intersection
+                if score == 0:
+                    matching_words = query_words_significant & job_words
+                    if matching_words:
+                        score = (len(matching_words) / len(query_words_significant)) * 70 if query_words_significant else 0
+        
+        if score > 0:
             scored_matches.append((job, score))
     
-    # Sort by score and return
-    scored_matches.sort(key=lambda x: x[1], reverse=True)
+    # Sort by score (descending), then by job label (alphabetical) for consistency
+    scored_matches.sort(key=lambda x: (-x[1], x[0]['label']))
     matches = [job for job, score in scored_matches if score >= 30]
     
     return matches if matches else METIERS[:5]  # Return first 5 if no match
@@ -3380,9 +3418,14 @@ async def match_job(request: JobSearchRequest):
     if not matching_jobs:
         raise HTTPException(status_code=404, detail="Aucun métier trouvé pour cette recherche")
     
-    # Score all matching jobs
+    # Score all matching jobs - preserve search order for best_match selection
     results = [score_job(profile, job) for job in matching_jobs]
-    results.sort(key=lambda x: x["score"], reverse=True)
+    
+    # IMPORTANT: For job-match endpoint, the best_match should be the FIRST job from search results
+    # (which is the most relevant to the query), not the one with highest profile compatibility.
+    # We still compute profile scores for other_matches display, but the search relevance takes priority.
+    # Sort other_matches by profile score for alternatives display
+    results_sorted_by_profile = sorted(results, key=lambda x: x["score"], reverse=True)
     
     # Get profile info for Enneagram
     ennea_profile = ENNEA_TO_PROFILE.get(profile["ennea_dominant"], ENNEA_TO_PROFILE[5])
@@ -3509,7 +3552,7 @@ async def match_job(request: JobSearchRequest):
         "best_match": best_match,
         "job_info": job_info,
         "job_narrative": job_narrative,
-        "other_matches": results[1:5] if len(results) > 1 else [],
+        "other_matches": results_sorted_by_profile[1:5] if len(results_sorted_by_profile) > 1 else [],
         "suggested_jobs": suggested_jobs,  # Métiers suggérés si score < 70%
         "france_travail_enabled": is_france_travail_enabled()
     }
