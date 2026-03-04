@@ -2112,34 +2112,43 @@ const ReactifProCTA = () => {
   const [profileCode] = useState(() => generateProfileCode());
 
   return (
-    <Card className="reactif-cta-card" data-testid="reactif-pro-cta">
+    <Card className="reactif-cta-card institutional-style" data-testid="reactif-pro-cta">
       <CardContent className="cta-card-content">
-        <div className="cta-layout">
-          {/* Left side - Logo and branding */}
-          <div className="cta-brand-section">
-            <img src="/reactif-pro-logo.png" alt="RE'ACTIF PRO" className="reactif-logo-img-cta" />
+        {/* Header with partner logos */}
+        <div className="cta-header-institutional">
+          <div className="cta-partner-logos">
+            <img src="/reactif-pro-logo.png" alt="RE'ACTIF PRO" className="cta-logo-partner" />
+            <span className="cta-logo-separator">×</span>
+            <img src="/logo-ubuntoo.png" alt="UBUNTOO" className="cta-logo-partner cta-logo-ubuntoo" />
+          </div>
+        </div>
+        
+        {/* Main content */}
+        <div className="cta-body-institutional">
+          <h3 className="cta-title-institutional">
+            Récupérez votre rapport complet
+          </h3>
+          <p className="cta-subtitle-institutional">
+            Profil personnalité & compétences
+          </p>
+          <p className="cta-description-institutional">
+            Accédez à votre espace personnel sur <strong>RE'ACTIF PRO</strong> et rejoignez 
+            le réseau socio-professionnel <strong>UBUNTOO</strong> pour poursuivre votre 
+            parcours en développant confiance et estime de soi.
+          </p>
+          
+          {/* Code section */}
+          <div className="cta-code-institutional">
+            <div className="cta-code-label-institutional">Votre code d'accès</div>
+            <div className="cta-code-value-institutional">{profileCode}</div>
           </div>
           
-          {/* Right side - Content and CTA */}
-          <div className="cta-info-section">
-            <h3 className="cta-title">
-              RÉCUPÈRE ton rapport<br />
-              <span style={{color: '#fbbf24'}}>profil personnalité & compétences</span><br />
-              sur RE'ACTIF PRO et participe au réseau socio-professionnel <span style={{color: '#22c55e'}}>UBUNTOO</span>
-            </h3>
-            <p className="cta-description">
-              Poursuis ton parcours pro tout en gagnant en <strong>CONFIANCE</strong> et en <strong>ESTIME DE SOI</strong> !
-            </p>
-            <div className="cta-code-section">
-              <span className="cta-code-label">Code à utiliser :</span>
-              <span className="cta-code-value">{profileCode}</span>
-            </div>
-            <Button className="cta-button-new" disabled data-testid="discover-reactif-btn">
-              <span>Découvrir RE'ACTIF PRO</span>
-              <ExternalLink size={16} />
-              <Badge className="cta-badge-soon">Bientôt</Badge>
-            </Button>
-          </div>
+          {/* CTA Button */}
+          <Button className="cta-button-institutional" disabled data-testid="discover-reactif-btn">
+            <span>Accéder à RE'ACTIF PRO</span>
+            <ExternalLink size={16} />
+            <Badge className="cta-badge-institutional">Bientôt disponible</Badge>
+          </Button>
         </div>
       </CardContent>
     </Card>
