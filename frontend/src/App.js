@@ -2124,7 +2124,7 @@ const ReactifProCTA = () => {
             <h3 className="cta-title">
               RÉCUPÈRE ton rapport<br />
               <span style={{color: '#fbbf24'}}>profil personnalité & compétences</span><br />
-              sur RE'ACTIF PRO
+              sur RE'ACTIF PRO et participe au réseau socio-professionnel <span style={{color: '#22c55e'}}>UBUNTOO</span>
             </h3>
             <p className="cta-description">
               Poursuis ton parcours pro tout en gagnant en <strong>CONFIANCE</strong> et en <strong>ESTIME DE SOI</strong> !
