@@ -297,9 +297,10 @@ const LandingPage = ({ onSelectPath }) => {
           <span className="phase-number">PHASE 2</span>
         </div>
         
-        {/* Logos partenaires : Alt&Act | RE'ACTIF PRO | AI Act */}
+        {/* Logos partenaires : Alt&Act | Ubuntoo | RE'ACTIF PRO | AI Act */}
         <div className="partners-logos-container">
           <img src="/logo-altact.png" alt="Alt&Act" className="partner-logo logo-altact" />
+          <img src="/logo-ubuntoo.png" alt="Ubuntoo" className="partner-logo logo-ubuntoo" />
           <img src="/reactif-pro-logo-full.png" alt="RE'ACTIF PRO" className="partner-logo logo-reactif" />
           <img src="/logo-ia-act.jpeg" alt="AI Act" className="partner-logo logo-ia-act" />
         </div>
