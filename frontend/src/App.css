@@ -399,6 +399,24 @@ body {
   }
 }
 
+/* Bande blanche avec logo RE'ACTIF PRO */
+.reactif-pro-banner {
+  width: 100%;
+  background: #ffffff;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.reactif-pro-banner-logo {
+  max-height: 80px;
+  width: auto;
+  object-fit: contain;
+}
+
 /* DE'CLIC Cards - DARK MODE */
 .declic-card {
   border: 1px solid var(--border-dark);

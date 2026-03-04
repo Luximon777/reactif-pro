@@ -291,6 +291,11 @@ const LandingPage = ({ onSelectPath }) => {
         </Card>
       </div>
 
+      {/* Bande blanche avec logo RE'ACTIF PRO */}
+      <div className="reactif-pro-banner">
+        <img src="/reactif-pro-logo-full.png" alt="RE'ACTIF PRO - Intelligence Professionnelle" className="reactif-pro-banner-logo" />
+      </div>
+
       {/* PHASE 2 */}
       <div className="landing-phase-section phase-2-section">
         <div className="phase-badge phase-2-badge">
