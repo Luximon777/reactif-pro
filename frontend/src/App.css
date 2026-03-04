@@ -406,9 +406,15 @@ body {
 
 /* Logo RE'ACTIF PRO adapté au design dark */
 .reactif-pro-logo-container {
+  display: none;
+}
+
+/* Logos partenaires (Alt&Act | RE'ACTIF PRO | AI Act) */
+.partners-logos-container {
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 2rem;
   margin: 1.5rem 0;
   padding: 1rem 2rem;
   background: rgba(255, 255, 255, 0.05);
@@ -417,11 +423,27 @@ body {
   backdrop-filter: blur(10px);
 }
 
-.reactif-pro-logo-dark {
-  max-height: 60px;
+.partner-logo {
+  height: 50px;
   width: auto;
   object-fit: contain;
-  filter: brightness(1.1);
+}
+
+.logo-altact {
+  height: 45px;
+}
+
+.logo-reactif {
+  height: 50px;
+}
+
+.logo-ia-act {
+  height: 45px;
+  border-radius: 8px;
+}
+
+.reactif-pro-logo-dark {
+  display: none;
 }
 
 /* DE'CLIC Cards - DARK MODE */
