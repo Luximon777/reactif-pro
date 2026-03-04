@@ -11,26 +11,13 @@ import uuid
 from datetime import datetime, timezone
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
-# Import France Travail API integration - TEMPORARILY DISABLED FOR TESTING
-# from france_travail_api import (
-#     france_travail_api,
-#     search_job_france_travail,
-#     get_job_info_france_travail,
-#     is_france_travail_enabled
-# )
-
-# Temporary mock functions for testing
-def france_travail_api():
-    return None
-
-def search_job_france_travail(*args, **kwargs):
-    return []
-
-def get_job_info_france_travail(*args, **kwargs):
-    return {}
-
-def is_france_travail_enabled():
-    return False
+# Import France Travail API integration
+from france_travail_api import (
+    france_travail_api,
+    search_job_france_travail,
+    get_job_info_france_travail,
+    is_france_travail_enabled
+)
 
 
 ROOT_DIR = Path(__file__).parent
