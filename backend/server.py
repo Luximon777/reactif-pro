@@ -5121,7 +5121,10 @@ async def match_job(request: JobSearchRequest):
             "dominant_vertus": profile["dominant_vertus"],
             "disc_scores": profile.get("disc_scores", {"D": 0, "I": 0, "S": 0, "C": 0}),
             "disc_dominant": profile.get("disc", "S"),
-            "riasec": user_riasec  # NOUVEAU: Profil RIASEC complet
+            "mbti": profile.get("mbti", ""),
+            "ennea_dominant": profile.get("ennea_dominant", 5),
+            "ennea_runner_up": profile.get("ennea_runner_up", 5),
+            "riasec": user_riasec  # Profil RIASEC complet
         },
         "profile_narrative": profile_narrative,
         "vertus_data": vertu_data,
@@ -5202,7 +5205,9 @@ async def explore_careers(request: ExploreRequest):
             "dominant_vertus": profile["dominant_vertus"],
             "disc_scores": profile.get("disc_scores", {"D": 0, "I": 0, "S": 0, "C": 0}),
             "disc_dominant": profile.get("disc", "S"),
-            "riasec": user_riasec  # NOUVEAU: Profil RIASEC complet
+            "ennea_dominant": profile.get("ennea_dominant", 5),
+            "ennea_runner_up": profile.get("ennea_runner_up", 5),
+            "riasec": user_riasec  # Profil RIASEC complet
         },
         "profile_narrative": profile_narrative,
         "vertus_data": vertu_data,
