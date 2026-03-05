@@ -66,9 +66,16 @@ Créer le site DE'CLIC PRO - Intelligence Professionnelle, une plateforme de dé
   - Fonction `calculate_riasec_profile()` pour calculer le profil RIASEC à partir de MBTI/DISC/Ennéagramme
   - Fonction `riasec_congruence()` pour calculer la compatibilité métier-utilisateur
   - Fonction `get_job_riasec()` pour obtenir le code RIASEC d'un métier via le mapping ROME
-  - Mapping `ROME_RIASEC_MAPPING` avec 40+ codes ROME → RIASEC
+  - Mapping `ROME_RIASEC_MAPPING` avec 358 codes ROME → RIASEC
   - Score RIASEC intégré dans `score_job()` avec un poids de 20%
   - Composant frontend `RiasecProfile` avec barres de score et affichage des traits
+  - Tests automatisés passés (5/5)
+
+- [x] **Enrichissement du questionnaire avec 8 questions RIASEC directes** ✅
+  - 5 questions à 2 choix visuels (r1, r2, r3, r5, r7) : vie quotidienne et professionnelle
+  - 3 questions de classement à 4 choix (r4, r6, r8) : activités, environnements, tâches
+  - Système de pondération: 5 pts pour choix direct, 5/3/2/1 pts pour classement
+  - Total questionnaire: 20 questions (+ date de naissance)
   - Tests automatisés passés (5/5)
 
 ### Décembre 2025 (Sessions précédentes)
