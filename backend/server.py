@@ -410,6 +410,253 @@ VISUAL_QUESTIONS = [
             {"id": "v12h", "value": "9", "label": "⚔️ Les conflits"},
             {"id": "v12i", "value": "1", "label": "❌ L'imperfection et les erreurs"}
         ]
+    },
+    
+    # ============================================================================
+    # BLOC 7 - INTÉRÊTS PROFESSIONNELS RIASEC (Holland Codes)
+    # 8 nouvelles questions pour affiner le profil RIASEC
+    # ============================================================================
+    
+    # Question R1 - Réaliste vs Investigateur (vie quotidienne)
+    {
+        "id": "r1",
+        "question": "Chez vous, quand quelque chose tombe en panne...",
+        "category": "riasec",
+        "type": "visual",
+        "riasec_weight": {"primary": "R", "secondary": "I"},
+        "choices": [
+            {
+                "id": "r1a",
+                "value": "R",
+                "label": "Je répare moi-même",
+                "image": "https://images.pexels.com/photos/4491881/pexels-photo-4491881.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne qui répare un appareil avec des outils"
+            },
+            {
+                "id": "r1b",
+                "value": "I",
+                "label": "Je cherche à comprendre pourquoi",
+                "image": "https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne qui analyse un problème technique"
+            }
+        ]
+    },
+    
+    # Question R2 - Artistique vs Social (vie quotidienne)
+    {
+        "id": "r2",
+        "question": "Pendant votre temps libre, vous préférez...",
+        "category": "riasec",
+        "type": "visual",
+        "riasec_weight": {"primary": "A", "secondary": "S"},
+        "choices": [
+            {
+                "id": "r2a",
+                "value": "A",
+                "label": "Créer (dessiner, écrire, jouer de la musique...)",
+                "image": "https://images.pexels.com/photos/3094218/pexels-photo-3094218.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne en train de peindre ou créer"
+            },
+            {
+                "id": "r2b",
+                "value": "S",
+                "label": "Aider ou accompagner quelqu'un",
+                "image": "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne aidant une autre personne"
+            }
+        ]
+    },
+    
+    # Question R3 - Entreprenant vs Conventionnel (professionnel)
+    {
+        "id": "r3",
+        "question": "Dans un projet professionnel, vous préférez...",
+        "category": "riasec",
+        "type": "visual",
+        "riasec_weight": {"primary": "E", "secondary": "C"},
+        "choices": [
+            {
+                "id": "r3a",
+                "value": "E",
+                "label": "Convaincre et mener l'équipe",
+                "image": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Leader présentant devant son équipe"
+            },
+            {
+                "id": "r3b",
+                "value": "C",
+                "label": "Organiser et structurer le travail",
+                "image": "https://images.pexels.com/photos/669615/pexels-photo-669615.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Bureau bien organisé avec classements"
+            }
+        ]
+    },
+    
+    # Question R4 - Classement 4 activités (vie quotidienne)
+    {
+        "id": "r4",
+        "question": "Classez ces activités de la plus agréable (1) à la moins agréable (4) :",
+        "category": "riasec",
+        "type": "ranking",
+        "instruction": "Glissez ou numérotez de 1 (ce que j'aime le plus) à 4 (ce que j'aime le moins)",
+        "choices": [
+            {
+                "id": "r4a",
+                "value": "R",
+                "label": "Bricoler, jardiner ou cuisiner",
+                "image": "https://images.pexels.com/photos/5691622/pexels-photo-5691622.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne qui bricole"
+            },
+            {
+                "id": "r4b",
+                "value": "A",
+                "label": "Décorer, photographier ou customiser",
+                "image": "https://images.pexels.com/photos/1092644/pexels-photo-1092644.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Décoration artistique"
+            },
+            {
+                "id": "r4c",
+                "value": "S",
+                "label": "Rendre service ou conseiller un proche",
+                "image": "https://images.pexels.com/photos/7176319/pexels-photo-7176319.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Deux personnes en discussion d'aide"
+            },
+            {
+                "id": "r4d",
+                "value": "E",
+                "label": "Organiser une sortie ou un événement",
+                "image": "https://images.pexels.com/photos/7551617/pexels-photo-7551617.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Organisation d'événement"
+            }
+        ]
+    },
+    
+    # Question R5 - Investigateur vs Artistique (professionnel)
+    {
+        "id": "r5",
+        "question": "Pour résoudre un problème complexe au travail...",
+        "category": "riasec",
+        "type": "visual",
+        "riasec_weight": {"primary": "I", "secondary": "A"},
+        "choices": [
+            {
+                "id": "r5a",
+                "value": "I",
+                "label": "J'analyse les données et les faits",
+                "image": "https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Analyse de données et graphiques"
+            },
+            {
+                "id": "r5b",
+                "value": "A",
+                "label": "J'imagine des solutions créatives",
+                "image": "https://images.pexels.com/photos/6224/hands-people-woman-working.jpg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Brainstorming créatif"
+            }
+        ]
+    },
+    
+    # Question R6 - Classement 4 environnements de travail (professionnel)
+    {
+        "id": "r6",
+        "question": "Classez ces environnements de travail du plus attirant (1) au moins attirant (4) :",
+        "category": "riasec",
+        "type": "ranking",
+        "instruction": "Glissez ou numérotez de 1 (le plus attirant) à 4 (le moins attirant)",
+        "choices": [
+            {
+                "id": "r6a",
+                "value": "R",
+                "label": "Atelier, chantier ou terrain",
+                "image": "https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Atelier avec outils"
+            },
+            {
+                "id": "r6b",
+                "value": "I",
+                "label": "Laboratoire ou centre de recherche",
+                "image": "https://images.pexels.com/photos/2280571/pexels-photo-2280571.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Laboratoire scientifique"
+            },
+            {
+                "id": "r6c",
+                "value": "C",
+                "label": "Bureau avec procédures claires",
+                "image": "https://images.pexels.com/photos/1170412/pexels-photo-1170412.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Bureau organisé"
+            },
+            {
+                "id": "r6d",
+                "value": "E",
+                "label": "Open space dynamique ou commercial",
+                "image": "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Open space moderne"
+            }
+        ]
+    },
+    
+    # Question R7 - Social vs Réaliste (vie quotidienne)
+    {
+        "id": "r7",
+        "question": "Le week-end, vous seriez plutôt du genre à...",
+        "category": "riasec",
+        "type": "visual",
+        "riasec_weight": {"primary": "S", "secondary": "R"},
+        "choices": [
+            {
+                "id": "r7a",
+                "value": "S",
+                "label": "Faire du bénévolat ou aider dans une association",
+                "image": "https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Bénévolat et entraide"
+            },
+            {
+                "id": "r7b",
+                "value": "R",
+                "label": "Faire du sport ou une activité physique",
+                "image": "https://images.pexels.com/photos/3764011/pexels-photo-3764011.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Activité sportive en extérieur"
+            }
+        ]
+    },
+    
+    # Question R8 - Classement 4 types de tâches (professionnel)
+    {
+        "id": "r8",
+        "question": "Classez ces tâches professionnelles de la plus motivante (1) à la moins motivante (4) :",
+        "category": "riasec",
+        "type": "ranking",
+        "instruction": "Glissez ou numérotez de 1 (la plus motivante) à 4 (la moins motivante)",
+        "choices": [
+            {
+                "id": "r8a",
+                "value": "I",
+                "label": "Analyser des données ou des rapports",
+                "image": "https://images.pexels.com/photos/669619/pexels-photo-669619.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Analyse de données"
+            },
+            {
+                "id": "r8b",
+                "value": "A",
+                "label": "Concevoir un visuel ou rédiger un contenu",
+                "image": "https://images.pexels.com/photos/326503/pexels-photo-326503.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Design et création de contenu"
+            },
+            {
+                "id": "r8c",
+                "value": "S",
+                "label": "Former ou accompagner des collègues",
+                "image": "https://images.pexels.com/photos/5212345/pexels-photo-5212345.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Formation et accompagnement"
+            },
+            {
+                "id": "r8d",
+                "value": "C",
+                "label": "Vérifier et classer des documents",
+                "image": "https://images.pexels.com/photos/4792285/pexels-photo-4792285.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Organisation de documents"
+            }
+        ]
     }
 ]
 
@@ -3735,22 +3982,55 @@ def calculate_riasec_profile(answers: Dict[str, Any], profile: Dict[str, Any]) -
     """
     Calcule le profil RIASEC basé sur les réponses au questionnaire et le profil MBTI/DISC.
     Utilise les correspondances MBTI→RIASEC et DISC→RIASEC pour inférer les intérêts.
+    NOUVEAU: Intègre les 8 questions RIASEC directes (r1-r8) pour un profil plus précis.
     """
     riasec_scores = {"R": 0, "I": 0, "A": 0, "S": 0, "E": 0, "C": 0}
     
-    # 1. Inférence depuis MBTI
+    # ============================================================================
+    # PARTIE 1: Réponses DIRECTES aux questions RIASEC (r1-r8) - Poids élevé (5 pts)
+    # Ces réponses sont les plus fiables car directement liées aux intérêts
+    # ============================================================================
+    
+    # Questions à 2 choix (r1, r2, r3, r5, r7) - Poids de 5 points
+    direct_questions = ["r1", "r2", "r3", "r5", "r7"]
+    for q_id in direct_questions:
+        answer = answers.get(q_id, "")
+        if answer in riasec_scores:
+            riasec_scores[answer] += 5
+    
+    # Questions de classement (r4, r6, r8) - Poids selon le rang
+    # Rang 1 = 5 pts, Rang 2 = 3 pts, Rang 3 = 2 pts, Rang 4 = 1 pt
+    ranking_questions = ["r4", "r6", "r8"]
+    ranking_weights = [5, 3, 2, 1]
+    
+    for q_id in ranking_questions:
+        answer = answers.get(q_id, "")
+        if answer and isinstance(answer, str):
+            # Format: "R,A,S,E" (ordre de préférence)
+            ranked_codes = [c.strip().upper() for c in answer.split(",")]
+            for idx, code in enumerate(ranked_codes[:4]):
+                if code in riasec_scores and idx < len(ranking_weights):
+                    riasec_scores[code] += ranking_weights[idx]
+    
+    # ============================================================================
+    # PARTIE 2: Inférence depuis MBTI (poids moyen: 3 pts)
+    # ============================================================================
     mbti = profile.get("mbti", "")
     for riasec_code, riasec_data in RIASEC_DESCRIPTIONS.items():
         if mbti in riasec_data.get("mbti_affinite", []):
             riasec_scores[riasec_code] += 3  # Fort poids pour correspondance directe
     
-    # 2. Inférence depuis DISC
+    # ============================================================================
+    # PARTIE 3: Inférence depuis DISC (poids moyen: 2 pts)
+    # ============================================================================
     disc = profile.get("disc", "S")
     for riasec_code, riasec_data in RIASEC_DESCRIPTIONS.items():
         if disc in riasec_data.get("disc_affinite", []):
             riasec_scores[riasec_code] += 2
     
-    # 3. Inférence depuis Ennéagramme
+    # ============================================================================
+    # PARTIE 4: Inférence depuis Ennéagramme (poids moyen: 2 pts dominant, 1 pt secondaire)
+    # ============================================================================
     ennea_dom = profile.get("ennea_dominant", 9)
     ennea_sec = profile.get("ennea_runner_up", 9)
     for riasec_code, riasec_data in RIASEC_DESCRIPTIONS.items():
@@ -3759,7 +4039,9 @@ def calculate_riasec_profile(answers: Dict[str, Any], profile: Dict[str, Any]) -
         if ennea_sec in riasec_data.get("ennea_affinite", []):
             riasec_scores[riasec_code] += 1
     
-    # 4. Ajustements basés sur les dimensions MBTI
+    # ============================================================================
+    # PARTIE 5: Ajustements basés sur les dimensions MBTI (poids faible: 2 pts)
+    # ============================================================================
     # E/I influence sur E(ntreprenant) et I(nvestigateur)
     if profile.get("energie") == "E":
         riasec_scores["E"] += 2
