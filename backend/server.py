@@ -2111,9 +2111,9 @@ METIERS = [
         "secteur": "Assistant(e) de service social",
         "definition": "Accompagne des personnes dans leur parcours d'insertion professionnelle. Aide à définir un projet et à lever les freins.",
         "disc_attendu": ["S", "I"], 
-        "ennea_compatible": [2, 9, 6],
-        # PDF: Conseiller -> ENFP ; Assistants sociaux -> ISFJ, INFJ, ESFJ, ENFJ
-        "mbti_compatible": ["ENFP", "ENFJ", "INFJ", "ESFJ"],
+        "ennea_compatible": [2, 9, 6, 4],
+        # PDF: Conseiller -> ENFP ; Assistants sociaux -> ISFJ, INFJ, ESFJ, ENFJ ; INFP ajouté car profil d'accompagnement
+        "mbti_compatible": ["ENFP", "ENFJ", "INFJ", "INFP", "ESFJ", "ISFJ"],
         "competences_requises": ["Empathie", "Communication", "Organisation", "Écoute active"],
         "soft_skills_essentiels": [
             {"nom": "Écoute active", "importance": "critique", "description": "Comprendre les besoins et contraintes de chacun"},
@@ -2807,28 +2807,29 @@ WEIGHTS = {
     "constraints": 5,
 }
 
-# MBTI Compatibility - Types similaires par fonction dominante
+# MBTI Compatibility - Types similaires par fonction dominante et mode de fonctionnement
+# Correction: Les types Feeling (F) ne sont PAS similaires aux types Thinking (T)
 MBTI_SIMILAR = {
-    # NF - Les Idéalistes (Intuition + Feeling)
-    "ENFP": ["INFP", "ENFJ", "INFJ", "ENTP"],
-    "INFP": ["ENFP", "INFJ", "ENFJ", "INTP"],
-    "ENFJ": ["INFJ", "ENFP", "INFP", "ENTJ"],
-    "INFJ": ["ENFJ", "INFP", "ENFP", "INTJ"],
-    # NT - Les Rationnels (Intuition + Thinking)
-    "ENTP": ["INTP", "ENTJ", "INTJ", "ENFP"],
-    "INTP": ["ENTP", "INTJ", "ENTJ", "INFP"],
-    "ENTJ": ["INTJ", "ENTP", "INTP", "ENFJ"],
-    "INTJ": ["ENTJ", "INTP", "ENTP", "INFJ"],
-    # SJ - Les Gardiens (Sensing + Judging)
-    "ESTJ": ["ISTJ", "ESFJ", "ISFJ", "ENTJ"],
-    "ISTJ": ["ESTJ", "ISFJ", "ESFJ", "INTJ"],
-    "ESFJ": ["ISFJ", "ESTJ", "ISTJ", "ENFJ"],
-    "ISFJ": ["ESFJ", "ISTJ", "ESTJ", "INFJ"],
-    # SP - Les Artisans (Sensing + Perceiving)
-    "ESTP": ["ISTP", "ESFP", "ISFP", "ENTP"],
-    "ISTP": ["ESTP", "ISFP", "ESFP", "INTP"],
-    "ESFP": ["ISFP", "ESTP", "ISTP", "ENFP"],
-    "ISFP": ["ESFP", "ISTP", "ESTP", "INFP"],
+    # NF - Les Idéalistes (Intuition + Feeling) - orientés relations et valeurs
+    "ENFP": ["INFP", "ENFJ", "INFJ"],          # Tous NF
+    "INFP": ["ENFP", "INFJ", "ENFJ"],          # Tous NF (retiré INTP)
+    "ENFJ": ["INFJ", "ENFP", "INFP"],          # Tous NF
+    "INFJ": ["ENFJ", "INFP", "ENFP"],          # Tous NF
+    # NT - Les Rationnels (Intuition + Thinking) - orientés analyse et stratégie
+    "ENTP": ["INTP", "ENTJ", "INTJ"],          # Tous NT
+    "INTP": ["ENTP", "INTJ", "ENTJ"],          # Tous NT (retiré INFP)
+    "ENTJ": ["INTJ", "ENTP", "INTP"],          # Tous NT
+    "INTJ": ["ENTJ", "INTP", "ENTP"],          # Tous NT
+    # SJ - Les Gardiens (Sensing + Judging) - orientés stabilité et tradition
+    "ESTJ": ["ISTJ", "ESFJ", "ISFJ"],          # Tous SJ
+    "ISTJ": ["ESTJ", "ISFJ", "ESFJ"],          # Tous SJ
+    "ESFJ": ["ISFJ", "ESTJ", "ISTJ"],          # Tous SJ
+    "ISFJ": ["ESFJ", "ISTJ", "ESTJ"],          # Tous SJ
+    # SP - Les Artisans (Sensing + Perceiving) - orientés action et adaptation
+    "ESTP": ["ISTP", "ESFP", "ISFP"],          # Tous SP
+    "ISTP": ["ESTP", "ISFP", "ESFP"],          # Tous SP
+    "ESFP": ["ISFP", "ESTP", "ISTP"],          # Tous SP
+    "ISFP": ["ESFP", "ISTP", "ESTP"],          # Tous SP
 }
 
 def mbti_similarity(user_mbti: str, job_mbti_list: List[str]) -> float:
