@@ -37,6 +37,7 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
+  CheckCircle,
   Lightbulb,
   Users,
   Briefcase,
@@ -1912,6 +1913,122 @@ const RiasecProfile = ({ riasec }) => {
 };
 
 // ============================================================================
+// VERTUS PROFILE - Profil de Vertus (Archéologie des Compétences)
+// ============================================================================
+const VertusProfile = ({ vertusProfile }) => {
+  if (!vertusProfile || !vertusProfile.vertus_scores) return null;
+
+  const vertusLabels = {
+    sagesse: { name: 'Sagesse', color: '#6366f1', icon: '🧠', description: 'Connaissance, curiosité, créativité' },
+    courage: { name: 'Courage', color: '#ef4444', icon: '🦁', description: 'Bravoure, persévérance, authenticité' },
+    humanite: { name: 'Humanité', color: '#10b981', icon: '💚', description: 'Amour, bonté, intelligence sociale' },
+    justice: { name: 'Justice', color: '#f59e0b', icon: '⚖️', description: 'Équité, leadership, citoyenneté' },
+    temperance: { name: 'Tempérance', color: '#0ea5e9', icon: '🧘', description: 'Pardon, humilité, prudence' },
+    transcendance: { name: 'Transcendance', color: '#a855f7', icon: '✨', description: 'Gratitude, espoir, spiritualité' }
+  };
+
+  const sortedScores = Object.entries(vertusProfile.vertus_scores)
+    .sort((a, b) => b[1] - a[1]);
+
+  return (
+    <Card className="vertus-card" data-testid="vertus-profile">
+      <CardHeader>
+        <CardTitle className="vertus-title">
+          <Gem size={24} /> Profil de Vertus
+        </CardTitle>
+        <CardDescription>
+          Archéologie des compétences - Vos forces de caractère qui guident vos choix
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Vertu dominante */}
+        <div className="vertus-main-display">
+          <div className="vertus-dominant-badge" style={{ borderColor: vertusLabels[vertusProfile.dominant]?.color }}>
+            <span className="vertus-icon">{vertusLabels[vertusProfile.dominant]?.icon}</span>
+            <div className="vertus-dominant-info">
+              <span className="vertus-dominant-label">Vertu dominante</span>
+              <span className="vertus-dominant-name" style={{ color: vertusLabels[vertusProfile.dominant]?.color }}>
+                {vertusProfile.dominant_name}
+              </span>
+            </div>
+          </div>
+          <div className="vertus-secondary-badge">
+            <span className="vertus-icon-small">{vertusLabels[vertusProfile.secondary]?.icon}</span>
+            <span className="vertus-secondary-name">{vertusProfile.secondary_name}</span>
+          </div>
+        </div>
+
+        {/* Barres de score pour chaque vertu */}
+        <div className="vertus-scores">
+          <h4 className="vertus-section-title">Vos 6 vertus</h4>
+          {sortedScores.map(([code, score]) => (
+            <div key={code} className="vertus-score-row">
+              <div className="vertus-score-label">
+                <span className="vertus-score-icon">{vertusLabels[code]?.icon}</span>
+                <span className="vertus-score-name">{vertusLabels[code]?.name}</span>
+              </div>
+              <div className="vertus-score-bar-container">
+                <div 
+                  className="vertus-score-bar" 
+                  style={{ 
+                    width: `${score}%`,
+                    backgroundColor: vertusLabels[code]?.color
+                  }}
+                />
+              </div>
+              <span className="vertus-score-value">{score}%</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Qualités dominantes */}
+        {vertusProfile.qualites_dominantes && vertusProfile.qualites_dominantes.length > 0 && (
+          <div className="vertus-qualites">
+            <h4 className="vertus-section-title">Qualités humaines associées</h4>
+            <div className="vertus-qualites-list">
+              {vertusProfile.qualites_dominantes.map((qualite, idx) => (
+                <Badge key={idx} variant="secondary" className="vertus-qualite-badge">
+                  {qualite}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Savoir-être professionnels */}
+        {vertusProfile.savoirs_etre_dominants && vertusProfile.savoirs_etre_dominants.length > 0 && (
+          <div className="vertus-savoirs">
+            <h4 className="vertus-section-title">Savoir-être professionnels</h4>
+            <div className="vertus-savoirs-list">
+              {vertusProfile.savoirs_etre_dominants.map((savoir, idx) => (
+                <div key={idx} className="vertus-savoir-item">
+                  <CheckCircle size={16} className="vertus-savoir-icon" />
+                  <span>{savoir}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Compétences OMS */}
+        {vertusProfile.competences_oms && vertusProfile.competences_oms.length > 0 && (
+          <div className="vertus-competences">
+            <h4 className="vertus-section-title">Compétences clés (OMS)</h4>
+            <div className="vertus-competences-list">
+              {vertusProfile.competences_oms.map((comp, idx) => (
+                <span key={idx} className="vertus-competence-tag">
+                  {comp}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============================================================================
 // PROFESSIONAL ID CARD - Carte d'Identité Professionnelle (4 piliers)
 // ============================================================================
 const ProfessionalIdCard = ({ vertus, competences, narrative, lifePath, jobInfo }) => {
@@ -2867,6 +2984,12 @@ const JobMatchResult = ({ result, onBack, onNewSearch }) => {
             <RiasecProfile riasec={profile_summary?.riasec} />
           </div>
 
+          {/* 2.quint Profil de Vertus - Archéologie des Compétences */}
+          <div id="section-vertus">
+            <VertusProfile vertusProfile={profile_summary?.vertus} />
+          </div>
+
+
 
           {/* 3. Pistes d'Action */}
           <div id="section-actions">
@@ -3045,6 +3168,12 @@ const ExploreResult = ({ result, onBack }) => {
           <div id="section-riasec">
             <RiasecProfile riasec={profile_summary?.riasec} />
           </div>
+
+          {/* 2.quint Profil de Vertus - Archéologie des Compétences */}
+          <div id="section-vertus">
+            <VertusProfile vertusProfile={profile_summary?.vertus} />
+          </div>
+
 
 
           {/* 3. Pistes d'Action */}
