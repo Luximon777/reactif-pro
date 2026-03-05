@@ -19,6 +19,15 @@ from france_travail_api import (
     is_france_travail_enabled
 )
 
+# Import ESCO API integration (European Skills/Occupations database)
+from esco_api import (
+    search_occupations_esco,
+    get_occupation_details_esco,
+    get_all_occupations_esco,
+    is_esco_enabled,
+    esco_api_status
+)
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -3331,7 +3340,7 @@ def get_exploration_paths(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
         filiere_jobs[filiere].append(score_result)
     
     # Build exploration paths
-    MIN_COMPATIBILITY_SCORE = 75
+    MIN_COMPATIBILITY_SCORE = 50  # Lowered from 75 to show more filières
     paths = []
     for filiere_id, jobs in filiere_jobs.items():
         if not jobs:
@@ -3341,15 +3350,18 @@ def get_exploration_paths(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not filiere_info:
             continue
         
-        # Only consider jobs with score >= 75% for the filiere
+        # Consider jobs with score >= 50% for the filiere
         compatible_jobs = [j for j in jobs if j["score"] >= MIN_COMPATIBILITY_SCORE]
         
-        # Skip filiere if no compatible jobs
+        # If no jobs at 50%, take top 2 jobs regardless of score
+        if not compatible_jobs:
+            compatible_jobs = jobs[:2]
+        
         if not compatible_jobs:
             continue
         
         avg_score = sum(j["score"] for j in compatible_jobs) / len(compatible_jobs)
-        top_jobs = sorted(compatible_jobs, key=lambda x: x["score"], reverse=True)[:3]
+        top_jobs = sorted(compatible_jobs, key=lambda x: x["score"], reverse=True)[:5]  # Show up to 5 jobs per filière
         
         paths.append({
             "filiere": filiere_info["name"],
@@ -3362,7 +3374,7 @@ def get_exploration_paths(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
     
     # Sort by average compatibility
     paths.sort(key=lambda x: x["avg_compatibility"], reverse=True)
-    return paths[:5]
+    return paths[:8]  # Return up to 8 filières instead of 5
 
 
 # ============================================================================
@@ -3381,6 +3393,44 @@ async def get_france_travail_status():
         "enabled": is_france_travail_enabled(),
         "message": "API France Travail configurée" if is_france_travail_enabled() else "API France Travail non configurée. Configurez FRANCE_TRAVAIL_CLIENT_ID et FRANCE_TRAVAIL_CLIENT_SECRET pour accéder à 1500+ métiers officiels."
     }
+
+
+@api_router.get("/status/esco")
+async def get_esco_status():
+    """Vérifier le statut de l'intégration ESCO (European Skills/Occupations)."""
+    return esco_api_status()
+
+
+@api_router.get("/esco/search")
+async def search_esco_occupations(query: str, limit: int = 20):
+    """
+    Rechercher des métiers dans la base ESCO européenne (3000+ métiers).
+    
+    Args:
+        query: Terme de recherche (ex: "développeur", "commercial")
+        limit: Nombre max de résultats (défaut: 20)
+    """
+    results = await search_occupations_esco(query, limit=limit, language="fr")
+    return {
+        "query": query,
+        "count": len(results),
+        "source": "ESCO - European Skills, Competences, Qualifications and Occupations",
+        "results": results
+    }
+
+
+@api_router.get("/esco/occupation")
+async def get_esco_occupation_details(uri: str):
+    """
+    Obtenir les détails d'un métier ESCO (compétences, description).
+    
+    Args:
+        uri: URI ESCO du métier
+    """
+    details = await get_occupation_details_esco(uri, language="fr")
+    if details:
+        return details
+    raise HTTPException(status_code=404, detail="Métier non trouvé dans ESCO")
 
 
 @api_router.get("/questionnaire")
@@ -3490,8 +3540,18 @@ async def match_job(request: JobSearchRequest):
             best_match.get("risks", []) if best_match else []
         )
     
-    # Prepare job info - Priorité à France Travail si disponible
+    # Prepare job info - Priorité à France Travail si disponible, puis ESCO, puis local
     job_info = None
+    esco_details = None
+    
+    # Try to get ESCO details for enrichment
+    if request.job_query:
+        esco_results = await search_occupations_esco(request.job_query, limit=1, language="fr")
+        if esco_results:
+            esco_uri = esco_results[0].get("uri")
+            if esco_uri:
+                esco_details = await get_occupation_details_esco(esco_uri, language="fr")
+    
     if france_travail_fiche:
         # Utiliser la fiche France Travail (données officielles)
         job_info = {
@@ -3502,6 +3562,18 @@ async def match_job(request: JobSearchRequest):
             "soft_skills_essentiels": france_travail_fiche.get("soft_skills_essentiels", []),
             "hard_skills_essentiels": france_travail_fiche.get("hard_skills_essentiels", []),
             "source": "france_travail"
+        }
+    elif esco_details:
+        # Utiliser ESCO (base européenne 3000+ métiers)
+        job_info = {
+            "code_esco": esco_details.get("code_esco"),
+            "intitule_esco": esco_details.get("title"),
+            "definition": esco_details.get("description"),
+            "acces_emploi": "",
+            "soft_skills_essentiels": esco_details.get("essential_skills", [])[:6],
+            "hard_skills_essentiels": esco_details.get("optional_skills", [])[:6],
+            "all_skills": esco_details.get("all_skills", []),
+            "source": "esco"
         }
     elif best_match and matched_job:
         # Fallback sur la base locale
@@ -3552,6 +3624,16 @@ async def match_job(request: JobSearchRequest):
                     "reasons": job_score.get("reasons", [])[:2]
                 })
     
+    # Add ESCO info to response
+    esco_enrichment = None
+    if esco_details:
+        esco_enrichment = {
+            "title": esco_details.get("title"),
+            "uri": esco_details.get("uri"),
+            "essential_skills": esco_details.get("essential_skills", [])[:8],
+            "optional_skills": esco_details.get("optional_skills", [])[:8]
+        }
+    
     return {
         "profile_summary": {
             "competences_fortes": profile["competences_fortes"],
@@ -3571,7 +3653,9 @@ async def match_job(request: JobSearchRequest):
         "job_narrative": job_narrative,
         "other_matches": results_sorted_by_profile[1:5] if len(results_sorted_by_profile) > 1 else [],
         "suggested_jobs": suggested_jobs,  # Métiers suggérés si score < 70%
-        "france_travail_enabled": is_france_travail_enabled()
+        "esco_enrichment": esco_enrichment,  # Données ESCO si disponibles
+        "france_travail_enabled": is_france_travail_enabled(),
+        "esco_enabled": is_esco_enabled()
     }
 
 
@@ -3587,13 +3671,13 @@ async def explore_careers(request: ExploreRequest):
     all_scores = [score_job(profile, job) for job in METIERS]
     all_scores.sort(key=lambda x: x["score"], reverse=True)
     
-    # Only keep jobs with score >= 75%
-    MIN_COMPATIBILITY_SCORE = 75
+    # Only keep jobs with score >= 50% (lowered from 75%)
+    MIN_COMPATIBILITY_SCORE = 50
     compatible_jobs = [job for job in all_scores if job["score"] >= MIN_COMPATIBILITY_SCORE]
     
-    # If not enough compatible jobs, take top 5 with score >= 60%
-    if len(compatible_jobs) < 3:
-        compatible_jobs = [job for job in all_scores if job["score"] >= 60][:5]
+    # If not enough compatible jobs, take top 10 with score >= 40%
+    if len(compatible_jobs) < 10:
+        compatible_jobs = [job for job in all_scores if job["score"] >= 40][:10]
     
     # Limit to top 10 compatible jobs
     top_jobs = compatible_jobs[:10]
