@@ -2783,6 +2783,490 @@ METIERS = [
         ],
         "acces_emploi": "BPJEPS animation sociale ou culturelle. DEJEPS pour les postes de coordination.",
         "interaction": 2, "cadre": 0, "rythme": 1, "complexite": 1, "autonomie": 1
+    },
+    # ============ NOUVEAUX MÉTIERS ROME 2025 ============
+    {
+        "id": "M034", 
+        "label": "Médecin généraliste", 
+        "code_rome": "J1102",
+        "intitule_rome": "Médecin généraliste",
+        "filiere": "SSS", 
+        "secteur": "Santé",
+        "definition": "Assure le diagnostic, le traitement et le suivi des patients. Premier recours dans le parcours de soins.",
+        "disc_attendu": ["C", "S"], 
+        "ennea_compatible": [1, 5, 2],
+        "mbti_compatible": ["ISTJ", "ISFJ", "INTJ", "INFJ"],
+        "competences_requises": ["Diagnostic", "Écoute", "Rigueur", "Empathie"],
+        "soft_skills_essentiels": [
+            {"nom": "Empathie", "importance": "critique", "description": "Comprendre le patient"},
+            {"nom": "Rigueur", "importance": "critique", "description": "Précision dans le diagnostic"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Médecine générale", "importance": "critique", "description": "Connaissances médicales larges"},
+            {"nom": "Pharmacologie", "importance": "critique", "description": "Prescription médicamenteuse"}
+        ],
+        "acces_emploi": "Doctorat en médecine (9 ans d'études minimum).",
+        "interaction": 2, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M035", 
+        "label": "Sage-femme", 
+        "code_rome": "J1104",
+        "intitule_rome": "Sage-femme",
+        "filiere": "SSS", 
+        "secteur": "Santé",
+        "definition": "Accompagne les femmes pendant la grossesse, l'accouchement et le post-partum.",
+        "disc_attendu": ["S", "C"], 
+        "ennea_compatible": [2, 6, 9],
+        "mbti_compatible": ["ISFJ", "ESFJ", "INFJ", "ENFJ"],
+        "competences_requises": ["Accompagnement", "Urgence", "Écoute", "Technique médicale"],
+        "soft_skills_essentiels": [
+            {"nom": "Calme", "importance": "critique", "description": "Gestion des situations d'urgence"},
+            {"nom": "Bienveillance", "importance": "critique", "description": "Accompagnement humain"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Obstétrique", "importance": "critique", "description": "Suivi de grossesse et accouchement"},
+            {"nom": "Échographie", "importance": "importante", "description": "Diagnostic prénatal"}
+        ],
+        "acces_emploi": "Diplôme d'État de sage-femme (5 ans d'études).",
+        "interaction": 2, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M036", 
+        "label": "Kinésithérapeute", 
+        "code_rome": "J1404",
+        "intitule_rome": "Kinésithérapeute",
+        "filiere": "SSS", 
+        "secteur": "Santé",
+        "definition": "Rééduque les patients par le mouvement et les techniques manuelles.",
+        "disc_attendu": ["S", "I"], 
+        "ennea_compatible": [2, 9, 7],
+        "mbti_compatible": ["ISFJ", "ESFJ", "ISFP", "ESFP"],
+        "competences_requises": ["Rééducation", "Anatomie", "Relationnel", "Patience"],
+        "soft_skills_essentiels": [
+            {"nom": "Patience", "importance": "critique", "description": "Accompagner la progression"},
+            {"nom": "Encouragement", "importance": "importante", "description": "Motiver le patient"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Techniques de massage", "importance": "critique", "description": "Rééducation manuelle"},
+            {"nom": "Anatomie", "importance": "critique", "description": "Connaissance du corps humain"}
+        ],
+        "acces_emploi": "Diplôme d'État de masseur-kinésithérapeute (5 ans d'études).",
+        "interaction": 2, "cadre": 1, "rythme": 1, "complexite": 1, "autonomie": 2
+    },
+    {
+        "id": "M037", 
+        "label": "Pharmacien(ne)", 
+        "code_rome": "J1202",
+        "intitule_rome": "Pharmacien / Pharmacienne",
+        "filiere": "SSS", 
+        "secteur": "Santé",
+        "definition": "Délivre les médicaments et conseille les patients sur leur utilisation.",
+        "disc_attendu": ["C", "S"], 
+        "ennea_compatible": [1, 5, 6],
+        "mbti_compatible": ["ISTJ", "ESTJ", "INTJ", "ISFJ"],
+        "competences_requises": ["Pharmacologie", "Conseil", "Rigueur", "Gestion"],
+        "soft_skills_essentiels": [
+            {"nom": "Rigueur", "importance": "critique", "description": "Précision dans la délivrance"},
+            {"nom": "Conseil", "importance": "importante", "description": "Accompagnement patient"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Pharmacologie", "importance": "critique", "description": "Connaissance des médicaments"},
+            {"nom": "Gestion d'officine", "importance": "importante", "description": "Management et stocks"}
+        ],
+        "acces_emploi": "Diplôme d'État de docteur en pharmacie (6 ans d'études).",
+        "interaction": 1, "cadre": 1, "rythme": 1, "complexite": 1, "autonomie": 2
+    },
+    {
+        "id": "M038", 
+        "label": "Plombier / Plombière", 
+        "code_rome": "F1603",
+        "intitule_rome": "Plombier / Plombière sanitaire",
+        "filiere": "SBTP", 
+        "secteur": "BTP",
+        "definition": "Installe et répare les équipements sanitaires et la plomberie.",
+        "disc_attendu": ["C", "S"], 
+        "ennea_compatible": [6, 9, 1],
+        "mbti_compatible": ["ISTP", "ISTJ", "ESTP", "ESTJ"],
+        "competences_requises": ["Technique", "Autonomie", "Résolution problèmes", "Manuel"],
+        "soft_skills_essentiels": [
+            {"nom": "Autonomie", "importance": "critique", "description": "Travail seul sur chantier"},
+            {"nom": "Minutie", "importance": "importante", "description": "Précision des installations"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Plomberie", "importance": "critique", "description": "Installation sanitaire"},
+            {"nom": "Lecture de plans", "importance": "importante", "description": "Compréhension technique"}
+        ],
+        "acces_emploi": "CAP/BEP Plomberie ou équivalent. BP pour chef d'entreprise.",
+        "interaction": 0, "cadre": 0, "rythme": 1, "complexite": 1, "autonomie": 2
+    },
+    {
+        "id": "M039", 
+        "label": "Architecte", 
+        "code_rome": "F1101",
+        "intitule_rome": "Architecte du bâtiment",
+        "filiere": "SBTP", 
+        "secteur": "Architecture",
+        "definition": "Conçoit des bâtiments et supervise leur construction.",
+        "disc_attendu": ["C", "I"], 
+        "ennea_compatible": [4, 5, 7],
+        "mbti_compatible": ["INTJ", "INFJ", "INTP", "ENFP"],
+        "competences_requises": ["Créativité", "Technique", "Vision spatiale", "Gestion projet"],
+        "soft_skills_essentiels": [
+            {"nom": "Créativité", "importance": "critique", "description": "Conception originale"},
+            {"nom": "Vision spatiale", "importance": "critique", "description": "Imaginer les volumes"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "CAO/DAO", "importance": "critique", "description": "AutoCAD, Revit, SketchUp"},
+            {"nom": "Réglementation", "importance": "importante", "description": "Normes construction"}
+        ],
+        "acces_emploi": "Diplôme d'État d'architecte (5-6 ans en école d'architecture).",
+        "interaction": 1, "cadre": 1, "rythme": 1, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M040", 
+        "label": "Analyste Cybersécurité", 
+        "code_rome": "M1844",
+        "intitule_rome": "Analyste en cybersécurité",
+        "filiere": "SI", 
+        "secteur": "Informatique",
+        "definition": "Protège les systèmes informatiques contre les cybermenaces.",
+        "disc_attendu": ["C", "D"], 
+        "ennea_compatible": [5, 6, 1],
+        "mbti_compatible": ["INTJ", "ISTJ", "INTP", "ENTJ"],
+        "competences_requises": ["Sécurité IT", "Analyse", "Veille", "Réactivité"],
+        "soft_skills_essentiels": [
+            {"nom": "Vigilance", "importance": "critique", "description": "Détection des menaces"},
+            {"nom": "Sang-froid", "importance": "importante", "description": "Gestion des incidents"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Sécurité réseau", "importance": "critique", "description": "Firewall, IDS/IPS"},
+            {"nom": "Ethical hacking", "importance": "importante", "description": "Tests de pénétration"}
+        ],
+        "acces_emploi": "Bac+5 en cybersécurité ou informatique + certifications (CEH, CISSP).",
+        "interaction": 0, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 1
+    },
+    {
+        "id": "M041", 
+        "label": "Chef de projet digital", 
+        "code_rome": "M1828",
+        "intitule_rome": "Chef de projet digital",
+        "filiere": "SI", 
+        "secteur": "Informatique",
+        "definition": "Pilote des projets web, mobile ou transformation digitale.",
+        "disc_attendu": ["D", "I"], 
+        "ennea_compatible": [3, 7, 8],
+        "mbti_compatible": ["ENTJ", "ENTP", "ESTJ", "ENFJ"],
+        "competences_requises": ["Gestion projet", "Digital", "Communication", "Leadership"],
+        "soft_skills_essentiels": [
+            {"nom": "Leadership", "importance": "critique", "description": "Coordonner les équipes"},
+            {"nom": "Communication", "importance": "critique", "description": "Interface client/technique"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Méthodologies Agile", "importance": "critique", "description": "Scrum, Kanban"},
+            {"nom": "Outils PM", "importance": "importante", "description": "Jira, Trello, MS Project"}
+        ],
+        "acces_emploi": "Bac+5 digital/informatique + 3-5 ans d'expérience projet.",
+        "interaction": 2, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M042", 
+        "label": "Analyste financier", 
+        "code_rome": "M1201",
+        "intitule_rome": "Analyste financier / Analyste financière",
+        "filiere": "SGAE", 
+        "secteur": "Finance",
+        "definition": "Analyse les données financières pour conseiller les décisions d'investissement.",
+        "disc_attendu": ["C", "D"], 
+        "ennea_compatible": [5, 1, 3],
+        "mbti_compatible": ["INTJ", "ISTJ", "ENTJ", "INTP"],
+        "competences_requises": ["Analyse financière", "Modélisation", "Rigueur", "Excel avancé"],
+        "soft_skills_essentiels": [
+            {"nom": "Rigueur", "importance": "critique", "description": "Précision des analyses"},
+            {"nom": "Esprit critique", "importance": "importante", "description": "Évaluation objective"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Modélisation financière", "importance": "critique", "description": "DCF, multiples"},
+            {"nom": "Excel/VBA", "importance": "critique", "description": "Analyse quantitative"}
+        ],
+        "acces_emploi": "Bac+5 Finance/Gestion + CFA apprécié.",
+        "interaction": 1, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 1
+    },
+    {
+        "id": "M043", 
+        "label": "Auditeur / Auditrice", 
+        "code_rome": "M1202",
+        "intitule_rome": "Auditeur comptable et financier",
+        "filiere": "SGAE", 
+        "secteur": "Finance",
+        "definition": "Contrôle les comptes et processus internes des entreprises.",
+        "disc_attendu": ["C", "D"], 
+        "ennea_compatible": [1, 5, 6],
+        "mbti_compatible": ["ISTJ", "INTJ", "ESTJ", "ENTJ"],
+        "competences_requises": ["Audit", "Comptabilité", "Analyse", "Rédaction"],
+        "soft_skills_essentiels": [
+            {"nom": "Intégrité", "importance": "critique", "description": "Indépendance du jugement"},
+            {"nom": "Rigueur", "importance": "critique", "description": "Contrôles exhaustifs"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Normes comptables", "importance": "critique", "description": "IFRS, French GAAP"},
+            {"nom": "Techniques d'audit", "importance": "critique", "description": "Échantillonnage, contrôles"}
+        ],
+        "acces_emploi": "Bac+5 Audit/Comptabilité. DEC pour commissaire aux comptes.",
+        "interaction": 1, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 1
+    },
+    {
+        "id": "M044", 
+        "label": "Assistant(e) RH", 
+        "code_rome": "M1501",
+        "intitule_rome": "Assistant / Assistante Ressources Humaines",
+        "filiere": "SGAE", 
+        "secteur": "Ressources humaines",
+        "definition": "Assiste le service RH dans la gestion administrative du personnel.",
+        "disc_attendu": ["S", "I"], 
+        "ennea_compatible": [2, 6, 9],
+        "mbti_compatible": ["ISFJ", "ESFJ", "ENFJ", "INFJ"],
+        "competences_requises": ["Administration", "Paie", "Relationnel", "Organisation"],
+        "soft_skills_essentiels": [
+            {"nom": "Discrétion", "importance": "critique", "description": "Confidentialité des données"},
+            {"nom": "Organisation", "importance": "importante", "description": "Gestion multi-tâches"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Paie", "importance": "importante", "description": "Éléments variables, DSN"},
+            {"nom": "Droit du travail", "importance": "importante", "description": "Bases juridiques RH"}
+        ],
+        "acces_emploi": "Bac+2/3 RH ou gestion. Licence pro GRH.",
+        "interaction": 2, "cadre": 1, "rythme": 1, "complexite": 1, "autonomie": 1
+    },
+    {
+        "id": "M045", 
+        "label": "Chauffeur poids lourd", 
+        "code_rome": "N4101",
+        "intitule_rome": "Conducteur / Conductrice de poids lourd",
+        "filiere": "SL", 
+        "secteur": "Transport",
+        "definition": "Transporte des marchandises par route sur longues distances.",
+        "disc_attendu": ["S", "C"], 
+        "ennea_compatible": [6, 9, 8],
+        "mbti_compatible": ["ISTP", "ISTJ", "ESTP", "ISFP"],
+        "competences_requises": ["Conduite", "Autonomie", "Réglementation", "Logistique"],
+        "soft_skills_essentiels": [
+            {"nom": "Autonomie", "importance": "critique", "description": "Travail en solo"},
+            {"nom": "Vigilance", "importance": "critique", "description": "Sécurité routière"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Permis C/CE", "importance": "critique", "description": "Conduite poids lourd"},
+            {"nom": "FIMO/FCO", "importance": "critique", "description": "Formation obligatoire"}
+        ],
+        "acces_emploi": "Permis C ou CE + FIMO (Formation Initiale Minimale Obligatoire).",
+        "interaction": 0, "cadre": 0, "rythme": 1, "complexite": 0, "autonomie": 2
+    },
+    {
+        "id": "M046", 
+        "label": "Responsable logistique", 
+        "code_rome": "N1301",
+        "intitule_rome": "Responsable logistique",
+        "filiere": "SL", 
+        "secteur": "Logistique",
+        "definition": "Organise et optimise les flux de marchandises et les stocks.",
+        "disc_attendu": ["D", "C"], 
+        "ennea_compatible": [3, 8, 1],
+        "mbti_compatible": ["ESTJ", "ENTJ", "ISTJ", "INTJ"],
+        "competences_requises": ["Supply chain", "Management", "Optimisation", "ERP"],
+        "soft_skills_essentiels": [
+            {"nom": "Organisation", "importance": "critique", "description": "Planification des flux"},
+            {"nom": "Leadership", "importance": "importante", "description": "Management d'équipe"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Supply chain", "importance": "critique", "description": "Gestion des flux"},
+            {"nom": "ERP/WMS", "importance": "importante", "description": "SAP, Oracle, logiciels logistiques"}
+        ],
+        "acces_emploi": "Bac+5 Supply Chain/Logistique ou école de commerce + expérience.",
+        "interaction": 2, "cadre": 1, "rythme": 2, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M047", 
+        "label": "Cuisinier / Cuisinière", 
+        "code_rome": "G1609",
+        "intitule_rome": "Cuisinier / Cuisinière",
+        "filiere": "SHCR", 
+        "secteur": "Restauration",
+        "definition": "Prépare les plats en cuisine selon les recettes et les commandes.",
+        "disc_attendu": ["D", "C"], 
+        "ennea_compatible": [3, 7, 8],
+        "mbti_compatible": ["ISTP", "ESTP", "ISFP", "ESFP"],
+        "competences_requises": ["Cuisine", "Créativité", "Rapidité", "Hygiène"],
+        "soft_skills_essentiels": [
+            {"nom": "Résistance au stress", "importance": "critique", "description": "Gestion du coup de feu"},
+            {"nom": "Créativité", "importance": "importante", "description": "Innovation culinaire"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Techniques culinaires", "importance": "critique", "description": "Préparations, cuissons"},
+            {"nom": "Normes HACCP", "importance": "critique", "description": "Hygiène alimentaire"}
+        ],
+        "acces_emploi": "CAP Cuisine minimum. Bac pro ou BTS pour chef de partie.",
+        "interaction": 1, "cadre": 0, "rythme": 2, "complexite": 1, "autonomie": 1
+    },
+    {
+        "id": "M048", 
+        "label": "Serveur / Serveuse", 
+        "code_rome": "G1803",
+        "intitule_rome": "Serveur / Serveuse en restauration",
+        "filiere": "SHCR", 
+        "secteur": "Restauration",
+        "definition": "Accueille les clients et assure le service en salle.",
+        "disc_attendu": ["I", "S"], 
+        "ennea_compatible": [2, 7, 3],
+        "mbti_compatible": ["ESFJ", "ENFJ", "ESFP", "ENFP"],
+        "competences_requises": ["Service", "Relationnel", "Rapidité", "Mémoire"],
+        "soft_skills_essentiels": [
+            {"nom": "Sourire", "importance": "critique", "description": "Accueil chaleureux"},
+            {"nom": "Réactivité", "importance": "importante", "description": "Service efficace"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Techniques de service", "importance": "critique", "description": "Port de plateau, dressage"},
+            {"nom": "Connaissance carte", "importance": "importante", "description": "Conseils clients"}
+        ],
+        "acces_emploi": "CAP Service ou expérience. Pas de diplôme obligatoire.",
+        "interaction": 2, "cadre": 0, "rythme": 2, "complexite": 0, "autonomie": 1
+    },
+    {
+        "id": "M049", 
+        "label": "Notaire", 
+        "code_rome": "K1901",
+        "intitule_rome": "Notaire",
+        "filiere": "SGAE", 
+        "secteur": "Juridique",
+        "definition": "Officier public qui authentifie les actes juridiques (ventes, successions).",
+        "disc_attendu": ["C", "S"], 
+        "ennea_compatible": [1, 5, 6],
+        "mbti_compatible": ["ISTJ", "INTJ", "ESTJ", "ISFJ"],
+        "competences_requises": ["Droit", "Rédaction", "Rigueur", "Conseil"],
+        "soft_skills_essentiels": [
+            {"nom": "Rigueur", "importance": "critique", "description": "Précision juridique"},
+            {"nom": "Discrétion", "importance": "critique", "description": "Secret professionnel"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Droit immobilier", "importance": "critique", "description": "Ventes, hypothèques"},
+            {"nom": "Droit des successions", "importance": "critique", "description": "Héritages, donations"}
+        ],
+        "acces_emploi": "Diplôme de notaire (Master 2 + formation professionnelle 2 ans).",
+        "interaction": 1, "cadre": 1, "rythme": 1, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M050", 
+        "label": "Chercheur / Chercheuse", 
+        "code_rome": "K2401",
+        "intitule_rome": "Chercheur / Chercheuse en sciences",
+        "filiere": "SCF", 
+        "secteur": "Recherche",
+        "definition": "Mène des travaux de recherche dans un domaine scientifique.",
+        "disc_attendu": ["C", "I"], 
+        "ennea_compatible": [5, 4, 1],
+        "mbti_compatible": ["INTP", "INTJ", "INFJ", "ENTP"],
+        "competences_requises": ["Recherche", "Analyse", "Rédaction", "Rigueur scientifique"],
+        "soft_skills_essentiels": [
+            {"nom": "Curiosité", "importance": "critique", "description": "Soif de découverte"},
+            {"nom": "Persévérance", "importance": "critique", "description": "Recherche de long terme"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Méthodologie recherche", "importance": "critique", "description": "Protocoles scientifiques"},
+            {"nom": "Publication", "importance": "importante", "description": "Articles, conférences"}
+        ],
+        "acces_emploi": "Doctorat (Bac+8) obligatoire. Post-doc souvent nécessaire.",
+        "interaction": 1, "cadre": 1, "rythme": 0, "complexite": 2, "autonomie": 2
+    },
+    {
+        "id": "M051", 
+        "label": "Graphiste", 
+        "code_rome": "E1205",
+        "intitule_rome": "Designer graphique",
+        "filiere": "SCF", 
+        "secteur": "Communication",
+        "definition": "Crée des visuels et supports de communication (print et digital).",
+        "disc_attendu": ["I", "C"], 
+        "ennea_compatible": [4, 7, 3],
+        "mbti_compatible": ["ISFP", "INFP", "ENFP", "ISTP"],
+        "competences_requises": ["Créativité", "Design", "Logiciels graphiques", "Sens esthétique"],
+        "soft_skills_essentiels": [
+            {"nom": "Créativité", "importance": "critique", "description": "Concepts originaux"},
+            {"nom": "Sens du détail", "importance": "importante", "description": "Finitions soignées"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Suite Adobe", "importance": "critique", "description": "Photoshop, Illustrator, InDesign"},
+            {"nom": "UI/UX", "importance": "importante", "description": "Design d'interfaces"}
+        ],
+        "acces_emploi": "BTS Design graphique, DN MADE, école d'art ou portfolio solide.",
+        "interaction": 1, "cadre": 1, "rythme": 1, "complexite": 1, "autonomie": 2
+    },
+    {
+        "id": "M052", 
+        "label": "Orthophoniste", 
+        "code_rome": "J1406",
+        "intitule_rome": "Orthophoniste",
+        "filiere": "SSS", 
+        "secteur": "Santé",
+        "definition": "Rééduque les troubles du langage, de la parole et de la communication.",
+        "disc_attendu": ["S", "C"], 
+        "ennea_compatible": [2, 4, 9],
+        "mbti_compatible": ["ISFJ", "INFJ", "ENFJ", "INFP"],
+        "competences_requises": ["Rééducation", "Patience", "Écoute", "Pédagogie"],
+        "soft_skills_essentiels": [
+            {"nom": "Patience", "importance": "critique", "description": "Rééducation progressive"},
+            {"nom": "Empathie", "importance": "critique", "description": "Compréhension des difficultés"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Techniques de rééducation", "importance": "critique", "description": "Exercices orthophoniques"},
+            {"nom": "Bilan orthophonique", "importance": "critique", "description": "Diagnostic des troubles"}
+        ],
+        "acces_emploi": "Certificat de capacité d'orthophoniste (5 ans d'études).",
+        "interaction": 2, "cadre": 1, "rythme": 1, "complexite": 1, "autonomie": 2
+    },
+    {
+        "id": "M053", 
+        "label": "Maçon / Maçonne", 
+        "code_rome": "F1703",
+        "intitule_rome": "Maçon / Maçonne",
+        "filiere": "SBTP", 
+        "secteur": "BTP",
+        "definition": "Construit les structures en béton, briques ou parpaings.",
+        "disc_attendu": ["S", "D"], 
+        "ennea_compatible": [6, 9, 8],
+        "mbti_compatible": ["ISTP", "ISTJ", "ESTP", "ESTJ"],
+        "competences_requises": ["Construction", "Endurance", "Lecture plans", "Travail équipe"],
+        "soft_skills_essentiels": [
+            {"nom": "Endurance physique", "importance": "critique", "description": "Travail de force"},
+            {"nom": "Précision", "importance": "importante", "description": "Alignement, niveau"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Maçonnerie", "importance": "critique", "description": "Montage murs, coffrages"},
+            {"nom": "Lecture de plans", "importance": "importante", "description": "Compréhension technique"}
+        ],
+        "acces_emploi": "CAP Maçon ou équivalent. BP pour chef d'équipe.",
+        "interaction": 1, "cadre": 0, "rythme": 1, "complexite": 1, "autonomie": 1
+    },
+    {
+        "id": "M054", 
+        "label": "Chauffagiste", 
+        "code_rome": "I1308",
+        "intitule_rome": "Chauffagiste",
+        "filiere": "SBTP", 
+        "secteur": "BTP",
+        "definition": "Installe et entretient les systèmes de chauffage et climatisation.",
+        "disc_attendu": ["C", "S"], 
+        "ennea_compatible": [6, 9, 5],
+        "mbti_compatible": ["ISTP", "ISTJ", "ESTP", "INTP"],
+        "competences_requises": ["Thermique", "Électricité", "Dépannage", "Autonomie"],
+        "soft_skills_essentiels": [
+            {"nom": "Autonomie", "importance": "critique", "description": "Interventions seul"},
+            {"nom": "Résolution problèmes", "importance": "importante", "description": "Diagnostic pannes"}
+        ],
+        "hard_skills_essentiels": [
+            {"nom": "Thermique", "importance": "critique", "description": "Chaudières, PAC, clim"},
+            {"nom": "Électricité", "importance": "importante", "description": "Raccordements, régulation"}
+        ],
+        "acces_emploi": "CAP/BEP Installation thermique. BP pour chef d'entreprise.",
+        "interaction": 0, "cadre": 0, "rythme": 1, "complexite": 1, "autonomie": 2
     }
 ]
 
