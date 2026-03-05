@@ -61,7 +61,15 @@ Créer le site DE'CLIC PRO - Intelligence Professionnelle, une plateforme de dé
 
 ## Ce qui a été implémenté
 
-### Décembre 2025 (Session actuelle)
+### Mars 2026 (Session actuelle)
+- [x] **"Soft skills à développer" - Affichage spécifique** ✅
+  - Backend : `generate_fallback_job_narrative()` calcule les soft skills manquants en comparant le profil utilisateur aux exigences du métier
+  - Retourne `soft_skills_to_develop` dans `job_narrative` avec: `nom`, `description`, `importance` (critique/importante)
+  - Frontend : Nouveau composant affichant une liste structurée avec badges visuels (⚡ Prioritaire / 📈 Recommandé)
+  - CSS : Styles `.soft-skills-to-develop-list`, `.skill-to-develop-item` avec animations hover
+  - Tests automatisés passés (7/7)
+
+### Décembre 2025 (Sessions précédentes)
 - [x] **Intégration complète du modèle RIASEC (Holland Codes)** ✅
   - Fonction `calculate_riasec_profile()` pour calculer le profil RIASEC à partir de MBTI/DISC/Ennéagramme
   - Fonction `riasec_congruence()` pour calculer la compatibilité métier-utilisateur
@@ -100,6 +108,7 @@ Créer le site DE'CLIC PRO - Intelligence Professionnelle, une plateforme de dé
 - Toutes les fonctionnalités core sont implémentées
 - Bug de matching métiers corrigé
 - **Intégration RIASEC complète** ✅
+- **"Soft skills à développer" affiche une liste spécifique** ✅
 
 ### P1 (Important)
 - [ ] Export PDF de la carte d'identité Pro
