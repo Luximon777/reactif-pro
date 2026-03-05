@@ -2057,6 +2057,94 @@ body {
   color: #10b981;
 }
 
+/* Soft Skills à Développer - Liste structurée */
+.soft-skills-to-develop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.skill-to-develop-item {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid #10b981;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.skill-to-develop-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.skill-to-develop-item.critique {
+  border-left-color: #f59e0b;
+  background: rgba(255, 251, 235, 0.8);
+}
+
+.skill-to-develop-item.importante {
+  border-left-color: #10b981;
+  background: rgba(240, 253, 244, 0.8);
+}
+
+.skill-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.skill-importance-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.skill-to-develop-item.critique .skill-importance-badge {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+}
+
+.skill-to-develop-item.importante .skill-importance-badge {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+
+.skill-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.skill-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.5;
+}
+
+.skill-development-tip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.skill-development-tip svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
 /* ============================================================================
    ZONES DE VIGILANCE - CADRAN D'OFMAN
    ============================================================================ */

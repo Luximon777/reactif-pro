@@ -2761,15 +2761,40 @@ const JobNarrative = ({ narrative, job }) => {
         </SectionWithMore>
       )}
 
-      {/* Axes de Progression */}
-      {(narrative.axes_progression || narrative.recommandations) && (
+      {/* Axes de Progression - Soft skills à développer (liste spécifique) */}
+      {(narrative.soft_skills_to_develop?.length > 0 || narrative.axes_progression || narrative.recommandations) && (
         <SectionWithMore 
           sectionId="progression" 
           title="Soft skills à développer" 
           icon={<TrendingUp size={18} />}
           className="progression-section"
         >
-          <p>{narrative.axes_progression || narrative.recommandations}</p>
+          {/* Afficher la liste structurée des soft skills si disponible */}
+          {narrative.soft_skills_to_develop && narrative.soft_skills_to_develop.length > 0 ? (
+            <div className="soft-skills-to-develop-list" data-testid="soft-skills-to-develop">
+              {narrative.soft_skills_to_develop.map((skill, idx) => (
+                <div key={idx} className={`skill-to-develop-item ${skill.importance === 'critique' ? 'critique' : 'importante'}`}>
+                  <div className="skill-header">
+                    <span className="skill-importance-badge">
+                      {skill.importance === 'critique' ? '⚡ Prioritaire' : '📈 Recommandé'}
+                    </span>
+                    <span className="skill-name">{skill.nom}</span>
+                  </div>
+                  {skill.description && (
+                    <p className="skill-description">{skill.description}</p>
+                  )}
+                </div>
+              ))}
+              {/* Conseil pratique en fin de liste */}
+              <div className="skill-development-tip">
+                <Lightbulb size={14} />
+                <span>Ces compétences se développent par la pratique régulière et le feedback constructif.</span>
+              </div>
+            </div>
+          ) : (
+            /* Fallback sur le texte si pas de liste structurée */
+            <p>{narrative.axes_progression || narrative.recommandations}</p>
+          )}
         </SectionWithMore>
       )}
     </div>
