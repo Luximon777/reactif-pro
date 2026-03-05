@@ -4152,13 +4152,15 @@ def riasec_congruence(user_riasec: str, job_riasec: str) -> float:
 
 
 WEIGHTS = {
-    "motivation": 12,      # Ennéagramme
-    "disc": 8,             # DISC
-    "mbti": 25,            # MBTI (réduit)
-    "riasec": 20,          # NOUVEAU: RIASEC (Holland)
-    "environment": 15,     # Environnement de travail
-    "skills": 15,          # Compétences
+    "motivation": 10,      # Ennéagramme - motivation profonde
+    "disc": 8,             # Style comportemental DISC
+    "mbti": 20,            # Personnalité MBTI
+    "riasec": 17,          # Intérêts professionnels (Holland)
+    "archeologie": 15,     # NOUVEAU: Archéologie des compétences (Vertus → Compétences)
+    "environment": 12,     # Environnement de travail
+    "skills": 13,          # Compétences directes
     "constraints": 5,      # Contraintes
+    # Total = 100
 }
 
 # MBTI Compatibility - Types similaires par fonction dominante et mode de fonctionnement
@@ -4495,8 +4497,8 @@ def score_environment(profile: Dict[str, Any], job: Dict[str, Any]) -> float:
 
 def score_skills(profile: Dict[str, Any], job: Dict[str, Any]) -> float:
     """
-    Calculate skills match score - optimisé pour des scores plus réalistes.
-    Utilise une logique de matching par mots-clés et compétences transverses.
+    Calculate skills match score - basé sur l'Archéologie des Compétences.
+    Utilise la hiérarchie: Vertus → Valeurs → Qualités → Savoir-être → Compétences → Métier
     """
     req = job.get("competences_requises", [])
     user_skills = profile.get("competences_fortes", [])
@@ -4538,6 +4540,93 @@ def score_skills(profile: Dict[str, Any], job: Dict[str, Any]) -> float:
     # Score minimum de 0.5 si l'utilisateur a des compétences, + bonus transversal
     final_score = max(0.5, base_score) + transversal_bonus
     return min(1.0, final_score)
+
+
+def score_archeologie(profile: Dict[str, Any], job: Dict[str, Any]) -> float:
+    """
+    Score basé sur l'Archéologie des Compétences (nouveau).
+    Calcule la cohérence entre les vertus/qualités de l'utilisateur et les soft skills du métier.
+    
+    Hiérarchie: Vertus → Valeurs → Qualités → Savoir-être → Compétences → Métier
+    """
+    # Récupérer la vertu dominante de l'utilisateur (via Ennéagramme)
+    ennea_dominant = profile.get("ennea_dominant", 5)
+    ennea_profile = ENNEA_TO_PROFILE.get(ennea_dominant, ENNEA_TO_PROFILE[5])
+    user_vertu_key = ennea_profile.get("vertu", "sagesse")
+    user_vertu = VERTUS.get(user_vertu_key, VERTUS["sagesse"])
+    
+    # Récupérer les savoirs-être et qualités de l'utilisateur (via ses vertus)
+    user_savoirs_etre = set(s.lower() for s in user_vertu.get("savoirs_etre", []))
+    user_qualites = set(q.lower() for q in user_vertu.get("qualites_humaines", []))
+    user_competences_oms = set(c.lower() for c in user_vertu.get("competences_oms", []))
+    
+    # Récupérer les soft skills requis par le métier
+    job_soft_skills = job.get("soft_skills_essentiels", [])
+    job_skill_names = set()
+    for skill in job_soft_skills:
+        if isinstance(skill, dict):
+            job_skill_names.add(skill.get("nom", "").lower())
+        elif isinstance(skill, str):
+            job_skill_names.add(skill.lower())
+    
+    # Récupérer aussi les compétences requises
+    job_competences = set(c.lower() for c in job.get("competences_requises", []))
+    
+    # Calculer les matchs entre vertus et métier
+    score = 0.0
+    max_possible = 0.0
+    
+    # 1. Match savoirs-être avec soft skills du métier (poids élevé)
+    if user_savoirs_etre and job_skill_names:
+        max_possible += 0.4
+        for savoir in user_savoirs_etre:
+            for job_skill in job_skill_names:
+                # Match partiel sur mots-clés
+                savoir_words = set(w for w in savoir.split() if len(w) > 3)
+                skill_words = set(w for w in job_skill.split() if len(w) > 3)
+                if savoir_words & skill_words:
+                    score += 0.15
+                    break
+        score = min(score, 0.4)
+    
+    # 2. Match qualités humaines avec soft skills (poids moyen)
+    if user_qualites and job_skill_names:
+        max_possible += 0.3
+        matches = 0
+        for qualite in user_qualites:
+            for job_skill in job_skill_names:
+                if qualite in job_skill or job_skill in qualite:
+                    matches += 1
+                    break
+                # Match approximatif
+                if len(set(qualite.split()) & set(job_skill.split())) > 0:
+                    matches += 0.5
+                    break
+        score += min(0.3, matches * 0.05)
+    
+    # 3. Match compétences OMS avec compétences requises (poids moyen)
+    if user_competences_oms and job_competences:
+        max_possible += 0.3
+        for comp_oms in user_competences_oms:
+            for job_comp in job_competences:
+                if comp_oms in job_comp or job_comp in comp_oms:
+                    score += 0.1
+                    break
+                # Match sur mots-clés
+                oms_words = set(w for w in comp_oms.split() if len(w) > 3)
+                comp_words = set(w for w in job_comp.split() if len(w) > 3)
+                if oms_words & comp_words:
+                    score += 0.05
+                    break
+        score = min(score, 1.0)
+    
+    # Score minimum si la vertu existe
+    if max_possible == 0:
+        return 0.6
+    
+    # Normaliser et garantir un score minimal
+    final_score = max(0.5, min(1.0, score + 0.3))  # Base de 0.3 car les vertus sont toujours un peu transférables
+    return final_score
 
 
 def get_job_riasec(job: Dict[str, Any]) -> str:
@@ -4588,7 +4677,7 @@ def get_job_riasec(job: Dict[str, Any]) -> str:
 
 
 def score_job(profile: Dict[str, Any], job: Dict[str, Any], user_riasec: Dict[str, Any] = None) -> Dict[str, Any]:
-    """Calculate overall job compatibility score including RIASEC model."""
+    """Calculate overall job compatibility score including RIASEC model and Archéologie des Compétences."""
     
     # Motivation score (Enneagram)
     motivation_score = ennea_similarity(
@@ -4609,7 +4698,7 @@ def score_job(profile: Dict[str, Any], job: Dict[str, Any], user_riasec: Dict[st
         job.get("mbti_compatible", [])
     ) * WEIGHTS["mbti"]
     
-    # RIASEC score (Holland Codes) - NOUVEAU
+    # RIASEC score (Holland Codes)
     riasec_score_raw = 0.5  # Score neutre par défaut
     job_riasec = get_job_riasec(job)
     
@@ -4620,6 +4709,9 @@ def score_job(profile: Dict[str, Any], job: Dict[str, Any], user_riasec: Dict[st
     
     riasec_score = riasec_score_raw * WEIGHTS["riasec"]
     
+    # NOUVEAU: Score Archéologie des Compétences (Vertus → Compétences)
+    archeologie_score = score_archeologie(profile, job) * WEIGHTS["archeologie"]
+    
     # Environment score
     env_score = score_environment(profile, job) * WEIGHTS["environment"]
     
@@ -4629,14 +4721,22 @@ def score_job(profile: Dict[str, Any], job: Dict[str, Any], user_riasec: Dict[st
     # Constraints (simplified - full score for now)
     constraints_score = WEIGHTS["constraints"] * 1.0
     
-    total = int(round(motivation_score + disc_score + mbti_score + riasec_score + env_score + skills_score + constraints_score))
+    total = int(round(motivation_score + disc_score + mbti_score + riasec_score + archeologie_score + env_score + skills_score + constraints_score))
     total = max(0, min(100, total))
     
     # Build reasons and risks
     reasons = []
     risks = []
     
-    # RIASEC compatibility feedback (NOUVEAU - priorité haute car modèle validé)
+    # Archéologie des compétences feedback (priorité haute - socle du système)
+    if archeologie_score >= WEIGHTS["archeologie"] * 0.7:
+        reasons.append("Vos vertus et qualités naturelles correspondent aux savoir-être du métier")
+    elif archeologie_score >= WEIGHTS["archeologie"] * 0.5:
+        reasons.append("Certaines de vos qualités humaines sont transférables à ce métier")
+    elif archeologie_score < WEIGHTS["archeologie"] * 0.4:
+        risks.append("Vos vertus dominantes sont peu sollicitées dans ce métier")
+    
+    # RIASEC compatibility feedback
     if riasec_score >= WEIGHTS["riasec"] * 0.7:
         reasons.append("Intérêts professionnels (Holland) fortement alignés avec ce métier")
     elif riasec_score >= WEIGHTS["riasec"] * 0.5:
@@ -4689,12 +4789,13 @@ def score_job(profile: Dict[str, Any], job: Dict[str, Any], user_riasec: Dict[st
         "category": category,
         "reasons": reasons[:3],
         "risks": risks[:2],
-        "job_riasec": job_riasec,  # Ajout du code RIASEC du métier
+        "job_riasec": job_riasec,  # Code RIASEC du métier
         "breakdown": {
             "motivation": round(motivation_score, 1),
             "disc": round(disc_score, 1),
             "mbti": round(mbti_score, 1),
-            "riasec": round(riasec_score, 1),  # NOUVEAU
+            "riasec": round(riasec_score, 1),
+            "archeologie": round(archeologie_score, 1),  # NOUVEAU: Archéologie des compétences
             "environment": round(env_score, 1),
             "skills": round(skills_score, 1),
             "constraints": round(constraints_score, 1)
