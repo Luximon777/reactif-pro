@@ -5544,8 +5544,11 @@ def get_exploration_paths(profile: Dict[str, Any], user_riasec: Dict[str, Any] =
     # 5. Trier par compatibilité globale
     paths.sort(key=lambda x: x["avg_compatibility"], reverse=True)
     
-    # 6. Retourner toutes les filières (pas de limite arbitraire)
-    return paths
+    # 6. Filtrer les filières avec score >= 65%
+    MIN_FILIERE_SCORE = 65
+    filtered_paths = [p for p in paths if p["avg_compatibility"] >= MIN_FILIERE_SCORE]
+    
+    return filtered_paths
 
 
 # ============================================================================
