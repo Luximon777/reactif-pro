@@ -336,6 +336,152 @@ body {
   border-top: 1px solid var(--border-dark);
 }
 
+/* ============================================================================
+   SECTION AU-DELÀ DU DIPLÔME
+   ============================================================================ */
+
+.beyond-diploma-section {
+  margin: 3rem 0;
+  padding: 0 1rem;
+}
+
+.beyond-diploma-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border-radius: 20px;
+  padding: 2.5rem;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.beyond-diploma-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #f97316, #22c55e, #3b82f6);
+}
+
+.beyond-diploma-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.beyond-diploma-icon {
+  color: #f97316;
+  flex-shrink: 0;
+}
+
+.beyond-diploma-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  background: linear-gradient(90deg, #f97316, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.beyond-diploma-content {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.7;
+}
+
+.beyond-diploma-intro {
+  font-size: 1rem;
+  margin-bottom: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.beyond-diploma-intro strong {
+  color: #f97316;
+}
+
+.beyond-diploma-highlight {
+  background: rgba(249, 115, 22, 0.1);
+  border-left: 3px solid #f97316;
+  padding: 1rem 1.25rem;
+  border-radius: 0 10px 10px 0;
+  margin: 1.25rem 0;
+}
+
+.beyond-diploma-highlight p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.beyond-diploma-highlight strong {
+  color: #f97316;
+}
+
+.beyond-diploma-highlight em {
+  color: #22c55e;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.beyond-diploma-description {
+  font-size: 1rem;
+  margin-bottom: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.beyond-diploma-description strong {
+  color: #22c55e;
+}
+
+.beyond-diploma-conclusion {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(59, 130, 246, 0.15);
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.beyond-diploma-conclusion svg {
+  color: #60a5fa;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.beyond-diploma-conclusion p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.beyond-diploma-conclusion strong {
+  color: #60a5fa;
+}
+
+@media (max-width: 768px) {
+  .beyond-diploma-container {
+    padding: 1.5rem;
+    margin: 0 0.5rem;
+  }
+  
+  .beyond-diploma-header h2 {
+    font-size: 1.4rem;
+  }
+  
+  .beyond-diploma-intro,
+  .beyond-diploma-description,
+  .beyond-diploma-highlight p {
+    font-size: 0.9rem;
+  }
+}
+
 /* Path cards highlight */
 .path-highlight strong,
 .path-highlight .path-highlight-title {

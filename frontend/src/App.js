@@ -66,7 +66,8 @@ import {
   Settings,
   Cpu,
   Building,
-  AlertCircle
+  AlertCircle,
+  GraduationCap
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -309,6 +310,41 @@ const LandingPage = ({ onSelectPath }) => {
         <p className="phase-description">
           Accèdes à des services professionnels pour garantir ton employabilité <strong>tout au long de ta vie !</strong>
         </p>
+      </div>
+
+      {/* Section Au-delà du diplôme */}
+      <div className="beyond-diploma-section">
+        <div className="beyond-diploma-container">
+          <div className="beyond-diploma-header">
+            <GraduationCap size={32} className="beyond-diploma-icon" />
+            <h2>Au-delà du diplôme</h2>
+          </div>
+          
+          <div className="beyond-diploma-content">
+            <p className="beyond-diploma-intro">
+              Pendant longtemps, le diplôme a été considéré comme la principale clé d'accès à l'emploi.
+              Mais dans un monde du travail en constante transformation, <strong>cette logique ne suffit plus</strong> à révéler la valeur professionnelle d'une personne.
+            </p>
+            
+            <div className="beyond-diploma-highlight">
+              <p>
+                <strong>RE'ACTIF PRO</strong> (concepteur Alt&Act) créateur de <strong>DE'CLIC PRO</strong>, défend une approche différente : reconnaître les individus à partir de leurs <em>compétences réelles</em>, de leur <em>potentiel</em> et de leur <em>capacité à contribuer</em>.
+              </p>
+            </div>
+            
+            <p className="beyond-diploma-description">
+              À travers ses méthodes d'accompagnement et ses outils technologiques, RE'ACTIF PRO aide chacun à <strong>identifier ses talents</strong>, <strong>valoriser son parcours</strong> et <strong>construire une trajectoire professionnelle porteuse de sens</strong>.
+            </p>
+            
+            <div className="beyond-diploma-conclusion">
+              <Award size={20} />
+              <p>
+                Le diplôme reste une voie possible.<br/>
+                <strong>Mais il ne doit plus être l'unique critère de reconnaissance des talents.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Services RE'ACTIF PRO */}
