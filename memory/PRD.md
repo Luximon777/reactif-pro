@@ -1,164 +1,142 @@
-# DE'CLIC PRO - PRD (Product Requirements Document)
+# DE'CLIC PRO & RE'ACTIF PRO - PRD
 
-## Énoncé du problème original
-Créer le site DE'CLIC PRO - Intelligence Professionnelle, une plateforme de découverte de potentiel professionnel avec un parcours personnalisé pour identifier les soft skills, valeurs et métiers compatibles.
+## Projets
 
-## Architecture
+### 1. DE'CLIC PRO
+Plateforme d'orientation professionnelle guidant les utilisateurs à travers un questionnaire multi-modèles (MBTI, DISC, Ennéagramme, RIASEC, Archéologie des Compétences) pour déterminer leur profil de personnalité et recommander des métiers compatibles.
 
-### Stack technique
-- **Frontend**: React 19 + Tailwind CSS + React Router
-- **Backend**: FastAPI (Python)
-- **Base de données**: MongoDB
-- **Hébergement**: Emergent Platform
-- **APIs externes**: ESCO API (European Skills/Competences database)
+**URL**: https://profil-emploi.preview.emergentagent.com
 
-### Structure
-```
-/app
-├── frontend/
-│   └── src/
-│       ├── App.js (routeur principal avec questionnaire visuel et résultats)
-│       └── components/ui/ (Shadcn components)
-└── backend/
-    ├── server.py (API FastAPI avec algorithme de matching - 4600+ lignes)
-    ├── esco_api.py (Module API ESCO pour recherche de métiers européens)
-    └── france_travail_api.py (Module API France Travail - actuellement bloqué)
-```
+### 2. RE'ACTIF PRO (NOUVEAU)
+Plateforme d'accompagnement professionnel personnalisé avec 3 espaces :
+- **Mon Espace Pro** : Compte pseudonyme confidentiel (actif)
+- **Entreprise RH** : Espace professionnels RH (à venir)
+- **Partenaires Sociaux** : Consultation et collaboration (à venir)
 
-## Personas utilisateurs
-1. **Jeunes diplômés** - Cherchent à découvrir leur orientation professionnelle
-2. **Professionnels en reconversion** - Veulent identifier leurs compétences transférables
-3. **Conseillers RH** - Utilisent l'outil pour accompagner les candidats
+**URL**: https://profil-emploi.preview.emergentagent.com/reactif-pro
 
-## Fonctionnalités principales (Core Requirements)
-
-### Page d'accueil
-- Logo DE'CLIC PRO avec gradient orange-vert
-- 2 cartes CTA : "Je cherche mon job" et "Je cherche encore..."
-- Phrase sur le questionnaire anonyme et gratuit
-- Footer avec logos partenaires (Alt&Act, Ubuntoo, RE'ACTIF PRO, AI Act)
-
-### Questionnaire (/questionnaire)
-- Questions visuelles avec images
-- Questions de classement (ranking 1-4)
-- Barre de progression animée
-- Champ date de naissance
-- Navigation Précédent/Suivant
-
-### Page Résultats
-- Profil de personnalité (DISC, Ennéagramme, MBTI, **RIASEC**)
-- Cadran d'Ofman (zones de vigilance)
-- Boussole de fonctionnement
-- **Nouveau: Profil RIASEC (Holland Codes)** avec barres de score et traits
-- Liste des métiers compatibles avec scores
-- Narratif personnalisé généré par IA
-
-### API Backend
-- `POST /api/job-match` - Matching métier avec profil (inclut RIASEC)
-- `POST /api/explore` - Exploration des filières (inclut RIASEC)
-- `GET /api/questionnaire/visual` - Questions visuelles
-- `GET /api/metiers` - Liste des métiers (54 métiers)
+---
 
 ## Ce qui a été implémenté
 
 ### Mars 2026 (Session actuelle)
-- [x] **"Soft skills à développer" - Affichage spécifique** ✅
-  - Backend : `generate_fallback_job_narrative()` calcule les soft skills manquants en comparant le profil utilisateur aux exigences du métier
-  - Retourne `soft_skills_to_develop` dans `job_narrative` avec: `nom`, `description`, `importance` (critique/importante)
-  - Frontend : Nouveau composant affichant une liste structurée avec badges visuels (⚡ Prioritaire / 📈 Recommandé)
-  - CSS : Styles `.soft-skills-to-develop-list`, `.skill-to-develop-item` avec animations hover
-  - Tests automatisés passés (7/7)
 
-### Décembre 2025 (Sessions précédentes)
-- [x] **Intégration complète du modèle RIASEC (Holland Codes)** ✅
-  - Fonction `calculate_riasec_profile()` pour calculer le profil RIASEC à partir de MBTI/DISC/Ennéagramme
-  - Fonction `riasec_congruence()` pour calculer la compatibilité métier-utilisateur
-  - Fonction `get_job_riasec()` pour obtenir le code RIASEC d'un métier via le mapping ROME
-  - Mapping `ROME_RIASEC_MAPPING` avec 358 codes ROME → RIASEC
-  - Score RIASEC intégré dans `score_job()` avec un poids de 20%
-  - Composant frontend `RiasecProfile` avec barres de score et affichage des traits
-  - Tests automatisés passés (5/5)
+#### RE'ACTIF PRO - Création du projet ✅
+- [x] **Page d'accueil RE'ACTIF PRO** avec 3 cartes d'accès
+- [x] **Système d'authentification pseudonyme** :
+  - Inscription sans identité civile obligatoire
+  - Pseudo + mot de passe obligatoires
+  - Email de récupération facultatif
+  - Code d'accès DE'CLIC PRO facultatif pour récupérer les résultats
+  - Consentements CGU/Confidentialité/Marketing
+- [x] **Backend FastAPI** :
+  - Collection MongoDB `reactif_users`, `reactif_profiles`, `reactif_user_data`, `reactif_audit_logs`
+  - Authentification JWT (tokens 7 jours)
+  - Hash mot de passe SHA-256 + salt
+  - Routes `/api/reactif/auth/register`, `/api/reactif/auth/login`
+  - Routes `/api/reactif/user/profile`, `/api/reactif/user/results`
+  - Export données RGPD `/api/reactif/user/export-data`
+  - Suppression compte `/api/reactif/user/account`
+- [x] **Dashboard utilisateur** avec navigation sidebar
+- [x] **Intégration DE'CLIC PRO** :
+  - Génération code d'accès XXXX-XXXX après test
+  - Endpoint `/api/retrieve-results` pour récupérer résultats
+  - Import automatique des résultats lors de l'inscription RE'ACTIF PRO
 
-- [x] **Enrichissement du questionnaire avec 8 questions RIASEC directes** ✅
-  - 5 questions à 2 choix visuels (r1, r2, r3, r5, r7) : vie quotidienne et professionnelle
-  - 3 questions de classement à 4 choix (r4, r6, r8) : activités, environnements, tâches
-  - Système de pondération: 5 pts pour choix direct, 5/3/2/1 pts pour classement
-  - Total questionnaire: 20 questions (+ date de naissance)
-  - Tests automatisés passés (5/5)
+#### DE'CLIC PRO - Améliorations ✅
+- [x] **"Soft skills à développer"** affiche une liste spécifique (pas générique)
+- [x] **Croisement Ennéagramme × Questions Vertus** (60% questions + 30% Ennéagramme + 10% CK1)
+- [x] **Scoring filières amélioré** avec mapping RIASEC/Vertus/DISC/Ennéagramme
+- [x] **Filières filtrées** (score >= 65% seulement)
+- [x] **Code d'accès** généré et affiché après le test
+- [x] **Section "Au-delà du diplôme"** sur page d'accueil
+- [x] **Textes mis à jour** ("Avant d'envoyer ton CV", "Découvres tes possibilités", etc.)
 
-### Décembre 2025 (Sessions précédentes)
-- [x] Bug fix critique: Algorithme de recherche de métiers
-- [x] Nouveau métier: "Chargé(e) de recrutement" (M033)
-- [x] Intégration API ESCO (3000+ métiers européens)
-- [x] Base de données enrichie à 54 métiers avec codes ROME
+---
 
-### Mars 2026 (sessions précédentes)
-- [x] Page d'accueil complète avec design glassmorphism
-- [x] Thème sombre avec gradients orange-vert
-- [x] Questionnaire interactif avec questions visuelles
-- [x] Carte d'identité Pro avec profil personnalisé
-- [x] API de création de profil MongoDB
-- [x] Algorithme de matching métiers (DISC + Ennéagramme + MBTI + RIASEC + environnement)
-- [x] Animations et transitions CSS
-- [x] Design responsive mobile/desktop
+## Architecture Technique
 
-## Backlog priorisé
+### Stack
+- **Frontend**: React 18 + Tailwind CSS + Shadcn/UI
+- **Backend**: FastAPI (Python)
+- **Base de données**: MongoDB
+- **Authentification**: JWT (RE'ACTIF PRO)
 
-### P0 (Critique) - Fait ✅
-- Toutes les fonctionnalités core sont implémentées
-- Bug de matching métiers corrigé
-- **Intégration RIASEC complète** ✅
-- **"Soft skills à développer" affiche une liste spécifique** ✅
+### Structure des fichiers clés
+```
+/app/
+├── backend/
+│   └── server.py           # API DE'CLIC PRO + RE'ACTIF PRO
+├── frontend/src/
+│   ├── App.js              # DE'CLIC PRO (monolithique)
+│   ├── App.css             # Styles DE'CLIC PRO
+│   └── pages/reactif-pro/
+│       ├── ReactifProApp.jsx   # Application RE'ACTIF PRO
+│       └── ReactifPro.css      # Styles RE'ACTIF PRO
+```
 
-### P1 (Important)
+### Collections MongoDB RE'ACTIF PRO
+- `reactif_users` : Authentification (pseudo, password_hash, email_recovery, consentements)
+- `reactif_profiles` : Profil visible (display_name, visibility_level)
+- `reactif_user_data` : Données métier (résultats DE'CLIC PRO, parcours, etc.)
+- `reactif_audit_logs` : Journal d'audit minimal
+- `test_results` : Résultats DE'CLIC PRO avec code d'accès
+
+---
+
+## Endpoints API
+
+### DE'CLIC PRO
+- `POST /api/job-match` - Matching métiers (retourne access_code)
+- `POST /api/explore` - Exploration filières
+- `POST /api/retrieve-results` - Récupérer résultats via code d'accès
+- `GET /api/questionnaire` - Questions du questionnaire
+
+### RE'ACTIF PRO
+- `POST /api/reactif/auth/register` - Inscription
+- `POST /api/reactif/auth/login` - Connexion
+- `GET /api/reactif/user/profile` - Profil utilisateur
+- `GET /api/reactif/user/results` - Résultats DE'CLIC PRO
+- `POST /api/reactif/user/import-results` - Import via code
+- `GET /api/reactif/user/export-data` - Export RGPD
+- `DELETE /api/reactif/user/account` - Supprimer compte
+
+---
+
+## Prochaines tâches (P1)
+
+### RE'ACTIF PRO
+- [ ] Dashboard avec statistiques réelles
+- [ ] Passation questionnaire depuis l'espace pro
+- [ ] Gestion projets professionnels
+- [ ] Plan d'action personnalisé
+- [ ] Espace "Entreprise RH"
+- [ ] Espace "Partenaires Sociaux"
+
+### DE'CLIC PRO
 - [ ] Export PDF de la carte d'identité Pro
 - [ ] Partage sur réseaux sociaux
-- [ ] Historique des questionnaires complétés
-- [ ] Authentification utilisateur
+- [ ] Refactoring backend (modularisation)
+- [ ] Refactoring frontend (composants)
 
-### P2 (Nice to have)
-- [ ] Dashboard administrateur
-- [ ] Statistiques d'utilisation
-- [ ] Intégration API France Travail (bloquée par erreur 403 - à résoudre avec France Travail)
-- [ ] Personnalisation des questions
-- [ ] Refactoring backend server.py (4600+ lignes → modules)
-- [ ] Refactoring frontend App.js → composants
+---
 
-## Prochaines tâches
-1. Implémenter l'export PDF de la carte d'identité
-2. Ajouter la fonctionnalité de partage social
-3. Créer un système d'authentification utilisateur
-4. Résoudre l'accès API France Travail (contacter leur support)
+## Backlog (P2)
+- Dashboard administrateur
+- API France Travail (bloquée - erreur 403 externe)
+- Notifications email
+- Historique des questionnaires
+- Système de badges/gamification
 
-## Notes techniques
+---
 
-### Algorithme de recherche de métiers
-Le système utilise une fonction `normalize_text` pour:
-- Supprimer les accents (normalisation Unicode NFD)
-- Supprimer les caractères spéciaux (parenthèses, etc.)
-- Ignorer les mots vides (de, du, le, la, etc.)
+## Conformité RGPD/AI Act
 
-L'endpoint `/api/job-match` préserve la pertinence de recherche pour `best_match` tout en affichant les alternatives triées par compatibilité de profil dans `other_matches`.
-
-### Scoring des métiers (mis à jour avec RIASEC)
-Basé sur 7 critères pondérés (total = 100%):
-- Motivation (Ennéagramme): 12%
-- Style DISC: 8%
-- Personnalité MBTI: 25%
-- **RIASEC (Holland Codes): 20%** ← NOUVEAU
-- Environnement de travail: 15%
-- Compétences: 15%
-- Contraintes: 5%
-
-### Modèle RIASEC (Holland Codes)
-- **R** = Réaliste (manuel, technique)
-- **I** = Investigateur (scientifique, analytique)
-- **A** = Artistique (créatif, expressif)
-- **S** = Social (aide, enseigne)
-- **E** = Entreprenant (leader, persuasif)
-- **C** = Conventionnel (organisé, méthodique)
-
-Le profil RIASEC de l'utilisateur est calculé à partir des dimensions MBTI, DISC et Ennéagramme. La congruence avec le métier utilise l'hexagone de Holland (types adjacents vs opposés).
-
-## Problèmes connus
-- **API France Travail** : Erreur 403 `insufficient_scope`. Nécessite une action de l'utilisateur auprès du support France Travail pour résoudre les permissions.
+### RE'ACTIF PRO respecte :
+- ✅ Compte pseudonyme (pas d'identité civile obligatoire)
+- ✅ Email facultatif
+- ✅ Consentements explicites (CGU, Confidentialité, Marketing)
+- ✅ Droit à l'export des données
+- ✅ Droit à la suppression du compte
+- ✅ Données séparées (auth vs métier)
+- ✅ Journal d'audit minimal

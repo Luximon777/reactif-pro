@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,7 +11,9 @@ from typing import List, Dict, Any, Optional
 import uuid
 import secrets
 import string
-from datetime import datetime, timezone
+import hashlib
+import jwt
+from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 # Import France Travail API integration
@@ -123,6 +126,401 @@ async def claim_test_result(access_code: str, user_id: str) -> bool:
     except Exception as e:
         logging.error(f"Erreur claim résultat test: {e}")
         return False
+
+
+# ============================================================================
+# RE'ACTIF PRO - COLLECTIONS MONGODB
+# ============================================================================
+
+reactif_users_collection = db['reactif_users']
+reactif_profiles_collection = db['reactif_profiles']
+reactif_user_data_collection = db['reactif_user_data']
+reactif_audit_logs_collection = db['reactif_audit_logs']
+
+# Configuration JWT
+JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24 * 7  # 7 jours
+
+security = HTTPBearer(auto_error=False)
+
+
+# ============================================================================
+# RE'ACTIF PRO - MODÈLES PYDANTIC
+# ============================================================================
+
+class ReactifRegisterRequest(BaseModel):
+    pseudo: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8)
+    email_recovery: Optional[str] = None
+    access_code: Optional[str] = None
+    consent_cgu: bool
+    consent_privacy: bool
+    consent_marketing: bool = False
+
+
+class ReactifLoginRequest(BaseModel):
+    pseudo: str
+    password: str
+
+
+# ============================================================================
+# RE'ACTIF PRO - FONCTIONS UTILITAIRES
+# ============================================================================
+
+def hash_password(password: str) -> str:
+    """Hash un mot de passe avec SHA-256 + salt"""
+    salt = secrets.token_hex(16)
+    password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    return f"{salt}:{password_hash}"
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Vérifie un mot de passe contre son hash"""
+    try:
+        salt, password_hash = stored_hash.split(':')
+        return hashlib.sha256((password + salt).encode()).hexdigest() == password_hash
+    except:
+        return False
+
+
+def create_jwt_token(user_id: str, pseudo: str) -> str:
+    """Crée un token JWT pour l'utilisateur"""
+    payload = {
+        "user_id": user_id,
+        "pseudo": pseudo,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),
+        "iat": datetime.now(timezone.utc)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def decode_jwt_token(token: str) -> Optional[Dict[str, Any]]:
+    """Décode et valide un token JWT"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[Dict[str, Any]]:
+    """Récupère l'utilisateur courant depuis le token JWT"""
+    if not credentials:
+        return None
+    
+    token = credentials.credentials
+    payload = decode_jwt_token(token)
+    
+    if not payload:
+        return None
+    
+    user = await reactif_users_collection.find_one(
+        {"_id": payload["user_id"]},
+        {"_id": 1, "pseudo": 1, "email_recovery": 1, "created_at": 1, "status": 1}
+    )
+    
+    if user:
+        user["id"] = str(user.pop("_id"))
+    
+    return user
+
+
+async def log_audit(user_id: str, action: str, metadata: Dict[str, Any] = None):
+    """Enregistre une action dans le journal d'audit"""
+    try:
+        await reactif_audit_logs_collection.insert_one({
+            "user_id": user_id,
+            "action": action,
+            "metadata": metadata or {},
+            "created_at": datetime.now(timezone.utc)
+        })
+    except Exception as e:
+        logging.error(f"Erreur log audit: {e}")
+
+
+# ============================================================================
+# RE'ACTIF PRO - ROUTES API
+# ============================================================================
+
+# Router pour RE'ACTIF PRO
+reactif_router = APIRouter(prefix="/api/reactif")
+
+
+@reactif_router.post("/auth/register")
+async def reactif_register(request: ReactifRegisterRequest):
+    """
+    Inscription d'un nouvel utilisateur RE'ACTIF PRO.
+    Compte pseudonyme confidentiel - pas d'identité civile requise.
+    """
+    # Vérifier si le pseudo existe déjà
+    existing_user = await reactif_users_collection.find_one({"pseudo": request.pseudo.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Ce pseudonyme est déjà utilisé")
+    
+    # Vérifier les consentements obligatoires
+    if not request.consent_cgu or not request.consent_privacy:
+        raise HTTPException(status_code=400, detail="Les CGU et la politique de confidentialité doivent être acceptées")
+    
+    # Créer l'utilisateur
+    user_id = str(uuid.uuid4())
+    password_hash = hash_password(request.password)
+    
+    user_doc = {
+        "_id": user_id,
+        "pseudo": request.pseudo.lower(),
+        "display_pseudo": request.pseudo,  # Pseudo avec casse originale
+        "password_hash": password_hash,
+        "email_recovery": request.email_recovery,
+        "consent_cgu": request.consent_cgu,
+        "consent_privacy": request.consent_privacy,
+        "consent_marketing": request.consent_marketing,
+        "status": "active",
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+        "last_login_at": datetime.now(timezone.utc)
+    }
+    
+    await reactif_users_collection.insert_one(user_doc)
+    
+    # Créer le profil associé
+    profile_doc = {
+        "_id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "display_name": request.pseudo,
+        "visibility_level": "private",
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    await reactif_profiles_collection.insert_one(profile_doc)
+    
+    # Si un code d'accès DE'CLIC PRO a été fourni, récupérer les résultats
+    imported_results = None
+    if request.access_code:
+        declic_result = await get_test_result_by_code(request.access_code)
+        if declic_result and not declic_result.get("is_claimed"):
+            # Sauvegarder les résultats dans user_data
+            await reactif_user_data_collection.insert_one({
+                "_id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "data_type": "declic_result",
+                "title": "Résultat DE'CLIC PRO",
+                "content": declic_result.get("result_data", {}),
+                "source_access_code": request.access_code,
+                "is_archived": False,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            })
+            
+            # Marquer le code comme utilisé
+            await claim_test_result(request.access_code, user_id)
+            imported_results = True
+    
+    # Log d'audit
+    await log_audit(user_id, "user_registered", {
+        "email_provided": bool(request.email_recovery),
+        "access_code_used": bool(request.access_code),
+        "results_imported": imported_results
+    })
+    
+    # Créer le token JWT
+    token = create_jwt_token(user_id, request.pseudo)
+    
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "id": user_id,
+            "pseudo": request.pseudo,
+            "email_recovery": request.email_recovery,
+            "created_at": user_doc["created_at"].isoformat(),
+            "results_imported": imported_results
+        }
+    }
+
+
+@reactif_router.post("/auth/login")
+async def reactif_login(request: ReactifLoginRequest):
+    """
+    Connexion d'un utilisateur RE'ACTIF PRO.
+    """
+    # Rechercher l'utilisateur par pseudo
+    user = await reactif_users_collection.find_one({"pseudo": request.pseudo.lower()})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Pseudonyme ou mot de passe incorrect")
+    
+    # Vérifier le mot de passe
+    if not verify_password(request.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Pseudonyme ou mot de passe incorrect")
+    
+    # Vérifier le statut du compte
+    if user.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Ce compte a été désactivé")
+    
+    # Mettre à jour la date de dernière connexion
+    await reactif_users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"last_login_at": datetime.now(timezone.utc)}}
+    )
+    
+    # Log d'audit
+    await log_audit(user["_id"], "user_login", {})
+    
+    # Créer le token JWT
+    token = create_jwt_token(user["_id"], user["display_pseudo"])
+    
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "id": user["_id"],
+            "pseudo": user["display_pseudo"],
+            "email_recovery": user.get("email_recovery"),
+            "created_at": user["created_at"].isoformat() if user.get("created_at") else None
+        }
+    }
+
+
+@reactif_router.get("/user/profile")
+async def get_user_profile(user: Dict = Depends(get_current_user)):
+    """
+    Récupère le profil de l'utilisateur connecté.
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    profile = await reactif_profiles_collection.find_one(
+        {"user_id": user["id"]},
+        {"_id": 0}
+    )
+    
+    return {
+        "user": user,
+        "profile": profile
+    }
+
+
+@reactif_router.get("/user/results")
+async def get_user_results(user: Dict = Depends(get_current_user)):
+    """
+    Récupère les résultats DE'CLIC PRO de l'utilisateur.
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    results = await reactif_user_data_collection.find(
+        {"user_id": user["id"], "data_type": "declic_result"},
+        {"_id": 0, "user_id": 0}
+    ).to_list(100)
+    
+    return {
+        "results": results
+    }
+
+
+@reactif_router.post("/user/import-results")
+async def import_results(access_code: str, user: Dict = Depends(get_current_user)):
+    """
+    Importe les résultats DE'CLIC PRO via un code d'accès.
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    # Récupérer les résultats
+    declic_result = await get_test_result_by_code(access_code)
+    
+    if not declic_result:
+        raise HTTPException(status_code=404, detail="Code d'accès non trouvé")
+    
+    if declic_result.get("is_claimed"):
+        raise HTTPException(status_code=400, detail="Ce code a déjà été utilisé")
+    
+    # Sauvegarder les résultats
+    await reactif_user_data_collection.insert_one({
+        "_id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "data_type": "declic_result",
+        "title": "Résultat DE'CLIC PRO",
+        "content": declic_result.get("result_data", {}),
+        "source_access_code": access_code,
+        "is_archived": False,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    })
+    
+    # Marquer le code comme utilisé
+    await claim_test_result(access_code, user["id"])
+    
+    # Log d'audit
+    await log_audit(user["id"], "results_imported", {"access_code": access_code})
+    
+    return {
+        "success": True,
+        "message": "Résultats importés avec succès"
+    }
+
+
+@reactif_router.delete("/user/account")
+async def delete_account(user: Dict = Depends(get_current_user)):
+    """
+    Supprime le compte de l'utilisateur (soft delete).
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    # Soft delete - marquer comme supprimé
+    await reactif_users_collection.update_one(
+        {"_id": user["id"]},
+        {
+            "$set": {
+                "status": "deleted",
+                "deleted_at": datetime.now(timezone.utc)
+            }
+        }
+    )
+    
+    # Log d'audit
+    await log_audit(user["id"], "account_deleted", {})
+    
+    return {
+        "success": True,
+        "message": "Compte supprimé"
+    }
+
+
+@reactif_router.get("/user/export-data")
+async def export_user_data(user: Dict = Depends(get_current_user)):
+    """
+    Exporte toutes les données de l'utilisateur (RGPD).
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    # Récupérer toutes les données
+    profile = await reactif_profiles_collection.find_one(
+        {"user_id": user["id"]},
+        {"_id": 0}
+    )
+    
+    user_data = await reactif_user_data_collection.find(
+        {"user_id": user["id"]},
+        {"_id": 0, "user_id": 0}
+    ).to_list(1000)
+    
+    return {
+        "export_date": datetime.now(timezone.utc).isoformat(),
+        "user": {
+            "pseudo": user.get("pseudo"),
+            "email_recovery": user.get("email_recovery"),
+            "created_at": user.get("created_at")
+        },
+        "profile": profile,
+        "data": user_data
+    }
 
 
 # ============================================================================
@@ -6141,6 +6539,7 @@ async def claim_test_results(access_code: str, user_id: str):
 
 # Include the router in the main app
 app.include_router(api_router)
+app.include_router(reactif_router)  # RE'ACTIF PRO routes
 
 app.add_middleware(
     CORSMiddleware,

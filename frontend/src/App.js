@@ -3657,12 +3657,16 @@ const Home = () => {
   );
 };
 
+// Import RE'ACTIF PRO
+import ReactifProApp from './pages/reactif-pro/ReactifProApp';
+
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/reactif-pro/*" element={<ReactifProApp />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </BrowserRouter>
