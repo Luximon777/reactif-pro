@@ -19,7 +19,12 @@ Plateforme d'accompagnement professionnel personnalisé avec 3 espaces :
 
 ## Ce qui a été implémenté
 
-### Mars 2026 (Session actuelle)
+### Mars 2026 - Session 2 (06/03/2026)
+- ✅ **Tests complets RE'ACTIF PRO** : 11/11 backend, 100% frontend
+- ✅ **Bug fix** : Affichage MBTI dans les résultats corrigé (result.content au lieu de result.result_data)
+- ✅ **Fichier test** : `/app/backend/tests/test_reactif_pro.py`
+
+### Mars 2026 - Session 1
 
 #### RE'ACTIF PRO - Création du projet ✅
 - [x] **Page d'accueil RE'ACTIF PRO** avec 3 cartes d'accès
