@@ -307,7 +307,7 @@ const LandingPage = ({ onSelectPath }) => {
         </div>
         
         <p className="phase-description">
-          J'ai accès à des services professionnels pour garantir mon employabilité <strong>tout au long de ma vie !</strong>
+          Accèdes à des services professionnels pour garantir ton employabilité <strong>tout au long de ta vie !</strong>
         </p>
       </div>
 
