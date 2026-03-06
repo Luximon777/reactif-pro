@@ -5486,14 +5486,32 @@ async def match_job(request: JobSearchRequest):
     # Get profile info for Enneagram
     ennea_profile = ENNEA_TO_PROFILE.get(profile["ennea_dominant"], ENNEA_TO_PROFILE[5])
     
-    # CORRECTION: Utiliser la vertu dominante des questions vv1-vv6, pas l'Ennéagramme
-    # Si les questions de vertus ont été répondues, utiliser cette vertu
-    # Sinon, fallback sur la vertu de l'Ennéagramme
-    if vertus_profile.get("vertus_scores") and any(v > 0 for v in vertus_profile.get("vertus_scores", {}).values()):
-        vertu_key = vertus_profile.get("dominant", "sagesse")
+    # CROISEMENT DES DONNÉES: Combiner questions vv1-vv6 ET Ennéagramme
+    # 1. Calculer les scores de vertus enrichis avec l'Ennéagramme
+    vertus_scores_enriched = vertus_profile.get("vertus_scores", {}).copy()
+    ennea_vertu = ennea_profile["vertu"]  # Vertu associée à l'Ennéagramme
+    
+    # Ajouter un bonus pour la vertu de l'Ennéagramme (poids: 20% du max)
+    if vertus_scores_enriched:
+        max_score = max(vertus_scores_enriched.values()) if vertus_scores_enriched.values() else 100
+        ennea_bonus = max_score * 0.2  # 20% de bonus
+        if ennea_vertu in vertus_scores_enriched:
+            vertus_scores_enriched[ennea_vertu] += ennea_bonus
+    
+    # 2. Déterminer la vertu dominante finale (croisement)
+    if vertus_scores_enriched and any(v > 0 for v in vertus_scores_enriched.values()):
+        # Prendre la vertu avec le score le plus élevé après enrichissement
+        vertu_key = max(vertus_scores_enriched, key=vertus_scores_enriched.get)
     else:
-        vertu_key = ennea_profile["vertu"]
+        # Fallback sur l'Ennéagramme si pas de réponses aux questions
+        vertu_key = ennea_vertu
+    
     vertu_data = VERTUS.get(vertu_key, VERTUS["sagesse"])
+    
+    # Enrichir vertu_data avec l'info de croisement Ennéagramme
+    vertu_data = dict(vertu_data)  # Copie pour ne pas modifier l'original
+    vertu_data["ennea_contribution"] = ennea_vertu
+    vertu_data["crossed_with_ennea"] = (ennea_vertu == vertu_key)
     
     # Get life path data if birth_date provided
     life_path_data = None
@@ -5692,12 +5710,27 @@ async def explore_careers(request: ExploreRequest):
     # Get profile info
     ennea_profile = ENNEA_TO_PROFILE.get(profile["ennea_dominant"], ENNEA_TO_PROFILE[5])
     
-    # CORRECTION: Utiliser la vertu dominante des questions vv1-vv6, pas l'Ennéagramme
-    if vertus_profile.get("vertus_scores") and any(v > 0 for v in vertus_profile.get("vertus_scores", {}).values()):
-        vertu_key = vertus_profile.get("dominant", "sagesse")
+    # CROISEMENT DES DONNÉES: Combiner questions vv1-vv6 ET Ennéagramme
+    vertus_scores_enriched = vertus_profile.get("vertus_scores", {}).copy()
+    ennea_vertu = ennea_profile["vertu"]
+    
+    # Ajouter un bonus pour la vertu de l'Ennéagramme (poids: 20% du max)
+    if vertus_scores_enriched:
+        max_score = max(vertus_scores_enriched.values()) if vertus_scores_enriched.values() else 100
+        ennea_bonus = max_score * 0.2
+        if ennea_vertu in vertus_scores_enriched:
+            vertus_scores_enriched[ennea_vertu] += ennea_bonus
+    
+    # Déterminer la vertu dominante finale (croisement)
+    if vertus_scores_enriched and any(v > 0 for v in vertus_scores_enriched.values()):
+        vertu_key = max(vertus_scores_enriched, key=vertus_scores_enriched.get)
     else:
-        vertu_key = ennea_profile["vertu"]
+        vertu_key = ennea_vertu
+    
     vertu_data = VERTUS.get(vertu_key, VERTUS["sagesse"])
+    vertu_data = dict(vertu_data)
+    vertu_data["ennea_contribution"] = ennea_vertu
+    vertu_data["crossed_with_ennea"] = (ennea_vertu == vertu_key)
     
     # Get life path data if birth_date provided
     life_path_data = None
