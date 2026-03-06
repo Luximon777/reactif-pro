@@ -5485,7 +5485,14 @@ async def match_job(request: JobSearchRequest):
     
     # Get profile info for Enneagram
     ennea_profile = ENNEA_TO_PROFILE.get(profile["ennea_dominant"], ENNEA_TO_PROFILE[5])
-    vertu_key = ennea_profile["vertu"]
+    
+    # CORRECTION: Utiliser la vertu dominante des questions vv1-vv6, pas l'Ennéagramme
+    # Si les questions de vertus ont été répondues, utiliser cette vertu
+    # Sinon, fallback sur la vertu de l'Ennéagramme
+    if vertus_profile.get("vertus_scores") and any(v > 0 for v in vertus_profile.get("vertus_scores", {}).values()):
+        vertu_key = vertus_profile.get("dominant", "sagesse")
+    else:
+        vertu_key = ennea_profile["vertu"]
     vertu_data = VERTUS.get(vertu_key, VERTUS["sagesse"])
     
     # Get life path data if birth_date provided
@@ -5684,7 +5691,12 @@ async def explore_careers(request: ExploreRequest):
     
     # Get profile info
     ennea_profile = ENNEA_TO_PROFILE.get(profile["ennea_dominant"], ENNEA_TO_PROFILE[5])
-    vertu_key = ennea_profile["vertu"]
+    
+    # CORRECTION: Utiliser la vertu dominante des questions vv1-vv6, pas l'Ennéagramme
+    if vertus_profile.get("vertus_scores") and any(v > 0 for v in vertus_profile.get("vertus_scores", {}).values()):
+        vertu_key = vertus_profile.get("dominant", "sagesse")
+    else:
+        vertu_key = ennea_profile["vertu"]
     vertu_data = VERTUS.get(vertu_key, VERTUS["sagesse"])
     
     # Get life path data if birth_date provided
