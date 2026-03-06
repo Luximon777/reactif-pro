@@ -243,7 +243,7 @@ const LandingPage = ({ onSelectPath }) => {
             <span className="phase-number">PHASE 1</span>
           </div>
           <p className="phase-description-below-phase">
-            Je débute par un questionnaire <strong style={{color: '#f97316'}}>TOTALEMENT ANONYME</strong> et <strong style={{color: '#f97316'}}>GRATUIT</strong> en moins de 5 mn.
+            Débutes par un questionnaire <strong style={{color: '#f97316'}}>TOTALEMENT ANONYME</strong> et <strong style={{color: '#f97316'}}>GRATUIT</strong> en moins de 5 mn.
           </p>
         </div>
       </div>
