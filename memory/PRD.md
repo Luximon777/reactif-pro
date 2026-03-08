@@ -19,6 +19,12 @@ Plateforme d'accompagnement professionnel personnalisé avec 3 espaces :
 
 ## Ce qui a été implémenté
 
+### Mars 2026 - Session 3 (08/03/2026)
+- ✅ **Intégration IA Claude Sonnet 4.5** pour génération de fiches métiers
+- ✅ **Bug fix** : Fiche métier incorrecte ("aide soignant" au lieu du métier recherché)
+- ✅ **Amélioration ESCO** : Extraction correcte des descriptions multilingues + vérification pertinence
+- ✅ **Flow de recherche métier** : France Travail → ESCO (pertinent) → Base locale (pertinent) → IA Claude
+
 ### Mars 2026 - Session 2 (06/03/2026)
 - ✅ **Tests complets RE'ACTIF PRO** : 11/11 backend, 100% frontend
 - ✅ **Bug fix** : Affichage MBTI dans les résultats corrigé (result.content au lieu de result.result_data)

@@ -129,6 +129,78 @@ async def claim_test_result(access_code: str, user_id: str) -> bool:
 
 
 # ============================================================================
+# GÉNÉRATION DE FICHE MÉTIER PAR IA (CLAUDE SONNET 4.5)
+# ============================================================================
+
+async def generate_job_description_with_ai(job_title: str) -> Optional[Dict[str, Any]]:
+    """
+    Génère une fiche métier complète via Claude Sonnet 4.5 quand le métier
+    n'est pas trouvé dans notre base ni dans ESCO.
+    """
+    if not EMERGENT_LLM_KEY:
+        logging.warning("EMERGENT_LLM_KEY non configurée, impossible de générer la fiche métier par IA")
+        return None
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"job-gen-{uuid.uuid4().hex[:8]}",
+            system_message="""Tu es un expert en orientation professionnelle et en ressources humaines.
+Tu dois générer des fiches métiers précises, professionnelles et utiles pour l'orientation.
+Réponds UNIQUEMENT en JSON valide, sans commentaires ni texte additionnel."""
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        prompt = f"""Génère une fiche métier complète pour le poste de "{job_title}" en français.
+
+Réponds UNIQUEMENT avec ce format JSON (sans markdown, sans ```json) :
+{{
+    "intitule": "{job_title}",
+    "definition": "Description détaillée du métier en 3-4 phrases, expliquant les missions principales et le contexte de travail.",
+    "soft_skills_essentiels": [
+        {{"nom": "Compétence comportementale 1", "importance": "essentielle", "description": "Pourquoi cette compétence est importante"}},
+        {{"nom": "Compétence comportementale 2", "importance": "importante", "description": "Pourquoi cette compétence est importante"}},
+        {{"nom": "Compétence comportementale 3", "importance": "importante", "description": "Pourquoi cette compétence est importante"}},
+        {{"nom": "Compétence comportementale 4", "importance": "utile", "description": "Pourquoi cette compétence est importante"}}
+    ],
+    "hard_skills_essentiels": [
+        {{"nom": "Compétence technique 1", "importance": "essentielle", "description": "Description de la compétence"}},
+        {{"nom": "Compétence technique 2", "importance": "importante", "description": "Description de la compétence"}},
+        {{"nom": "Compétence technique 3", "importance": "importante", "description": "Description de la compétence"}},
+        {{"nom": "Compétence technique 4", "importance": "utile", "description": "Description de la compétence"}}
+    ],
+    "environnement_travail": "Description de l'environnement de travail typique",
+    "perspectives_evolution": "Évolutions de carrière possibles"
+}}"""
+
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parser la réponse JSON
+        import json
+        # Nettoyer la réponse si elle contient des backticks markdown
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        clean_response = clean_response.strip()
+        
+        job_data = json.loads(clean_response)
+        job_data["source"] = "ai_generated"
+        job_data["intitule_rome"] = job_data.get("intitule", job_title)
+        
+        logging.info(f"Fiche métier générée par IA pour: {job_title}")
+        return job_data
+        
+    except json.JSONDecodeError as e:
+        logging.error(f"Erreur parsing JSON de la réponse IA: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"Erreur génération fiche métier par IA: {e}")
+        return None
+
+
+# ============================================================================
 # RE'ACTIF PRO - COLLECTIONS MONGODB
 # ============================================================================
 
@@ -6305,16 +6377,74 @@ async def match_job(request: JobSearchRequest):
             "source": "esco"
         }
     elif best_match and matched_job:
-        # Fallback sur la base locale
-        job_info = {
-            "code_rome": matched_job.get("code_rome"),
-            "intitule_rome": matched_job.get("intitule_rome"),
-            "definition": matched_job.get("definition"),
-            "acces_emploi": matched_job.get("acces_emploi"),
-            "soft_skills_essentiels": matched_job.get("soft_skills_essentiels", []),
-            "hard_skills_essentiels": matched_job.get("hard_skills_essentiels", []),
-            "source": "local"
-        }
+        # Vérifier si la correspondance locale est pertinente au métier recherché
+        local_is_relevant = False
+        if request.job_query:
+            query_words = set(normalize_text(request.job_query).split())
+            query_words_significant = {w for w in query_words if len(w) > 3}
+            
+            job_label = matched_job.get("label", "") or matched_job.get("intitule_rome", "")
+            job_words = set(normalize_text(job_label).split())
+            
+            if query_words_significant:
+                matching_words = query_words_significant & job_words
+                relevance = len(matching_words) / len(query_words_significant)
+                local_is_relevant = relevance >= 0.3  # Au moins 30% des mots correspondent
+        
+        if local_is_relevant:
+            # Fallback sur la base locale (pertinent)
+            job_info = {
+                "code_rome": matched_job.get("code_rome"),
+                "intitule_rome": matched_job.get("intitule_rome"),
+                "definition": matched_job.get("definition"),
+                "acces_emploi": matched_job.get("acces_emploi"),
+                "soft_skills_essentiels": matched_job.get("soft_skills_essentiels", []),
+                "hard_skills_essentiels": matched_job.get("hard_skills_essentiels", []),
+                "source": "local"
+            }
+    
+    # FALLBACK IA : Si aucune source n'a trouvé le métier, utiliser Claude Sonnet 4.5
+    if not job_info and request.job_query:
+        logging.info(f"Métier '{request.job_query}' non trouvé - Génération par IA...")
+        ai_job_data = await generate_job_description_with_ai(request.job_query)
+        
+        if ai_job_data:
+            job_info = {
+                "intitule_rome": ai_job_data.get("intitule", request.job_query),
+                "definition": ai_job_data.get("definition", ""),
+                "soft_skills_essentiels": ai_job_data.get("soft_skills_essentiels", []),
+                "hard_skills_essentiels": ai_job_data.get("hard_skills_essentiels", []),
+                "environnement_travail": ai_job_data.get("environnement_travail", ""),
+                "perspectives_evolution": ai_job_data.get("perspectives_evolution", ""),
+                "source": "ai_generated"
+            }
+            
+            # Créer un matched_job pour le narrative
+            matched_job = ai_job_data
+            matched_job["label"] = ai_job_data.get("intitule", request.job_query)
+            matched_job["intitule_rome"] = ai_job_data.get("intitule", request.job_query)
+            
+            # Créer un best_match minimal
+            if not best_match:
+                best_match = {
+                    "job_id": f"ai_{request.job_query.lower().replace(' ', '_')}",
+                    "job_label": ai_job_data.get("intitule", request.job_query),
+                    "secteur": "Généré par Intelligence Artificielle",
+                    "filiere": "",
+                    "score": 65,  # Score par défaut pour les métiers IA
+                    "reasons": ["Fiche métier générée par IA Claude Sonnet 4.5"],
+                    "risks": [],
+                    "source": "ai_generated"
+                }
+            
+            # Générer le narrative pour ce métier IA
+            job_narrative = await generate_job_match_narrative(
+                profile, 
+                matched_job, 
+                best_match.get("score", 65),
+                best_match.get("reasons", []),
+                best_match.get("risks", [])
+            )
     
     # Generate cross-analysis between Numerology x DISC x MBTI x Enneagram
     cross_analysis = None
