@@ -129,14 +129,73 @@ async def claim_test_result(access_code: str, user_id: str) -> bool:
 
 
 # ============================================================================
-# GÉNÉRATION DE FICHE MÉTIER PAR IA (CLAUDE SONNET 4.5)
+# GÉNÉRATION DE FICHE MÉTIER PAR IA (CLAUDE SONNET 4.5) + CACHE
 # ============================================================================
+
+# Collection pour le cache des fiches métiers générées par IA
+ai_job_cache_collection = db['ai_job_cache']
+
+def normalize_job_title_for_cache(title: str) -> str:
+    """Normalise le titre du métier pour la clé de cache."""
+    return title.lower().strip()
+
+async def get_cached_ai_job(job_title: str) -> Optional[Dict[str, Any]]:
+    """Récupère une fiche métier depuis le cache et incrémente le compteur."""
+    try:
+        normalized = normalize_job_title_for_cache(job_title)
+        # Utiliser findOneAndUpdate pour incrémenter hit_count à chaque lecture
+        cached = await ai_job_cache_collection.find_one_and_update(
+            {"normalized_title": normalized},
+            {"$inc": {"hit_count": 1}},
+            projection={"_id": 0, "job_data": 1},
+            return_document=True
+        )
+        if cached:
+            logging.info(f"Fiche métier trouvée en cache pour: {job_title}")
+            return cached.get("job_data")
+        return None
+    except Exception as e:
+        logging.error(f"Erreur lecture cache: {e}")
+        return None
+
+async def save_ai_job_to_cache(job_title: str, job_data: Dict[str, Any]) -> bool:
+    """Sauvegarde une fiche métier dans le cache."""
+    try:
+        normalized = normalize_job_title_for_cache(job_title)
+        await ai_job_cache_collection.update_one(
+            {"normalized_title": normalized},
+            {
+                "$set": {
+                    "normalized_title": normalized,
+                    "original_title": job_title,
+                    "job_data": job_data,
+                    "updated_at": datetime.now(timezone.utc)
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc),
+                    "hit_count": 1
+                }
+            },
+            upsert=True
+        )
+        logging.info(f"Fiche métier mise en cache pour: {job_title}")
+        return True
+    except Exception as e:
+        logging.error(f"Erreur sauvegarde cache: {e}")
+        return False
 
 async def generate_job_description_with_ai(job_title: str) -> Optional[Dict[str, Any]]:
     """
     Génère une fiche métier complète via Claude Sonnet 4.5 quand le métier
     n'est pas trouvé dans notre base ni dans ESCO.
+    Utilise un cache MongoDB pour éviter les appels répétés.
     """
+    # 1. Vérifier le cache d'abord
+    cached_job = await get_cached_ai_job(job_title)
+    if cached_job:
+        return cached_job
+    
+    # 2. Si pas en cache, générer via IA
     if not EMERGENT_LLM_KEY:
         logging.warning("EMERGENT_LLM_KEY non configurée, impossible de générer la fiche métier par IA")
         return None
@@ -188,6 +247,9 @@ Réponds UNIQUEMENT avec ce format JSON (sans markdown, sans ```json) :
         job_data = json.loads(clean_response)
         job_data["source"] = "ai_generated"
         job_data["intitule_rome"] = job_data.get("intitule", job_title)
+        
+        # 3. Sauvegarder en cache pour les prochaines fois
+        await save_ai_job_to_cache(job_title, job_data)
         
         logging.info(f"Fiche métier générée par IA pour: {job_title}")
         return job_data
