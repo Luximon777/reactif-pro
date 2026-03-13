@@ -169,6 +169,24 @@ const Dashboard = () => {
 
             {/* Right Side */}
             <div className="flex items-center gap-3">
+              {/* Ubuntoo Link */}
+              <a
+                href="https://ubuntoo-proto.preview.emergentagent.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:flex"
+                data-testid="ubuntoo-link"
+              >
+                <Button variant="outline" className="border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 hover:border-teal-300 gap-2">
+                  <img
+                    src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
+                    alt="Ubuntoo"
+                    className="h-5 w-auto"
+                  />
+                  <span className="hidden lg:inline">Espace Ubuntoo</span>
+                </Button>
+              </a>
+
               {/* Role Switcher */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -248,6 +266,22 @@ const Dashboard = () => {
                   </Button>
                 );
               })}
+              <a
+                href="https://ubuntoo-proto.preview.emergentagent.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+                data-testid="ubuntoo-link-mobile"
+              >
+                <Button variant="ghost" className="w-full justify-start text-teal-700 hover:bg-teal-50">
+                  <img
+                    src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
+                    alt="Ubuntoo"
+                    className="h-4 w-auto mr-2"
+                  />
+                  Espace Ubuntoo
+                </Button>
+              </a>
             </nav>
           </div>
         )}
