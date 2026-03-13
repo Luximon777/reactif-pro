@@ -169,6 +169,101 @@ class CreateDocumentRequest(BaseModel):
     date_expiration: Optional[str] = None
     is_sensitive: bool = False
 
+# ============== OBSERVATOIRE MODELS ==============
+
+class ContributionType(str):
+    NEW_SKILL = "nouvelle_competence"
+    SKILL_EVOLUTION = "evolution_competence"
+    NEW_TOOL = "nouvel_outil"
+    JOB_EVOLUTION = "evolution_metier"
+    SECTOR_TREND = "tendance_secteur"
+    SKILL_OBSOLESCENCE = "competence_obsolete"
+
+class ContributionStatus(str):
+    PENDING = "en_attente"
+    AI_VALIDATED = "validee_ia"
+    AI_REJECTED = "rejetee_ia"
+    HUMAN_VALIDATED = "validee_humain"
+    HUMAN_REJECTED = "rejetee_humain"
+    INTEGRATED = "integree"
+
+class SkillContribution(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    contributor_id: str
+    contribution_type: str = "nouvelle_competence"
+    
+    # Contenu de la contribution
+    skill_name: str
+    skill_description: Optional[str] = None
+    related_job: Optional[str] = None
+    related_sector: Optional[str] = None
+    related_tools: List[str] = []
+    context: Optional[str] = None
+    
+    # Métadonnées
+    status: str = "en_attente"
+    ai_analysis: Optional[Dict[str, Any]] = None
+    ai_score: float = 0.0
+    human_validator: Optional[str] = None
+    human_notes: Optional[str] = None
+    
+    # Compteurs
+    similar_count: int = 1
+    upvotes: int = 0
+    
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    validated_at: Optional[str] = None
+
+class EmergingSkill(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    skill_name: str
+    description: Optional[str] = None
+    related_sectors: List[str] = []
+    related_jobs: List[str] = []
+    related_tools: List[str] = []
+    
+    # Indicateurs
+    emergence_score: float = 0.0
+    growth_rate: float = 0.0
+    mention_count: int = 0
+    contributor_count: int = 0
+    
+    # Statut
+    status: str = "emergente"  # emergente, en_croissance, etablie, en_declin
+    first_detected: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class SectorTrend(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sector_name: str
+    
+    # Compétences
+    emerging_skills: List[str] = []
+    declining_skills: List[str] = []
+    stable_skills: List[str] = []
+    
+    # Indicateurs
+    transformation_index: float = 0.0
+    hiring_trend: str = "stable"  # croissance, stable, declin
+    skill_gap_alert: bool = False
+    
+    # Prédictions
+    predicted_skills_demand: List[Dict[str, Any]] = []
+    
+    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CreateContributionRequest(BaseModel):
+    contribution_type: str = "nouvelle_competence"
+    skill_name: str
+    skill_description: Optional[str] = None
+    related_job: Optional[str] = None
+    related_sector: Optional[str] = None
+    related_tools: List[str] = []
+    context: Optional[str] = None
+
 class MatchRequest(BaseModel):
     profile_skills: List[str]
     job_requirements: List[str]
@@ -761,6 +856,300 @@ async def get_expiring_documents(token: str):
     
     return sorted(expiring, key=lambda x: x.get("days_until_expiry", 999))
 
+# ============== OBSERVATOIRE ENDPOINTS ==============
+
+@api_router.get("/observatoire/dashboard")
+async def get_observatoire_dashboard():
+    """Get observatoire main dashboard data"""
+    emerging_skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(50)
+    sector_trends = await db.sector_trends.find({}, {"_id": 0}).to_list(20)
+    contributions_count = await db.skill_contributions.count_documents({})
+    validated_count = await db.skill_contributions.count_documents({"status": "integree"})
+    
+    # Calculate global indicators
+    total_emerging = len([s for s in emerging_skills if s.get("status") == "emergente"])
+    total_growing = len([s for s in emerging_skills if s.get("status") == "en_croissance"])
+    sectors_in_transformation = len([t for t in sector_trends if t.get("transformation_index", 0) > 0.6])
+    
+    return {
+        "emerging_skills": emerging_skills,
+        "sector_trends": sector_trends,
+        "indicators": {
+            "total_emerging_skills": total_emerging,
+            "total_growing_skills": total_growing,
+            "sectors_in_transformation": sectors_in_transformation,
+            "total_contributions": contributions_count,
+            "validated_contributions": validated_count,
+            "skill_gap_alerts": len([t for t in sector_trends if t.get("skill_gap_alert")])
+        }
+    }
+
+@api_router.get("/observatoire/emerging-skills")
+async def get_emerging_skills(sector: Optional[str] = None, status: Optional[str] = None):
+    """Get emerging skills with optional filters"""
+    query = {}
+    if sector:
+        query["related_sectors"] = sector
+    if status:
+        query["status"] = status
+    
+    skills = await db.emerging_skills.find(query, {"_id": 0}).to_list(100)
+    return sorted(skills, key=lambda x: x.get("emergence_score", 0), reverse=True)
+
+@api_router.get("/observatoire/sector-trends")
+async def get_sector_trends(sector: Optional[str] = None):
+    """Get sector transformation trends"""
+    query = {}
+    if sector:
+        query["sector_name"] = sector
+    
+    trends = await db.sector_trends.find(query, {"_id": 0}).to_list(50)
+    return sorted(trends, key=lambda x: x.get("transformation_index", 0), reverse=True)
+
+@api_router.get("/observatoire/sector/{sector_name}")
+async def get_sector_detail(sector_name: str):
+    """Get detailed information about a sector"""
+    trend = await db.sector_trends.find_one({"sector_name": sector_name}, {"_id": 0})
+    if not trend:
+        raise HTTPException(status_code=404, detail="Secteur non trouvé")
+    
+    # Get related emerging skills
+    related_skills = await db.emerging_skills.find(
+        {"related_sectors": sector_name}, 
+        {"_id": 0}
+    ).to_list(20)
+    
+    # Get recent contributions for this sector
+    contributions = await db.skill_contributions.find(
+        {"related_sector": sector_name, "status": {"$in": ["validee_ia", "validee_humain", "integree"]}},
+        {"_id": 0}
+    ).to_list(10)
+    
+    return {
+        "trend": trend,
+        "related_skills": related_skills,
+        "recent_contributions": contributions
+    }
+
+@api_router.post("/observatoire/contributions")
+async def create_contribution(token: str, request: CreateContributionRequest):
+    """Submit a new skill/job contribution"""
+    token_doc = await get_current_token(token)
+    
+    contribution = SkillContribution(
+        contributor_id=token_doc["id"],
+        **request.model_dump()
+    )
+    
+    # AI Analysis (simplified - would use OpenAI in production)
+    ai_analysis = await analyze_contribution_with_ai(contribution)
+    contribution.ai_analysis = ai_analysis
+    contribution.ai_score = ai_analysis.get("confidence_score", 0.5)
+    
+    if ai_analysis.get("is_valid", False) and ai_analysis.get("confidence_score", 0) > 0.7:
+        contribution.status = "validee_ia"
+    elif ai_analysis.get("confidence_score", 0) < 0.3:
+        contribution.status = "rejetee_ia"
+    
+    # Check for similar contributions
+    similar = await db.skill_contributions.find_one({
+        "skill_name": {"$regex": contribution.skill_name, "$options": "i"},
+        "status": {"$ne": "rejetee_ia"}
+    }, {"_id": 0})
+    
+    if similar:
+        # Increment similar count
+        await db.skill_contributions.update_one(
+            {"id": similar["id"]},
+            {"$inc": {"similar_count": 1}}
+        )
+        contribution.similar_count = similar.get("similar_count", 1) + 1
+    
+    await db.skill_contributions.insert_one(contribution.model_dump())
+    
+    return {
+        "contribution_id": contribution.id,
+        "status": contribution.status,
+        "ai_analysis": ai_analysis,
+        "message": "Contribution enregistrée et analysée"
+    }
+
+@api_router.get("/observatoire/contributions")
+async def get_contributions(token: str, status: Optional[str] = None):
+    """Get user's contributions"""
+    token_doc = await get_current_token(token)
+    
+    query = {"contributor_id": token_doc["id"]}
+    if status:
+        query["status"] = status
+    
+    contributions = await db.skill_contributions.find(query, {"_id": 0}).to_list(100)
+    return contributions
+
+@api_router.get("/observatoire/contributions/pending")
+async def get_pending_contributions():
+    """Get contributions pending human validation (for validators)"""
+    contributions = await db.skill_contributions.find(
+        {"status": "validee_ia"},
+        {"_id": 0}
+    ).to_list(50)
+    return contributions
+
+@api_router.post("/observatoire/contributions/{contribution_id}/validate")
+async def validate_contribution(contribution_id: str, approved: bool, notes: Optional[str] = None):
+    """Human validation of a contribution"""
+    update_data = {
+        "status": "validee_humain" if approved else "rejetee_humain",
+        "human_notes": notes,
+        "validated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    result = await db.skill_contributions.update_one(
+        {"id": contribution_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Contribution non trouvée")
+    
+    # If validated, potentially add to emerging skills
+    if approved:
+        contribution = await db.skill_contributions.find_one({"id": contribution_id}, {"_id": 0})
+        if contribution and contribution.get("similar_count", 1) >= 3:
+            await integrate_contribution_to_skills(contribution)
+    
+    return {"message": "Validation enregistrée", "status": update_data["status"]}
+
+@api_router.post("/observatoire/contributions/{contribution_id}/upvote")
+async def upvote_contribution(token: str, contribution_id: str):
+    """Upvote a contribution"""
+    await get_current_token(token)
+    
+    result = await db.skill_contributions.update_one(
+        {"id": contribution_id},
+        {"$inc": {"upvotes": 1}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Contribution non trouvée")
+    
+    return {"message": "Vote enregistré"}
+
+@api_router.get("/observatoire/predictions")
+async def get_predictions():
+    """Get skill demand predictions"""
+    trends = await db.sector_trends.find({}, {"_id": 0}).to_list(50)
+    
+    predictions = []
+    for trend in trends:
+        for pred in trend.get("predicted_skills_demand", []):
+            predictions.append({
+                "sector": trend["sector_name"],
+                **pred
+            })
+    
+    return sorted(predictions, key=lambda x: x.get("demand_change", "0%"), reverse=True)
+
+@api_router.get("/observatoire/skill-gaps")
+async def get_skill_gaps():
+    """Get sectors with skill gap alerts"""
+    trends = await db.sector_trends.find({"skill_gap_alert": True}, {"_id": 0}).to_list(20)
+    return trends
+
+async def analyze_contribution_with_ai(contribution: SkillContribution) -> Dict[str, Any]:
+    """Analyze a contribution using AI"""
+    if not EMERGENT_LLM_KEY:
+        # Fallback analysis
+        is_valid = len(contribution.skill_name) > 3 and len(contribution.skill_name) < 100
+        return {
+            "is_valid": is_valid,
+            "confidence_score": 0.6 if is_valid else 0.3,
+            "category": "technique" if any(kw in contribution.skill_name.lower() for kw in ["code", "data", "dev", "ia", "cyber"]) else "transversale",
+            "similar_existing": [],
+            "rationale": "Analyse basique - cohérence vérifiée"
+        }
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"contrib-{contribution.id}",
+            system_message="Tu es un expert RH français. Analyse cette contribution à un observatoire des compétences. Réponds en JSON avec: is_valid (bool), confidence_score (0-1), category (technique/transversale/sectorielle), similar_existing (list), rationale (string)."
+        ).with_model("openai", "gpt-5.2")
+        
+        prompt = f"""
+        Nouvelle compétence proposée: {contribution.skill_name}
+        Description: {contribution.skill_description or 'Non fournie'}
+        Métier associé: {contribution.related_job or 'Non spécifié'}
+        Secteur: {contribution.related_sector or 'Non spécifié'}
+        Contexte: {contribution.context or 'Non fourni'}
+        
+        Analyse si cette compétence est:
+        1. Valide et pertinente pour le marché du travail
+        2. Suffisamment précise
+        3. Potentiellement émergente
+        """
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        import json
+        try:
+            result = json.loads(response)
+            return result
+        except:
+            return {
+                "is_valid": True,
+                "confidence_score": 0.65,
+                "category": "transversale",
+                "similar_existing": [],
+                "rationale": response[:200]
+            }
+    except Exception as e:
+        logging.error(f"AI contribution analysis error: {e}")
+        return {
+            "is_valid": True,
+            "confidence_score": 0.5,
+            "category": "non_classifie",
+            "similar_existing": [],
+            "rationale": "Analyse automatique non disponible"
+        }
+
+async def integrate_contribution_to_skills(contribution: dict):
+    """Integrate a validated contribution into emerging skills"""
+    existing = await db.emerging_skills.find_one(
+        {"skill_name": {"$regex": contribution["skill_name"], "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    if existing:
+        # Update existing skill
+        await db.emerging_skills.update_one(
+            {"id": existing["id"]},
+            {
+                "$inc": {"mention_count": 1, "contributor_count": 1},
+                "$set": {"last_updated": datetime.now(timezone.utc).isoformat()}
+            }
+        )
+    else:
+        # Create new emerging skill
+        new_skill = EmergingSkill(
+            skill_name=contribution["skill_name"],
+            description=contribution.get("skill_description"),
+            related_sectors=[contribution["related_sector"]] if contribution.get("related_sector") else [],
+            related_jobs=[contribution["related_job"]] if contribution.get("related_job") else [],
+            related_tools=contribution.get("related_tools", []),
+            emergence_score=0.5,
+            growth_rate=0.1,
+            mention_count=contribution.get("similar_count", 1),
+            contributor_count=1
+        )
+        await db.emerging_skills.insert_one(new_skill.model_dump())
+    
+    # Mark contribution as integrated
+    await db.skill_contributions.update_one(
+        {"id": contribution["id"]},
+        {"$set": {"status": "integree"}}
+    )
+
 # ============== SEED DATA ==============
 
 @api_router.post("/seed")
@@ -897,7 +1286,142 @@ async def seed_database():
     await db.jobs.insert_many(demo_jobs)
     await db.learning_modules.insert_many(demo_modules)
     
-    return {"message": "Base de données initialisée", "jobs": len(demo_jobs), "modules": len(demo_modules)}
+    # Seed observatoire data
+    await db.emerging_skills.delete_many({})
+    await db.sector_trends.delete_many({})
+    await db.skill_contributions.delete_many({})
+    
+    demo_emerging_skills = [
+        {
+            "id": str(uuid.uuid4()),
+            "skill_name": "Prompt Engineering",
+            "description": "Conception et optimisation de prompts pour l'IA générative",
+            "related_sectors": ["Informatique", "Marketing", "Communication"],
+            "related_jobs": ["Développeur IA", "Content Manager", "Data Analyst"],
+            "related_tools": ["ChatGPT", "Claude", "Midjourney"],
+            "emergence_score": 0.92,
+            "growth_rate": 0.45,
+            "mention_count": 156,
+            "contributor_count": 89,
+            "status": "emergente",
+            "first_detected": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "skill_name": "No-Code / Low-Code",
+            "description": "Création d'applications sans programmation traditionnelle",
+            "related_sectors": ["Informatique", "Administration", "PME"],
+            "related_jobs": ["Business Analyst", "Chef de projet", "Responsable digital"],
+            "related_tools": ["Bubble", "Webflow", "Airtable", "Notion"],
+            "emergence_score": 0.85,
+            "growth_rate": 0.38,
+            "mention_count": 234,
+            "contributor_count": 112,
+            "status": "en_croissance",
+            "first_detected": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "skill_name": "Green IT",
+            "description": "Pratiques informatiques éco-responsables et durables",
+            "related_sectors": ["Informatique", "Environnement", "Industrie"],
+            "related_jobs": ["Responsable RSE", "Architecte SI", "Chef de projet IT"],
+            "related_tools": ["Cloud Carbon Footprint", "Green Algorithms"],
+            "emergence_score": 0.78,
+            "growth_rate": 0.28,
+            "mention_count": 98,
+            "contributor_count": 45,
+            "status": "emergente",
+            "first_detected": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "skill_name": "Data Storytelling",
+            "description": "Communication narrative basée sur l'analyse de données",
+            "related_sectors": ["Marketing", "Communication", "Conseil"],
+            "related_jobs": ["Data Analyst", "Consultant", "Responsable marketing"],
+            "related_tools": ["Tableau", "Power BI", "Looker"],
+            "emergence_score": 0.72,
+            "growth_rate": 0.25,
+            "mention_count": 187,
+            "contributor_count": 78,
+            "status": "en_croissance",
+            "first_detected": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "skill_name": "Cybersécurité opérationnelle",
+            "description": "Protection des systèmes et gestion des incidents de sécurité",
+            "related_sectors": ["Informatique", "Banque", "Santé"],
+            "related_jobs": ["Analyste SOC", "RSSI", "Pentester"],
+            "related_tools": ["SIEM", "EDR", "Firewall NextGen"],
+            "emergence_score": 0.88,
+            "growth_rate": 0.35,
+            "mention_count": 312,
+            "contributor_count": 134,
+            "status": "en_croissance",
+            "first_detected": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    demo_sector_trends = [
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Informatique",
+            "emerging_skills": ["Prompt Engineering", "No-Code", "Green IT", "Cybersécurité"],
+            "declining_skills": ["Flash", "COBOL", "jQuery"],
+            "stable_skills": ["Python", "JavaScript", "SQL", "Git"],
+            "transformation_index": 0.82,
+            "hiring_trend": "croissance",
+            "skill_gap_alert": True,
+            "predicted_skills_demand": [
+                {"skill": "IA Générative", "demand_change": "+45%", "horizon": "2025"},
+                {"skill": "Cloud Native", "demand_change": "+32%", "horizon": "2025"},
+                {"skill": "DevSecOps", "demand_change": "+28%", "horizon": "2025"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Administration",
+            "emerging_skills": ["No-Code", "Automatisation", "IA bureautique"],
+            "declining_skills": ["Sténographie", "Classement papier"],
+            "stable_skills": ["Excel", "Rédaction", "Organisation", "Accueil"],
+            "transformation_index": 0.58,
+            "hiring_trend": "stable",
+            "skill_gap_alert": False,
+            "predicted_skills_demand": [
+                {"skill": "Outils collaboratifs", "demand_change": "+25%", "horizon": "2025"},
+                {"skill": "GED", "demand_change": "+18%", "horizon": "2025"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Commerce",
+            "emerging_skills": ["Social Selling", "CRM avancé", "Data Analytics"],
+            "declining_skills": ["Vente terrain classique"],
+            "stable_skills": ["Négociation", "Relation client", "Prospection"],
+            "transformation_index": 0.65,
+            "hiring_trend": "croissance",
+            "skill_gap_alert": True,
+            "predicted_skills_demand": [
+                {"skill": "E-commerce", "demand_change": "+35%", "horizon": "2025"},
+                {"skill": "Marketing automation", "demand_change": "+30%", "horizon": "2025"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    await db.emerging_skills.insert_many(demo_emerging_skills)
+    await db.sector_trends.insert_many(demo_sector_trends)
+    
+    return {"message": "Base de données initialisée", "jobs": len(demo_jobs), "modules": len(demo_modules), "emerging_skills": len(demo_emerging_skills), "sector_trends": len(demo_sector_trends)}
 
 # ============== ROOT ==============
 
