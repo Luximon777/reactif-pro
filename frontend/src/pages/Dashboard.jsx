@@ -86,9 +86,9 @@ const Dashboard = () => {
 
   const getRoleLabel = (r) => {
     const labels = {
-      particulier: "Particulier",
-      entreprise: "Entreprise / RH",
-      partenaire: "Partenaire Social"
+      particulier: "Espace Personnel",
+      entreprise: "Espace Employeurs",
+      partenaire: "Espace Partenaires"
     };
     return labels[r] || r;
   };
@@ -130,11 +130,11 @@ const Dashboard = () => {
             {/* Logo & Nav */}
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className="w-9 h-9 rounded-xl bg-[#1e3a5f] flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">R</span>
                 </div>
-                <span className="text-lg font-bold text-slate-900 hidden sm:block" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  Ré'Actif Pro
+                <span className="text-lg font-bold text-[#1e3a5f] hidden sm:block" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  RE'ACTIF PRO
                 </span>
               </div>
               
@@ -172,18 +172,18 @@ const Dashboard = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={() => handleSwitchRole("particulier")} data-testid="switch-particulier">
-                    <Users className="w-4 h-4 mr-2 text-blue-600" />
-                    Particulier
-                    {role === "particulier" && <Badge className="ml-auto bg-blue-100 text-blue-700">Actif</Badge>}
+                    <Users className="w-4 h-4 mr-2 text-[#1e3a5f]" />
+                    Espace Personnel
+                    {role === "particulier" && <Badge className="ml-auto bg-blue-100 text-[#1e3a5f]">Actif</Badge>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSwitchRole("entreprise")} data-testid="switch-entreprise">
                     <Building2 className="w-4 h-4 mr-2 text-emerald-600" />
-                    Entreprise / RH
+                    Espace Employeurs
                     {role === "entreprise" && <Badge className="ml-auto bg-emerald-100 text-emerald-700">Actif</Badge>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSwitchRole("partenaire")} data-testid="switch-partenaire">
                     <Handshake className="w-4 h-4 mr-2 text-violet-600" />
-                    Partenaire Social
+                    Espace Partenaires
                     {role === "partenaire" && <Badge className="ml-auto bg-violet-100 text-violet-700">Actif</Badge>}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

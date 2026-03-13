@@ -111,21 +111,21 @@ const EntrepriseView = ({ token, section }) => {
       subtitle: "Publiées sur la plateforme"
     },
     {
-      title: "Candidatures",
+      title: "Profils Compatibles",
       value: "12",
       icon: Users,
       color: "blue",
-      subtitle: "Profils correspondants"
+      subtitle: "Compétences transférables"
     },
     {
-      title: "Taux de Matching",
+      title: "Taux d'Adéquation",
       value: "78%",
       icon: TrendingUp,
       color: "amber",
-      subtitle: "Moyenne de compatibilité"
+      subtitle: "Correspondance compétences"
     },
     {
-      title: "Vues",
+      title: "Consultations",
       value: "156",
       icon: Eye,
       color: "violet",
@@ -143,9 +143,9 @@ const EntrepriseView = ({ token, section }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Espace Entreprise / RH
+            Espace Employeurs
           </h1>
-          <p className="text-slate-600 mt-1">Gérez vos recrutements et trouvez les meilleurs talents</p>
+          <p className="text-slate-600 mt-1">Identifiez les compétences en adéquation avec vos besoins</p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -364,10 +364,10 @@ const EntrepriseView = ({ token, section }) => {
         <Card className="card-base" data-testid="candidates-preview">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-blue-600" />
-              Profils Compatibles
+              <UserCheck className="w-5 h-5 text-[#1e3a5f]" />
+              Profils & Compétences
             </CardTitle>
-            <CardDescription>Top candidats pour vos offres</CardDescription>
+            <CardDescription>Compétences transférables identifiées</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -405,7 +405,7 @@ const EntrepriseView = ({ token, section }) => {
       </div>
 
       {/* AI Matching Banner */}
-      <Card className="bg-gradient-to-r from-emerald-600 to-emerald-500 border-0" data-testid="ai-banner">
+      <Card className="bg-[#1e3a5f]" data-testid="ai-banner">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -413,12 +413,12 @@ const EntrepriseView = ({ token, section }) => {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Matching IA Activé</h3>
-                <p className="text-emerald-100 text-sm">Notre IA analyse les profils pour vous recommander les meilleurs candidats</p>
+                <h3 className="text-lg font-semibold text-white">Intelligence Professionnelle</h3>
+                <p className="text-blue-100 text-sm">Analyse des compétences transférables et passerelles métiers</p>
               </div>
             </div>
-            <Button className="bg-white text-emerald-600 hover:bg-emerald-50">
-              Paramétrer le matching
+            <Button className="bg-white text-[#1e3a5f] hover:bg-blue-50">
+              Paramétrer l'analyse
             </Button>
           </div>
         </CardContent>

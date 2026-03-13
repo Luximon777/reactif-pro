@@ -111,32 +111,32 @@ const PartenaireView = ({ token }) => {
 
   const metrics = [
     {
-      title: "Bénéficiaires",
+      title: "Personnes Accompagnées",
       value: statusCounts.total.toString(),
       icon: Users,
       color: "violet",
-      subtitle: "Suivis actuellement"
+      subtitle: "Parcours en cours"
     },
     {
-      title: "En Accompagnement",
+      title: "En Transition",
       value: statusCounts.enAccompagnement.toString(),
       icon: Handshake,
       color: "blue",
-      subtitle: "Actifs dans le parcours"
+      subtitle: "Accompagnement actif"
     },
     {
-      title: "En Emploi",
+      title: "Insertions Réussies",
       value: statusCounts.enEmploi.toString(),
       icon: CheckCircle2,
       color: "emerald",
-      subtitle: "Objectif atteint"
+      subtitle: "Trajectoires sécurisées"
     },
     {
       title: "Taux de Réussite",
       value: `${Math.round((statusCounts.enEmploi / Math.max(statusCounts.total, 1)) * 100)}%`,
       icon: TrendingUp,
       color: "amber",
-      subtitle: "Insertion professionnelle"
+      subtitle: "Transitions professionnelles"
     }
   ];
 
@@ -157,9 +157,9 @@ const PartenaireView = ({ token }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Espace Partenaire Social
+            Espace Partenaires
           </h1>
-          <p className="text-slate-600 mt-1">Accompagnez vos bénéficiaires vers l'emploi</p>
+          <p className="text-slate-600 mt-1">Observatoire des compétences et accompagnement des transitions</p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -250,10 +250,10 @@ const PartenaireView = ({ token }) => {
         <Card className="lg:col-span-2 card-base" data-testid="beneficiaires-list">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-violet-600" />
-              Mes Bénéficiaires
+              <Users className="w-5 h-5 text-[#1e3a5f]" />
+              Parcours Accompagnés
             </CardTitle>
-            <CardDescription>Suivez la progression de chaque accompagnement</CardDescription>
+            <CardDescription>Suivi des transitions professionnelles</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -379,32 +379,32 @@ const PartenaireView = ({ token }) => {
           <Card className="card-base" data-testid="territorial-observations">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <MapPin className="w-5 h-5 text-violet-600" />
-                Observations
+                <MapPin className="w-5 h-5 text-[#1e3a5f]" />
+                Intelligence Territoriale
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                  <div className="flex items-center gap-2 text-sm text-blue-700 font-medium mb-1">
+                  <div className="flex items-center gap-2 text-sm text-[#1e3a5f] font-medium mb-1">
                     <ArrowUpRight className="w-4 h-4" />
-                    Secteur en croissance
+                    Compétences émergentes
                   </div>
-                  <p className="text-xs text-blue-600">Informatique: +15% d'offres ce trimestre</p>
+                  <p className="text-xs text-blue-600">Numérique: +15% de besoins ce trimestre</p>
                 </div>
                 <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
                   <div className="flex items-center gap-2 text-sm text-amber-700 font-medium mb-1">
                     <AlertTriangle className="w-4 h-4" />
-                    Besoin identifié
+                    Besoin formation identifié
                   </div>
-                  <p className="text-xs text-amber-600">Formation Excel avancé très demandée</p>
+                  <p className="text-xs text-amber-600">Compétences transversales très demandées</p>
                 </div>
                 <div className="p-3 rounded-lg bg-green-50 border border-green-100">
                   <div className="flex items-center gap-2 text-sm text-green-700 font-medium mb-1">
                     <CheckCircle2 className="w-4 h-4" />
                     Tendance positive
                   </div>
-                  <p className="text-xs text-green-600">Taux d'insertion +8% vs trimestre dernier</p>
+                  <p className="text-xs text-green-600">Transitions sécurisées +8% vs trimestre dernier</p>
                 </div>
               </div>
             </CardContent>

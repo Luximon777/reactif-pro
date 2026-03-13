@@ -113,32 +113,32 @@ const ParticulierView = ({ token, section }) => {
 
   const metrics = [
     {
-      title: "Score Profil",
+      title: "Identité Professionnelle",
       value: `${displayProfile.profile_score || 45}%`,
       icon: Target,
       color: "blue",
       subtitle: "Complétude de votre profil"
     },
     {
-      title: "Offres Compatibles",
+      title: "Métiers Compatibles",
       value: jobs.filter(j => j.match_score >= 60).length.toString(),
       icon: Briefcase,
       color: "emerald",
-      subtitle: "Correspondance > 60%"
+      subtitle: "Passerelles identifiées"
     },
     {
-      title: "Formations en cours",
+      title: "Parcours Formation",
       value: learningModules.filter(m => m.progress > 0 && m.progress < 100).length.toString(),
       icon: BookOpen,
       color: "amber",
-      subtitle: "Modules commencés"
+      subtitle: "Modules en cours"
     },
     {
-      title: "Compétences",
+      title: "Compétences Valorisées",
       value: displayProfile.skills?.length?.toString() || "0",
       icon: Zap,
       color: "violet",
-      subtitle: "Compétences déclarées"
+      subtitle: "Dans votre coffre-fort"
     }
   ];
 
@@ -156,13 +156,13 @@ const ParticulierView = ({ token, section }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Bienvenue, {displayProfile.name}
+            Mon Espace Personnel
           </h1>
-          <p className="text-slate-600 mt-1">Voici votre tableau de bord personnel</p>
+          <p className="text-slate-600 mt-1">Coffre-fort numérique de vos compétences</p>
         </div>
-        <Badge className="self-start bg-blue-100 text-blue-700 border-blue-200 px-3 py-1">
+        <Badge className="self-start bg-blue-100 text-[#1e3a5f] border-blue-200 px-3 py-1">
           <Sparkles className="w-3 h-3 mr-1" />
-          Matching IA actif
+          Tiers de confiance numérique
         </Badge>
       </div>
 
@@ -204,10 +204,10 @@ const ParticulierView = ({ token, section }) => {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-blue-600" />
+                <Zap className="w-5 h-5 text-[#1e3a5f]" />
                 Mes Compétences
               </CardTitle>
-              <CardDescription>Évaluez et développez vos compétences</CardDescription>
+              <CardDescription>Votre coffre-fort numérique des compétences</CardDescription>
             </div>
             <Dialog open={editingProfile} onOpenChange={setEditingProfile}>
               <DialogTrigger asChild>
@@ -269,7 +269,7 @@ const ParticulierView = ({ token, section }) => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
-                Points Forts
+                Compétences Transversales
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -287,7 +287,7 @@ const ParticulierView = ({ token, section }) => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <AlertCircle className="w-5 h-5 text-amber-600" />
-                À Développer
+                Besoins en Formation
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -308,10 +308,10 @@ const ParticulierView = ({ token, section }) => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-blue-600" />
-              Offres Recommandées
+              <Briefcase className="w-5 h-5 text-[#1e3a5f]" />
+              Passerelles Métiers
             </CardTitle>
-            <CardDescription>Basées sur votre profil et vos compétences</CardDescription>
+            <CardDescription>Métiers compatibles avec vos compétences transférables</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard/jobs'}>
             Voir tout
@@ -332,10 +332,10 @@ const ParticulierView = ({ token, section }) => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-blue-600" />
-              Formations Suggérées
+              <BookOpen className="w-5 h-5 text-[#1e3a5f]" />
+              Parcours de Formation
             </CardTitle>
-            <CardDescription>Pour développer vos compétences</CardDescription>
+            <CardDescription>Pour développer vos compétences et sécuriser votre trajectoire</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard/learning'}>
             Voir tout
@@ -456,9 +456,9 @@ const JobsSection = ({ jobs, token }) => (
   <div className="space-y-6 animate-fade-in" data-testid="jobs-section">
     <div>
       <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-        Offres d'Emploi
+        Passerelles Métiers
       </h1>
-      <p className="text-slate-600 mt-1">Découvrez les opportunités qui correspondent à votre profil</p>
+      <p className="text-slate-600 mt-1">Identifiez les métiers compatibles avec vos compétences transférables</p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
       {jobs.map((job, idx) => (
@@ -472,9 +472,9 @@ const LearningSection = ({ modules, updateProgress }) => (
   <div className="space-y-6 animate-fade-in" data-testid="learning-section">
     <div>
       <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-        Formations
+        Parcours de Formation
       </h1>
-      <p className="text-slate-600 mt-1">Développez vos compétences avec nos modules de formation</p>
+      <p className="text-slate-600 mt-1">Développez vos compétences et sécurisez votre trajectoire professionnelle</p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
       {modules.map((module, idx) => (
