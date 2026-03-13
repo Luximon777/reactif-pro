@@ -6,50 +6,32 @@ Créer la plateforme Ré'Actif Pro - une plateforme de développement de carriè
 - **Entreprises/RH**: gestion des offres, candidats compatibles, métriques de recrutement
 - **Partenaires Sociaux**: suivi des bénéficiaires, prescriptions, observations territoriales
 
-Authentification anonyme avec tokens sécurisés, design mode clair avec couleur bleue, intégration OpenAI GPT-5.2 pour le matching intelligent.
-
 ## Architecture
 
 ### Backend (FastAPI + MongoDB)
-- `/app/backend/server.py` - API monolithique avec:
+- `/app/backend/server.py` - API avec:
   - Auth anonyme via tokens sécurisés
   - Gestion des profils utilisateurs
-  - API offres d'emploi avec matching IA (OpenAI GPT-5.2)
-  - API modules de formation
-  - API bénéficiaires (partenaires)
+  - API offres d'emploi avec matching IA (OpenAI GPT-5.2 via Emergent LLM Key)
   - API Coffre-Fort Numérique (8 catégories)
   - API Observatoire Prédictif (contributions, compétences émergentes, tendances)
-  - API Indice d'Évolution des Compétences (métiers, secteurs, analyse profil)
+  - API Indice d'Évolution des Compétences
+  - **API Intelligence Ubuntoo** (signaux, échanges, insights, validation, cross-reference)
 
 ### Frontend (React + Tailwind + Shadcn UI)
-- `/app/frontend/src/App.js` - Auth context, routing
-- `/app/frontend/src/pages/Landing.jsx` - Page d'accueil avec sélection de rôle
-- `/app/frontend/src/pages/Dashboard.jsx` - Dashboard principal avec navigation
-- `/app/frontend/src/views/ParticulierView.jsx` - Vue Particulier
-- `/app/frontend/src/views/EntrepriseView.jsx` - Vue Entreprise/RH
-- `/app/frontend/src/views/PartenaireView.jsx` - Vue Partenaire Social
-- `/app/frontend/src/views/CoffreFortView.jsx` - Coffre-Fort Numérique
-- `/app/frontend/src/views/ObservatoireView.jsx` - Observatoire Prédictif
+- `/app/frontend/src/pages/Dashboard.jsx` - Dashboard avec navigation + bouton Ubuntoo
+- `/app/frontend/src/views/ObservatoireView.jsx` - Observatoire + onglet Signaux Ubuntoo
 - `/app/frontend/src/views/EvolutionIndexView.jsx` - Indice d'Évolution
+- Autres vues: CoffreFortView, ParticulierView, EntrepriseView, PartenaireView
 
-## User Personas
-1. **Particulier** - Individu en recherche d'emploi ou reconversion professionnelle
-2. **RH/Entreprise** - Recruteur ou responsable RH recherchant des talents
-3. **Partenaire Social** - Conseiller accompagnant des bénéficiaires vers l'emploi
-
-## Core Requirements
+## Core Requirements (Completed)
 - [x] Authentification anonyme sécurisée
 - [x] 3 dashboards spécialisés par rôle
-- [x] Affichage des offres d'emploi avec scoring
-- [x] Modules de formation avec progression
-- [x] Gestion des compétences utilisateur
-- [x] Switch de rôle en temps réel
-- [x] Données de démonstration pré-remplies
-- [x] Design bleu professionnel (mode clair)
 - [x] Intégration OpenAI GPT-5.2 via Emergent LLM Key
-- [x] Coffre-Fort Numérique (8 catégories, partage, indexation)
+- [x] Coffre-Fort Numérique (8 catégories)
 - [x] Observatoire Prédictif des Compétences
 - [x] Indice d'Évolution des Compétences
+- [x] **Croisement Ubuntoo × Observatoire** (Intelligence collective, signaux, pipeline validation, éthique)
 
 ## Key API Endpoints
 - `/api/auth/anonymous` - Auth anonyme
@@ -57,29 +39,26 @@ Authentification anonyme avec tokens sécurisés, design mode clair avec couleur
 - `/api/coffre/*` - Coffre-Fort Numérique
 - `/api/observatoire/*` - Observatoire Prédictif
 - `/api/evolution-index/*` - Indice d'Évolution
-- `/api/jobs/*` - Offres d'emploi + matching IA
-- `/api/learning` - Modules de formation
+- `/api/ubuntoo/dashboard` - Dashboard intelligence Ubuntoo
+- `/api/ubuntoo/signals` - Signaux détectés (filtrable)
+- `/api/ubuntoo/signals/{id}` - Détail signal + cross-references
+- `/api/ubuntoo/signals/{id}/validate` - Validation humaine
+- `/api/ubuntoo/analyze` - Analyse IA des échanges
+- `/api/ubuntoo/insights` - Insights croisés
+- `/api/ubuntoo/cross-reference` - Croisement données
 
 ## Prioritized Backlog
 
 ### P0 (Done)
-- Core authentication
-- 3 dashboard views
-- Jobs & Learning modules
-- Demo data seeding
-- Coffre-Fort Numérique
-- Observatoire Prédictif
-- Indice d'Évolution des Compétences
-- Intégration OpenAI (matching + analyse contributions)
+- Toutes les fonctionnalités core implémentées et testées
 
 ### P1 (Next)
 - [ ] Refactoring backend: découpage server.py en routeurs modulaires
-- [ ] Matching IA amélioré avec analyse détaillée côté frontend
-- [ ] Export PDF des profils/rapports
+- [ ] Interface de validation humaine des signaux Ubuntoo (admin panel)
+- [ ] Export PDF des rapports observatoire/évolution
 
 ### P2 (Future)
 - [ ] Notifications en temps réel
 - [ ] Mode sombre
 - [ ] Messagerie interne
-- [ ] Calendrier de rendez-vous intégré
 - [ ] Analytics avancés pour RH/Partenaires
