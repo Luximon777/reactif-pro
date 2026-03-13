@@ -130,12 +130,11 @@ const Dashboard = () => {
             {/* Logo & Nav */}
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
-                <div className="w-9 h-9 rounded-xl bg-[#1e3a5f] flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">R</span>
-                </div>
-                <span className="text-lg font-bold text-[#1e3a5f] hidden sm:block" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  RE'ACTIF PRO
-                </span>
+                <img 
+                  src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+                  alt="RE'ACTIF PRO" 
+                  className="h-9 w-auto"
+                />
               </div>
               
               {/* Desktop Nav */}

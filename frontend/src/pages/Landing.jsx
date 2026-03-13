@@ -118,14 +118,11 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center">
-                <span className="text-white font-bold text-lg">R</span>
-              </div>
-              <div>
-                <span className="text-xl font-bold text-[#1e3a5f]" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  RE'ACTIF PRO
-                </span>
-              </div>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+                alt="RE'ACTIF PRO" 
+                className="h-10 w-auto"
+              />
             </div>
             <Badge variant="secondary" className="bg-blue-50 text-[#1e3a5f] border-blue-200">
               Région Grand Est
@@ -138,9 +135,11 @@ const Landing = () => {
       <section className="pt-24 pb-16 px-4 bg-[#1e3a5f] text-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto py-16 animate-fade-in">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              RE'ACTIF PRO
-            </h1>
+            <img 
+              src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+              alt="RE'ACTIF PRO - Intelligence Professionnelle" 
+              className="h-24 sm:h-32 mx-auto mb-8"
+            />
             <p className="text-xl sm:text-2xl text-blue-100 mb-4 italic">
               Dispositif de réactivation rapide des parcours vers l'emploi
             </p>
@@ -411,14 +410,13 @@ const Landing = () => {
       <footer className="py-8 px-4 border-t border-slate-100 bg-slate-50">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#1e3a5f] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
-            <div>
-              <span className="font-semibold text-[#1e3a5f]">RE'ACTIF PRO</span>
-              <span className="text-slate-400 mx-2">|</span>
-              <span className="text-sm text-slate-500">Un dispositif ALT&ACT</span>
-            </div>
+            <img 
+              src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+              alt="RE'ACTIF PRO" 
+              className="h-8 w-auto"
+            />
+            <span className="text-slate-400 mx-2">|</span>
+            <span className="text-sm text-slate-500">Un dispositif ALT&ACT</span>
           </div>
           <div className="flex items-center gap-4 text-sm text-slate-500">
             <span>Région Grand Est</span>
