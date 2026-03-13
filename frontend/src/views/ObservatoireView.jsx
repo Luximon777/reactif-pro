@@ -33,7 +33,12 @@ import {
   Compass,
   Globe,
   Brain,
-  Layers
+  Layers,
+  Radio,
+  Shield,
+  ExternalLink,
+  MessageCircle,
+  Link2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,6 +61,7 @@ const STATUS_CONFIG = {
 const ObservatoireView = ({ token }) => {
   const [dashboard, setDashboard] = useState(null);
   const [contributions, setContributions] = useState([]);
+  const [ubuntooDashboard, setUbuntooDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSector, setSelectedSector] = useState(null);
@@ -78,12 +84,14 @@ const ObservatoireView = ({ token }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [dashboardRes, contributionsRes] = await Promise.all([
+      const [dashboardRes, contributionsRes, ubuntooRes] = await Promise.all([
         axios.get(`${API}/observatoire/dashboard`),
-        axios.get(`${API}/observatoire/contributions?token=${token}`)
+        axios.get(`${API}/observatoire/contributions?token=${token}`),
+        axios.get(`${API}/ubuntoo/dashboard`)
       ]);
       setDashboard(dashboardRes.data);
       setContributions(contributionsRes.data);
+      setUbuntooDashboard(ubuntooRes.data);
     } catch (error) {
       console.error("Error loading observatoire:", error);
     }
@@ -372,18 +380,22 @@ const ObservatoireView = ({ token }) => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-1 h-auto p-1 bg-slate-100">
+        <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-1 h-auto p-1 bg-slate-100">
           <TabsTrigger value="overview" className="text-xs sm:text-sm py-2" data-testid="tab-overview">
             <BarChart3 className="w-4 h-4 mr-1 hidden sm:inline" />
             Vue d'ensemble
           </TabsTrigger>
           <TabsTrigger value="emerging" className="text-xs sm:text-sm py-2" data-testid="tab-emerging">
             <Sparkles className="w-4 h-4 mr-1 hidden sm:inline" />
-            Compétences émergentes
+            Compétences
           </TabsTrigger>
           <TabsTrigger value="sectors" className="text-xs sm:text-sm py-2" data-testid="tab-sectors">
             <Building2 className="w-4 h-4 mr-1 hidden sm:inline" />
             Secteurs
+          </TabsTrigger>
+          <TabsTrigger value="ubuntoo" className="text-xs sm:text-sm py-2" data-testid="tab-ubuntoo">
+            <Radio className="w-4 h-4 mr-1 hidden sm:inline" />
+            Signaux Ubuntoo
           </TabsTrigger>
           <TabsTrigger value="predictions" className="text-xs sm:text-sm py-2" data-testid="tab-predictions">
             <Compass className="w-4 h-4 mr-1 hidden sm:inline" />
@@ -391,7 +403,7 @@ const ObservatoireView = ({ token }) => {
           </TabsTrigger>
           <TabsTrigger value="contributions" className="text-xs sm:text-sm py-2" data-testid="tab-my-contributions">
             <Lightbulb className="w-4 h-4 mr-1 hidden sm:inline" />
-            Mes contributions
+            Contributions
           </TabsTrigger>
         </TabsList>
 
@@ -492,6 +504,11 @@ const ObservatoireView = ({ token }) => {
               <SectorDetailCard key={idx} trend={trend} />
             ))}
           </div>
+        </TabsContent>
+
+        {/* Ubuntoo Intelligence Tab */}
+        <TabsContent value="ubuntoo" className="space-y-6" data-testid="ubuntoo-tab-content">
+          <UbuntooIntelligenceTab data={ubuntooDashboard} />
         </TabsContent>
 
         {/* Predictions Tab */}
@@ -877,6 +894,407 @@ const ContributionCard = ({ contribution }) => {
           Score IA : {Math.round(contribution.ai_score * 100)}% - {contribution.ai_analysis.rationale}
         </div>
       )}
+    </div>
+  );
+};
+
+
+// ============== UBUNTOO INTELLIGENCE COMPONENTS ==============
+
+const SIGNAL_TYPE_CONFIG = {
+  competence_emergente: { label: "Compétence émergente", color: "bg-blue-100 text-blue-700", icon: Sparkles },
+  nouvel_outil: { label: "Nouvel outil", color: "bg-violet-100 text-violet-700", icon: Layers },
+  pratique_nouvelle: { label: "Nouvelle pratique", color: "bg-emerald-100 text-emerald-700", icon: Zap },
+  transformation_metier: { label: "Transformation métier", color: "bg-amber-100 text-amber-700", icon: Building2 },
+  difficulte_metier: { label: "Difficulté métier", color: "bg-rose-100 text-rose-700", icon: AlertTriangle }
+};
+
+const VALIDATION_STATUS_CONFIG = {
+  detectee: { label: "Détecté", color: "bg-slate-100 text-slate-600", step: 1 },
+  analysee_ia: { label: "Analysé par IA", color: "bg-blue-100 text-blue-700", step: 2 },
+  validee_humain: { label: "Validé par expert", color: "bg-emerald-100 text-emerald-700", step: 3 },
+  integree: { label: "Intégré", color: "bg-green-100 text-green-800", step: 4 },
+  rejetee: { label: "Rejeté", color: "bg-red-100 text-red-700", step: 0 }
+};
+
+const UbuntooIntelligenceTab = ({ data }) => {
+  if (!data) return null;
+  const { stats = {}, by_type = {}, top_signals = [], recent_exchanges = [], insights = [] } = data;
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Ubuntoo branding */}
+      <Card className="bg-gradient-to-r from-teal-600 to-teal-800 border-0">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+                <img
+                  src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
+                  alt="Ubuntoo"
+                  className="h-8 w-auto"
+                />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Intelligence Collective Ubuntoo</h3>
+                <p className="text-teal-100 text-sm">
+                  Les échanges du réseau socio-professionnel analysés pour détecter les transformations du travail
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://ubuntoo-proto.preview.emergentagent.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="ubuntoo-open-link"
+            >
+              <Button className="bg-white text-teal-700 hover:bg-teal-50 font-semibold">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Ouvrir Ubuntoo
+              </Button>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" data-testid="ubuntoo-stats">
+        <Card className="card-metric">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{stats.total_exchanges_analyzed || 0}</p>
+                <p className="text-xs text-slate-500">Échanges analysés</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-metric">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                <Radio className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{stats.total_signals_detected || 0}</p>
+                <p className="text-xs text-slate-500">Signaux détectés</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-metric">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center">
+                <Brain className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{stats.signals_analyzed_ia || 0}</p>
+                <p className="text-xs text-slate-500">Analysés par IA</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-metric">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{stats.signals_validated_human || 0}</p>
+                <p className="text-xs text-slate-500">Validés humain</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-metric">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center">
+                <Link2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{stats.signals_integrated || 0}</p>
+                <p className="text-xs text-slate-500">Intégrés observatoire</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-metric">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-600 text-white flex items-center justify-center">
+                <Eye className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{stats.signals_detected || 0}</p>
+                <p className="text-xs text-slate-500">En attente</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top Signals */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="card-base">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Radio className="w-5 h-5 text-teal-600" />
+                Signaux détectés dans les échanges
+              </CardTitle>
+              <CardDescription>
+                Compétences, outils et pratiques émergentes identifiés par l'IA dans les discussions Ubuntoo
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {top_signals.map((signal, idx) => (
+                  <UbuntooSignalCard key={idx} signal={signal} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Exchanges */}
+          <Card className="card-base">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-teal-600" />
+                Échanges récents analysés
+              </CardTitle>
+              <CardDescription>
+                Extraits anonymisés des discussions du réseau (analyse automatique)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recent_exchanges.map((exchange, idx) => (
+                  <UbuntooExchangeCard key={idx} exchange={exchange} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Insights + Ethics */}
+        <div className="space-y-6">
+          {/* Insights */}
+          <Card className="card-base">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-amber-500" />
+                Insights croisés
+              </CardTitle>
+              <CardDescription>
+                Conclusions issues du croisement Ubuntoo × Observatoire
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {insights.map((insight, idx) => (
+                  <UbuntooInsightCard key={idx} insight={insight} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Validation Pipeline */}
+          <Card className="card-base">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Target className="w-5 h-5 text-[#1e3a5f]" />
+                Pipeline de validation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { step: 1, label: "Détection algorithmique", desc: "L'IA repère les signaux dans les échanges", icon: Brain, color: "bg-blue-500" },
+                  { step: 2, label: "Analyse contextuelle", desc: "Vérification des métiers et secteurs concernés", icon: Compass, color: "bg-violet-500" },
+                  { step: 3, label: "Validation humaine", desc: "Confirmation par un comité d'experts", icon: Users, color: "bg-emerald-500" },
+                  { step: 4, label: "Intégration", desc: "Enrichissement de l'observatoire prédictif", icon: Link2, color: "bg-green-600" }
+                ].map((step) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={step.step} className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${step.color} text-white flex items-center justify-center flex-shrink-0 text-sm font-bold`}>
+                        {step.step}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{step.label}</p>
+                        <p className="text-xs text-slate-500">{step.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ethics Card */}
+          <Card className="border-teal-200 bg-teal-50/50">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-3">
+                <Shield className="w-6 h-6 text-teal-700 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-teal-900 mb-2">Gouvernance éthique</h4>
+                  <ul className="text-xs text-teal-700 space-y-1.5">
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      Données entièrement anonymisées
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      Analyse des tendances collectives uniquement
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      Aucune exploitation individuelle
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      Transparence sur l'usage des données
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      Droit de retrait pour les utilisateurs
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const UbuntooSignalCard = ({ signal }) => {
+  const typeConfig = SIGNAL_TYPE_CONFIG[signal.signal_type] || SIGNAL_TYPE_CONFIG.competence_emergente;
+  const statusConfig = VALIDATION_STATUS_CONFIG[signal.validation_status] || VALIDATION_STATUS_CONFIG.detectee;
+  const TypeIcon = typeConfig.icon;
+
+  return (
+    <div className="p-4 rounded-lg border border-slate-200 hover:border-teal-200 transition-all" data-testid="ubuntoo-signal-card">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Badge className={typeConfig.color}>
+            <TypeIcon className="w-3 h-3 mr-1" />
+            {typeConfig.label}
+          </Badge>
+        </div>
+        <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
+      </div>
+      <h4 className="font-semibold text-slate-900 mb-1">{signal.name}</h4>
+      <p className="text-sm text-slate-600 mb-3 line-clamp-2">{signal.description}</p>
+      <div className="flex items-center gap-4 text-xs text-slate-500">
+        <span className="flex items-center gap-1">
+          <MessageCircle className="w-3 h-3" />
+          {signal.mention_count} mentions
+        </span>
+        <span className="flex items-center gap-1">
+          <Users className="w-3 h-3" />
+          {signal.source_exchanges_count} échanges
+        </span>
+        {signal.ai_confidence > 0 && (
+          <span className="flex items-center gap-1">
+            <Brain className="w-3 h-3" />
+            IA: {Math.round(signal.ai_confidence * 100)}%
+          </span>
+        )}
+        <span className="flex items-center gap-1 ml-auto">
+          <TrendingUp className="w-3 h-3 text-emerald-500" />
+          +{Math.round(signal.growth_rate * 100)}%
+        </span>
+      </div>
+      {(signal.related_sectors?.length > 0 || signal.related_jobs?.length > 0) && (
+        <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
+          {signal.related_sectors?.slice(0, 3).map((s, i) => (
+            <Badge key={`s-${i}`} variant="outline" className="text-xs">{s}</Badge>
+          ))}
+          {signal.related_jobs?.slice(0, 2).map((j, i) => (
+            <Badge key={`j-${i}`} variant="secondary" className="text-xs">{j}</Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const UbuntooExchangeCard = ({ exchange }) => {
+  const typeLabels = {
+    discussion: "Discussion",
+    mentorat: "Mentorat",
+    conseil: "Conseil",
+    retour_experience: "Retour d'expérience",
+    question: "Question"
+  };
+  const typeColors = {
+    discussion: "bg-blue-100 text-blue-700",
+    mentorat: "bg-violet-100 text-violet-700",
+    conseil: "bg-emerald-100 text-emerald-700",
+    retour_experience: "bg-amber-100 text-amber-700",
+    question: "bg-cyan-100 text-cyan-700"
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+      <div className="flex items-center gap-2 mb-2">
+        <Badge className={typeColors[exchange.exchange_type] || typeColors.discussion}>
+          {typeLabels[exchange.exchange_type] || "Échange"}
+        </Badge>
+        <span className="text-xs text-slate-400">
+          {new Date(exchange.timestamp).toLocaleDateString('fr-FR')}
+        </span>
+      </div>
+      <p className="text-sm text-slate-700 mb-2 italic">"{exchange.content_summary}"</p>
+      <div className="flex flex-wrap gap-1">
+        {exchange.detected_skills?.slice(0, 3).map((s, i) => (
+          <Badge key={i} className="bg-blue-50 text-blue-600 text-xs">{s}</Badge>
+        ))}
+        {exchange.detected_tools?.slice(0, 2).map((t, i) => (
+          <Badge key={`t-${i}`} className="bg-violet-50 text-violet-600 text-xs">{t}</Badge>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const UbuntooInsightCard = ({ insight }) => {
+  const priorityColors = {
+    haute: "bg-rose-100 text-rose-700 border-rose-200",
+    moyenne: "bg-amber-100 text-amber-700 border-amber-200",
+    basse: "bg-slate-100 text-slate-600 border-slate-200"
+  };
+  const typeIcons = {
+    tendance_emergente: TrendingUp,
+    alerte_competence: AlertTriangle,
+    opportunite_formation: Lightbulb,
+    transformation_metier: Building2
+  };
+  const Icon = typeIcons[insight.insight_type] || Lightbulb;
+
+  return (
+    <div className={`p-3 rounded-lg border ${priorityColors[insight.priority] || priorityColors.moyenne}`}>
+      <div className="flex items-start gap-2 mb-2">
+        <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <div>
+          <h5 className="text-sm font-semibold">{insight.title}</h5>
+          <p className="text-xs mt-1 opacity-80">{insight.description}</p>
+          {insight.recommendation && (
+            <p className="text-xs mt-2 font-medium">
+              Recommandation : {insight.recommendation}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

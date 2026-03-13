@@ -335,6 +335,59 @@ class SectorEvolutionIndex(BaseModel):
     
     last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# ============== UBUNTOO INTELLIGENCE MODELS ==============
+
+class UbuntooExchange(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    exchange_type: str  # discussion, mentorat, conseil, retour_experience, question
+    content_summary: str
+    detected_skills: List[str] = []
+    detected_tools: List[str] = []
+    detected_practices: List[str] = []
+    related_jobs: List[str] = []
+    related_sectors: List[str] = []
+    author_role: str = "professionnel"  # anonymized
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class UbuntooSignal(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    signal_type: str  # competence_emergente, nouvel_outil, pratique_nouvelle, transformation_metier, difficulte_metier
+    name: str
+    description: str
+    mention_count: int = 1
+    first_detected: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_detected: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    related_jobs: List[str] = []
+    related_sectors: List[str] = []
+    source_exchanges_count: int = 1
+    trend_direction: str = "hausse"  # hausse, stable, baisse
+    growth_rate: float = 0.0
+    # Validation pipeline
+    validation_status: str = "detectee"  # detectee, analysee_ia, validee_humain, integree, rejetee
+    ai_confidence: float = 0.0
+    ai_analysis: Optional[Dict[str, Any]] = None
+    human_validator: Optional[str] = None
+    human_notes: Optional[str] = None
+    # Cross-reference
+    linked_observatory_skills: List[str] = []
+    linked_evolution_jobs: List[str] = []
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class UbuntooInsight(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    insight_type: str  # tendance_emergente, alerte_competence, opportunite_formation, transformation_metier
+    title: str
+    description: str
+    supporting_signals: List[str] = []
+    impacted_jobs: List[str] = []
+    impacted_sectors: List[str] = []
+    recommendation: str = ""
+    priority: str = "moyenne"  # haute, moyenne, basse
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 class MatchRequest(BaseModel):
     profile_skills: List[str]
     job_requirements: List[str]
@@ -1443,6 +1496,240 @@ async def integrate_contribution_to_skills(contribution: dict):
         {"$set": {"status": "integree"}}
     )
 
+# ============== UBUNTOO INTELLIGENCE ENDPOINTS ==============
+
+async def analyze_ubuntoo_exchanges_with_ai(exchanges: List[dict]) -> Dict[str, Any]:
+    """Use AI to analyze Ubuntoo exchanges and detect signals"""
+    if not EMERGENT_LLM_KEY:
+        return {
+            "detected_skills": ["Prompt Engineering", "No-Code"],
+            "detected_tools": ["ChatGPT", "Notion"],
+            "detected_practices": ["Automatisation de tâches"],
+            "confidence": 0.6,
+            "summary": "Analyse basique - IA non disponible"
+        }
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"ubuntoo-{uuid.uuid4()}",
+            system_message="Tu es un expert RH français spécialisé dans l'analyse des tendances du marché du travail. Analyse ces échanges professionnels anonymisés et identifie les signaux faibles sur l'évolution des compétences et des métiers. Réponds en JSON avec: detected_skills (list), detected_tools (list), detected_practices (list), transformations (list of {job, description}), confidence (0-1), summary (string)."
+        ).with_model("openai", "gpt-5.2")
+
+        summaries = "\n".join([f"- [{e.get('exchange_type','discussion')}] {e.get('content_summary','')}" for e in exchanges[:10]])
+        prompt = f"""Analyse ces échanges anonymisés du réseau socio-professionnel Ubuntoo :
+
+{summaries}
+
+Identifie :
+1. Les compétences émergentes mentionnées
+2. Les nouveaux outils ou technologies
+3. Les nouvelles pratiques professionnelles
+4. Les transformations de métiers en cours
+"""
+        response = await chat.send_message(UserMessage(text=prompt))
+        import json
+        try:
+            return json.loads(response)
+        except:
+            return {"detected_skills": [], "detected_tools": [], "detected_practices": [], "confidence": 0.6, "summary": response[:300]}
+    except Exception as e:
+        logging.error(f"Ubuntoo AI analysis error: {e}")
+        return {"detected_skills": [], "detected_tools": [], "detected_practices": [], "confidence": 0.5, "summary": "Analyse automatique non disponible"}
+
+@api_router.get("/ubuntoo/dashboard")
+async def get_ubuntoo_dashboard():
+    """Get Ubuntoo intelligence dashboard"""
+    signals = await db.ubuntoo_signals.find({}, {"_id": 0}).to_list(100)
+    exchanges = await db.ubuntoo_exchanges.find({}, {"_id": 0}).to_list(200)
+    insights = await db.ubuntoo_insights.find({}, {"_id": 0}).to_list(50)
+
+    # Compute stats
+    total_signals = len(signals)
+    detected = len([s for s in signals if s.get("validation_status") == "detectee"])
+    analyzed = len([s for s in signals if s.get("validation_status") == "analysee_ia"])
+    validated = len([s for s in signals if s.get("validation_status") == "validee_humain"])
+    integrated = len([s for s in signals if s.get("validation_status") == "integree"])
+
+    # Signal types breakdown
+    by_type = {}
+    for s in signals:
+        t = s.get("signal_type", "autre")
+        by_type[t] = by_type.get(t, 0) + 1
+
+    # Top signals by mention count
+    top_signals = sorted(signals, key=lambda x: x.get("mention_count", 0), reverse=True)[:10]
+
+    # Recent exchanges
+    recent_exchanges = sorted(exchanges, key=lambda x: x.get("timestamp", ""), reverse=True)[:10]
+
+    return {
+        "stats": {
+            "total_exchanges_analyzed": len(exchanges),
+            "total_signals_detected": total_signals,
+            "signals_detected": detected,
+            "signals_analyzed_ia": analyzed,
+            "signals_validated_human": validated,
+            "signals_integrated": integrated
+        },
+        "by_type": by_type,
+        "top_signals": top_signals,
+        "recent_exchanges": recent_exchanges,
+        "insights": insights
+    }
+
+@api_router.get("/ubuntoo/signals")
+async def get_ubuntoo_signals(signal_type: Optional[str] = None, status: Optional[str] = None, sector: Optional[str] = None):
+    """Get Ubuntoo detected signals with filters"""
+    query = {}
+    if signal_type:
+        query["signal_type"] = signal_type
+    if status:
+        query["validation_status"] = status
+    if sector:
+        query["related_sectors"] = sector
+    signals = await db.ubuntoo_signals.find(query, {"_id": 0}).to_list(100)
+    return sorted(signals, key=lambda x: x.get("mention_count", 0), reverse=True)
+
+@api_router.get("/ubuntoo/signals/{signal_id}")
+async def get_ubuntoo_signal_detail(signal_id: str):
+    """Get detailed signal with cross-references"""
+    signal = await db.ubuntoo_signals.find_one({"id": signal_id}, {"_id": 0})
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal non trouvé")
+
+    # Cross-reference with observatory
+    linked_skills = []
+    for skill_name in signal.get("linked_observatory_skills", []):
+        skill = await db.emerging_skills.find_one({"skill_name": {"$regex": skill_name, "$options": "i"}}, {"_id": 0})
+        if skill:
+            linked_skills.append(skill)
+
+    linked_jobs = []
+    for job_name in signal.get("linked_evolution_jobs", []):
+        job = await db.job_evolution_indices.find_one({"job_name": {"$regex": job_name, "$options": "i"}}, {"_id": 0})
+        if job:
+            linked_jobs.append(job)
+
+    # Related exchanges
+    related_exchanges = await db.ubuntoo_exchanges.find(
+        {"$or": [
+            {"detected_skills": {"$in": [signal["name"]]}},
+            {"detected_tools": {"$in": [signal["name"]]}},
+            {"detected_practices": {"$in": [signal["name"]]}}
+        ]},
+        {"_id": 0}
+    ).to_list(20)
+
+    return {
+        "signal": signal,
+        "linked_observatory_skills": linked_skills,
+        "linked_evolution_jobs": linked_jobs,
+        "related_exchanges": related_exchanges
+    }
+
+@api_router.post("/ubuntoo/signals/{signal_id}/validate")
+async def validate_ubuntoo_signal(signal_id: str, approved: bool, notes: Optional[str] = None):
+    """Human validation of an Ubuntoo signal"""
+    update_data = {
+        "validation_status": "validee_humain" if approved else "rejetee",
+        "human_notes": notes,
+    }
+    result = await db.ubuntoo_signals.update_one({"id": signal_id}, {"$set": update_data})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Signal non trouvé")
+
+    # If validated, check if should be integrated into observatory
+    if approved:
+        signal = await db.ubuntoo_signals.find_one({"id": signal_id}, {"_id": 0})
+        if signal and signal.get("mention_count", 0) >= 5 and signal.get("ai_confidence", 0) >= 0.7:
+            await integrate_ubuntoo_signal(signal)
+
+    return {"message": "Validation enregistrée", "status": update_data["validation_status"]}
+
+async def integrate_ubuntoo_signal(signal: dict):
+    """Integrate a validated Ubuntoo signal into the observatory"""
+    existing = await db.emerging_skills.find_one(
+        {"skill_name": {"$regex": signal["name"], "$options": "i"}}, {"_id": 0}
+    )
+    if existing:
+        await db.emerging_skills.update_one(
+            {"id": existing["id"]},
+            {"$inc": {"mention_count": signal.get("mention_count", 1)},
+             "$set": {"last_updated": datetime.now(timezone.utc).isoformat()},
+             "$addToSet": {"related_sectors": {"$each": signal.get("related_sectors", [])}}}
+        )
+    else:
+        new_skill = EmergingSkill(
+            skill_name=signal["name"],
+            description=signal.get("description"),
+            related_sectors=signal.get("related_sectors", []),
+            related_jobs=signal.get("related_jobs", []),
+            emergence_score=min(signal.get("ai_confidence", 0.5) + 0.1, 1.0),
+            growth_rate=signal.get("growth_rate", 0.1),
+            mention_count=signal.get("mention_count", 1),
+            contributor_count=signal.get("source_exchanges_count", 1),
+            status="emergente"
+        )
+        await db.emerging_skills.insert_one(new_skill.model_dump())
+
+    await db.ubuntoo_signals.update_one({"id": signal["id"]}, {"$set": {"validation_status": "integree"}})
+
+@api_router.post("/ubuntoo/analyze")
+async def trigger_ubuntoo_analysis():
+    """Trigger AI analysis on recent Ubuntoo exchanges"""
+    exchanges = await db.ubuntoo_exchanges.find({}, {"_id": 0}).to_list(50)
+    if not exchanges:
+        return {"message": "Aucun échange à analyser"}
+
+    analysis = await analyze_ubuntoo_exchanges_with_ai(exchanges)
+
+    return {
+        "message": "Analyse terminée",
+        "analysis": analysis,
+        "exchanges_analyzed": len(exchanges)
+    }
+
+@api_router.get("/ubuntoo/insights")
+async def get_ubuntoo_insights():
+    """Get cross-referenced insights"""
+    insights = await db.ubuntoo_insights.find({}, {"_id": 0}).to_list(50)
+    return sorted(insights, key=lambda x: {"haute": 0, "moyenne": 1, "basse": 2}.get(x.get("priority", "moyenne"), 1))
+
+@api_router.get("/ubuntoo/cross-reference")
+async def get_cross_reference_data():
+    """Get cross-reference between Ubuntoo signals, observatory skills, and evolution indices"""
+    signals = await db.ubuntoo_signals.find({"validation_status": {"$in": ["analysee_ia", "validee_humain", "integree"]}}, {"_id": 0}).to_list(50)
+    observatory_skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(50)
+    evolution_jobs = await db.job_evolution_indices.find({}, {"_id": 0}).to_list(50)
+
+    # Build cross-reference map
+    cross_refs = []
+    for signal in signals:
+        matched_skills = [s for s in observatory_skills if any(
+            signal["name"].lower() in sk.lower() or sk.lower() in signal["name"].lower()
+            for sk in [s.get("skill_name", "")]
+        )]
+        matched_jobs = [j for j in evolution_jobs if any(
+            sector in j.get("sector", "").lower()
+            for sector in [s.lower() for s in signal.get("related_sectors", [])]
+        )]
+        if matched_skills or matched_jobs:
+            cross_refs.append({
+                "signal": signal["name"],
+                "signal_type": signal.get("signal_type"),
+                "mention_count": signal.get("mention_count", 0),
+                "matched_observatory_skills": [s.get("skill_name") for s in matched_skills],
+                "matched_jobs": [j.get("job_name") for j in matched_jobs],
+                "validation_status": signal.get("validation_status"),
+                "ai_confidence": signal.get("ai_confidence", 0)
+            })
+
+    return {
+        "cross_references": cross_refs,
+        "total_signals": len(signals),
+        "total_cross_matched": len(cross_refs)
+    }
+
 # ============== SEED DATA ==============
 
 @api_router.post("/seed")
@@ -1953,6 +2240,352 @@ async def seed_database():
     await db.job_evolution_indices.insert_many(demo_job_indices)
     await db.sector_evolution_indices.insert_many(demo_sector_indices)
     
+    # Seed Ubuntoo Intelligence Data
+    await db.ubuntoo_exchanges.delete_many({})
+    await db.ubuntoo_signals.delete_many({})
+    await db.ubuntoo_insights.delete_many({})
+
+    demo_ubuntoo_exchanges = [
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "retour_experience",
+            "content_summary": "Depuis 6 mois, j'utilise ChatGPT quotidiennement pour rédiger mes rapports et synthèses. Mon manager me demande maintenant de former l'équipe à ces outils.",
+            "detected_skills": ["Prompt Engineering", "IA Générative", "Formation interne"],
+            "detected_tools": ["ChatGPT", "GPT-4"],
+            "detected_practices": ["Automatisation de la rédaction", "Formation pair-à-pair"],
+            "related_jobs": ["Assistant Administratif", "Chargé de communication"],
+            "related_sectors": ["Administration", "Communication"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "discussion",
+            "content_summary": "Notre service RH a remplacé 3 outils par une seule plateforme SIRH intégrée. Les gestionnaires de paie doivent maintenant maîtriser le paramétrage complet du système.",
+            "detected_skills": ["SIRH intégré", "Paramétrage logiciel", "Conduite du changement"],
+            "detected_tools": ["SIRH", "Cegid", "ADP"],
+            "detected_practices": ["Centralisation des outils", "Digitalisation RH"],
+            "related_jobs": ["Gestionnaire de Paie", "Responsable RH"],
+            "related_sectors": ["Comptabilité", "Administration"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "mentorat",
+            "content_summary": "En tant que développeur senior, je constate que les juniors qui maîtrisent les assistants de code IA (Copilot, Cursor) sont 2 fois plus productifs. C'est devenu un critère d'embauche chez nous.",
+            "detected_skills": ["IA assistée au code", "Pair programming IA", "Productivité développeur"],
+            "detected_tools": ["GitHub Copilot", "Cursor", "Claude Code"],
+            "detected_practices": ["Développement assisté par IA", "Revue de code IA"],
+            "related_jobs": ["Développeur Web", "Lead Developer"],
+            "related_sectors": ["Informatique"],
+            "author_role": "mentor",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "conseil",
+            "content_summary": "Pour ceux en reconversion vers le commercial : le social selling sur LinkedIn est devenu incontournable. Les recruteurs cherchent des profils qui maîtrisent la prospection digitale, pas juste le terrain.",
+            "detected_skills": ["Social Selling", "Personal Branding", "Prospection digitale"],
+            "detected_tools": ["LinkedIn Sales Navigator", "Lemlist", "Hubspot"],
+            "detected_practices": ["Prospection sur réseaux sociaux", "Création de contenu professionnel"],
+            "related_jobs": ["Chargé de Clientèle", "Commercial", "Business Developer"],
+            "related_sectors": ["Commerce"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "question",
+            "content_summary": "Comment gérer la cybersécurité quand on passe au full cloud ? Notre DSI nous demande de tous devenir 'security champions' dans nos équipes respectives.",
+            "detected_skills": ["Cloud Security", "Security Champion", "Sensibilisation sécurité"],
+            "detected_tools": ["AWS Security Hub", "Azure Sentinel"],
+            "detected_practices": ["Security by design", "Décentralisation de la sécurité"],
+            "related_jobs": ["Analyste Cybersécurité", "Développeur Web", "Architecte Cloud"],
+            "related_sectors": ["Informatique"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "retour_experience",
+            "content_summary": "Notre boulangerie a lancé un site de commande en ligne et une page Instagram. Les ventes ont augmenté de 30%. J'ai dû apprendre le marketing digital en autodidacte.",
+            "detected_skills": ["Marketing digital", "E-commerce", "Gestion réseaux sociaux"],
+            "detected_tools": ["Shopify", "Instagram Business", "Canva"],
+            "detected_practices": ["Vente en ligne artisanale", "Communication digitale"],
+            "related_jobs": ["Artisan Boulanger", "Commerçant"],
+            "related_sectors": ["Artisanat", "Commerce"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=10)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "discussion",
+            "content_summary": "Les outils no-code comme Notion, Airtable et Make nous permettent de créer des workflows sans passer par l'IT. C'est une révolution pour les fonctions support.",
+            "detected_skills": ["No-Code", "Automatisation workflows", "Autonomie numérique"],
+            "detected_tools": ["Notion", "Airtable", "Make", "Zapier"],
+            "detected_practices": ["Citizen development", "Automatisation sans code"],
+            "related_jobs": ["Assistant Administratif", "Chef de projet", "Office Manager"],
+            "related_sectors": ["Administration", "Informatique"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "mentorat",
+            "content_summary": "Conseil pour les gestionnaires de paie : la maîtrise de la DSN automatisée et du paramétrage des SIRH sera indispensable d'ici 2 ans. Les traitements manuels disparaissent progressivement.",
+            "detected_skills": ["DSN automatisée", "Paramétrage SIRH", "Veille réglementaire digitale"],
+            "detected_tools": ["SILAE", "Cegid HR", "PayFit"],
+            "detected_practices": ["Paie dématérialisée", "Automatisation des déclarations"],
+            "related_jobs": ["Gestionnaire de Paie", "Responsable paie"],
+            "related_sectors": ["Comptabilité"],
+            "author_role": "mentor",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=6)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "retour_experience",
+            "content_summary": "En tant que commercial terrain depuis 15 ans, j'ai dû me former au CRM Salesforce et à l'analyse de données clients. Aujourd'hui 60% de mon travail se fait devant un écran.",
+            "detected_skills": ["CRM avancé", "Data Analytics client", "Vente hybride"],
+            "detected_tools": ["Salesforce", "Power BI", "Teams"],
+            "detected_practices": ["Vente hybride terrain/digital", "Pilotage par la data"],
+            "related_jobs": ["Chargé de Clientèle", "Commercial terrain"],
+            "related_sectors": ["Commerce"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "exchange_type": "discussion",
+            "content_summary": "La montée en puissance du Green IT dans nos projets informatiques est impressionnante. On nous demande maintenant de mesurer l'empreinte carbone de nos applications.",
+            "detected_skills": ["Green IT", "Éco-conception logicielle", "Mesure empreinte carbone"],
+            "detected_tools": ["Cloud Carbon Footprint", "Lighthouse", "EcoIndex"],
+            "detected_practices": ["Développement durable numérique", "Sobriété numérique"],
+            "related_jobs": ["Développeur Web", "Architecte SI", "Chef de projet IT"],
+            "related_sectors": ["Informatique"],
+            "author_role": "professionnel",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+        }
+    ]
+
+    demo_ubuntoo_signals = [
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "competence_emergente",
+            "name": "Prompt Engineering",
+            "description": "Compétence de rédaction et optimisation de prompts pour les IA génératives, de plus en plus demandée dans tous les métiers tertiaires.",
+            "mention_count": 47,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=60)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+            "related_jobs": ["Assistant Administratif", "Développeur Web", "Chargé de communication", "Content Manager"],
+            "related_sectors": ["Administration", "Informatique", "Communication", "Marketing"],
+            "source_exchanges_count": 32,
+            "trend_direction": "hausse",
+            "growth_rate": 0.85,
+            "validation_status": "integree",
+            "ai_confidence": 0.95,
+            "ai_analysis": {"category": "technique", "impact": "transversal", "urgence": "haute"},
+            "linked_observatory_skills": ["Prompt Engineering"],
+            "linked_evolution_jobs": ["Assistant Administratif", "Développeur Web"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "nouvel_outil",
+            "name": "Assistants de code IA",
+            "description": "Outils comme GitHub Copilot et Cursor qui transforment la pratique du développement logiciel. Les développeurs les utilisant sont significativement plus productifs.",
+            "mention_count": 38,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=45)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(),
+            "related_jobs": ["Développeur Web", "Lead Developer", "Analyste Cybersécurité"],
+            "related_sectors": ["Informatique"],
+            "source_exchanges_count": 25,
+            "trend_direction": "hausse",
+            "growth_rate": 0.72,
+            "validation_status": "validee_humain",
+            "ai_confidence": 0.91,
+            "ai_analysis": {"category": "outil", "impact": "sectoriel", "urgence": "haute"},
+            "linked_observatory_skills": [],
+            "linked_evolution_jobs": ["Développeur Web"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=45)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "pratique_nouvelle",
+            "name": "Citizen Development (No-Code)",
+            "description": "Les fonctions support créent leurs propres outils et workflows grâce aux plateformes no-code, réduisant la dépendance aux équipes IT.",
+            "mention_count": 29,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=40)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=3)).isoformat(),
+            "related_jobs": ["Assistant Administratif", "Office Manager", "Chef de projet"],
+            "related_sectors": ["Administration", "Informatique"],
+            "source_exchanges_count": 18,
+            "trend_direction": "hausse",
+            "growth_rate": 0.55,
+            "validation_status": "analysee_ia",
+            "ai_confidence": 0.82,
+            "ai_analysis": {"category": "pratique", "impact": "transversal", "urgence": "moyenne"},
+            "linked_observatory_skills": ["No-Code / Low-Code"],
+            "linked_evolution_jobs": ["Assistant Administratif"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=40)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "transformation_metier",
+            "name": "Vente hybride terrain/digital",
+            "description": "Les commerciaux terrain évoluent vers un modèle hybride où 50-60% du travail se fait en digital (CRM, visioconférence, social selling).",
+            "mention_count": 22,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=50)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
+            "related_jobs": ["Chargé de Clientèle", "Commercial", "Business Developer"],
+            "related_sectors": ["Commerce"],
+            "source_exchanges_count": 15,
+            "trend_direction": "hausse",
+            "growth_rate": 0.48,
+            "validation_status": "validee_humain",
+            "ai_confidence": 0.88,
+            "ai_analysis": {"category": "transformation", "impact": "sectoriel", "urgence": "moyenne"},
+            "linked_observatory_skills": ["Social Selling"],
+            "linked_evolution_jobs": ["Chargé de Clientèle"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=50)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "competence_emergente",
+            "name": "Security Champion",
+            "description": "Nouveau rôle au sein des équipes de développement : des référents sécurité non-spécialistes qui portent les bonnes pratiques cyber au quotidien.",
+            "mention_count": 15,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+            "related_jobs": ["Développeur Web", "Analyste Cybersécurité", "Chef de projet IT"],
+            "related_sectors": ["Informatique"],
+            "source_exchanges_count": 11,
+            "trend_direction": "hausse",
+            "growth_rate": 0.62,
+            "validation_status": "analysee_ia",
+            "ai_confidence": 0.78,
+            "ai_analysis": {"category": "technique", "impact": "sectoriel", "urgence": "moyenne"},
+            "linked_observatory_skills": [],
+            "linked_evolution_jobs": ["Analyste Cybersécurité", "Développeur Web"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "difficulte_metier",
+            "name": "Obsolescence des compétences paie manuelles",
+            "description": "Les gestionnaires de paie signalent une accélération de la digitalisation qui rend les compétences manuelles obsolètes plus vite que prévu.",
+            "mention_count": 12,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=25)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=4)).isoformat(),
+            "related_jobs": ["Gestionnaire de Paie", "Responsable paie"],
+            "related_sectors": ["Comptabilité"],
+            "source_exchanges_count": 9,
+            "trend_direction": "hausse",
+            "growth_rate": 0.35,
+            "validation_status": "detectee",
+            "ai_confidence": 0.72,
+            "ai_analysis": {"category": "difficulte", "impact": "sectoriel", "urgence": "haute"},
+            "linked_observatory_skills": [],
+            "linked_evolution_jobs": ["Gestionnaire de Paie"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=25)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "nouvel_outil",
+            "name": "Green IT / Éco-conception",
+            "description": "Les outils de mesure d'empreinte carbone numérique deviennent obligatoires dans les projets IT, créant un nouveau besoin de compétences.",
+            "mention_count": 18,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=35)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=6)).isoformat(),
+            "related_jobs": ["Développeur Web", "Architecte SI", "Chef de projet IT"],
+            "related_sectors": ["Informatique"],
+            "source_exchanges_count": 12,
+            "trend_direction": "hausse",
+            "growth_rate": 0.42,
+            "validation_status": "validee_humain",
+            "ai_confidence": 0.85,
+            "ai_analysis": {"category": "outil", "impact": "sectoriel", "urgence": "moyenne"},
+            "linked_observatory_skills": ["Green IT"],
+            "linked_evolution_jobs": ["Développeur Web"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=35)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "signal_type": "pratique_nouvelle",
+            "name": "Artisanat digital",
+            "description": "Les artisans adoptent le e-commerce et le marketing digital pour étendre leur clientèle, créant un besoin de double compétence métier/numérique.",
+            "mention_count": 8,
+            "first_detected": (datetime.now(timezone.utc) - timedelta(days=20)).isoformat(),
+            "last_detected": (datetime.now(timezone.utc) - timedelta(days=8)).isoformat(),
+            "related_jobs": ["Artisan Boulanger", "Commerçant"],
+            "related_sectors": ["Artisanat", "Commerce"],
+            "source_exchanges_count": 6,
+            "trend_direction": "hausse",
+            "growth_rate": 0.25,
+            "validation_status": "detectee",
+            "ai_confidence": 0.65,
+            "ai_analysis": {"category": "pratique", "impact": "sectoriel", "urgence": "basse"},
+            "linked_observatory_skills": [],
+            "linked_evolution_jobs": ["Artisan Boulanger"],
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=20)).isoformat()
+        }
+    ]
+
+    demo_ubuntoo_insights = [
+        {
+            "id": str(uuid.uuid4()),
+            "insight_type": "tendance_emergente",
+            "title": "L'IA générative transforme tous les métiers tertiaires",
+            "description": "Les échanges Ubuntoo confirment une adoption massive des outils d'IA générative (ChatGPT, Copilot) bien au-delà du secteur IT. Les fonctions support, communication et RH sont fortement impactées.",
+            "supporting_signals": ["Prompt Engineering", "Assistants de code IA"],
+            "impacted_jobs": ["Assistant Administratif", "Développeur Web", "Chargé de communication"],
+            "impacted_sectors": ["Administration", "Informatique", "Communication"],
+            "recommendation": "Intégrer des modules de formation IA générative dans tous les parcours de reconversion, pas seulement les filières IT.",
+            "priority": "haute",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "insight_type": "alerte_competence",
+            "title": "Accélération de l'obsolescence dans la gestion de paie",
+            "description": "Le croisement entre les signaux Ubuntoo et les données de l'observatoire montre que la digitalisation de la paie s'accélère plus vite que les prévisions initiales.",
+            "supporting_signals": ["Obsolescence des compétences paie manuelles", "Citizen Development (No-Code)"],
+            "impacted_jobs": ["Gestionnaire de Paie", "Responsable paie"],
+            "impacted_sectors": ["Comptabilité"],
+            "recommendation": "Anticiper la montée en compétences SIRH des gestionnaires de paie via des formations accélérées.",
+            "priority": "haute",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "insight_type": "opportunite_formation",
+            "title": "Le No-Code comme levier d'autonomie professionnelle",
+            "description": "Les échanges montrent que les professionnels qui maîtrisent les outils no-code gagnent en autonomie et en valeur. Cette compétence est transversale à tous les secteurs.",
+            "supporting_signals": ["Citizen Development (No-Code)"],
+            "impacted_jobs": ["Assistant Administratif", "Office Manager", "Chef de projet"],
+            "impacted_sectors": ["Administration", "Informatique"],
+            "recommendation": "Créer un parcours 'Autonomie numérique' centré sur le no-code pour les professionnels en reconversion.",
+            "priority": "moyenne",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "insight_type": "transformation_metier",
+            "title": "La vente évolue vers un modèle hybride digital/terrain",
+            "description": "Les témoignages du réseau confirment une transformation profonde du métier commercial, avec une digitalisation de 50-60% des activités.",
+            "supporting_signals": ["Vente hybride terrain/digital"],
+            "impacted_jobs": ["Chargé de Clientèle", "Commercial", "Business Developer"],
+            "impacted_sectors": ["Commerce"],
+            "recommendation": "Adapter les formations commerciales pour inclure le social selling et l'analyse de données client.",
+            "priority": "moyenne",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+
+    await db.ubuntoo_exchanges.insert_many(demo_ubuntoo_exchanges)
+    await db.ubuntoo_signals.insert_many(demo_ubuntoo_signals)
+    await db.ubuntoo_insights.insert_many(demo_ubuntoo_insights)
+
     return {
         "message": "Base de données initialisée", 
         "jobs": len(demo_jobs), 
@@ -1960,7 +2593,10 @@ async def seed_database():
         "emerging_skills": len(demo_emerging_skills), 
         "sector_trends": len(demo_sector_trends),
         "job_indices": len(demo_job_indices),
-        "sector_indices": len(demo_sector_indices)
+        "sector_indices": len(demo_sector_indices),
+        "ubuntoo_exchanges": len(demo_ubuntoo_exchanges),
+        "ubuntoo_signals": len(demo_ubuntoo_signals),
+        "ubuntoo_insights": len(demo_ubuntoo_insights)
     }
 
 # ============== ROOT ==============
