@@ -25,7 +25,8 @@ import {
   X,
   Settings,
   FolderLock,
-  Brain
+  Brain,
+  Gauge
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +36,7 @@ import EntrepriseView from "@/views/EntrepriseView";
 import PartenaireView from "@/views/PartenaireView";
 import CoffreFortView from "@/views/CoffreFortView";
 import ObservatoireView from "@/views/ObservatoireView";
+import EvolutionIndexView from "@/views/EvolutionIndexView";
 
 const Dashboard = () => {
   const { token, role, switchRole, logout } = useAuth();
@@ -121,6 +123,7 @@ const Dashboard = () => {
     { label: "Tableau de bord", icon: Home, path: "/dashboard" },
     { label: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
     { label: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
+    { label: "Indice Évolution", icon: Gauge, path: "/dashboard/evolution" },
     { label: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
     { label: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
   ];
@@ -257,6 +260,7 @@ const Dashboard = () => {
             <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
             <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
             <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
+            <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
             <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
             <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
