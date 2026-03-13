@@ -1,64 +1,52 @@
 # Ré'Actif Pro - Product Requirements Document
 
 ## Original Problem Statement
-Créer la plateforme Ré'Actif Pro - une plateforme de développement de carrière avec 3 types d'utilisateurs:
-- **Particuliers**: analyse de profil, compétences, modules d'apprentissage, offres d'emploi avec matching IA
-- **Entreprises/RH**: gestion des offres, candidats compatibles, métriques de recrutement
-- **Partenaires Sociaux**: suivi des bénéficiaires, prescriptions, observations territoriales
+Plateforme Ré'Actif Pro - plateforme de développement de carrière avec 3 types d'utilisateurs (Particuliers, Entreprises/RH, Partenaires Sociaux). Authentification anonyme, design bleu clair, intégration OpenAI GPT-5.2 pour matching intelligent.
 
 ## Architecture
-
 ### Backend (FastAPI + MongoDB)
-- `/app/backend/server.py` - API avec:
-  - Auth anonyme via tokens sécurisés
-  - Gestion des profils utilisateurs
-  - API offres d'emploi avec matching IA (OpenAI GPT-5.2 via Emergent LLM Key)
-  - API Coffre-Fort Numérique (8 catégories)
-  - API Observatoire Prédictif (contributions, compétences émergentes, tendances)
-  - API Indice d'Évolution des Compétences
-  - **API Intelligence Ubuntoo** (signaux, échanges, insights, validation, cross-reference)
+- `/app/backend/server.py` - API monolithique avec toutes les routes
 
 ### Frontend (React + Tailwind + Shadcn UI)
-- `/app/frontend/src/pages/Dashboard.jsx` - Dashboard avec navigation + bouton Ubuntoo
-- `/app/frontend/src/views/ObservatoireView.jsx` - Observatoire + onglet Signaux Ubuntoo
+- `/app/frontend/src/pages/Dashboard.jsx` - Dashboard + navigation
+- `/app/frontend/src/views/PassportView.jsx` - Passeport Dynamique de Compétences
+- `/app/frontend/src/views/ObservatoireView.jsx` - Observatoire + Signaux Ubuntoo
 - `/app/frontend/src/views/EvolutionIndexView.jsx` - Indice d'Évolution
-- Autres vues: CoffreFortView, ParticulierView, EntrepriseView, PartenaireView
+- `/app/frontend/src/views/CoffreFortView.jsx` - Coffre-Fort Numérique
+- `/app/frontend/src/views/ParticulierView.jsx` - Vue Particulier
+- `/app/frontend/src/views/EntrepriseView.jsx` - Vue Entreprise
+- `/app/frontend/src/views/PartenaireView.jsx` - Vue Partenaire
 
-## Core Requirements (Completed)
-- [x] Authentification anonyme sécurisée
+## Completed Features
+- [x] Authentification anonyme sécurisée (JWT)
 - [x] 3 dashboards spécialisés par rôle
-- [x] Intégration OpenAI GPT-5.2 via Emergent LLM Key
-- [x] Coffre-Fort Numérique (8 catégories)
+- [x] Coffre-Fort Numérique (8 catégories, partage, indexation)
 - [x] Observatoire Prédictif des Compétences
 - [x] Indice d'Évolution des Compétences
-- [x] **Croisement Ubuntoo × Observatoire** (Intelligence collective, signaux, pipeline validation, éthique)
+- [x] Croisement Ubuntoo × Observatoire (Intelligence collective, signaux, pipeline validation, éthique)
+- [x] **Passeport Dynamique de Compétences** (6 sections, CRUD, agrégation automatique, passerelles IA)
+- [x] Intégration OpenAI GPT-5.2 (matching, analyse contributions, passerelles)
 
 ## Key API Endpoints
 - `/api/auth/anonymous` - Auth anonyme
 - `/api/seed` - Données de démo
+- `/api/passport/*` - Passeport Dynamique (GET, refresh, profile, competences, experiences, passerelles, sharing)
 - `/api/coffre/*` - Coffre-Fort Numérique
 - `/api/observatoire/*` - Observatoire Prédictif
 - `/api/evolution-index/*` - Indice d'Évolution
-- `/api/ubuntoo/dashboard` - Dashboard intelligence Ubuntoo
-- `/api/ubuntoo/signals` - Signaux détectés (filtrable)
-- `/api/ubuntoo/signals/{id}` - Détail signal + cross-references
-- `/api/ubuntoo/signals/{id}/validate` - Validation humaine
-- `/api/ubuntoo/analyze` - Analyse IA des échanges
-- `/api/ubuntoo/insights` - Insights croisés
-- `/api/ubuntoo/cross-reference` - Croisement données
+- `/api/ubuntoo/*` - Intelligence Ubuntoo
+- `/api/jobs/*` - Offres d'emploi + matching IA
 
 ## Prioritized Backlog
 
-### P0 (Done)
-- Toutes les fonctionnalités core implémentées et testées
-
 ### P1 (Next)
 - [ ] Refactoring backend: découpage server.py en routeurs modulaires
-- [ ] Interface de validation humaine des signaux Ubuntoo (admin panel)
-- [ ] Export PDF des rapports observatoire/évolution
+- [ ] Interface d'administration pour validation humaine des signaux Ubuntoo
+- [ ] Export PDF du passeport (CV, portfolio, dossier candidature)
 
 ### P2 (Future)
 - [ ] Notifications en temps réel
 - [ ] Mode sombre
 - [ ] Messagerie interne
 - [ ] Analytics avancés pour RH/Partenaires
+- [ ] Calendrier de rendez-vous intégré
