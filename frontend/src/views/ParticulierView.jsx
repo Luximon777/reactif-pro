@@ -69,6 +69,7 @@ const ParticulierView = ({ token, section }) => {
       });
       setProfile(response.data);
       setNewSkill("");
+      setEditingProfile(false);
       toast.success("Compétence ajoutée !");
       loadData();
     } catch (error) {

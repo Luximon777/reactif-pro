@@ -38,15 +38,23 @@ const Dashboard = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [dataSeeded, setDataSeeded] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     // Seed database on first load
     const seedData = async () => {
-      try {
-        await axios.post(`${API}/seed`);
-      } catch (error) {
-        console.log("Seed completed or already seeded");
+      const seededBefore = sessionStorage.getItem('reactif_seeded');
+      if (!seededBefore) {
+        try {
+          await axios.post(`${API}/seed`);
+          sessionStorage.setItem('reactif_seeded', 'true');
+          setRefreshKey(prev => prev + 1);
+        } catch (error) {
+          console.log("Seed completed or already seeded");
+        }
       }
+      setDataSeeded(true);
     };
     seedData();
   }, []);
@@ -241,9 +249,9 @@ const Dashboard = () => {
       <main className="pt-20 pb-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
-            <Route path="/" element={<DashboardHome role={role} token={token} />} />
-            <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" /> : <EntrepriseView token={token} section="jobs" />} />
-            <Route path="/learning" element={<ParticulierView token={token} section="learning" />} />
+            <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
+            <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
+            <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
@@ -252,16 +260,16 @@ const Dashboard = () => {
   );
 };
 
-const DashboardHome = ({ role, token }) => {
+const DashboardHome = ({ role, token, refreshKey }) => {
   switch (role) {
     case "particulier":
-      return <ParticulierView token={token} />;
+      return <ParticulierView token={token} key={`particulier-${refreshKey}`} />;
     case "entreprise":
-      return <EntrepriseView token={token} />;
+      return <EntrepriseView token={token} key={`entreprise-${refreshKey}`} />;
     case "partenaire":
-      return <PartenaireView token={token} />;
+      return <PartenaireView token={token} key={`partenaire-${refreshKey}`} />;
     default:
-      return <ParticulierView token={token} />;
+      return <ParticulierView token={token} key={`default-${refreshKey}`} />;
   }
 };
 
