@@ -1,0 +1,156 @@
+{
+  "identity": {
+    "name": "Ré'Actif Pro",
+    "tone": "Professional, Trustworthy, Growth-oriented, Efficient",
+    "archetype": "The Performance Pro (Blue Variant)",
+    "audience": ["Particuliers (Job Seekers)", "Entreprises (Recruiters)", "Partenaires sociaux (Social Workers)"]
+  },
+  "typography": {
+    "primary_font": "Outfit",
+    "secondary_font": "Inter",
+    "mono_font": "JetBrains Mono",
+    "scale": {
+      "h1": "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold tracking-normal",
+      "body": "text-base leading-relaxed text-slate-600",
+      "caption": "text-sm text-slate-500 font-medium",
+      "label": "text-xs font-bold uppercase tracking-wider text-slate-400"
+    },
+    "imports": [
+      "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "hsl(215, 100%, 45%)",
+        "foreground": "hsl(0, 0%, 100%)",
+        "hover": "hsl(215, 100%, 35%)"
+      },
+      "secondary": {
+        "DEFAULT": "hsl(210, 40%, 96%)",
+        "foreground": "hsl(222, 47%, 11%)"
+      },
+      "accent": {
+        "DEFAULT": "hsl(199, 89%, 48%)",
+        "foreground": "hsl(0, 0%, 100%)"
+      },
+      "background": "hsl(0, 0%, 100%)",
+      "surface": "hsl(210, 40%, 98%)",
+      "text": {
+        "primary": "hsl(222, 47%, 11%)",
+        "secondary": "hsl(215, 16%, 47%)",
+        "muted": "hsl(215, 16%, 65%)"
+      },
+      "border": "hsl(214, 32%, 91%)",
+      "success": "hsl(142, 71%, 45%)",
+      "warning": "hsl(38, 92%, 50%)",
+      "error": "hsl(0, 84%, 60%)"
+    },
+    "gradients": {
+      "hero": "bg-gradient-to-br from-blue-50 to-white",
+      "card_hover": "bg-gradient-to-b from-white to-blue-50/50",
+      "primary_action": "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600"
+    }
+  },
+  "spacing_layout": {
+    "container": {
+      "default": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "narrow": "max-w-4xl mx-auto px-4",
+      "wide": "max-w-[1600px] mx-auto px-6"
+    },
+    "section_spacing": "py-16 md:py-24",
+    "component_spacing": "space-y-6 or gap-6",
+    "grids": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "cards": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+      "bento": "grid grid-cols-1 md:grid-cols-4 auto-rows-[minmax(180px,auto)] gap-4"
+    },
+    "radius": {
+      "default": "rounded-xl",
+      "small": "rounded-lg",
+      "large": "rounded-2xl",
+      "full": "rounded-full"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "h-10 px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-sm hover:shadow-md font-medium",
+      "secondary": "h-10 px-6 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-all font-medium",
+      "ghost": "h-10 px-4 rounded-lg text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all font-medium"
+    },
+    "cards": {
+      "base": "bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200",
+      "interactive": "group relative bg-white rounded-xl border border-slate-200 p-6 hover:border-blue-300 transition-all duration-300 cursor-pointer overflow-hidden",
+      "metric": "bg-white p-6 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    },
+    "badges": {
+      "success": "inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 text-green-700",
+      "warning": "inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-semibold transition-colors text-yellow-700",
+      "info": "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold transition-colors text-blue-700"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "0 2px 10px rgba(0, 0, 0, 0.03)",
+      "medium": "0 4px 20px rgba(0, 0, 0, 0.05)",
+      "colored": "0 10px 30px -10px rgba(37, 99, 235, 0.2)"
+    },
+    "gradients": {
+      "glass": "backdrop-blur-md bg-white/70 border border-white/20"
+    },
+    "borders": {
+      "subtle": "border border-slate-100",
+      "active": "border border-blue-200"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "page_load": "animate-in fade-in slide-in-from-bottom-4 duration-500",
+    "card_hover": "hover:-translate-y-1 hover:shadow-lg transition-all duration-300"
+  },
+  "image_strategy": {
+    "style": "Professional, Bright, Diverse, Authentic working environments",
+    "keywords": [
+      "modern office team collaboration",
+      "professional mentoring session",
+      "focused individual working laptop",
+      "corporate meeting bright room",
+      "diverse innovative team"
+    ],
+    "sources": "unsplash"
+  },
+  "instructions_to_main_agent": [
+    "Use 'Outfit' for all headings (h1-h3) and 'Inter' for body text.",
+    "Strictly follow the Blue/White/Slate color palette. Do not use random colors.",
+    "For the Dashboard, use the 'Metric Card' layout: Icon + Value + Label + Trend.",
+    "Implement the 'Matching' feature using a progress ring or percentage bar visual.",
+    "Ensure all interactive elements have hover states defined in the 'buttons' section.",
+    "Use Shadcn UI components for complex interactions (Dialog, Popover, Command) but style them with the defined radius and shadows.",
+    "Maintain generous padding inside cards (p-6 or p-8).",
+    "Use 'lucide-react' for icons. Pick clean, outlined icons.",
+    "For the 'Particulier' dashboard, focus on personal growth and clear next steps.",
+    "For the 'Entreprise' dashboard, focus on data density and clear candidate lists.",
+    "For the 'Partenaire' dashboard, focus on case management and status tracking."
+  ],
+  "accessibility": {
+    "rules": [
+      "Ensure text contrast ratio of at least 4.5:1 for normal text.",
+      "Use semantic HTML (main, section, article, nav).",
+      "All images must have meaningful alt text.",
+      "Interactive elements must have visible focus states (ring-2 ring-blue-500).",
+      "Do not rely on color alone to convey state (use icons or text labels)."
+    ]
+  },
+  "data_testid_convention": "kebab-case, e.g., 'login-submit-btn', 'profile-card-header'",
+  "image_urls": {
+    "hero_bg": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80",
+    "learning_cover": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80",
+    "office_team": "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&q=80",
+    "profile_placeholder": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80"
+  }
+}
