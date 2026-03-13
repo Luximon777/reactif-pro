@@ -264,6 +264,77 @@ class CreateContributionRequest(BaseModel):
     related_tools: List[str] = []
     context: Optional[str] = None
 
+# ============== INDICE D'ÉVOLUTION DES COMPÉTENCES ==============
+
+class EvolutionIndexLevel(str):
+    STABLE = "stable"  # 0-20
+    EVOLVING = "evolutif"  # 20-50
+    TRANSFORMING = "en_transformation"  # 50-80
+    HIGHLY_IMPACTED = "forte_mutation"  # 80-100
+
+class JobEvolutionIndex(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    job_name: str
+    sector: str
+    
+    # Indice principal (0-100)
+    evolution_index: float = 0.0
+    index_level: str = "stable"
+    
+    # Variables de calcul
+    new_skills_count: int = 0
+    skill_frequency_score: float = 0.0
+    task_evolution_score: float = 0.0
+    new_tools_score: float = 0.0
+    job_posting_evolution: float = 0.0
+    declining_skills_count: int = 0
+    
+    # Compétences associées
+    emerging_skills: List[str] = []
+    stable_skills: List[str] = []
+    declining_skills: List[str] = []
+    recommended_skills: List[str] = []
+    
+    # Recommandations
+    recommended_trainings: List[str] = []
+    job_passerelles: List[str] = []
+    
+    # Métadonnées
+    last_calculated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    data_sources: List[str] = []
+    confidence_level: float = 0.0
+
+class SectorEvolutionIndex(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sector_name: str
+    
+    # Indice sectoriel (0-100)
+    evolution_index: float = 0.0
+    index_level: str = "stable"
+    
+    # Statistiques des métiers
+    jobs_count: int = 0
+    jobs_in_transformation: int = 0
+    jobs_stable: int = 0
+    jobs_emerging: int = 0
+    
+    # Compétences clés
+    top_emerging_skills: List[Dict[str, Any]] = []
+    top_declining_skills: List[Dict[str, Any]] = []
+    skill_gap_areas: List[str] = []
+    
+    # Indicateurs économiques
+    hiring_trend: str = "stable"
+    innovation_intensity: float = 0.0
+    
+    # Prévisions
+    predicted_evolution_6m: float = 0.0
+    predicted_evolution_12m: float = 0.0
+    
+    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 class MatchRequest(BaseModel):
     profile_skills: List[str]
     job_requirements: List[str]
@@ -1056,6 +1127,228 @@ async def get_skill_gaps():
     trends = await db.sector_trends.find({"skill_gap_alert": True}, {"_id": 0}).to_list(20)
     return trends
 
+# ============== INDICE D'ÉVOLUTION ENDPOINTS ==============
+
+def calculate_index_level(index: float) -> str:
+    """Determine the level based on index value"""
+    if index < 20:
+        return "stable"
+    elif index < 50:
+        return "evolutif"
+    elif index < 80:
+        return "en_transformation"
+    else:
+        return "forte_mutation"
+
+def get_index_interpretation(index: float, job_name: str = None) -> Dict[str, Any]:
+    """Get human-readable interpretation of the index"""
+    if index < 20:
+        return {
+            "level": "stable",
+            "label": "Métier très stable",
+            "description": f"Les compétences de ce métier évoluent peu. La formation initiale reste pertinente sur le long terme.",
+            "color": "emerald",
+            "recommendation": "Maintenez vos compétences actuelles et restez en veille sur les évolutions du secteur."
+        }
+    elif index < 50:
+        return {
+            "level": "evolutif",
+            "label": "Métier évolutif",
+            "description": f"Ce métier connaît des évolutions modérées. Certaines compétences nouvelles apparaissent progressivement.",
+            "color": "blue",
+            "recommendation": "Renforcez vos compétences numériques et suivez une formation continue régulière."
+        }
+    elif index < 80:
+        return {
+            "level": "en_transformation",
+            "label": "Métier en transformation",
+            "description": f"Ce métier évolue significativement sous l'effet des innovations technologiques ou organisationnelles.",
+            "color": "amber",
+            "recommendation": "Anticipez les changements en développant les compétences émergentes de votre secteur."
+        }
+    else:
+        return {
+            "level": "forte_mutation",
+            "label": "Forte mutation",
+            "description": f"Ce métier est fortement impacté par les transformations. Une adaptation rapide est nécessaire.",
+            "color": "rose",
+            "recommendation": "Envisagez une montée en compétences significative ou une reconversion vers des métiers connexes."
+        }
+
+@api_router.get("/evolution-index/jobs")
+async def get_jobs_evolution_index(sector: Optional[str] = None):
+    """Get evolution index for all jobs"""
+    query = {}
+    if sector:
+        query["sector"] = sector
+    
+    indices = await db.job_evolution_indices.find(query, {"_id": 0}).to_list(100)
+    
+    # Enrich with interpretation
+    for idx in indices:
+        idx["interpretation"] = get_index_interpretation(idx.get("evolution_index", 0), idx.get("job_name"))
+    
+    return sorted(indices, key=lambda x: x.get("evolution_index", 0), reverse=True)
+
+@api_router.get("/evolution-index/jobs/{job_name}")
+async def get_job_evolution_detail(job_name: str):
+    """Get detailed evolution index for a specific job"""
+    index = await db.job_evolution_indices.find_one(
+        {"job_name": {"$regex": job_name, "$options": "i"}}, 
+        {"_id": 0}
+    )
+    
+    if not index:
+        raise HTTPException(status_code=404, detail="Métier non trouvé")
+    
+    index["interpretation"] = get_index_interpretation(index.get("evolution_index", 0), job_name)
+    
+    # Get related emerging skills
+    related_skills = await db.emerging_skills.find(
+        {"related_jobs": {"$regex": job_name, "$options": "i"}},
+        {"_id": 0}
+    ).to_list(10)
+    
+    index["related_emerging_skills"] = related_skills
+    
+    return index
+
+@api_router.get("/evolution-index/sectors")
+async def get_sectors_evolution_index():
+    """Get evolution index for all sectors"""
+    indices = await db.sector_evolution_indices.find({}, {"_id": 0}).to_list(50)
+    
+    for idx in indices:
+        idx["interpretation"] = get_index_interpretation(idx.get("evolution_index", 0))
+    
+    return sorted(indices, key=lambda x: x.get("evolution_index", 0), reverse=True)
+
+@api_router.get("/evolution-index/sectors/{sector_name}")
+async def get_sector_evolution_detail(sector_name: str):
+    """Get detailed evolution index for a sector"""
+    index = await db.sector_evolution_indices.find_one(
+        {"sector_name": {"$regex": sector_name, "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    if not index:
+        raise HTTPException(status_code=404, detail="Secteur non trouvé")
+    
+    index["interpretation"] = get_index_interpretation(index.get("evolution_index", 0))
+    
+    # Get all jobs in this sector
+    jobs = await db.job_evolution_indices.find(
+        {"sector": {"$regex": sector_name, "$options": "i"}},
+        {"_id": 0}
+    ).to_list(50)
+    
+    index["jobs"] = jobs
+    
+    return index
+
+@api_router.get("/evolution-index/dashboard")
+async def get_evolution_dashboard():
+    """Get comprehensive evolution index dashboard"""
+    job_indices = await db.job_evolution_indices.find({}, {"_id": 0}).to_list(100)
+    sector_indices = await db.sector_evolution_indices.find({}, {"_id": 0}).to_list(50)
+    
+    # Calculate statistics
+    total_jobs = len(job_indices)
+    jobs_stable = len([j for j in job_indices if j.get("evolution_index", 0) < 20])
+    jobs_evolving = len([j for j in job_indices if 20 <= j.get("evolution_index", 0) < 50])
+    jobs_transforming = len([j for j in job_indices if 50 <= j.get("evolution_index", 0) < 80])
+    jobs_highly_impacted = len([j for j in job_indices if j.get("evolution_index", 0) >= 80])
+    
+    avg_job_index = sum(j.get("evolution_index", 0) for j in job_indices) / max(total_jobs, 1)
+    avg_sector_index = sum(s.get("evolution_index", 0) for s in sector_indices) / max(len(sector_indices), 1)
+    
+    # Top transforming jobs
+    top_transforming = sorted(job_indices, key=lambda x: x.get("evolution_index", 0), reverse=True)[:5]
+    most_stable = sorted(job_indices, key=lambda x: x.get("evolution_index", 0))[:5]
+    
+    # Sectors overview
+    for sector in sector_indices:
+        sector["interpretation"] = get_index_interpretation(sector.get("evolution_index", 0))
+    
+    return {
+        "summary": {
+            "total_jobs_analyzed": total_jobs,
+            "total_sectors_analyzed": len(sector_indices),
+            "average_job_evolution_index": round(avg_job_index, 1),
+            "average_sector_evolution_index": round(avg_sector_index, 1)
+        },
+        "distribution": {
+            "stable": {"count": jobs_stable, "percentage": round(jobs_stable / max(total_jobs, 1) * 100, 1)},
+            "evolving": {"count": jobs_evolving, "percentage": round(jobs_evolving / max(total_jobs, 1) * 100, 1)},
+            "transforming": {"count": jobs_transforming, "percentage": round(jobs_transforming / max(total_jobs, 1) * 100, 1)},
+            "highly_impacted": {"count": jobs_highly_impacted, "percentage": round(jobs_highly_impacted / max(total_jobs, 1) * 100, 1)}
+        },
+        "top_transforming_jobs": top_transforming,
+        "most_stable_jobs": most_stable,
+        "sectors": sector_indices,
+        "interpretation_guide": {
+            "stable": {"range": "0-20", "description": "Métier très stable, évolution lente"},
+            "evolutif": {"range": "20-50", "description": "Métier évolutif mais relativement stable"},
+            "en_transformation": {"range": "50-80", "description": "Métier en transformation importante"},
+            "forte_mutation": {"range": "80-100", "description": "Métier fortement impacté par les innovations"}
+        }
+    }
+
+@api_router.get("/evolution-index/user-profile")
+async def get_user_evolution_analysis(token: str):
+    """Get evolution analysis based on user's profile and skills"""
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    
+    user_sectors = profile.get("sectors", [])
+    user_skills = [s.get("name", "") for s in profile.get("skills", [])]
+    
+    # Find relevant job indices
+    relevant_jobs = []
+    for sector in user_sectors:
+        jobs = await db.job_evolution_indices.find(
+            {"sector": {"$regex": sector, "$options": "i"}},
+            {"_id": 0}
+        ).to_list(20)
+        relevant_jobs.extend(jobs)
+    
+    # Find skills at risk
+    skills_at_risk = []
+    skills_in_demand = []
+    
+    for job in relevant_jobs:
+        for skill in user_skills:
+            if skill in job.get("declining_skills", []):
+                skills_at_risk.append({"skill": skill, "job": job["job_name"]})
+            if skill in job.get("emerging_skills", []):
+                skills_in_demand.append({"skill": skill, "job": job["job_name"]})
+    
+    # Recommendations
+    all_recommended = set()
+    for job in relevant_jobs:
+        all_recommended.update(job.get("recommended_skills", []))
+    
+    # Calculate personal evolution exposure
+    if relevant_jobs:
+        avg_exposure = sum(j.get("evolution_index", 0) for j in relevant_jobs) / len(relevant_jobs)
+    else:
+        avg_exposure = 50
+    
+    return {
+        "profile_sectors": user_sectors,
+        "profile_skills": user_skills,
+        "evolution_exposure": round(avg_exposure, 1),
+        "exposure_interpretation": get_index_interpretation(avg_exposure),
+        "relevant_jobs": relevant_jobs[:5],
+        "skills_at_risk": skills_at_risk,
+        "skills_in_demand": skills_in_demand,
+        "recommended_skills_to_acquire": list(all_recommended - set(user_skills))[:10],
+        "recommended_trainings": list(set(t for j in relevant_jobs for t in j.get("recommended_trainings", [])))[:5]
+    }
+
 async def analyze_contribution_with_ai(contribution: SkillContribution) -> Dict[str, Any]:
     """Analyze a contribution using AI"""
     if not EMERGENT_LLM_KEY:
@@ -1421,7 +1714,254 @@ async def seed_database():
     await db.emerging_skills.insert_many(demo_emerging_skills)
     await db.sector_trends.insert_many(demo_sector_trends)
     
-    return {"message": "Base de données initialisée", "jobs": len(demo_jobs), "modules": len(demo_modules), "emerging_skills": len(demo_emerging_skills), "sector_trends": len(demo_sector_trends)}
+    # Seed Evolution Indices
+    await db.job_evolution_indices.delete_many({})
+    await db.sector_evolution_indices.delete_many({})
+    
+    demo_job_indices = [
+        {
+            "id": str(uuid.uuid4()),
+            "job_name": "Assistant Administratif",
+            "sector": "Administration",
+            "evolution_index": 58.0,
+            "index_level": "en_transformation",
+            "new_skills_count": 5,
+            "skill_frequency_score": 0.62,
+            "task_evolution_score": 0.55,
+            "new_tools_score": 0.68,
+            "job_posting_evolution": 0.45,
+            "declining_skills_count": 2,
+            "emerging_skills": ["Outils collaboratifs", "GED", "No-Code", "IA bureautique"],
+            "stable_skills": ["Excel", "Rédaction", "Organisation", "Accueil"],
+            "declining_skills": ["Sténographie", "Classement papier"],
+            "recommended_skills": ["Teams/Slack", "Notion", "Automatisation"],
+            "recommended_trainings": ["Maîtriser les outils collaboratifs", "Introduction à l'automatisation"],
+            "job_passerelles": ["Office Manager", "Gestionnaire de projet", "Chargé de clientèle"],
+            "last_calculated": datetime.now(timezone.utc).isoformat(),
+            "data_sources": ["contributions", "offres_emploi", "experts"],
+            "confidence_level": 0.85
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "job_name": "Développeur Web",
+            "sector": "Informatique",
+            "evolution_index": 82.0,
+            "index_level": "forte_mutation",
+            "new_skills_count": 12,
+            "skill_frequency_score": 0.88,
+            "task_evolution_score": 0.78,
+            "new_tools_score": 0.92,
+            "job_posting_evolution": 0.75,
+            "declining_skills_count": 4,
+            "emerging_skills": ["IA Générative", "Prompt Engineering", "No-Code", "Cloud Native", "DevSecOps"],
+            "stable_skills": ["JavaScript", "Git", "API REST", "SQL"],
+            "declining_skills": ["jQuery", "Flash", "PHP legacy"],
+            "recommended_skills": ["React/Vue", "TypeScript", "Docker", "CI/CD", "GPT API"],
+            "recommended_trainings": ["Intégration IA Générative", "DevOps moderne", "Architecture Cloud"],
+            "job_passerelles": ["Lead Developer", "Architecte logiciel", "Product Owner technique"],
+            "last_calculated": datetime.now(timezone.utc).isoformat(),
+            "data_sources": ["contributions", "offres_emploi", "experts", "github_trends"],
+            "confidence_level": 0.92
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "job_name": "Chargé de Clientèle",
+            "sector": "Commerce",
+            "evolution_index": 65.0,
+            "index_level": "en_transformation",
+            "new_skills_count": 6,
+            "skill_frequency_score": 0.58,
+            "task_evolution_score": 0.62,
+            "new_tools_score": 0.72,
+            "job_posting_evolution": 0.55,
+            "declining_skills_count": 1,
+            "emerging_skills": ["Social Selling", "CRM avancé", "Data Analytics", "Visio-commerce"],
+            "stable_skills": ["Négociation", "Relation client", "Écoute active", "Prospection"],
+            "declining_skills": ["Vente terrain classique"],
+            "recommended_skills": ["LinkedIn Sales Navigator", "Salesforce", "Analytics client"],
+            "recommended_trainings": ["Social Selling avancé", "CRM et automatisation commerciale"],
+            "job_passerelles": ["Key Account Manager", "Responsable commercial", "Customer Success Manager"],
+            "last_calculated": datetime.now(timezone.utc).isoformat(),
+            "data_sources": ["contributions", "offres_emploi"],
+            "confidence_level": 0.78
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "job_name": "Gestionnaire de Paie",
+            "sector": "Comptabilité",
+            "evolution_index": 48.0,
+            "index_level": "evolutif",
+            "new_skills_count": 3,
+            "skill_frequency_score": 0.42,
+            "task_evolution_score": 0.45,
+            "new_tools_score": 0.55,
+            "job_posting_evolution": 0.38,
+            "declining_skills_count": 1,
+            "emerging_skills": ["DSN automatisée", "SIRH intégré", "Paie dématérialisée"],
+            "stable_skills": ["Droit social", "Paie", "SILAE", "Excel avancé"],
+            "declining_skills": ["Paie manuelle"],
+            "recommended_skills": ["Cegid", "ADP", "Paramétrage DSN"],
+            "recommended_trainings": ["Évolutions réglementaires 2025", "SIRH avancé"],
+            "job_passerelles": ["Responsable paie", "RH généraliste", "Consultant SIRH"],
+            "last_calculated": datetime.now(timezone.utc).isoformat(),
+            "data_sources": ["contributions", "offres_emploi"],
+            "confidence_level": 0.82
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "job_name": "Artisan Boulanger",
+            "sector": "Artisanat",
+            "evolution_index": 15.0,
+            "index_level": "stable",
+            "new_skills_count": 1,
+            "skill_frequency_score": 0.12,
+            "task_evolution_score": 0.15,
+            "new_tools_score": 0.18,
+            "job_posting_evolution": 0.10,
+            "declining_skills_count": 0,
+            "emerging_skills": ["Vente en ligne"],
+            "stable_skills": ["Pétrissage", "Fermentation", "Cuisson", "Hygiène alimentaire"],
+            "declining_skills": [],
+            "recommended_skills": ["Gestion de commerce", "Réseaux sociaux"],
+            "recommended_trainings": ["Gestion d'entreprise artisanale"],
+            "job_passerelles": ["Chef boulanger", "Formateur métiers de bouche"],
+            "last_calculated": datetime.now(timezone.utc).isoformat(),
+            "data_sources": ["experts"],
+            "confidence_level": 0.75
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "job_name": "Analyste Cybersécurité",
+            "sector": "Informatique",
+            "evolution_index": 88.0,
+            "index_level": "forte_mutation",
+            "new_skills_count": 15,
+            "skill_frequency_score": 0.92,
+            "task_evolution_score": 0.85,
+            "new_tools_score": 0.95,
+            "job_posting_evolution": 0.88,
+            "declining_skills_count": 2,
+            "emerging_skills": ["IA défensive", "Zero Trust", "Cloud Security", "DevSecOps", "Threat Intelligence"],
+            "stable_skills": ["Firewall", "SIEM", "Incident Response", "Pentest"],
+            "declining_skills": ["Antivirus traditionnel", "Sécurité périmétrique"],
+            "recommended_skills": ["XDR/EDR", "SOAR", "Container Security"],
+            "recommended_trainings": ["Certification CISSP", "Cloud Security Architecture", "IA et Cybersécurité"],
+            "job_passerelles": ["RSSI", "Architecte Sécurité", "Consultant Cyber"],
+            "last_calculated": datetime.now(timezone.utc).isoformat(),
+            "data_sources": ["contributions", "offres_emploi", "experts", "certifications"],
+            "confidence_level": 0.95
+        }
+    ]
+    
+    demo_sector_indices = [
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Informatique",
+            "evolution_index": 78.0,
+            "index_level": "en_transformation",
+            "jobs_count": 25,
+            "jobs_in_transformation": 18,
+            "jobs_stable": 3,
+            "jobs_emerging": 4,
+            "top_emerging_skills": [
+                {"skill": "IA Générative", "growth": "+145%"},
+                {"skill": "Cloud Native", "growth": "+68%"},
+                {"skill": "DevSecOps", "growth": "+52%"}
+            ],
+            "top_declining_skills": [
+                {"skill": "jQuery", "decline": "-35%"},
+                {"skill": "Flash", "decline": "-90%"}
+            ],
+            "skill_gap_areas": ["Cybersécurité", "IA", "Cloud"],
+            "hiring_trend": "croissance",
+            "innovation_intensity": 0.92,
+            "predicted_evolution_6m": 82.0,
+            "predicted_evolution_12m": 85.0,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Administration",
+            "evolution_index": 52.0,
+            "index_level": "en_transformation",
+            "jobs_count": 15,
+            "jobs_in_transformation": 8,
+            "jobs_stable": 6,
+            "jobs_emerging": 1,
+            "top_emerging_skills": [
+                {"skill": "Outils collaboratifs", "growth": "+45%"},
+                {"skill": "GED", "growth": "+32%"},
+                {"skill": "Automatisation", "growth": "+28%"}
+            ],
+            "top_declining_skills": [
+                {"skill": "Classement papier", "decline": "-40%"}
+            ],
+            "skill_gap_areas": ["Numérique", "Automatisation"],
+            "hiring_trend": "stable",
+            "innovation_intensity": 0.55,
+            "predicted_evolution_6m": 55.0,
+            "predicted_evolution_12m": 58.0,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Commerce",
+            "evolution_index": 62.0,
+            "index_level": "en_transformation",
+            "jobs_count": 20,
+            "jobs_in_transformation": 12,
+            "jobs_stable": 6,
+            "jobs_emerging": 2,
+            "top_emerging_skills": [
+                {"skill": "Social Selling", "growth": "+55%"},
+                {"skill": "E-commerce", "growth": "+42%"},
+                {"skill": "Data Analytics", "growth": "+38%"}
+            ],
+            "top_declining_skills": [
+                {"skill": "Vente terrain", "decline": "-25%"}
+            ],
+            "skill_gap_areas": ["Digital", "Analytics"],
+            "hiring_trend": "croissance",
+            "innovation_intensity": 0.68,
+            "predicted_evolution_6m": 65.0,
+            "predicted_evolution_12m": 70.0,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Artisanat",
+            "evolution_index": 18.0,
+            "index_level": "stable",
+            "jobs_count": 30,
+            "jobs_in_transformation": 2,
+            "jobs_stable": 27,
+            "jobs_emerging": 1,
+            "top_emerging_skills": [
+                {"skill": "Vente en ligne", "growth": "+22%"},
+                {"skill": "Réseaux sociaux", "growth": "+18%"}
+            ],
+            "top_declining_skills": [],
+            "skill_gap_areas": ["Digital"],
+            "hiring_trend": "stable",
+            "innovation_intensity": 0.15,
+            "predicted_evolution_6m": 20.0,
+            "predicted_evolution_12m": 22.0,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    await db.job_evolution_indices.insert_many(demo_job_indices)
+    await db.sector_evolution_indices.insert_many(demo_sector_indices)
+    
+    return {
+        "message": "Base de données initialisée", 
+        "jobs": len(demo_jobs), 
+        "modules": len(demo_modules), 
+        "emerging_skills": len(demo_emerging_skills), 
+        "sector_trends": len(demo_sector_trends),
+        "job_indices": len(demo_job_indices),
+        "sector_indices": len(demo_sector_indices)
+    }
 
 # ============== ROOT ==============
 
