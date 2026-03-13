@@ -24,11 +24,14 @@ import {
   Award,
   CheckCircle2,
   AlertCircle,
-  Play
+  Play,
+  FolderLock
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const ParticulierView = ({ token, section }) => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [learningModules, setLearningModules] = useState([]);
@@ -302,6 +305,31 @@ const ParticulierView = ({ token, section }) => {
           </Card>
         </div>
       </div>
+
+      {/* Coffre-Fort Banner */}
+      <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d4a6f] border-0" data-testid="coffre-fort-banner">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+                <FolderLock className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Coffre-Fort Professionnel</h3>
+                <p className="text-blue-100 text-sm">Conservez et valorisez vos documents : diplômes, expériences, preuves de compétences</p>
+              </div>
+            </div>
+            <Button 
+              className="bg-white text-[#1e3a5f] hover:bg-blue-50 font-semibold"
+              onClick={() => navigate('/dashboard/coffre-fort')}
+              data-testid="goto-coffre-fort-btn"
+            >
+              <FolderLock className="w-4 h-4 mr-2" />
+              Accéder au coffre-fort
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Jobs Preview */}
       <Card className="card-base" data-testid="jobs-preview">

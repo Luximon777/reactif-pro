@@ -23,7 +23,8 @@ import {
   Sparkles,
   Menu,
   X,
-  Settings
+  Settings,
+  FolderLock
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 import ParticulierView from "@/views/ParticulierView";
 import EntrepriseView from "@/views/EntrepriseView";
 import PartenaireView from "@/views/PartenaireView";
+import CoffreFortView from "@/views/CoffreFortView";
 
 const Dashboard = () => {
   const { token, role, switchRole, logout } = useAuth();
@@ -115,6 +117,7 @@ const Dashboard = () => {
 
   const navItems = [
     { label: "Tableau de bord", icon: Home, path: "/dashboard" },
+    { label: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
     { label: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
     { label: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
   ];
@@ -249,6 +252,7 @@ const Dashboard = () => {
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
             <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
+            <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
             <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
             <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

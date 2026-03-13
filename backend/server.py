@@ -8,7 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import secrets
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -88,6 +88,86 @@ class Beneficiary(BaseModel):
     sector: str
     last_activity: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     partner_id: str
+
+# ============== COFFRE-FORT MODELS ==============
+
+class DocumentCategory(str):
+    IDENTITE = "identite_professionnelle"
+    DIPLOMES = "diplomes_certifications"
+    EXPERIENCES = "experiences_professionnelles"
+    COMPETENCES = "competences_preuves"
+    ACCOMPAGNEMENT = "accompagnement_insertion"
+    CANDIDATURES = "recherche_emploi"
+    FORMATION = "formation_apprentissages"
+    ADMINISTRATIF = "documents_administratifs"
+
+class PrivacyLevel(str):
+    PRIVATE = "private"
+    CONSEILLER = "shared_conseiller"
+    RECRUTEUR = "shared_recruteur"
+    PUBLIC = "public"
+
+class CoffreDocument(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token_id: str
+    title: str
+    category: str
+    document_type: str
+    file_name: str
+    file_url: Optional[str] = None
+    file_size: int = 0
+    mime_type: str = "application/pdf"
+    
+    # Indexation
+    date_document: Optional[str] = None
+    metier_associe: Optional[str] = None
+    secteur: Optional[str] = None
+    competences_liees: List[str] = []
+    description: Optional[str] = None
+    
+    # Confidentialité
+    privacy_level: str = "private"
+    shared_with: List[str] = []
+    share_expiry: Optional[str] = None
+    
+    # Métadonnées
+    date_expiration: Optional[str] = None
+    is_expiring_soon: bool = False
+    is_sensitive: bool = False
+    
+    # Audit
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    view_history: List[Dict[str, Any]] = []
+
+class DocumentShare(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_id: str
+    shared_by: str
+    shared_with_email: Optional[str] = None
+    shared_with_role: Optional[str] = None
+    access_token: str = Field(default_factory=lambda: secrets.token_urlsafe(16))
+    expires_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    accessed_at: Optional[str] = None
+    access_count: int = 0
+
+class CreateDocumentRequest(BaseModel):
+    title: str
+    category: str
+    document_type: str
+    file_name: str
+    file_url: Optional[str] = None
+    date_document: Optional[str] = None
+    metier_associe: Optional[str] = None
+    secteur: Optional[str] = None
+    competences_liees: List[str] = []
+    description: Optional[str] = None
+    privacy_level: str = "private"
+    date_expiration: Optional[str] = None
+    is_sensitive: bool = False
 
 class MatchRequest(BaseModel):
     profile_skills: List[str]
@@ -414,6 +494,272 @@ async def get_metrics():
             "active_support": beneficiaires_count
         }
     }
+
+# ============== COFFRE-FORT ENDPOINTS ==============
+
+DOCUMENT_CATEGORIES = {
+    "identite_professionnelle": {
+        "label": "Identité professionnelle",
+        "types": ["CV", "CV ciblé", "Lettre de motivation", "Présentation professionnelle", "Projet professionnel", "Portfolio", "Bilan de compétences"]
+    },
+    "diplomes_certifications": {
+        "label": "Diplômes et certifications",
+        "types": ["Diplôme", "Titre professionnel", "Certificat", "Attestation de formation", "Habilitation", "Certification", "Permis", "CACES", "SST"]
+    },
+    "experiences_professionnelles": {
+        "label": "Expériences professionnelles",
+        "types": ["Contrat de travail", "Certificat de travail", "Attestation employeur", "Fiche de poste", "Évaluation annuelle", "Lettre de recommandation", "Attestation de mission"]
+    },
+    "competences_preuves": {
+        "label": "Compétences et preuves",
+        "types": ["Réalisation professionnelle", "Rapport", "Support créé", "Projet réalisé", "Badge de compétence", "Auto-évaluation", "Production écrite"]
+    },
+    "accompagnement_insertion": {
+        "label": "Accompagnement et insertion",
+        "types": ["Compte rendu d'entretien", "Diagnostic", "Synthèse de parcours", "Objectifs personnalisés", "Plan d'action", "Prescription", "Bilan"]
+    },
+    "recherche_emploi": {
+        "label": "Recherche d'emploi",
+        "types": ["Candidature", "Réponse employeur", "Convocation entretien", "Compte rendu entretien", "Offre sauvegardée", "Simulation entretien"]
+    },
+    "formation_apprentissages": {
+        "label": "Formation et apprentissages",
+        "types": ["Attestation de participation", "Certificat de module", "Résultat de quiz", "Badge interne", "Validation de parcours", "Exercice réalisé"]
+    },
+    "documents_administratifs": {
+        "label": "Documents administratifs",
+        "types": ["Permis de conduire", "Justificatif de mobilité", "Carte professionnelle", "Convention de stage", "Contrat d'alternance", "Autre document"]
+    }
+}
+
+@api_router.get("/coffre/categories")
+async def get_coffre_categories():
+    """Get all document categories for the coffre-fort"""
+    return DOCUMENT_CATEGORIES
+
+@api_router.get("/coffre/documents")
+async def get_coffre_documents(token: str, category: Optional[str] = None, search: Optional[str] = None):
+    """Get all documents in user's coffre-fort"""
+    token_doc = await get_current_token(token)
+    
+    query = {"token_id": token_doc["id"]}
+    if category:
+        query["category"] = category
+    
+    documents = await db.coffre_documents.find(query, {"_id": 0}).to_list(500)
+    
+    if search:
+        search_lower = search.lower()
+        documents = [d for d in documents if 
+            search_lower in d.get("title", "").lower() or 
+            search_lower in d.get("description", "").lower() or
+            any(search_lower in c.lower() for c in d.get("competences_liees", []))]
+    
+    # Check for expiring documents
+    today = datetime.now(timezone.utc)
+    for doc in documents:
+        if doc.get("date_expiration"):
+            try:
+                exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
+                days_until = (exp_date - today).days
+                doc["is_expiring_soon"] = 0 <= days_until <= 30
+                doc["days_until_expiry"] = days_until
+            except:
+                pass
+    
+    return sorted(documents, key=lambda x: x.get("created_at", ""), reverse=True)
+
+@api_router.get("/coffre/documents/{document_id}")
+async def get_coffre_document(token: str, document_id: str):
+    """Get a specific document"""
+    token_doc = await get_current_token(token)
+    doc = await db.coffre_documents.find_one({"id": document_id, "token_id": token_doc["id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    return doc
+
+@api_router.post("/coffre/documents")
+async def create_coffre_document(token: str, request: CreateDocumentRequest):
+    """Create a new document in coffre-fort"""
+    token_doc = await get_current_token(token)
+    
+    document = CoffreDocument(
+        token_id=token_doc["id"],
+        **request.model_dump()
+    )
+    
+    await db.coffre_documents.insert_one(document.model_dump())
+    
+    # If competences are linked, update profile skills
+    if request.competences_liees:
+        profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+        if profile:
+            existing_skills = [s.get("name") for s in profile.get("skills", [])]
+            new_skills = profile.get("skills", [])
+            for comp in request.competences_liees:
+                if comp not in existing_skills:
+                    new_skills.append({"name": comp, "level": 50, "proven": True})
+            await db.profiles.update_one({"token_id": token_doc["id"]}, {"$set": {"skills": new_skills}})
+    
+    return document.model_dump()
+
+@api_router.put("/coffre/documents/{document_id}")
+async def update_coffre_document(token: str, document_id: str, request: CreateDocumentRequest):
+    """Update a document"""
+    token_doc = await get_current_token(token)
+    
+    update_data = request.model_dump()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.coffre_documents.update_one(
+        {"id": document_id, "token_id": token_doc["id"]},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    
+    return await db.coffre_documents.find_one({"id": document_id}, {"_id": 0})
+
+@api_router.delete("/coffre/documents/{document_id}")
+async def delete_coffre_document(token: str, document_id: str):
+    """Delete a document"""
+    token_doc = await get_current_token(token)
+    result = await db.coffre_documents.delete_one({"id": document_id, "token_id": token_doc["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    return {"message": "Document supprimé"}
+
+@api_router.post("/coffre/documents/{document_id}/share")
+async def share_document(token: str, document_id: str, shared_with_email: Optional[str] = None, shared_with_role: Optional[str] = None, expires_in_days: int = 7):
+    """Create a share link for a document"""
+    token_doc = await get_current_token(token)
+    
+    doc = await db.coffre_documents.find_one({"id": document_id, "token_id": token_doc["id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=expires_in_days)).isoformat()
+    
+    share = DocumentShare(
+        document_id=document_id,
+        shared_by=token_doc["id"],
+        shared_with_email=shared_with_email,
+        shared_with_role=shared_with_role,
+        expires_at=expires_at
+    )
+    
+    await db.document_shares.insert_one(share.model_dump())
+    
+    # Update document privacy
+    await db.coffre_documents.update_one(
+        {"id": document_id},
+        {
+            "$set": {"privacy_level": "shared_recruteur" if shared_with_role == "recruteur" else "shared_conseiller"},
+            "$push": {"shared_with": share.id}
+        }
+    )
+    
+    return {"share_id": share.id, "access_token": share.access_token, "expires_at": expires_at}
+
+@api_router.get("/coffre/shares")
+async def get_document_shares(token: str):
+    """Get all active shares for user's documents"""
+    token_doc = await get_current_token(token)
+    shares = await db.document_shares.find({"shared_by": token_doc["id"]}, {"_id": 0}).to_list(100)
+    
+    # Enrich with document info
+    for share in shares:
+        doc = await db.coffre_documents.find_one({"id": share["document_id"]}, {"_id": 0})
+        if doc:
+            share["document_title"] = doc.get("title")
+            share["document_category"] = doc.get("category")
+    
+    return shares
+
+@api_router.delete("/coffre/shares/{share_id}")
+async def revoke_share(token: str, share_id: str):
+    """Revoke a document share"""
+    token_doc = await get_current_token(token)
+    
+    share = await db.document_shares.find_one({"id": share_id, "shared_by": token_doc["id"]}, {"_id": 0})
+    if not share:
+        raise HTTPException(status_code=404, detail="Partage non trouvé")
+    
+    await db.document_shares.delete_one({"id": share_id})
+    
+    # Update document
+    await db.coffre_documents.update_one(
+        {"id": share["document_id"]},
+        {"$pull": {"shared_with": share_id}}
+    )
+    
+    return {"message": "Partage révoqué"}
+
+@api_router.get("/coffre/stats")
+async def get_coffre_stats(token: str):
+    """Get coffre-fort statistics"""
+    token_doc = await get_current_token(token)
+    
+    documents = await db.coffre_documents.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(500)
+    
+    stats = {
+        "total_documents": len(documents),
+        "by_category": {},
+        "competences_prouvees": set(),
+        "documents_partages": 0,
+        "documents_expirants": 0,
+        "documents_sensibles": 0
+    }
+    
+    today = datetime.now(timezone.utc)
+    
+    for doc in documents:
+        cat = doc.get("category", "autre")
+        stats["by_category"][cat] = stats["by_category"].get(cat, 0) + 1
+        
+        for comp in doc.get("competences_liees", []):
+            stats["competences_prouvees"].add(comp)
+        
+        if doc.get("privacy_level") != "private":
+            stats["documents_partages"] += 1
+        
+        if doc.get("is_sensitive"):
+            stats["documents_sensibles"] += 1
+        
+        if doc.get("date_expiration"):
+            try:
+                exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
+                if 0 <= (exp_date - today).days <= 30:
+                    stats["documents_expirants"] += 1
+            except:
+                pass
+    
+    stats["competences_prouvees"] = list(stats["competences_prouvees"])
+    
+    return stats
+
+@api_router.get("/coffre/expiring")
+async def get_expiring_documents(token: str):
+    """Get documents expiring in the next 30 days"""
+    token_doc = await get_current_token(token)
+    documents = await db.coffre_documents.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(500)
+    
+    today = datetime.now(timezone.utc)
+    expiring = []
+    
+    for doc in documents:
+        if doc.get("date_expiration"):
+            try:
+                exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
+                days_until = (exp_date - today).days
+                if 0 <= days_until <= 30:
+                    doc["days_until_expiry"] = days_until
+                    expiring.append(doc)
+            except:
+                pass
+    
+    return sorted(expiring, key=lambda x: x.get("days_until_expiry", 999))
 
 # ============== SEED DATA ==============
 
