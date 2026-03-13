@@ -26,7 +26,8 @@ import {
   Settings,
   FolderLock,
   Brain,
-  Gauge
+  Gauge,
+  Shield
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ import PartenaireView from "@/views/PartenaireView";
 import CoffreFortView from "@/views/CoffreFortView";
 import ObservatoireView from "@/views/ObservatoireView";
 import EvolutionIndexView from "@/views/EvolutionIndexView";
+import PassportView from "@/views/PassportView";
 
 const Dashboard = () => {
   const { token, role, switchRole, logout } = useAuth();
@@ -121,6 +123,7 @@ const Dashboard = () => {
 
   const navItems = [
     { label: "Tableau de bord", icon: Home, path: "/dashboard" },
+    { label: "Passeport", icon: Shield, path: "/dashboard/passeport", roles: ["particulier"] },
     { label: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
     { label: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
     { label: "Indice Évolution", icon: Gauge, path: "/dashboard/evolution" },
@@ -292,6 +295,7 @@ const Dashboard = () => {
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
             <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
+            <Route path="/passeport" element={<PassportView token={token} key={`passport-${refreshKey}`} />} />
             <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
             <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
             <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
