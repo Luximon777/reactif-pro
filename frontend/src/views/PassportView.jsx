@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
@@ -23,31 +24,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  User,
-  Briefcase,
-  GraduationCap,
-  Sparkles,
-  Target,
-  Plus,
-  RefreshCw,
-  Shield,
-  FolderLock,
-  Brain,
-  MessageCircle,
-  Compass,
-  TrendingUp,
-  ChevronRight,
-  Star,
-  Award,
-  BookOpen,
-  Share2,
-  Trash2,
-  Zap,
-  Edit3,
-  Save,
-  Check,
-  ArrowRight,
-  Layers,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie
+} from "recharts";
+import {
+  User, Briefcase, GraduationCap, Sparkles, Target, Plus, RefreshCw,
+  Shield, FolderLock, Brain, MessageCircle, Compass, TrendingUp,
+  ChevronRight, Star, Award, BookOpen, Share2, Trash2, Zap, Edit3,
+  Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot
 } from "lucide-react";
 
 const SOURCE_CONFIG = {
@@ -74,6 +58,26 @@ const CATEGORY_CONFIG = {
   relationnelle: { label: "Relationnelle", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
 };
 
+const CCSP_POLES = {
+  realisation: { label: "Réalisation", color: "bg-blue-600", textColor: "text-blue-700", bgLight: "bg-blue-50" },
+  interaction: { label: "Interaction", color: "bg-emerald-600", textColor: "text-emerald-700", bgLight: "bg-emerald-50" },
+  initiative: { label: "Initiative", color: "bg-amber-600", textColor: "text-amber-700", bgLight: "bg-amber-50" },
+};
+
+const CCSP_DEGREES = {
+  imitation: { label: "Imitation", color: "bg-slate-500", level: 1 },
+  adaptation: { label: "Adaptation", color: "bg-blue-500", level: 2 },
+  transposition: { label: "Transposition", color: "bg-emerald-500", level: 3 },
+};
+
+const COMPONENT_LABELS = {
+  connaissance: { label: "Connaissance", short: "Sav.", desc: "Savoirs théoriques et factuels", icon: BookOpen, color: "#3b82f6" },
+  cognition: { label: "Cognition", short: "Cog.", desc: "Analyse, raisonnement, résolution", icon: Brain, color: "#8b5cf6" },
+  conation: { label: "Conation", short: "Con.", desc: "Motivation, volonté, engagement", icon: Zap, color: "#f59e0b" },
+  affection: { label: "Affection", short: "Aff.", desc: "Gestion émotionnelle, empathie", icon: Activity, color: "#ef4444" },
+  sensori_moteur: { label: "Sensori-moteur", short: "S-M.", desc: "Habiletés physiques et pratiques", icon: Hexagon, color: "#10b981" },
+};
+
 const PassportView = ({ token }) => {
   const [passport, setPassport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -83,8 +87,14 @@ const PassportView = ({ token }) => {
   const [addExpDialogOpen, setAddExpDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [loadingPasserelles, setLoadingPasserelles] = useState(false);
+  const [diagnostic, setDiagnostic] = useState(null);
+  const [loadingDiagnostic, setLoadingDiagnostic] = useState(false);
+  const [evaluatingComp, setEvaluatingComp] = useState(null);
+  const [evalComponents, setEvalComponents] = useState({ connaissance: 0, cognition: 0, conation: 0, affection: 0, sensori_moteur: 0 });
+  const [evalCcspPole, setEvalCcspPole] = useState("");
+  const [evalCcspDegree, setEvalCcspDegree] = useState("");
 
-  const [newComp, setNewComp] = useState({ name: "", category: "technique", level: "intermediaire", experience_years: 0 });
+  const [newComp, setNewComp] = useState({ name: "", category: "technique", level: "intermediaire", experience_years: 0, components: null, ccsp_pole: "", ccsp_degree: "" });
   const [newExp, setNewExp] = useState({ title: "", organization: "", description: "", skills_used: "", achievements: "", experience_type: "professionnel" });
   const [profileEdit, setProfileEdit] = useState({ professional_summary: "", career_project: "", motivations: "", compatible_environments: "", target_sectors: "" });
 
@@ -100,6 +110,15 @@ const PassportView = ({ token }) => {
 
   useEffect(() => { loadPassport(); }, [loadPassport]);
 
+  const loadDiagnostic = async () => {
+    setLoadingDiagnostic(true);
+    try {
+      const res = await axios.get(`${API}/passport/diagnostic?token=${token}`);
+      setDiagnostic(res.data);
+    } catch (e) { toast.error("Erreur lors du chargement du diagnostic"); }
+    setLoadingDiagnostic(false);
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -113,10 +132,13 @@ const PassportView = ({ token }) => {
   const handleAddCompetence = async () => {
     if (!newComp.name.trim()) return;
     try {
-      const res = await axios.post(`${API}/passport/competences?token=${token}`, newComp);
+      const payload = { ...newComp };
+      if (!payload.ccsp_pole) delete payload.ccsp_pole;
+      if (!payload.ccsp_degree) delete payload.ccsp_degree;
+      await axios.post(`${API}/passport/competences?token=${token}`, payload);
       toast.success("Compétence ajoutée");
       setAddCompDialogOpen(false);
-      setNewComp({ name: "", category: "technique", level: "intermediaire", experience_years: 0 });
+      setNewComp({ name: "", category: "technique", level: "intermediaire", experience_years: 0, components: null, ccsp_pole: "", ccsp_degree: "" });
       await loadPassport();
     } catch (e) { toast.error("Erreur lors de l'ajout"); }
   };
@@ -193,6 +215,27 @@ const PassportView = ({ token }) => {
     setLoadingPasserelles(false);
   };
 
+  const handleOpenEvaluation = (comp) => {
+    setEvaluatingComp(comp);
+    setEvalComponents(comp.components || { connaissance: 0, cognition: 0, conation: 0, affection: 0, sensori_moteur: 0 });
+    setEvalCcspPole(comp.ccsp_pole || "");
+    setEvalCcspDegree(comp.ccsp_degree || "");
+  };
+
+  const handleSaveEvaluation = async () => {
+    if (!evaluatingComp) return;
+    try {
+      await axios.put(`${API}/passport/competences/${evaluatingComp.id}/evaluate?token=${token}`, {
+        components: evalComponents,
+        ccsp_pole: evalCcspPole || null,
+        ccsp_degree: evalCcspDegree || null,
+      });
+      toast.success("Évaluation enregistrée");
+      setEvaluatingComp(null);
+      await loadPassport();
+    } catch (e) { toast.error("Erreur lors de l'évaluation"); }
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-blue-600" /></div>;
   if (!passport) return <div className="text-center py-12 text-slate-500">Impossible de charger le passeport</div>;
 
@@ -244,37 +287,33 @@ const PassportView = ({ token }) => {
             </div>
           </CardContent>
         </Card>
-
         <StatCard icon={Layers} value={competences.length} label="Compétences" sublabel={`dont ${emergingCompetences.length} émergentes`} color="bg-blue-600" />
         <StatCard icon={Briefcase} value={experiences.length} label="Expériences" sublabel={`${learning_path.length} formations`} color="bg-emerald-600" />
       </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-1 h-auto p-1 bg-slate-100">
+        <TabsList className="grid grid-cols-4 md:grid-cols-7 gap-1 h-auto p-1 bg-slate-100">
           <TabsTrigger value="profile" className="text-xs sm:text-sm py-2" data-testid="passport-tab-profile">
-            <User className="w-4 h-4 mr-1 hidden sm:inline" />
-            Profil
+            <User className="w-4 h-4 mr-1 hidden sm:inline" />Profil
           </TabsTrigger>
           <TabsTrigger value="competences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-competences">
-            <Star className="w-4 h-4 mr-1 hidden sm:inline" />
-            Compétences
+            <Star className="w-4 h-4 mr-1 hidden sm:inline" />Compétences
+          </TabsTrigger>
+          <TabsTrigger value="evaluation" className="text-xs sm:text-sm py-2" data-testid="passport-tab-evaluation">
+            <Activity className="w-4 h-4 mr-1 hidden sm:inline" />Évaluation
           </TabsTrigger>
           <TabsTrigger value="emerging" className="text-xs sm:text-sm py-2" data-testid="passport-tab-emerging">
-            <Sparkles className="w-4 h-4 mr-1 hidden sm:inline" />
-            Émergentes
+            <Sparkles className="w-4 h-4 mr-1 hidden sm:inline" />Émergentes
           </TabsTrigger>
           <TabsTrigger value="experiences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-experiences">
-            <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />
-            Expériences
+            <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />Expériences
           </TabsTrigger>
           <TabsTrigger value="learning" className="text-xs sm:text-sm py-2" data-testid="passport-tab-learning">
-            <GraduationCap className="w-4 h-4 mr-1 hidden sm:inline" />
-            Parcours
+            <GraduationCap className="w-4 h-4 mr-1 hidden sm:inline" />Parcours
           </TabsTrigger>
           <TabsTrigger value="passerelles" className="text-xs sm:text-sm py-2" data-testid="passport-tab-passerelles">
-            <Compass className="w-4 h-4 mr-1 hidden sm:inline" />
-            Passerelles
+            <Compass className="w-4 h-4 mr-1 hidden sm:inline" />Passerelles
           </TabsTrigger>
         </TabsList>
 
@@ -299,40 +338,29 @@ const PassportView = ({ token }) => {
               <DialogTrigger asChild>
                 <Button size="sm" data-testid="add-competence-btn"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Ajouter une compétence</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <Input placeholder="Nom de la compétence" value={newComp.name} onChange={e => setNewComp({...newComp, name: e.target.value})} data-testid="comp-name-input" />
-                  <Select value={newComp.category} onValueChange={v => setNewComp({...newComp, category: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="technique">Technique</SelectItem>
-                      <SelectItem value="transversale">Transversale</SelectItem>
-                      <SelectItem value="relationnelle">Relationnelle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={newComp.level} onValueChange={v => setNewComp({...newComp, level: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="debutant">Débutant</SelectItem>
-                      <SelectItem value="intermediaire">Intermédiaire</SelectItem>
-                      <SelectItem value="avance">Avancé</SelectItem>
-                      <SelectItem value="expert">Expert</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button className="w-full" onClick={handleAddCompetence} data-testid="submit-competence-btn">
-                    <Check className="w-4 h-4 mr-2" />Ajouter la compétence
-                  </Button>
-                </div>
+                <AddCompetenceForm newComp={newComp} setNewComp={setNewComp} onSubmit={handleAddCompetence} />
               </DialogContent>
             </Dialog>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {mainCompetences.map(comp => (
-              <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} />
+              <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} />
             ))}
           </div>
           {mainCompetences.length === 0 && <EmptyState text="Ajoutez vos compétences pour enrichir votre passeport" />}
+        </TabsContent>
+
+        {/* Evaluation Tab (NEW - Lamri & Lubart + CCSP) */}
+        <TabsContent value="evaluation" className="space-y-6 mt-4">
+          <EvaluationTab
+            competences={competences}
+            diagnostic={diagnostic}
+            loadingDiagnostic={loadingDiagnostic}
+            onLoadDiagnostic={loadDiagnostic}
+            onEvaluate={handleOpenEvaluation}
+          />
         </TabsContent>
 
         {/* Emerging Competences Tab */}
@@ -344,7 +372,7 @@ const PassportView = ({ token }) => {
           <p className="text-sm text-slate-500">Compétences identifiées via l'IA, les échanges Ubuntoo et vos contributions</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {emergingCompetences.map(comp => (
-              <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} emerging />
+              <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} emerging />
             ))}
           </div>
           {emergingCompetences.length === 0 && <EmptyState text="Les compétences émergentes seront détectées automatiquement" />}
@@ -423,11 +451,477 @@ const PassportView = ({ token }) => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Evaluation Dialog */}
+      <Dialog open={!!evaluatingComp} onOpenChange={(open) => { if (!open) setEvaluatingComp(null); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-[#1e3a5f]" />
+              Évaluer : {evaluatingComp?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <EvaluationForm
+            components={evalComponents}
+            setComponents={setEvalComponents}
+            ccspPole={evalCcspPole}
+            setCcspPole={setEvalCcspPole}
+            ccspDegree={evalCcspDegree}
+            setCcspDegree={setEvalCcspDegree}
+            onSave={handleSaveEvaluation}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-// ============== SUB-COMPONENTS ==============
+// ============== ADD COMPETENCE FORM ==============
+
+const AddCompetenceForm = ({ newComp, setNewComp, onSubmit }) => (
+  <div className="space-y-4">
+    <Input placeholder="Nom de la compétence" value={newComp.name} onChange={e => setNewComp({...newComp, name: e.target.value})} data-testid="comp-name-input" />
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <label className="text-xs font-medium text-slate-500 mb-1 block">Catégorie</label>
+        <Select value={newComp.category} onValueChange={v => setNewComp({...newComp, category: v})}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="technique">Technique</SelectItem>
+            <SelectItem value="transversale">Transversale</SelectItem>
+            <SelectItem value="relationnelle">Relationnelle</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label className="text-xs font-medium text-slate-500 mb-1 block">Niveau</label>
+        <Select value={newComp.level} onValueChange={v => setNewComp({...newComp, level: v})}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="debutant">Débutant</SelectItem>
+            <SelectItem value="intermediaire">Intermédiaire</SelectItem>
+            <SelectItem value="avance">Avancé</SelectItem>
+            <SelectItem value="expert">Expert</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+
+    {/* CCSP Classification */}
+    <div className="border-t pt-3">
+      <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
+        <CircleDot className="w-4 h-4" />Classification CCSP (optionnel)
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Pôle</label>
+          <Select value={newComp.ccsp_pole || "none"} onValueChange={v => setNewComp({...newComp, ccsp_pole: v === "none" ? "" : v})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Non défini</SelectItem>
+              <SelectItem value="realisation">Réalisation</SelectItem>
+              <SelectItem value="interaction">Interaction</SelectItem>
+              <SelectItem value="initiative">Initiative</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Degré</label>
+          <Select value={newComp.ccsp_degree || "none"} onValueChange={v => setNewComp({...newComp, ccsp_degree: v === "none" ? "" : v})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Non défini</SelectItem>
+              <SelectItem value="imitation">Imitation</SelectItem>
+              <SelectItem value="adaptation">Adaptation</SelectItem>
+              <SelectItem value="transposition">Transposition</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+
+    <Button className="w-full" onClick={onSubmit} data-testid="submit-competence-btn">
+      <Check className="w-4 h-4 mr-2" />Ajouter la compétence
+    </Button>
+  </div>
+);
+
+// ============== EVALUATION FORM ==============
+
+const EvaluationForm = ({ components, setComponents, ccspPole, setCcspPole, ccspDegree, setCcspDegree, onSave }) => {
+  const radarData = Object.entries(COMPONENT_LABELS).map(([key, cfg]) => ({
+    component: cfg.short,
+    fullName: cfg.label,
+    value: components[key] || 0,
+    fullMark: 5,
+  }));
+
+  return (
+    <div className="space-y-5">
+      {/* Lamri & Lubart 5 Components */}
+      <div>
+        <h4 className="text-sm font-semibold text-[#1e3a5f] mb-1">Modèle Lamri & Lubart - 5 composantes</h4>
+        <p className="text-xs text-slate-400 mb-3">Évaluez chaque composante de 0 (non développé) à 5 (maîtrisé)</p>
+        <div className="space-y-4">
+          {Object.entries(COMPONENT_LABELS).map(([key, cfg]) => {
+            const Icon = cfg.icon;
+            return (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-4 h-4" style={{ color: cfg.color }} />
+                    <span className="text-sm font-medium text-slate-700">{cfg.label}</span>
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: cfg.color }}>{components[key]}/5</span>
+                </div>
+                <Slider
+                  value={[components[key]]}
+                  onValueChange={([v]) => setComponents({...components, [key]: v})}
+                  max={5}
+                  step={1}
+                  className="w-full"
+                  data-testid={`eval-slider-${key}`}
+                />
+                <p className="text-xs text-slate-400 mt-0.5">{cfg.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Radar Preview */}
+      <div className="bg-slate-50 rounded-xl p-4">
+        <h4 className="text-xs font-medium text-slate-500 mb-2 text-center">Profil de compétence</h4>
+        <ResponsiveContainer width="100%" height={200}>
+          <RadarChart data={radarData}>
+            <PolarGrid stroke="#e2e8f0" />
+            <PolarAngleAxis dataKey="component" tick={{ fontSize: 11, fill: "#64748b" }} />
+            <PolarRadiusAxis angle={90} domain={[0, 5]} tick={false} axisLine={false} />
+            <Radar dataKey="value" stroke="#1e3a5f" fill="#1e3a5f" fillOpacity={0.2} strokeWidth={2} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* CCSP Classification */}
+      <div className="border-t pt-4">
+        <h4 className="text-sm font-semibold text-[#1e3a5f] mb-3 flex items-center gap-1">
+          <CircleDot className="w-4 h-4" />Référentiel CCSP
+        </h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Pôle de compétence</label>
+            <Select value={ccspPole || "none"} onValueChange={v => setCcspPole(v === "none" ? "" : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Non défini</SelectItem>
+                <SelectItem value="realisation">Réalisation</SelectItem>
+                <SelectItem value="interaction">Interaction</SelectItem>
+                <SelectItem value="initiative">Initiative</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Degré de maîtrise</label>
+            <Select value={ccspDegree || "none"} onValueChange={v => setCcspDegree(v === "none" ? "" : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Non défini</SelectItem>
+                <SelectItem value="imitation">Imitation</SelectItem>
+                <SelectItem value="adaptation">Adaptation</SelectItem>
+                <SelectItem value="transposition">Transposition</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <Button className="w-full" onClick={onSave} data-testid="save-evaluation-btn">
+        <Save className="w-4 h-4 mr-2" />Enregistrer l'évaluation
+      </Button>
+    </div>
+  );
+};
+
+// ============== EVALUATION TAB ==============
+
+const EvaluationTab = ({ competences, diagnostic, loadingDiagnostic, onLoadDiagnostic, onEvaluate }) => {
+  const evaluated = competences.filter(c => {
+    const cmp = c.components || {};
+    return Object.values(cmp).some(v => v > 0);
+  });
+  const notEvaluated = competences.filter(c => {
+    const cmp = c.components || {};
+    return !Object.values(cmp).some(v => v > 0);
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-[#1e3a5f] flex items-center gap-2">
+            <Activity className="w-5 h-5" />Évaluation des compétences
+          </h3>
+          <p className="text-sm text-slate-500">Évaluez vos compétences selon le modèle Lamri & Lubart et le référentiel CCSP</p>
+        </div>
+        <Button onClick={onLoadDiagnostic} disabled={loadingDiagnostic} data-testid="load-diagnostic-btn">
+          {loadingDiagnostic ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <TrendingUp className="w-4 h-4 mr-2" />}
+          {loadingDiagnostic ? "Chargement..." : "Générer le diagnostic"}
+        </Button>
+      </div>
+
+      {/* Diagnostic Results */}
+      {diagnostic && <DiagnosticView diagnostic={diagnostic} />}
+
+      {/* Frameworks Explanation */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border-l-4 border-l-[#1e3a5f]">
+          <CardContent className="p-4">
+            <h4 className="font-semibold text-[#1e3a5f] mb-2 text-sm">Modèle Lamri & Lubart</h4>
+            <p className="text-xs text-slate-500 mb-3">Chaque compétence se décompose en 5 composantes :</p>
+            <div className="space-y-1.5">
+              {Object.entries(COMPONENT_LABELS).map(([key, cfg]) => {
+                const Icon = cfg.icon;
+                return (
+                  <div key={key} className="flex items-center gap-2 text-xs">
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: cfg.color }} />
+                    <span className="font-medium text-slate-700">{cfg.label}:</span>
+                    <span className="text-slate-500">{cfg.desc}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-600">
+          <CardContent className="p-4">
+            <h4 className="font-semibold text-emerald-700 mb-2 text-sm">Référentiel CCSP</h4>
+            <p className="text-xs text-slate-500 mb-3">Classification en 3 pôles et 3 degrés de maîtrise :</p>
+            <div className="mb-2">
+              <p className="text-xs font-medium text-slate-600 mb-1">Pôles :</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(CCSP_POLES).map(([k, cfg]) => (
+                  <Badge key={k} className={`text-xs ${cfg.bgLight} ${cfg.textColor}`}>{cfg.label}</Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1">Degrés :</p>
+              <div className="flex gap-1.5">
+                {Object.entries(CCSP_DEGREES).map(([k, cfg]) => (
+                  <Badge key={k} variant="outline" className="text-xs">{cfg.label} (niv. {cfg.level})</Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Competences to evaluate */}
+      {notEvaluated.length > 0 && (
+        <div>
+          <h4 className="font-medium text-slate-700 mb-3">
+            Compétences à évaluer ({notEvaluated.length})
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {notEvaluated.map(comp => (
+              <Card key={comp.id} className="hover:shadow-md transition-shadow border-dashed" data-testid="unevaluated-comp-card">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-slate-800 text-sm">{comp.name}</p>
+                    <p className="text-xs text-slate-400">Non évaluée</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => onEvaluate(comp)} data-testid={`evaluate-btn-${comp.id}`}>
+                    <Edit3 className="w-3.5 h-3.5 mr-1" />Évaluer
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Already evaluated */}
+      {evaluated.length > 0 && (
+        <div>
+          <h4 className="font-medium text-slate-700 mb-3">
+            Compétences évaluées ({evaluated.length})
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {evaluated.map(comp => (
+              <EvaluatedCompCard key={comp.id} comp={comp} onEvaluate={onEvaluate} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {competences.length === 0 && <EmptyState text="Ajoutez des compétences dans l'onglet 'Compétences' pour les évaluer ici" />}
+    </div>
+  );
+};
+
+// ============== DIAGNOSTIC VIEW ==============
+
+const DiagnosticView = ({ diagnostic }) => {
+  const { lamri_lubart_profile, ccsp_distribution, recommendations, evaluated_count, total_competences } = diagnostic;
+
+  const radarData = Object.entries(COMPONENT_LABELS).map(([key, cfg]) => ({
+    component: cfg.label,
+    value: lamri_lubart_profile?.[key] || 0,
+    fullMark: 5,
+  }));
+
+  const poleData = Object.entries(ccsp_distribution?.poles || {}).map(([key, value]) => ({
+    name: CCSP_POLES[key]?.label || key,
+    value,
+    color: key === "realisation" ? "#3b82f6" : key === "interaction" ? "#10b981" : "#f59e0b",
+  }));
+
+  const degreeData = Object.entries(ccsp_distribution?.degrees || {}).map(([key, value]) => ({
+    name: CCSP_DEGREES[key]?.label || key,
+    value,
+    color: key === "imitation" ? "#94a3b8" : key === "adaptation" ? "#3b82f6" : "#10b981",
+  }));
+
+  return (
+    <div className="space-y-4">
+      <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8e] text-white border-0">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-lg">Votre Diagnostic</h4>
+              <p className="text-blue-200 text-sm">{evaluated_count}/{total_competences} compétences évaluées</p>
+            </div>
+            <div className="text-right">
+              <Progress value={(evaluated_count / Math.max(total_competences, 1)) * 100} className="h-2 w-32 bg-white/20" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Radar - Lamri & Lubart Profile */}
+        <Card className="md:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-[#1e3a5f]">Profil Lamri & Lubart</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="#e2e8f0" />
+                <PolarAngleAxis dataKey="component" tick={{ fontSize: 10, fill: "#64748b" }} />
+                <PolarRadiusAxis angle={90} domain={[0, 5]} tick={false} axisLine={false} />
+                <Radar dataKey="value" stroke="#1e3a5f" fill="#1e3a5f" fillOpacity={0.25} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* CCSP Poles Distribution */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-emerald-700">Pôles CCSP</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={poleData} layout="vertical" margin={{ left: 10 }}>
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={80} />
+                <Tooltip />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {poleData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* CCSP Degrees Distribution */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-amber-700">Degrés CCSP</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={degreeData} layout="vertical" margin={{ left: 10 }}>
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={90} />
+                <Tooltip />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {degreeData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recommendations */}
+      {recommendations?.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-amber-800 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />Recommandations
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {recommendations.map((rec, i) => (
+              <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/60" data-testid="recommendation-item">
+                <ChevronRight className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-slate-700">{rec.message}</p>
+                  <Badge variant="outline" className="text-xs mt-1">{rec.type}</Badge>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+// ============== EVALUATED COMPETENCE CARD ==============
+
+const EvaluatedCompCard = ({ comp, onEvaluate }) => {
+  const cmp = comp.components || {};
+  const radarData = Object.entries(COMPONENT_LABELS).map(([key, cfg]) => ({
+    component: cfg.short,
+    value: cmp[key] || 0,
+    fullMark: 5,
+  }));
+  const poleConfig = CCSP_POLES[comp.ccsp_pole];
+  const degreeConfig = CCSP_DEGREES[comp.ccsp_degree];
+
+  return (
+    <Card className="hover:shadow-md transition-shadow" data-testid="evaluated-comp-card">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h4 className="font-semibold text-slate-900 text-sm">{comp.name}</h4>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {poleConfig && <Badge className={`text-xs ${poleConfig.bgLight} ${poleConfig.textColor}`}>{poleConfig.label}</Badge>}
+              {degreeConfig && <Badge variant="outline" className="text-xs">{degreeConfig.label}</Badge>}
+            </div>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => onEvaluate(comp)} className="text-slate-400 hover:text-[#1e3a5f]">
+            <Edit3 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        <ResponsiveContainer width="100%" height={150}>
+          <RadarChart data={radarData}>
+            <PolarGrid stroke="#e2e8f0" />
+            <PolarAngleAxis dataKey="component" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+            <PolarRadiusAxis angle={90} domain={[0, 5]} tick={false} axisLine={false} />
+            <Radar dataKey="value" stroke="#1e3a5f" fill="#1e3a5f" fillOpacity={0.2} strokeWidth={1.5} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============== EXISTING SUB-COMPONENTS ==============
 
 const StatCard = ({ icon: Icon, value, label, sublabel, color }) => (
   <Card>
@@ -521,11 +1015,14 @@ const ProfileDisplayList = ({ label, items, icon: Icon }) => (
   </div>
 );
 
-const CompetenceCard = ({ comp, onDelete, emerging }) => {
+const CompetenceCard = ({ comp, onDelete, onEvaluate, emerging }) => {
   const levelConfig = LEVEL_CONFIG[comp.level] || LEVEL_CONFIG.intermediaire;
   const catConfig = CATEGORY_CONFIG[comp.category] || CATEGORY_CONFIG.technique;
   const srcConfig = SOURCE_CONFIG[comp.source] || SOURCE_CONFIG.declaratif;
   const SrcIcon = srcConfig.icon;
+  const poleConfig = CCSP_POLES[comp.ccsp_pole];
+  const degreeConfig = CCSP_DEGREES[comp.ccsp_degree];
+  const hasEval = comp.components && Object.values(comp.components).some(v => v > 0);
 
   return (
     <Card className={`hover:shadow-md transition-shadow ${emerging ? "border-violet-200 bg-violet-50/30" : ""}`} data-testid="competence-card">
@@ -533,16 +1030,23 @@ const CompetenceCard = ({ comp, onDelete, emerging }) => {
         <div className="flex items-start justify-between mb-2">
           <div>
             <h4 className="font-semibold text-slate-900 text-sm">{comp.name}</h4>
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
               <Badge variant="outline" className={`text-xs ${catConfig.color}`}>{catConfig.label}</Badge>
               <Badge className={`text-xs ${srcConfig.color}`}><SrcIcon className="w-3 h-3 mr-0.5" />{srcConfig.label}</Badge>
+              {poleConfig && <Badge className={`text-xs ${poleConfig.bgLight} ${poleConfig.textColor}`}>{poleConfig.label}</Badge>}
+              {degreeConfig && <Badge variant="outline" className="text-xs">{degreeConfig.label}</Badge>}
             </div>
           </div>
-          {comp.source === "declaratif" && (
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500" onClick={() => onDelete(comp.id)}>
-              <Trash2 className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-[#1e3a5f]" onClick={() => onEvaluate(comp)} data-testid={`evaluate-comp-${comp.id}`}>
+              <Activity className="w-3.5 h-3.5" />
             </Button>
-          )}
+            {comp.source === "declaratif" && (
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500" onClick={() => onDelete(comp.id)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="mt-3">
           <div className="flex items-center justify-between text-xs mb-1">
@@ -551,10 +1055,24 @@ const CompetenceCard = ({ comp, onDelete, emerging }) => {
           </div>
           <Progress value={levelConfig.width} className="h-1.5" />
         </div>
+        {/* Mini component bars */}
+        {hasEval && (
+          <div className="mt-3 flex items-center gap-1">
+            {Object.entries(COMPONENT_LABELS).map(([key, cfg]) => {
+              const val = comp.components?.[key] || 0;
+              return (
+                <div key={key} className="flex-1" title={`${cfg.label}: ${val}/5`}>
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${(val / 5) * 100}%`, backgroundColor: cfg.color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {comp.proof && (
           <div className="mt-2 flex items-center gap-1 text-xs text-blue-600">
-            <Award className="w-3 h-3" />
-            <span>Preuve: {comp.proof}</span>
+            <Award className="w-3 h-3" /><span>Preuve: {comp.proof}</span>
           </div>
         )}
       </CardContent>
@@ -638,8 +1156,7 @@ const PasserelleCard = ({ passerelle }) => {
         <div className="flex items-start justify-between mb-2">
           <div>
             <h4 className="font-semibold text-slate-900 text-base flex items-center gap-2">
-              <ArrowRight className="w-4 h-4 text-blue-600" />
-              {passerelle.job_name}
+              <ArrowRight className="w-4 h-4 text-blue-600" />{passerelle.job_name}
             </h4>
             {passerelle.sector && <p className="text-sm text-slate-500 ml-6">{passerelle.sector}</p>}
           </div>

@@ -396,6 +396,19 @@ class MatchRequest(BaseModel):
 
 # ============== PASSEPORT DYNAMIQUE DE COMPÉTENCES ==============
 
+class LamriLubartComponents(BaseModel):
+    """Modèle Lamri & Lubart: 5 composantes d'une compétence (0-5 scale)"""
+    connaissance: int = 0  # Savoirs théoriques et factuels
+    cognition: int = 0     # Processus cognitifs (analyse, raisonnement)
+    conation: int = 0      # Motivation, volonté, engagement
+    affection: int = 0     # Gestion émotionnelle, empathie
+    sensori_moteur: int = 0  # Habiletés physiques et pratiques
+
+class CCSPClassification(BaseModel):
+    """Référentiel CCSP: Pôle et degré de maîtrise"""
+    pole: str = ""  # realisation, interaction, initiative
+    degree: str = ""  # imitation, adaptation, transposition
+
 class PassportCompetence(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -405,6 +418,14 @@ class PassportCompetence(BaseModel):
     proof: Optional[str] = None  # reference to coffre-fort document
     source: str = "declaratif"  # declaratif, coffre_fort, module, ubuntoo, ia_detectee
     is_emerging: bool = False
+    # Lamri & Lubart: 5 composantes
+    components: Dict[str, int] = Field(default_factory=lambda: {
+        "connaissance": 0, "cognition": 0, "conation": 0,
+        "affection": 0, "sensori_moteur": 0
+    })
+    # CCSP: pôle et degré
+    ccsp_pole: str = ""  # realisation, interaction, initiative
+    ccsp_degree: str = ""  # imitation, adaptation, transposition
     added_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class PassportExperience(BaseModel):
@@ -476,6 +497,17 @@ class AddCompetenceRequest(BaseModel):
     level: str = "intermediaire"
     experience_years: float = 0
     proof: Optional[str] = None
+    components: Optional[Dict[str, int]] = None
+    ccsp_pole: Optional[str] = None
+    ccsp_degree: Optional[str] = None
+
+class EvaluateCompetenceRequest(BaseModel):
+    components: Dict[str, int]  # connaissance, cognition, conation, affection, sensori_moteur (0-5)
+    ccsp_pole: Optional[str] = None
+    ccsp_degree: Optional[str] = None
+
+class CCSPDiagnosticRequest(BaseModel):
+    competence_ids: List[str] = []  # If empty, analyze all competences
 
 class AddExperienceRequest(BaseModel):
     title: str
@@ -1608,21 +1640,28 @@ async def integrate_contribution_to_skills(contribution: dict):
 def calculate_completeness(passport: dict) -> int:
     """Calculate passport completeness score (0-100)"""
     score = 0
-    if passport.get("professional_summary"): score += 15
-    if passport.get("career_project"): score += 10
+    if passport.get("professional_summary"): score += 12
+    if passport.get("career_project"): score += 8
     if passport.get("motivations"): score += 5
     if passport.get("compatible_environments"): score += 5
     if passport.get("target_sectors"): score += 5
     comps = passport.get("competences", [])
-    if len(comps) >= 1: score += 10
-    if len(comps) >= 3: score += 10
+    if len(comps) >= 1: score += 8
+    if len(comps) >= 3: score += 7
     if len(comps) >= 5: score += 5
     exps = passport.get("experiences", [])
-    if len(exps) >= 1: score += 10
-    if len(exps) >= 3: score += 10
+    if len(exps) >= 1: score += 8
+    if len(exps) >= 3: score += 7
     learning = passport.get("learning_path", [])
-    if len(learning) >= 1: score += 10
+    if len(learning) >= 1: score += 8
     if len(learning) >= 2: score += 5
+    # Bonus for Lamri & Lubart evaluations
+    evaluated = sum(1 for c in comps if any(c.get("components", {}).get(k, 0) > 0 for k in ["connaissance", "cognition", "conation", "affection", "sensori_moteur"]))
+    if evaluated >= 1: score += 5
+    if evaluated >= 3: score += 7
+    # Bonus for CCSP classification
+    ccsp_classified = sum(1 for c in comps if c.get("ccsp_pole"))
+    if ccsp_classified >= 1: score += 5
     return min(score, 100)
 
 async def aggregate_passport_from_sources(token_id: str) -> dict:
@@ -1824,9 +1863,13 @@ async def add_passport_competence(token: str, data: AddCompetenceRequest):
     """Add a competence to the passport"""
     token_doc = await get_current_token(token)
 
+    components = data.components or {"connaissance": 0, "cognition": 0, "conation": 0, "affection": 0, "sensori_moteur": 0}
     new_comp = PassportCompetence(
         name=data.name, category=data.category, level=data.level,
-        experience_years=data.experience_years, proof=data.proof, source="declaratif"
+        experience_years=data.experience_years, proof=data.proof, source="declaratif",
+        components=components,
+        ccsp_pole=data.ccsp_pole or "",
+        ccsp_degree=data.ccsp_degree or ""
     ).model_dump()
 
     result = await db.passports.update_one(
@@ -1928,6 +1971,115 @@ async def update_passport_sharing(token: str, data: SharePassportRequest):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Passeport non trouvé")
     return {"message": "Paramètres de partage mis à jour", "sharing": sharing}
+
+@api_router.put("/passport/competences/{comp_id}/evaluate")
+async def evaluate_competence(comp_id: str, token: str, data: EvaluateCompetenceRequest):
+    """Evaluate a competence using Lamri & Lubart 5-component model and CCSP"""
+    token_doc = await get_current_token(token)
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouvé")
+
+    # Validate component values (0-5)
+    valid_keys = {"connaissance", "cognition", "conation", "affection", "sensori_moteur"}
+    components = {}
+    for key in valid_keys:
+        val = data.components.get(key, 0)
+        components[key] = max(0, min(5, val))
+
+    # Find and update the competence
+    comps = passport.get("competences", [])
+    found = False
+    for comp in comps:
+        if comp.get("id") == comp_id:
+            comp["components"] = components
+            if data.ccsp_pole:
+                comp["ccsp_pole"] = data.ccsp_pole
+            if data.ccsp_degree:
+                comp["ccsp_degree"] = data.ccsp_degree
+            found = True
+            break
+
+    if not found:
+        raise HTTPException(status_code=404, detail="Compétence non trouvée")
+
+    await db.passports.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"competences": comps, "last_updated": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {"message": "Évaluation enregistrée", "competence_id": comp_id, "components": components}
+
+@api_router.get("/passport/diagnostic")
+async def get_ccsp_diagnostic(token: str):
+    """Generate a CCSP diagnostic based on all passport competences"""
+    token_doc = await get_current_token(token)
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouvé")
+
+    comps = passport.get("competences", [])
+    total = len(comps)
+    if total == 0:
+        return {
+            "total_competences": 0,
+            "evaluated_count": 0,
+            "lamri_lubart_profile": {"connaissance": 0, "cognition": 0, "conation": 0, "affection": 0, "sensori_moteur": 0},
+            "ccsp_distribution": {"poles": {}, "degrees": {}},
+            "recommendations": []
+        }
+
+    # Aggregate Lamri & Lubart components
+    ll_totals = {"connaissance": 0, "cognition": 0, "conation": 0, "affection": 0, "sensori_moteur": 0}
+    evaluated_count = 0
+    for comp in comps:
+        cdata = comp.get("components", {})
+        has_evaluation = any(cdata.get(k, 0) > 0 for k in ll_totals)
+        if has_evaluation:
+            evaluated_count += 1
+            for k in ll_totals:
+                ll_totals[k] += cdata.get(k, 0)
+
+    ll_avg = {}
+    for k, v in ll_totals.items():
+        ll_avg[k] = round(v / max(evaluated_count, 1), 1)
+
+    # CCSP distribution
+    poles = {"realisation": 0, "interaction": 0, "initiative": 0}
+    degrees = {"imitation": 0, "adaptation": 0, "transposition": 0}
+    for comp in comps:
+        pole = comp.get("ccsp_pole", "")
+        degree = comp.get("ccsp_degree", "")
+        if pole in poles:
+            poles[pole] += 1
+        if degree in degrees:
+            degrees[degree] += 1
+
+    # Generate recommendations
+    recommendations = []
+    if ll_avg.get("connaissance", 0) < 2:
+        recommendations.append({"type": "formation", "message": "Renforcez vos savoirs théoriques par des formations ou lectures spécialisées.", "component": "connaissance"})
+    if ll_avg.get("cognition", 0) < 2:
+        recommendations.append({"type": "formation", "message": "Développez vos capacités d'analyse et de raisonnement critique.", "component": "cognition"})
+    if ll_avg.get("conation", 0) < 2:
+        recommendations.append({"type": "accompagnement", "message": "Travaillez votre motivation et votre engagement par un accompagnement personnalisé.", "component": "conation"})
+    if ll_avg.get("affection", 0) < 2:
+        recommendations.append({"type": "developpement", "message": "Renforcez votre intelligence émotionnelle et votre empathie.", "component": "affection"})
+    if ll_avg.get("sensori_moteur", 0) < 2:
+        recommendations.append({"type": "pratique", "message": "Augmentez la pratique terrain pour développer vos habiletés techniques.", "component": "sensori_moteur"})
+
+    if poles.get("initiative", 0) == 0 and total > 2:
+        recommendations.append({"type": "ccsp", "message": "Aucune compétence d'initiative identifiée. Explorez l'autonomie et l'innovation.", "component": "initiative"})
+    if degrees.get("transposition", 0) == 0 and total > 2:
+        recommendations.append({"type": "ccsp", "message": "Développez votre capacité à transposer vos compétences dans de nouveaux contextes.", "component": "transposition"})
+
+    return {
+        "total_competences": total,
+        "evaluated_count": evaluated_count,
+        "lamri_lubart_profile": ll_avg,
+        "ccsp_distribution": {"poles": poles, "degrees": degrees},
+        "recommendations": recommendations
+    }
 
 # ============== UBUNTOO INTELLIGENCE ENDPOINTS ==============
 
