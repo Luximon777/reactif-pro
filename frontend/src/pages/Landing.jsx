@@ -119,9 +119,9 @@ const Landing = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <img 
-                src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
+                src="/logo-reactif-pro-hd.png?v=2" 
                 alt="RE'ACTIF PRO" 
-                className="h-10 w-auto"
+                className="h-12 w-auto"
               />
             </div>
             <Badge variant="secondary" className="bg-blue-50 text-[#1e3a5f] border-blue-200">
@@ -136,7 +136,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto py-16 animate-fade-in">
             <img 
-              src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
+              src="/logo-reactif-pro-hd.png?v=2" 
               alt="RE'ACTIF PRO - Intelligence Professionnelle" 
               className="h-24 sm:h-32 mx-auto mb-8 rounded-2xl shadow-lg"
             />
@@ -411,9 +411,9 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img 
-              src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
+              src="/logo-reactif-pro-hd.png?v=2" 
               alt="RE'ACTIF PRO" 
-              className="h-8 w-auto"
+              className="h-10 w-auto"
             />
             <span className="text-slate-400 mx-2">|</span>
             <span className="text-sm text-slate-500">Un dispositif ALT&ACT</span>

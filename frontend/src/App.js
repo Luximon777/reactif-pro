@@ -37,14 +37,14 @@ const AuthProvider = ({ children }) => {
           } else {
             logout();
           }
-        } catch (error) {
+        } catch {
           logout();
         }
       }
       setIsLoading(false);
     };
     verifyToken();
-  }, [token]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (selectedRole = "particulier") => {
     try {
