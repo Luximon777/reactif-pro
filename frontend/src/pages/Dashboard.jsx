@@ -138,14 +138,14 @@ const Dashboard = () => {
       {/* Top Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20">
             {/* Logo & Nav */}
             <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
+              <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
                 <img 
                   src="/logo-reactif-pro-hd.png?v=2" 
                   alt="RE'ACTIF PRO" 
-                  className="h-12 w-auto"
+                  className="h-14 w-auto"
                 />
               </div>
               
@@ -291,7 +291,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="pt-20 pb-8">
+      <main className="pt-24 pb-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
             <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
