@@ -143,7 +143,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
                 <img 
-                  src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+                  src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
                   alt="RE'ACTIF PRO" 
                   className="h-9 w-auto"
                 />

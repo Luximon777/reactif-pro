@@ -119,7 +119,7 @@ const Landing = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <img 
-                src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+                src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
                 alt="RE'ACTIF PRO" 
                 className="h-10 w-auto"
               />
@@ -136,9 +136,9 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto py-16 animate-fade-in">
             <img 
-              src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+              src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
               alt="RE'ACTIF PRO - Intelligence Professionnelle" 
-              className="h-24 sm:h-32 mx-auto mb-8"
+              className="h-24 sm:h-32 mx-auto mb-8 rounded-2xl shadow-lg"
             />
             <p className="text-xl sm:text-2xl text-blue-100 mb-4 italic">
               Dispositif de réactivation rapide des parcours vers l'emploi
@@ -411,7 +411,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img 
-              src="https://customer-assets.emergentagent.com/job_dynamic-platform-4/artifacts/q7vwydgn_logo%20rectif%20pro.png" 
+              src="https://customer-assets.emergentagent.com/job_803fd7ba-1d1c-4251-b07d-5e3da9f1465c/artifacts/cq0nw21p_logo%20reactif%20pro.png" 
               alt="RE'ACTIF PRO" 
               className="h-8 w-auto"
             />
