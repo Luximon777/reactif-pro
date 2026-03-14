@@ -413,7 +413,7 @@ class PassportCompetence(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     nature: str = ""  # savoir_faire, savoir_etre
-    category: str = "technique"  # technique, transversale, transferable, sectorielle
+    category: str = "technique"  # technique, transversale (cross-sector/universal), transferable (within sector/company), sectorielle
     level: str = "intermediaire"  # debutant, intermediaire, avance, expert
     experience_years: float = 0
     proof: Optional[str] = None

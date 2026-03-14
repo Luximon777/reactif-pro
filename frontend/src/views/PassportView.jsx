@@ -53,11 +53,10 @@ const LEVEL_CONFIG = {
 };
 
 const CATEGORY_CONFIG = {
-  technique: { label: "Technique", color: "text-blue-700 bg-blue-50 border-blue-200" },
-  transversale: { label: "Transversale", color: "text-violet-700 bg-violet-50 border-violet-200" },
-  transferable: { label: "Transférable", color: "text-amber-700 bg-amber-50 border-amber-200" },
-  sectorielle: { label: "Sectorielle", color: "text-slate-700 bg-slate-50 border-slate-200" },
-  relationnelle: { label: "Relationnelle", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+  technique: { label: "Technique", color: "text-blue-700 bg-blue-50 border-blue-200", desc: "Compétence spécifique à un métier" },
+  transversale: { label: "Transversale", color: "text-violet-700 bg-violet-50 border-violet-200", desc: "Universelle, commune à différents métiers et secteurs" },
+  transferable: { label: "Transférable", color: "text-amber-700 bg-amber-50 border-amber-200", desc: "Mobilisable dans un même secteur ou entreprise" },
+  sectorielle: { label: "Sectorielle", color: "text-slate-700 bg-slate-50 border-slate-200", desc: "Propre à un secteur d'activité" },
 };
 
 const NATURE_CONFIG = {
@@ -619,31 +618,38 @@ const AddCompetenceForm = ({ newComp, setNewComp, onSubmit }) => (
       </div>
     </div>
 
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">Catégorie</label>
-        <Select value={newComp.category} onValueChange={v => setNewComp({...newComp, category: v})}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="technique">Technique</SelectItem>
-            <SelectItem value="transversale">Transversale</SelectItem>
-            <SelectItem value="transferable">Transférable</SelectItem>
-            <SelectItem value="sectorielle">Sectorielle</SelectItem>
-          </SelectContent>
-        </Select>
+    <div>
+      <label className="text-xs font-medium text-slate-500 mb-1.5 block">Catégorie</label>
+      <div className="grid grid-cols-2 gap-2">
+        {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setNewComp({...newComp, category: key})}
+            className={`p-2.5 rounded-lg border-2 transition-all text-left ${
+              newComp.category === key
+                ? `${cfg.color} border-current`
+                : "border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+            data-testid={`category-${key}`}
+          >
+            <p className="text-xs font-semibold">{cfg.label}</p>
+            <p className="text-[10px] opacity-70 leading-tight mt-0.5">{cfg.desc}</p>
+          </button>
+        ))}
       </div>
-      <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">Niveau</label>
-        <Select value={newComp.level} onValueChange={v => setNewComp({...newComp, level: v})}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="debutant">Débutant</SelectItem>
-            <SelectItem value="intermediaire">Intermédiaire</SelectItem>
-            <SelectItem value="avance">Avancé</SelectItem>
-            <SelectItem value="expert">Expert</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    </div>
+    <div>
+      <label className="text-xs font-medium text-slate-500 mb-1 block">Niveau</label>
+      <Select value={newComp.level} onValueChange={v => setNewComp({...newComp, level: v})}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="debutant">Débutant</SelectItem>
+          <SelectItem value="intermediaire">Intermédiaire</SelectItem>
+          <SelectItem value="avance">Avancé</SelectItem>
+          <SelectItem value="expert">Expert</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     {/* CCSP Classification */}
@@ -813,7 +819,7 @@ const EvaluationTab = ({ competences, diagnostic, loadingDiagnostic, onLoadDiagn
       {diagnostic && <DiagnosticView diagnostic={diagnostic} />}
 
       {/* Frameworks Explanation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-[#1e3a5f]">
           <CardContent className="p-4">
             <h4 className="font-semibold text-[#1e3a5f] mb-2 text-sm">Modèle Lamri & Lubart</h4>
@@ -850,6 +856,22 @@ const EvaluationTab = ({ competences, diagnostic, loadingDiagnostic, onLoadDiagn
                 {Object.entries(CCSP_DEGREES).map(([k, cfg]) => (
                   <Badge key={k} variant="outline" className="text-xs">{cfg.label} (niv. {cfg.level})</Badge>
                 ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="p-4">
+            <h4 className="font-semibold text-amber-700 mb-2 text-sm">Transversale vs Transférable</h4>
+            <p className="text-xs text-slate-500 mb-3">Distinction France Travail :</p>
+            <div className="space-y-2">
+              <div className="p-2 rounded bg-violet-50">
+                <p className="text-xs font-semibold text-violet-700">Transversale</p>
+                <p className="text-[10px] text-violet-600">Universelle, commune à différents métiers et secteurs (ex: communication, bureautique, langues)</p>
+              </div>
+              <div className="p-2 rounded bg-amber-50">
+                <p className="text-xs font-semibold text-amber-700">Transférable</p>
+                <p className="text-[10px] text-amber-600">Mobilisable dans différents métiers d'un même secteur ou entreprise (ex: rigueur, analyse dans le BTP)</p>
               </div>
             </div>
           </CardContent>
