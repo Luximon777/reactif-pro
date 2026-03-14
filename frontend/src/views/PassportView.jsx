@@ -55,7 +55,14 @@ const LEVEL_CONFIG = {
 const CATEGORY_CONFIG = {
   technique: { label: "Technique", color: "text-blue-700 bg-blue-50 border-blue-200" },
   transversale: { label: "Transversale", color: "text-violet-700 bg-violet-50 border-violet-200" },
+  transferable: { label: "Transférable", color: "text-amber-700 bg-amber-50 border-amber-200" },
+  sectorielle: { label: "Sectorielle", color: "text-slate-700 bg-slate-50 border-slate-200" },
   relationnelle: { label: "Relationnelle", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+};
+
+const NATURE_CONFIG = {
+  savoir_faire: { label: "Savoir-faire", color: "bg-sky-600 text-white", icon: Briefcase, bgLight: "bg-sky-50 border-sky-200 text-sky-700" },
+  savoir_etre: { label: "Savoir-être", color: "bg-rose-500 text-white", icon: Activity, bgLight: "bg-rose-50 border-rose-200 text-rose-700" },
 };
 
 const CCSP_POLES = {
@@ -94,9 +101,11 @@ const PassportView = ({ token }) => {
   const [evalCcspPole, setEvalCcspPole] = useState("");
   const [evalCcspDegree, setEvalCcspDegree] = useState("");
 
-  const [newComp, setNewComp] = useState({ name: "", category: "technique", level: "intermediaire", experience_years: 0, components: null, ccsp_pole: "", ccsp_degree: "" });
+  const [newComp, setNewComp] = useState({ name: "", nature: "", category: "technique", level: "intermediaire", experience_years: 0, components: null, ccsp_pole: "", ccsp_degree: "" });
   const [newExp, setNewExp] = useState({ title: "", organization: "", description: "", skills_used: "", achievements: "", experience_type: "professionnel" });
   const [profileEdit, setProfileEdit] = useState({ professional_summary: "", career_project: "", motivations: "", compatible_environments: "", target_sectors: "" });
+  const [archeologie, setArcheologie] = useState(null);
+  const [loadingArcheologie, setLoadingArcheologie] = useState(false);
 
   const loadPassport = useCallback(async () => {
     try {
@@ -119,6 +128,15 @@ const PassportView = ({ token }) => {
     setLoadingDiagnostic(false);
   };
 
+  const loadArcheologie = async () => {
+    setLoadingArcheologie(true);
+    try {
+      const res = await axios.get(`${API}/passport/archeologie?token=${token}`);
+      setArcheologie(res.data);
+    } catch (e) { toast.error("Erreur lors du chargement de l'archéologie"); }
+    setLoadingArcheologie(false);
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -138,7 +156,7 @@ const PassportView = ({ token }) => {
       await axios.post(`${API}/passport/competences?token=${token}`, payload);
       toast.success("Compétence ajoutée");
       setAddCompDialogOpen(false);
-      setNewComp({ name: "", category: "technique", level: "intermediaire", experience_years: 0, components: null, ccsp_pole: "", ccsp_degree: "" });
+      setNewComp({ name: "", nature: "", category: "technique", level: "intermediaire", experience_years: 0, components: null, ccsp_pole: "", ccsp_degree: "" });
       await loadPassport();
     } catch (e) { toast.error("Erreur lors de l'ajout"); }
   };
@@ -242,6 +260,9 @@ const PassportView = ({ token }) => {
   const { completeness_score = 0, competences = [], experiences = [], learning_path = [], passerelles = [], sources_count = {} } = passport;
   const mainCompetences = competences.filter(c => !c.is_emerging);
   const emergingCompetences = competences.filter(c => c.is_emerging);
+  const savoirFaire = competences.filter(c => c.nature === "savoir_faire");
+  const savoirEtre = competences.filter(c => c.nature === "savoir_etre");
+  const nonClassees = competences.filter(c => !c.nature);
 
   return (
     <div className="space-y-6" data-testid="passport-view">
@@ -287,13 +308,13 @@ const PassportView = ({ token }) => {
             </div>
           </CardContent>
         </Card>
-        <StatCard icon={Layers} value={competences.length} label="Compétences" sublabel={`dont ${emergingCompetences.length} émergentes`} color="bg-blue-600" />
+        <StatCard icon={Layers} value={competences.length} label="Compétences" sublabel={`${savoirFaire.length} savoir-faire / ${savoirEtre.length} savoir-être`} color="bg-blue-600" />
         <StatCard icon={Briefcase} value={experiences.length} label="Expériences" sublabel={`${learning_path.length} formations`} color="bg-emerald-600" />
       </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 md:grid-cols-7 gap-1 h-auto p-1 bg-slate-100">
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-slate-100">
           <TabsTrigger value="profile" className="text-xs sm:text-sm py-2" data-testid="passport-tab-profile">
             <User className="w-4 h-4 mr-1 hidden sm:inline" />Profil
           </TabsTrigger>
@@ -303,14 +324,14 @@ const PassportView = ({ token }) => {
           <TabsTrigger value="evaluation" className="text-xs sm:text-sm py-2" data-testid="passport-tab-evaluation">
             <Activity className="w-4 h-4 mr-1 hidden sm:inline" />Évaluation
           </TabsTrigger>
+          <TabsTrigger value="archeologie" className="text-xs sm:text-sm py-2" data-testid="passport-tab-archeologie">
+            <Layers className="w-4 h-4 mr-1 hidden sm:inline" />Archéologie
+          </TabsTrigger>
           <TabsTrigger value="emerging" className="text-xs sm:text-sm py-2" data-testid="passport-tab-emerging">
             <Sparkles className="w-4 h-4 mr-1 hidden sm:inline" />Émergentes
           </TabsTrigger>
           <TabsTrigger value="experiences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-experiences">
             <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />Expériences
-          </TabsTrigger>
-          <TabsTrigger value="learning" className="text-xs sm:text-sm py-2" data-testid="passport-tab-learning">
-            <GraduationCap className="w-4 h-4 mr-1 hidden sm:inline" />Parcours
           </TabsTrigger>
           <TabsTrigger value="passerelles" className="text-xs sm:text-sm py-2" data-testid="passport-tab-passerelles">
             <Compass className="w-4 h-4 mr-1 hidden sm:inline" />Passerelles
@@ -330,10 +351,10 @@ const PassportView = ({ token }) => {
           />
         </TabsContent>
 
-        {/* Main Competences Tab */}
-        <TabsContent value="competences" className="space-y-4 mt-4">
+        {/* Main Competences Tab - with savoir-faire / savoir-être distinction */}
+        <TabsContent value="competences" className="space-y-6 mt-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900">Compétences principales ({mainCompetences.length})</h3>
+            <h3 className="font-semibold text-slate-900">Mes compétences ({competences.length})</h3>
             <Dialog open={addCompDialogOpen} onOpenChange={setAddCompDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" data-testid="add-competence-btn"><Plus className="w-4 h-4 mr-1" />Ajouter</Button>
@@ -344,15 +365,80 @@ const PassportView = ({ token }) => {
               </DialogContent>
             </Dialog>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {mainCompetences.map(comp => (
-              <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} />
-            ))}
-          </div>
-          {mainCompetences.length === 0 && <EmptyState text="Ajoutez vos compétences pour enrichir votre passeport" />}
+
+          {/* Nature distribution bar */}
+          {competences.length > 0 && (
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-2 text-sm">
+                <Briefcase className="w-4 h-4 text-sky-600" />
+                <span className="font-medium text-sky-700">Savoir-faire: {savoirFaire.length}</span>
+              </div>
+              <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden flex">
+                <div className="h-full bg-sky-500 transition-all" style={{ width: `${competences.length ? (savoirFaire.length / competences.length) * 100 : 0}%` }} />
+                <div className="h-full bg-rose-400 transition-all" style={{ width: `${competences.length ? (savoirEtre.length / competences.length) * 100 : 0}%` }} />
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Activity className="w-4 h-4 text-rose-500" />
+                <span className="font-medium text-rose-600">Savoir-être: {savoirEtre.length}</span>
+              </div>
+              {nonClassees.length > 0 && (
+                <Badge variant="outline" className="text-xs text-slate-500">{nonClassees.length} non classées</Badge>
+              )}
+            </div>
+          )}
+
+          {/* Savoir-faire section */}
+          {savoirFaire.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Briefcase className="w-4 h-4 text-sky-600" />
+                <h4 className="font-medium text-sky-700">Savoir-faire (Hard Skills)</h4>
+                <Badge className="bg-sky-100 text-sky-700 text-xs">{savoirFaire.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {savoirFaire.map(comp => (
+                  <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Savoir-être section */}
+          {savoirEtre.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="w-4 h-4 text-rose-500" />
+                <h4 className="font-medium text-rose-600">Savoir-être (Soft Skills)</h4>
+                <Badge className="bg-rose-100 text-rose-600 text-xs">{savoirEtre.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {savoirEtre.map(comp => (
+                  <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Non-classées */}
+          {nonClassees.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <CircleDot className="w-4 h-4 text-slate-400" />
+                <h4 className="font-medium text-slate-500">Non classées</h4>
+                <Badge variant="outline" className="text-xs">{nonClassees.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {nonClassees.map(comp => (
+                  <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {competences.length === 0 && <EmptyState text="Ajoutez vos compétences pour enrichir votre passeport" />}
         </TabsContent>
 
-        {/* Evaluation Tab (NEW - Lamri & Lubart + CCSP) */}
+        {/* Evaluation Tab (Lamri & Lubart + CCSP) */}
         <TabsContent value="evaluation" className="space-y-6 mt-4">
           <EvaluationTab
             competences={competences}
@@ -360,6 +446,18 @@ const PassportView = ({ token }) => {
             loadingDiagnostic={loadingDiagnostic}
             onLoadDiagnostic={loadDiagnostic}
             onEvaluate={handleOpenEvaluation}
+          />
+        </TabsContent>
+
+        {/* Archéologie Tab (NEW) */}
+        <TabsContent value="archeologie" className="space-y-6 mt-4">
+          <ArcheologieTab
+            archeologie={archeologie}
+            loading={loadingArcheologie}
+            onLoad={loadArcheologie}
+            savoirFaire={savoirFaire}
+            savoirEtre={savoirEtre}
+            nonClassees={nonClassees}
           />
         </TabsContent>
 
@@ -481,6 +579,46 @@ const PassportView = ({ token }) => {
 const AddCompetenceForm = ({ newComp, setNewComp, onSubmit }) => (
   <div className="space-y-4">
     <Input placeholder="Nom de la compétence" value={newComp.name} onChange={e => setNewComp({...newComp, name: e.target.value})} data-testid="comp-name-input" />
+
+    {/* Nature: Savoir-faire vs Savoir-être */}
+    <div>
+      <label className="text-xs font-medium text-slate-500 mb-1.5 block">Nature de la compétence</label>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setNewComp({...newComp, nature: "savoir_faire"})}
+          className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+            newComp.nature === "savoir_faire"
+              ? "border-sky-500 bg-sky-50 text-sky-700"
+              : "border-slate-200 text-slate-500 hover:border-slate-300"
+          }`}
+          data-testid="nature-savoir-faire"
+        >
+          <Briefcase className="w-4 h-4" />
+          <div className="text-left">
+            <p>Savoir-faire</p>
+            <p className="text-xs font-normal opacity-70">Hard Skill technique</p>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => setNewComp({...newComp, nature: "savoir_etre"})}
+          className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+            newComp.nature === "savoir_etre"
+              ? "border-rose-500 bg-rose-50 text-rose-700"
+              : "border-slate-200 text-slate-500 hover:border-slate-300"
+          }`}
+          data-testid="nature-savoir-etre"
+        >
+          <Activity className="w-4 h-4" />
+          <div className="text-left">
+            <p>Savoir-être</p>
+            <p className="text-xs font-normal opacity-70">Soft Skill comportemental</p>
+          </div>
+        </button>
+      </div>
+    </div>
+
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Catégorie</label>
@@ -489,7 +627,8 @@ const AddCompetenceForm = ({ newComp, setNewComp, onSubmit }) => (
           <SelectContent>
             <SelectItem value="technique">Technique</SelectItem>
             <SelectItem value="transversale">Transversale</SelectItem>
-            <SelectItem value="relationnelle">Relationnelle</SelectItem>
+            <SelectItem value="transferable">Transférable</SelectItem>
+            <SelectItem value="sectorielle">Sectorielle</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1022,15 +1161,17 @@ const CompetenceCard = ({ comp, onDelete, onEvaluate, emerging }) => {
   const SrcIcon = srcConfig.icon;
   const poleConfig = CCSP_POLES[comp.ccsp_pole];
   const degreeConfig = CCSP_DEGREES[comp.ccsp_degree];
+  const natureConfig = NATURE_CONFIG[comp.nature];
   const hasEval = comp.components && Object.values(comp.components).some(v => v > 0);
 
   return (
-    <Card className={`hover:shadow-md transition-shadow ${emerging ? "border-violet-200 bg-violet-50/30" : ""}`} data-testid="competence-card">
+    <Card className={`hover:shadow-md transition-shadow ${emerging ? "border-violet-200 bg-violet-50/30" : ""} ${comp.nature === "savoir_faire" ? "border-l-4 border-l-sky-400" : comp.nature === "savoir_etre" ? "border-l-4 border-l-rose-400" : ""}`} data-testid="competence-card">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div>
             <h4 className="font-semibold text-slate-900 text-sm">{comp.name}</h4>
             <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {natureConfig && <Badge className={`text-xs ${natureConfig.bgLight} border`}>{natureConfig.label}</Badge>}
               <Badge variant="outline" className={`text-xs ${catConfig.color}`}>{catConfig.label}</Badge>
               <Badge className={`text-xs ${srcConfig.color}`}><SrcIcon className="w-3 h-3 mr-0.5" />{srcConfig.label}</Badge>
               {poleConfig && <Badge className={`text-xs ${poleConfig.bgLight} ${poleConfig.textColor}`}>{poleConfig.label}</Badge>}
@@ -1189,6 +1330,181 @@ const PasserelleCard = ({ passerelle }) => {
         )}
       </CardContent>
     </Card>
+  );
+};
+
+// ============== ARCHÉOLOGIE TAB ==============
+
+const VERTU_COLORS = {
+  sagesse: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-300", accent: "#3b82f6" },
+  courage: { bg: "bg-red-50", text: "text-red-700", border: "border-red-300", accent: "#ef4444" },
+  humanite: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-300", accent: "#f43f5e" },
+  justice: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-300", accent: "#f59e0b" },
+  temperance: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-300", accent: "#14b8a6" },
+  transcendance: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-300", accent: "#8b5cf6" },
+};
+
+const ArcheologieTab = ({ archeologie, loading, onLoad, savoirFaire, savoirEtre, nonClassees }) => {
+  const [referentiel, setReferentiel] = useState(null);
+  const [loadingRef, setLoadingRef] = useState(false);
+
+  const loadReferentiel = async () => {
+    setLoadingRef(true);
+    try {
+      const res = await axios.get(`${API}/referentiel/archeologie`);
+      setReferentiel(res.data);
+    } catch (e) { toast.error("Erreur chargement référentiel"); }
+    setLoadingRef(false);
+  };
+
+  useEffect(() => { loadReferentiel(); }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-[#1e3a5f] flex items-center gap-2">
+            <Layers className="w-5 h-5" />Archéologie des Compétences
+          </h3>
+          <p className="text-sm text-slate-500">La chaîne hiérarchique : Métier → Savoir-faire → Savoir-être → Qualités → Valeurs → Vertus</p>
+        </div>
+        <Button onClick={onLoad} disabled={loading} data-testid="load-archeologie-btn">
+          {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Layers className="w-4 h-4 mr-2" />}
+          {loading ? "Chargement..." : "Analyser mon profil"}
+        </Button>
+      </div>
+
+      {/* Hierarchy Explanation */}
+      <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8e] text-white border-0">
+        <CardContent className="p-5">
+          <h4 className="font-semibold mb-3">Le modèle RE'ACTIF PRO</h4>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="bg-sky-400/30 px-3 py-1 rounded-full">Savoir-faire</span>
+            <ChevronRight className="w-4 h-4 text-white/50" />
+            <span className="bg-rose-400/30 px-3 py-1 rounded-full">Savoir-être</span>
+            <ChevronRight className="w-4 h-4 text-white/50" />
+            <span className="bg-amber-400/30 px-3 py-1 rounded-full">Qualités humaines</span>
+            <ChevronRight className="w-4 h-4 text-white/50" />
+            <span className="bg-emerald-400/30 px-3 py-1 rounded-full">Valeurs</span>
+            <ChevronRight className="w-4 h-4 text-white/50" />
+            <span className="bg-violet-400/30 px-3 py-1 rounded-full">Vertus</span>
+          </div>
+          <p className="text-blue-200 text-xs mt-3">L'orientation professionnelle part des compétences techniques vers les savoir-être, pour révéler les qualités humaines, les valeurs et les vertus qui vous animent.</p>
+        </CardContent>
+      </Card>
+
+      {/* Summary stats */}
+      {archeologie && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-sky-600">{archeologie.summary.savoir_faire}</div>
+            <p className="text-xs text-slate-500">Savoir-faire</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-rose-500">{archeologie.summary.savoir_etre}</div>
+            <p className="text-xs text-slate-500">Savoir-être</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-600">{archeologie.summary.valeurs_covered?.length || 0}</div>
+            <p className="text-xs text-slate-500">Valeurs couvertes</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-violet-600">{archeologie.summary.vertus_covered?.length || 0}</div>
+            <p className="text-xs text-slate-500">Vertus activées</p>
+          </CardContent></Card>
+        </div>
+      )}
+
+      {/* Chains: savoir-être traced to vertus */}
+      {archeologie?.chains?.length > 0 && (
+        <div>
+          <h4 className="font-medium text-slate-700 mb-3">Chaînes identifiées (Savoir-être → Vertus)</h4>
+          <div className="space-y-3">
+            {archeologie.chains.map((chain, i) => (
+              <Card key={i} className="border-l-4 border-l-rose-400" data-testid="archeologie-chain">
+                <CardContent className="p-4">
+                  <h5 className="font-semibold text-slate-900 text-sm mb-2">{chain.competence}</h5>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge className="bg-rose-100 text-rose-700 text-xs">{chain.competence}</Badge>
+                    {chain.qualites?.length > 0 && (
+                      <>
+                        <ChevronRight className="w-3 h-3 text-slate-300" />
+                        {chain.qualites.map((q, j) => <Badge key={j} variant="outline" className="text-xs text-amber-700 bg-amber-50">{q}</Badge>)}
+                      </>
+                    )}
+                    {chain.valeurs?.length > 0 && (
+                      <>
+                        <ChevronRight className="w-3 h-3 text-slate-300" />
+                        {chain.valeurs.map((v, j) => <Badge key={j} variant="outline" className="text-xs text-emerald-700 bg-emerald-50">{v}</Badge>)}
+                      </>
+                    )}
+                    {chain.vertus?.length > 0 && (
+                      <>
+                        <ChevronRight className="w-3 h-3 text-slate-300" />
+                        {chain.vertus.map((v, j) => <Badge key={j} variant="outline" className="text-xs text-violet-700 bg-violet-50">{v}</Badge>)}
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Non-classified competences warning */}
+      {archeologie && archeologie.summary.non_classees > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="p-4">
+            <p className="text-sm text-amber-800 font-medium">{archeologie.summary.non_classees} compétence(s) non classée(s)</p>
+            <p className="text-xs text-amber-600">Précisez leur nature (savoir-faire ou savoir-être) dans l'onglet Compétences pour compléter l'archéologie.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Referentiel: Les 6 Vertus */}
+      {referentiel && (
+        <div>
+          <h4 className="font-medium text-slate-700 mb-3">Les 6 Vertus et leurs chaînes</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {referentiel.vertus.map(vertu => {
+              const vc = VERTU_COLORS[vertu.id] || VERTU_COLORS.sagesse;
+              const isCovered = archeologie?.summary?.vertus_covered?.includes(vertu.id);
+              return (
+                <Card key={vertu.id} className={`${vc.bg} border ${vc.border} ${isCovered ? "ring-2 ring-offset-1" : "opacity-60"}`} style={isCovered ? { ringColor: vc.accent } : {}} data-testid={`vertu-card-${vertu.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className={`font-semibold text-sm ${vc.text}`}>{vertu.name}</h5>
+                      {isCovered && <Badge className="bg-emerald-500 text-white text-xs">Activée</Badge>}
+                    </div>
+                    <p className="text-xs text-slate-600 mb-2">{vertu.description}</p>
+                    <div className="space-y-1.5">
+                      <div>
+                        <p className="text-xs font-medium text-slate-500">Qualités associées :</p>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {vertu.qualites?.slice(0, 4).map((q, i) => <Badge key={i} variant="outline" className="text-xs">{q}</Badge>)}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500">Savoir-être :</p>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {vertu.savoirs_etre?.slice(0, 3).map((s, i) => <Badge key={i} className="text-xs bg-rose-50 text-rose-600">{s}</Badge>)}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!archeologie && !loading && (
+        <EmptyState text="Cliquez sur 'Analyser mon profil' pour visualiser l'archéologie de vos compétences" />
+      )}
+    </div>
   );
 };
 

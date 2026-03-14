@@ -1,0 +1,96 @@
+{
+  "summary": "Comprehensive testing of Archéologie des Compétences and Savoir-faire/Savoir-être distinction. Backend: 11/11 tests passed (100%). Frontend: All new UI elements verified working - Compétences tab with nature distribution bar, Add competence dialog with nature toggle buttons (savoir-faire/savoir-être), Archéologie tab with hierarchy model and 6 Vertus cards.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "console_warnings": [
+      {
+        "component": "BrowserRouter",
+        "issue": "React setState warning: Cannot update a component while rendering a different component",
+        "priority": "LOW",
+        "impact": "No functional impact, cosmetic console warning only"
+      }
+    ]
+  },
+
+  "passed_tests": {
+    "backend_api": [
+      "GET /api/referentiel/archeologie - returns vertus (6), valeurs (11), filieres (14), savoir_etre_map (18)",
+      "GET /api/referentiel/filieres - returns 14 filieres with id and name",
+      "GET /api/referentiel/vertus - returns 6 vertus and 11 valeurs with proper structure",
+      "POST /api/passport/competences with nature='savoir_faire' - competence persisted with correct nature",
+      "POST /api/passport/competences with nature='savoir_etre' - competence persisted with correct nature",
+      "POST /api/passport/competences without nature - defaults to empty string",
+      "GET /api/passport/archeologie - returns chains and summary with savoir_faire/savoir_etre split",
+      "GET /api/passport/archeologie - chains include competence, qualites, valeurs, vertus",
+      "GET /api/passport/archeologie - requires authentication (401/422 without token)",
+      "GET /api/passport/diagnostic - includes nature_distribution (savoir_faire, savoir_etre, non_classee counts)",
+      "GET /api/passport/diagnostic - generates recommendation for unclassified competences"
+    ],
+    "frontend_ui": [
+      "Passport view loads with 7 tabs: Profil, Compétences, Évaluation, Archéologie, Émergentes, Expériences, Passerelles",
+      "Compétences tab shows nature distribution bar with Savoir-faire and Savoir-être counts",
+      "Compétences tab groups competences: savoir-faire section, savoir-être section, non classées section",
+      "Add competence dialog has nature selection toggle buttons (data-testid='nature-savoir-faire', 'nature-savoir-etre')",
+      "Add competence dialog shows nature labels: 'Savoir-faire - Hard Skill technique', 'Savoir-être - Soft Skill comportemental'",
+      "Archéologie tab displays hierarchy model: Métier → Savoir-faire → Savoir-être → Qualités → Valeurs → Vertus",
+      "Archéologie tab shows 'Le modèle RE'ACTIF PRO' card with visual hierarchy flow",
+      "Archéologie tab has 'Analyser mon profil' button (data-testid='load-archeologie-btn')",
+      "Archéologie tab shows summary stats: Savoir-faire count, Savoir-être count, Valeurs couvertes, Vertus activées",
+      "Archéologie tab displays warning for non-classified competences",
+      "Archéologie tab shows 6 Vertus cards: Sagesse, Courage, Humanité, Justice, Tempérance, Transcendance",
+      "Each Vertu card shows description, qualités associées, and savoir-être linked"
+    ]
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_archeologie_savoir.py",
+    "/app/test_reports/pytest/pytest_archeologie_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_archeologie_savoir.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all Archéologie and nature distinction elements verified)"
+  },
+
+  "seed_data_creation": "Passport auto-created on GET /api/passport. Referentiel data (vertus, valeurs, filieres, savoir_etre_map) is static in server.py.",
+
+  "test_credentials": "No credentials needed - anonymous authentication. Use POST /api/auth/anonymous with {role: 'particulier'} to get token. IMPORTANT: Must call GET /api/passport first to create passport before adding competences.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Archéologie des Compétences and Savoir-faire/Savoir-être distinction fully tested. Backend: GET /api/referentiel/archeologie returns vertus (6), valeurs (11), filieres (14), savoir_etre_map (18). POST /api/passport/competences accepts nature field (savoir_faire/savoir_etre). GET /api/passport/archeologie returns chains with qualites/valeurs/vertus mapping. GET /api/passport/diagnostic includes nature_distribution counts. Frontend: Compétences tab shows nature distribution bar and groups competences by nature. Add competence dialog has nature toggle buttons. Archéologie tab shows hierarchy model, 'Analyser mon profil' button, summary stats, and 6 Vertus cards with associated qualités and savoir-être.",
+
+  "features_verified": {
+    "referentiel_archeologie": "✓ Returns 6 vertus, 11 valeurs, 14 filieres, 18 savoir_etre mappings",
+    "referentiel_filieres": "✓ Returns 14 filieres with id and name",
+    "referentiel_vertus": "✓ Returns 6 vertus and 11 valeurs with full structure (qualites, savoirs_etre)",
+    "competence_nature_savoir_faire": "✓ Can add competence with nature='savoir_faire'",
+    "competence_nature_savoir_etre": "✓ Can add competence with nature='savoir_etre'",
+    "passport_archeologie": "✓ Returns chains (competence→qualites→valeurs→vertus) and summary stats",
+    "diagnostic_nature_distribution": "✓ Returns savoir_faire, savoir_etre, non_classee counts",
+    "ui_nature_distribution_bar": "✓ Shows Savoir-faire/Savoir-être counts with visual bar",
+    "ui_competence_grouping": "✓ Groups competences by nature (savoir-faire, savoir-être, non classées)",
+    "ui_add_competence_nature_toggle": "✓ Dialog has Savoir-faire and Savoir-être toggle buttons",
+    "ui_archeologie_hierarchy": "✓ Shows hierarchy: Métier → Savoir-faire → Savoir-être → Qualités → Valeurs → Vertus",
+    "ui_archeologie_6_vertus": "✓ Displays 6 Vertus cards (Sagesse, Courage, Humanité, Justice, Tempérance, Transcendance)",
+    "ui_analyze_profil_button": "✓ 'Analyser mon profil' button loads archeologie data and displays chains"
+  }
+}

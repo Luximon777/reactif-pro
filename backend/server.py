@@ -412,11 +412,12 @@ class CCSPClassification(BaseModel):
 class PassportCompetence(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    category: str = "technique"  # technique, transversale, relationnelle
+    nature: str = ""  # savoir_faire, savoir_etre
+    category: str = "technique"  # technique, transversale, transferable, sectorielle
     level: str = "intermediaire"  # debutant, intermediaire, avance, expert
     experience_years: float = 0
-    proof: Optional[str] = None  # reference to coffre-fort document
-    source: str = "declaratif"  # declaratif, coffre_fort, module, ubuntoo, ia_detectee
+    proof: Optional[str] = None
+    source: str = "declaratif"
     is_emerging: bool = False
     # Lamri & Lubart: 5 composantes
     components: Dict[str, int] = Field(default_factory=lambda: {
@@ -424,8 +425,12 @@ class PassportCompetence(BaseModel):
         "affection": 0, "sensori_moteur": 0
     })
     # CCSP: pôle et degré
-    ccsp_pole: str = ""  # realisation, interaction, initiative
-    ccsp_degree: str = ""  # imitation, adaptation, transposition
+    ccsp_pole: str = ""
+    ccsp_degree: str = ""
+    # Archéologie: liens vers la chaîne vertus-valeurs-qualités
+    linked_qualites: List[str] = []
+    linked_valeurs: List[str] = []
+    linked_vertus: List[str] = []
     added_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class PassportExperience(BaseModel):
@@ -493,6 +498,7 @@ class Passport(BaseModel):
 
 class AddCompetenceRequest(BaseModel):
     name: str
+    nature: str = ""  # savoir_faire, savoir_etre
     category: str = "technique"
     level: str = "intermediaire"
     experience_years: float = 0
@@ -500,6 +506,9 @@ class AddCompetenceRequest(BaseModel):
     components: Optional[Dict[str, int]] = None
     ccsp_pole: Optional[str] = None
     ccsp_degree: Optional[str] = None
+    linked_qualites: List[str] = []
+    linked_valeurs: List[str] = []
+    linked_vertus: List[str] = []
 
 class EvaluateCompetenceRequest(BaseModel):
     components: Dict[str, int]  # connaissance, cognition, conation, affection, sensori_moteur (0-5)
@@ -1865,11 +1874,14 @@ async def add_passport_competence(token: str, data: AddCompetenceRequest):
 
     components = data.components or {"connaissance": 0, "cognition": 0, "conation": 0, "affection": 0, "sensori_moteur": 0}
     new_comp = PassportCompetence(
-        name=data.name, category=data.category, level=data.level,
+        name=data.name, nature=data.nature, category=data.category, level=data.level,
         experience_years=data.experience_years, proof=data.proof, source="declaratif",
         components=components,
         ccsp_pole=data.ccsp_pole or "",
-        ccsp_degree=data.ccsp_degree or ""
+        ccsp_degree=data.ccsp_degree or "",
+        linked_qualites=data.linked_qualites,
+        linked_valeurs=data.linked_valeurs,
+        linked_vertus=data.linked_vertus
     ).model_dump()
 
     result = await db.passports.update_one(
@@ -2073,12 +2085,216 @@ async def get_ccsp_diagnostic(token: str):
     if degrees.get("transposition", 0) == 0 and total > 2:
         recommendations.append({"type": "ccsp", "message": "Développez votre capacité à transposer vos compétences dans de nouveaux contextes.", "component": "transposition"})
 
+    # Nature distribution (savoir-faire vs savoir-être)
+    nature_dist = {"savoir_faire": 0, "savoir_etre": 0, "non_classee": 0}
+    for comp in comps:
+        n = comp.get("nature", "")
+        if n == "savoir_faire":
+            nature_dist["savoir_faire"] += 1
+        elif n == "savoir_etre":
+            nature_dist["savoir_etre"] += 1
+        else:
+            nature_dist["non_classee"] += 1
+
+    # Recommendations based on nature balance
+    if nature_dist["savoir_etre"] == 0 and total > 2:
+        recommendations.append({"type": "orientation", "message": "Identifiez vos savoir-être (soft skills) pour enrichir votre stratégie d'orientation professionnelle.", "component": "savoir_etre"})
+    if nature_dist["savoir_faire"] == 0 and total > 2:
+        recommendations.append({"type": "orientation", "message": "Ajoutez vos compétences techniques (savoir-faire) pour mieux cibler les métiers compatibles.", "component": "savoir_faire"})
+    if nature_dist["non_classee"] > 0:
+        recommendations.append({"type": "classification", "message": f"{nature_dist['non_classee']} compétence(s) non classée(s). Précisez leur nature (savoir-faire ou savoir-être) pour un meilleur diagnostic.", "component": "nature"})
+
     return {
         "total_competences": total,
         "evaluated_count": evaluated_count,
         "lamri_lubart_profile": ll_avg,
         "ccsp_distribution": {"poles": poles, "degrees": degrees},
+        "nature_distribution": nature_dist,
         "recommendations": recommendations
+    }
+
+# ============== REFERENTIEL & ARCHÉOLOGIE DES COMPÉTENCES ==============
+
+REFERENTIEL_VERTUS = [
+    {
+        "id": "sagesse", "name": "Sagesse et Connaissance",
+        "description": "Forces cognitives qui favorisent l'acquisition et l'usage de la connaissance.",
+        "forces": ["Créativité", "Curiosité", "Jugement", "Amour de l'apprentissage", "Perspective"],
+        "valeurs": ["autonomie", "stimulation", "realisation_de_soi"],
+        "qualites": ["Patience", "Ouverture d'esprit", "Indulgence", "Adaptabilité", "Curiosité"],
+        "savoirs_etre": ["Faire preuve de curiosité", "Faire preuve de créativité", "Prendre des initiatives"],
+    },
+    {
+        "id": "courage", "name": "Courage",
+        "description": "Forces émotionnelles impliquant l'exercice de la volonté malgré les obstacles.",
+        "forces": ["Bravoure", "Persévérance", "Honnêteté", "Enthousiasme"],
+        "valeurs": ["securite", "pouvoir", "realisation_de_soi"],
+        "qualites": ["Bravoure", "Fiabilité", "Confiance", "Loyauté", "Persévérance", "Détermination"],
+        "savoirs_etre": ["Faire preuve de persévérance", "Gérer son stress", "Faire preuve de réactivité"],
+    },
+    {
+        "id": "humanite", "name": "Humanité",
+        "description": "Forces interpersonnelles consistant à tendre vers les autres et leur venir en aide.",
+        "forces": ["Amour", "Gentillesse", "Intelligence sociale"],
+        "valeurs": ["bienveillance", "universalisme"],
+        "qualites": ["Empathie", "Gentillesse", "Générosité", "Altruisme", "Compassion", "Humilité"],
+        "savoirs_etre": ["Être à l'écoute", "Avoir le sens du service", "Travailler en équipe"],
+    },
+    {
+        "id": "justice", "name": "Justice",
+        "description": "Forces qui sont à la base d'une vie sociale harmonieuse.",
+        "forces": ["Travail d'équipe", "Équité", "Leadership"],
+        "valeurs": ["conformite", "tradition", "bienveillance"],
+        "qualites": ["Honnêteté", "Équité", "Coopération", "Leadership", "Intégrité"],
+        "savoirs_etre": ["Faire preuve de leadership", "Inspirer et donner du sens", "Respecter ses engagements"],
+    },
+    {
+        "id": "temperance", "name": "Tempérance",
+        "description": "Forces qui protègent contre les excès.",
+        "forces": ["Pardon", "Humilité", "Prudence", "Maîtrise de soi"],
+        "valeurs": ["conformite", "securite", "tradition"],
+        "qualites": ["Modestie", "Sobriété", "Prudence", "Rigueur", "Maîtrise de soi"],
+        "savoirs_etre": ["Faire preuve de rigueur et de précision", "Organiser son travail selon les priorités"],
+    },
+    {
+        "id": "transcendance", "name": "Transcendance",
+        "description": "Forces qui favorisent l'ouverture à une dimension universelle et donnent un sens à la vie.",
+        "forces": ["Appréciation de la beauté", "Gratitude", "Espoir", "Humour", "Spiritualité"],
+        "valeurs": ["universalisme", "bienveillance", "autonomie"],
+        "qualites": ["Gratitude", "Optimisme", "Tolérance", "Bienveillance", "Sensibilité"],
+        "savoirs_etre": ["S'adapter aux changements", "Faire preuve d'autonomie"],
+    },
+]
+
+REFERENTIEL_VALEURS = [
+    {"id": "autonomie", "name": "Autonomie", "description": "Pensée et action indépendantes", "vertus": ["sagesse"]},
+    {"id": "stimulation", "name": "Stimulation", "description": "Nouveauté et défis", "vertus": ["sagesse"]},
+    {"id": "hedonisme", "name": "Hédonisme", "description": "Plaisir et gratification", "vertus": ["courage"]},
+    {"id": "realisation_de_soi", "name": "Réalisation de soi", "description": "Ambition et succès", "vertus": ["sagesse", "courage"]},
+    {"id": "pouvoir", "name": "Pouvoir", "description": "Leadership et influence", "vertus": ["justice", "courage"]},
+    {"id": "securite", "name": "Sécurité", "description": "Stabilité et harmonie", "vertus": ["temperance", "courage"]},
+    {"id": "conformite", "name": "Conformité", "description": "Respect des normes", "vertus": ["temperance", "justice"]},
+    {"id": "tradition", "name": "Tradition", "description": "Modération et humilité", "vertus": ["temperance", "justice"]},
+    {"id": "bienveillance", "name": "Bienveillance", "description": "Soin et altruisme", "vertus": ["humanite", "transcendance"]},
+    {"id": "universalisme", "name": "Universalisme", "description": "Compréhension et tolérance", "vertus": ["humanite", "transcendance"]},
+    {"id": "affiliation", "name": "Affiliation", "description": "Relations proches", "vertus": ["humanite"]},
+]
+
+REFERENTIEL_FILIERES = [
+    {"id": "SI", "name": "Filière Industrielle", "secteurs": ["Mécanique", "Électrotechnique", "Automatisme", "Génie civil", "Chimie", "Métallurgie"]},
+    {"id": "SBTP", "name": "Filière Bâtiment et Travaux Publics", "secteurs": ["Maçonnerie", "Menuiserie", "Plomberie", "Électricité du bâtiment", "Charpenterie"]},
+    {"id": "SPSC", "name": "Filière Services à la Personne", "secteurs": ["Aide à domicile", "Éducation spécialisée", "Animation socio-culturelle", "Petite enfance"]},
+    {"id": "SSS", "name": "Filière Santé et Social", "secteurs": ["Infirmier(e)", "Aide-soignant(e)", "Assistant(e) social", "Psychologue"]},
+    {"id": "SCV", "name": "Filière Commerce et Vente", "secteurs": ["Vente en magasin", "Commerce international", "Négociation commerciale", "Marketing"]},
+    {"id": "SHR", "name": "Filière Hôtellerie-Restauration", "secteurs": ["Cuisine", "Service en salle", "Hébergement", "Gestion hôtelière"]},
+    {"id": "SAA", "name": "Filière Agriculture et Agroalimentaire", "secteurs": ["Production agricole", "Transformation des produits", "Agroéquipement"]},
+    {"id": "SIN", "name": "Filière Informatique et Numérique", "secteurs": ["Développement web et mobile", "Administration systèmes et réseaux", "Cybersécurité", "Design numérique"]},
+    {"id": "STL", "name": "Filière Transport et Logistique", "secteurs": ["Conduite routière", "Logistique et gestion", "Manutention"]},
+    {"id": "SAAT", "name": "Filière Artisanat d'Art", "secteurs": ["Ébénisterie", "Poterie", "Ferronnerie", "Joaillerie"]},
+    {"id": "SCM", "name": "Filière Communication et Médias", "secteurs": ["Journalisme", "Communication d'entreprise", "Relations publiques", "Audiovisuel"]},
+    {"id": "SEDD", "name": "Filière Environnement et Développement Durable", "secteurs": ["Gestion des déchets", "Énergies renouvelables", "Éco-conception"]},
+    {"id": "ST", "name": "Filière Tourisme", "secteurs": ["Accueil touristique", "Guide touristique", "Animation touristique"]},
+    {"id": "SSL", "name": "Filière Sport et Loisirs", "secteurs": ["Entraînement sportif", "Animation sportive", "Gestion d'infrastructures"]},
+]
+
+# Mapping savoir-être → qualités humaines → valeurs → vertus (from user's "archéologie des compétences")
+ARCHEOLOGIE_SAVOIR_ETRE = {
+    "Résolution de problèmes": {"qualites": ["Perspicacité", "Créativité", "Flexibilité"], "valeurs": ["autonomie", "stimulation"], "vertus": ["sagesse"]},
+    "Pensée critique": {"qualites": ["Perspicacité", "Esprit analytique"], "valeurs": ["autonomie"], "vertus": ["sagesse"]},
+    "Créativité": {"qualites": ["Créativité", "Audace", "Intuition"], "valeurs": ["autonomie", "stimulation"], "vertus": ["sagesse"]},
+    "Adaptabilité": {"qualites": ["Flexibilité", "Ouverture d'esprit"], "valeurs": ["stimulation", "autonomie"], "vertus": ["sagesse"]},
+    "Communication": {"qualites": ["Empathie", "Éloquence", "Écoute"], "valeurs": ["bienveillance", "affiliation"], "vertus": ["humanite"]},
+    "Gestion du temps": {"qualites": ["Rigueur", "Organisation"], "valeurs": ["conformite", "securite"], "vertus": ["temperance"]},
+    "Persévérance": {"qualites": ["Courage", "Patience", "Détermination"], "valeurs": ["realisation_de_soi", "securite"], "vertus": ["courage"]},
+    "Leadership": {"qualites": ["Charisme", "Confiance en soi", "Intégrité"], "valeurs": ["pouvoir", "realisation_de_soi"], "vertus": ["justice"]},
+    "Curiosité": {"qualites": ["Curiosité", "Ouverture d'esprit"], "valeurs": ["stimulation", "autonomie"], "vertus": ["sagesse"]},
+    "Rigueur": {"qualites": ["Esprit analytique", "Précision", "Discipline"], "valeurs": ["conformite", "securite"], "vertus": ["temperance"]},
+    "Esprit d'équipe": {"qualites": ["Collaboration", "Solidarité", "Écoute"], "valeurs": ["bienveillance", "affiliation"], "vertus": ["humanite", "justice"]},
+    "Autonomie": {"qualites": ["Confiance en soi", "Initiative", "Indépendance"], "valeurs": ["autonomie", "realisation_de_soi"], "vertus": ["sagesse", "courage"]},
+    "Collaboration": {"qualites": ["Coopération", "Empathie", "Partage"], "valeurs": ["bienveillance", "universalisme"], "vertus": ["humanite"]},
+    "Écoute": {"qualites": ["Empathie", "Patience", "Bienveillance"], "valeurs": ["bienveillance", "affiliation"], "vertus": ["humanite"]},
+    "Gestion du stress": {"qualites": ["Résilience", "Calme", "Maîtrise de soi"], "valeurs": ["securite"], "vertus": ["courage", "temperance"]},
+    "Orientation client": {"qualites": ["Empathie", "Serviabilité", "Écoute"], "valeurs": ["bienveillance"], "vertus": ["humanite"]},
+    "Éthique professionnelle": {"qualites": ["Intégrité", "Honnêteté", "Responsabilité"], "valeurs": ["conformite", "universalisme"], "vertus": ["justice"]},
+    "Sens du service": {"qualites": ["Serviabilité", "Altruisme", "Générosité"], "valeurs": ["bienveillance", "universalisme"], "vertus": ["humanite", "transcendance"]},
+}
+
+
+@api_router.get("/referentiel/archeologie")
+async def get_referentiel_archeologie():
+    """Get the full archaeology of competences hierarchy"""
+    return {
+        "vertus": REFERENTIEL_VERTUS,
+        "valeurs": REFERENTIEL_VALEURS,
+        "filieres": REFERENTIEL_FILIERES,
+        "savoir_etre_map": ARCHEOLOGIE_SAVOIR_ETRE,
+    }
+
+@api_router.get("/referentiel/filieres")
+async def get_referentiel_filieres():
+    """Get all professional sectors/pathways"""
+    return {"filieres": REFERENTIEL_FILIERES}
+
+@api_router.get("/referentiel/vertus")
+async def get_referentiel_vertus():
+    """Get vertues with their full chain"""
+    return {"vertus": REFERENTIEL_VERTUS, "valeurs": REFERENTIEL_VALEURS}
+
+@api_router.get("/passport/archeologie")
+async def get_passport_archeologie(token: str):
+    """For a user's competences, trace the full archaeology chain"""
+    token_doc = await get_current_token(token)
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouvé")
+
+    comps = passport.get("competences", [])
+    savoir_faire = [c for c in comps if c.get("nature") == "savoir_faire"]
+    savoir_etre = [c for c in comps if c.get("nature") == "savoir_etre"]
+    non_classees = [c for c in comps if not c.get("nature")]
+
+    # Build archaeology chains for savoir-être
+    chains = []
+    for comp in savoir_etre:
+        name = comp.get("name", "")
+        # Try to find in the reference map
+        ref = ARCHEOLOGIE_SAVOIR_ETRE.get(name, {})
+        qualites = comp.get("linked_qualites", []) or ref.get("qualites", [])
+        valeurs_ids = comp.get("linked_valeurs", []) or ref.get("valeurs", [])
+        vertus_ids = comp.get("linked_vertus", []) or ref.get("vertus", [])
+        valeurs_names = [v["name"] for v in REFERENTIEL_VALEURS if v["id"] in valeurs_ids]
+        vertus_names = [v["name"] for v in REFERENTIEL_VERTUS if v["id"] in vertus_ids]
+        chains.append({
+            "competence": name,
+            "nature": "savoir_etre",
+            "qualites": qualites,
+            "valeurs": valeurs_names,
+            "vertus": vertus_names,
+        })
+
+    # Aggregate vertus coverage
+    all_vertus = set()
+    all_valeurs = set()
+    for comp in savoir_etre:
+        ref = ARCHEOLOGIE_SAVOIR_ETRE.get(comp.get("name", ""), {})
+        for v in (comp.get("linked_vertus", []) or ref.get("vertus", [])):
+            all_vertus.add(v)
+        for v in (comp.get("linked_valeurs", []) or ref.get("valeurs", [])):
+            all_valeurs.add(v)
+
+    return {
+        "summary": {
+            "total": len(comps),
+            "savoir_faire": len(savoir_faire),
+            "savoir_etre": len(savoir_etre),
+            "non_classees": len(non_classees),
+            "vertus_covered": list(all_vertus),
+            "valeurs_covered": list(all_valeurs),
+        },
+        "chains": chains,
+        "savoir_faire_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category")} for c in savoir_faire],
+        "savoir_etre_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category")} for c in savoir_etre],
+        "non_classees_list": [{"id": c.get("id"), "name": c.get("name")} for c in non_classees],
     }
 
 # ============== UBUNTOO INTELLIGENCE ENDPOINTS ==============
