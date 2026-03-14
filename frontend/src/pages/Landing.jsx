@@ -49,10 +49,12 @@ const Landing = () => {
     setIsLoading(false);
   };
 
-  if (isAuthenticated) {
-    navigate("/dashboard");
-    return null;
-  }
+  // Ne pas rediriger automatiquement - laisser l'utilisateur choisir
+  const handleGoToDashboard = () => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  };
 
   const roles = [
     {
@@ -164,6 +166,14 @@ const Landing = () => {
                 Innovation sociale
               </span>
             </div>
+            {isAuthenticated && (
+              <div className="mt-8">
+                <Button size="lg" onClick={handleGoToDashboard} className="bg-white text-[#1e3a5f] hover:bg-blue-50 font-semibold px-8" data-testid="go-to-dashboard-btn">
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Accéder à mon espace
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
