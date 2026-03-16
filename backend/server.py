@@ -2181,13 +2181,15 @@ def _extract_text_from_bytes(content: bytes, filename: str) -> str:
     return text.strip()
 
 
-async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str):
+async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False):
     """Background task: extract text, run CV analysis and save results to DB."""
     try:
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "analyzing", "step": "Extraction du texte..."}})
 
-        # Extract text from file
-        cv_text = _extract_text_from_bytes(file_content, filename)
+        if text_ready:
+            cv_text = file_content.decode("utf-8", errors="ignore")
+        else:
+            cv_text = _extract_text_from_bytes(file_content, filename)
         if not cv_text or len(cv_text) < 50:
             await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
             return
@@ -2339,6 +2341,66 @@ async def analyze_cv(token: str, file: UploadFile = File(...)):
 
     # Launch background task with raw file bytes
     asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], file_content, file.filename))
+
+    return {"job_id": job_id, "status": "started", "message": "Analyse lancée en arrière-plan"}
+
+
+class CvTextPayload(BaseModel):
+    text: str
+    filename: str = "cv.txt"
+
+
+@api_router.post("/cv/extract-text")
+async def extract_cv_text(token: str, file: UploadFile = File(...)):
+    """Extract text from PDF/DOCX - lightweight, no AI, fast response"""
+    await get_current_token(token)
+    content = await file.read()
+    text = _extract_text_from_bytes(content, file.filename or "file.txt")
+    if not text or len(text.strip()) < 10:
+        raise HTTPException(status_code=400, detail="Impossible d'extraire du texte de ce fichier")
+    return {"text": text, "length": len(text)}
+
+
+class CvBase64Payload(BaseModel):
+    data: str
+    filename: str = "cv.pdf"
+
+
+@api_router.post("/cv/extract-text-b64")
+async def extract_cv_text_base64(token: str, payload: CvBase64Payload):
+    """Extract text from base64-encoded file. No multipart upload - avoids proxy issues."""
+    await get_current_token(token)
+    import base64
+    try:
+        content = base64.b64decode(payload.data)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Données invalides")
+    text = _extract_text_from_bytes(content, payload.filename)
+    if not text or len(text.strip()) < 10:
+        raise HTTPException(status_code=400, detail="Impossible d'extraire du texte de ce fichier")
+    return {"text": text, "length": len(text)}
+
+
+@api_router.post("/cv/analyze-text")
+async def analyze_cv_text(token: str, payload: CvTextPayload):
+    """Analyze pre-extracted CV text. No file upload needed - avoids proxy issues."""
+    token_doc = await get_current_token(token)
+
+    if not payload.text or len(payload.text.strip()) < 50:
+        raise HTTPException(status_code=400, detail="Le texte du CV est trop court pour être analysé")
+
+    job_id = str(uuid.uuid4())
+    await db.cv_jobs.insert_one({
+        "job_id": job_id,
+        "token_id": token_doc["id"],
+        "filename": payload.filename,
+        "status": "started",
+        "step": "Démarrage de l'analyse...",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Launch background task with text directly (no file extraction needed)
+    asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], payload.text.encode("utf-8"), payload.filename, text_ready=True))
 
     return {"job_id": job_id, "status": "started", "message": "Analyse lancée en arrière-plan"}
 

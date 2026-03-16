@@ -549,95 +549,140 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   }, [token]);
 
   const pollForResult = async (jobId) => {
-    const maxPolls = 120; // 120 * 3s = 6 minutes max
+    const maxPolls = 120;
     for (let i = 0; i < maxPolls; i++) {
       await new Promise(r => setTimeout(r, 3000));
       try {
         const res = await axios.get(`${API}/cv/analyze/status?token=${token}&job_id=${jobId}`);
         if (res.data.step) setServerStep(res.data.step);
-        if (res.data.status === "completed") {
-          return res.data.result;
-        }
-        if (res.data.status === "failed") {
-          throw new Error(res.data.error || "L'analyse a échoué");
-        }
+        if (res.data.status === "completed") return res.data.result;
+        if (res.data.status === "failed") throw new Error(res.data.error || "L'analyse a échoué");
       } catch (err) {
-        if (err.response?.status === 404) continue;
-        if (err.message) throw err;
+        // Retry on transient errors (502, 503, 504, network errors, 404)
+        const status = err.response?.status;
+        if (status === 404 || status === 502 || status === 503 || status === 504 || !err.response) {
+          continue; // Server restarting or not ready - keep polling
+        }
+        throw err;
       }
     }
     throw new Error("L'analyse a pris trop de temps. Réessayez.");
   };
 
-  const startAnalysis = async (formData, retries = 2) => {
-    for (let i = 0; i <= retries; i++) {
-      try {
-        const res = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-          timeout: 30000,
-        });
-        return res.data.job_id;
-      } catch (err) {
-        if (i < retries && (err.response?.status === 502 || err.response?.status === 504 || err.code === "ECONNABORTED")) {
-          setServerStep(`Reconnexion... (tentative ${i + 2})`);
-          await new Promise(r => setTimeout(r, 2000));
-          continue;
+  const extractTextFromFile = async (file) => {
+    const ext = file.name.toLowerCase().split(".").pop();
+
+    if (ext === "txt") {
+      return await file.text();
+    }
+
+    if (ext === "docx" || ext === "doc") {
+      const mammoth = await import("mammoth");
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      return result.value;
+    }
+
+    if (ext === "pdf") {
+      // Read as base64 and send to backend as JSON (avoids multipart proxy corruption)
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      // Retry up to 3 times on transient errors
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await axios.post(`${API}/cv/extract-text-b64?token=${token}`, {
+            data: base64,
+            filename: file.name,
+          }, { timeout: 30000 });
+          return res.data.text;
+        } catch (err) {
+          const s = err.response?.status;
+          if (attempt < 2 && (s === 502 || s === 503 || s === 504 || !err.response)) {
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+          throw err;
         }
-        throw err;
       }
     }
+
+    throw new Error("Format non supporté");
   };
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Le fichier est trop volumineux (max 10 Mo). Essayez un fichier plus petit.");
+      toast.error("Fichier trop volumineux (max 10 Mo).");
       return;
     }
 
-    // Validate file type
     const ext = file.name.toLowerCase().split(".").pop();
     if (!["pdf", "docx", "doc", "txt"].includes(ext)) {
-      toast.error("Format non supporté. Utilisez un fichier PDF, DOCX ou TXT.");
+      toast.error("Format non supporté. Utilisez PDF, DOCX ou TXT.");
       return;
     }
 
     setUploading(true);
     setAnalysisResult(null);
     setUploadError(null);
-    setServerStep("");
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      // Step 1: Start analysis with auto-retry on 502
-      const jobId = await startAnalysis(formData);
+    setServerStep("Lecture du fichier...");
 
-      // Step 2: Poll for results
+    try {
+      // Step 1: Extract text client-side (no file upload to server!)
+      const cvText = await extractTextFromFile(file);
+      if (!cvText || cvText.trim().length < 50) {
+        throw new Error("Le fichier ne contient pas assez de texte exploitable. Vérifiez que votre CV contient du texte sélectionnable.");
+      }
+
+      setServerStep("Envoi du texte au serveur...");
+
+      // Step 2: Send extracted text as JSON - retry on transient errors
+      let jobId;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const startRes = await axios.post(`${API}/cv/analyze-text?token=${token}`, {
+            text: cvText,
+            filename: file.name,
+          }, { timeout: 15000 });
+          jobId = startRes.data.job_id;
+          break;
+        } catch (err) {
+          const s = err.response?.status;
+          if (attempt < 2 && (s === 502 || s === 503 || s === 504 || !err.response)) {
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      setServerStep("Analyse IA en cours...");
+
+      // Step 3: Poll for results
       const result = await pollForResult(jobId);
       setAnalysisResult(result);
 
-      // Step 3: Fetch generated CV models
+      // Step 4: Fetch generated CV models
       const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
       if (modelsRes.data.models) setCvModels(modelsRes.data);
       toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
       if (onComplete) onComplete();
     } catch (err) {
       let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV.";
-      if (err.response?.status === 502 || err.response?.status === 504) {
-        msg = "Le serveur n'a pas pu traiter le fichier. Essayez un fichier plus petit ou un format différent (TXT).";
-      } else if (err.code === "ECONNABORTED") {
-        msg = "La connexion a expiré. Vérifiez votre connexion internet et réessayez.";
-      } else if (msg.toLowerCase().includes("budget")) {
+      if (msg.toLowerCase().includes("budget")) {
         msg = "Le crédit d'analyse IA est temporairement épuisé. Rechargez votre clé dans Profil > Universal Key.";
       }
       setUploadError(msg);
       toast.error(msg);
     }
     setUploading(false);
-    // Reset file input for re-upload
     e.target.value = "";
   };
 
