@@ -503,9 +503,42 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [cvModels, setCvModels] = useState(null);
   const [viewingModel, setViewingModel] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const STEPS = [
+    { at: 0, label: "Lecture du document...", icon: FileText },
+    { at: 3, label: "Extraction du contenu...", icon: FileText },
+    { at: 8, label: "Identification des savoir-faire...", icon: Briefcase },
+    { at: 15, label: "Détection des savoir-être...", icon: Star },
+    { at: 22, label: "Analyse des compétences transversales...", icon: Target },
+    { at: 30, label: "Identification des besoins de formation...", icon: BookOpen },
+    { at: 40, label: "Génération du CV Classique...", icon: FileText },
+    { at: 50, label: "Génération du CV Compétences...", icon: Zap },
+    { at: 58, label: "Génération du CV Fonctionnel...", icon: Target },
+    { at: 65, label: "Génération du CV Mixte...", icon: Briefcase },
+    { at: 72, label: "Remplissage du Passeport...", icon: Award },
+    { at: 80, label: "Finalisation de l'analyse...", icon: CheckCircle2 },
+  ];
 
   useEffect(() => {
-    // Load existing CV models
+    let timer;
+    if (uploading) {
+      setElapsed(0);
+      setCurrentStep(0);
+      timer = setInterval(() => {
+        setElapsed(prev => {
+          const next = prev + 1;
+          const stepIdx = STEPS.filter(s => s.at <= next).length - 1;
+          if (stepIdx >= 0) setCurrentStep(stepIdx);
+          return next;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [uploading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     axios.get(`${API}/cv/models?token=${token}`).then(res => {
       if (res.data.models && Object.keys(res.data.models).length > 0) {
         setCvModels(res.data);
@@ -526,7 +559,6 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         timeout: 120000,
       });
       setAnalysisResult(res.data);
-      // Reload CV models
       const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
       if (modelsRes.data.models) setCvModels(modelsRes.data);
       toast.success(`CV analysé : ${res.data.savoir_faire_count} savoir-faire, ${res.data.savoir_etre_count} savoir-être détectés`);
@@ -551,20 +583,64 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   return (
     <div className="space-y-4">
       {/* Upload Zone */}
-      <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${uploading ? "border-blue-400 bg-blue-50/50" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50"}`}>
-        <input
-          type="file"
-          accept=".pdf,.docx,.doc,.txt"
-          onChange={handleUpload}
-          disabled={uploading}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          data-testid="cv-upload-input"
-        />
+      <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
+        {!uploading && (
+          <input
+            type="file"
+            accept=".pdf,.docx,.doc,.txt"
+            onChange={handleUpload}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            data-testid="cv-upload-input"
+          />
+        )}
         {uploading ? (
-          <div className="space-y-2">
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-sm font-medium text-blue-700">Analyse IA en cours...</p>
-            <p className="text-xs text-blue-500">Extraction des compétences, génération des 4 modèles de CV, identification des formations</p>
+          <div className="p-6 space-y-4" data-testid="cv-upload-progress">
+            {/* Timer header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
+                <span className="text-sm font-semibold text-blue-800">Analyse IA en cours</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/80 px-3 py-1 rounded-full shadow-sm">
+                <Clock className="w-4 h-4 text-blue-600" />
+                <span className="text-lg font-mono font-bold text-blue-700" data-testid="cv-timer">
+                  {Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${Math.min((elapsed / 90) * 100, 95)}%` }}
+              />
+            </div>
+
+            {/* Steps timeline */}
+            <div className="space-y-1.5">
+              {STEPS.map((step, idx) => {
+                const StepIcon = step.icon;
+                const isDone = idx < currentStep;
+                const isCurrent = idx === currentStep;
+                if (idx > currentStep + 1) return null;
+                return (
+                  <div key={idx} className={`flex items-center gap-2 py-1 px-2 rounded-lg transition-all ${isCurrent ? "bg-white/70 shadow-sm" : ""}`}>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isDone ? "bg-emerald-500" : isCurrent ? "bg-blue-500 animate-pulse" : "bg-slate-300"}`}>
+                      {isDone ? (
+                        <CheckCircle2 className="w-3 h-3 text-white" />
+                      ) : (
+                        <StepIcon className="w-3 h-3 text-white" />
+                      )}
+                    </div>
+                    <span className={`text-xs ${isDone ? "text-emerald-700 line-through" : isCurrent ? "text-blue-800 font-semibold" : "text-slate-400"}`}>
+                      {step.label}
+                    </span>
+                    {isCurrent && <div className="ml-auto w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div>
