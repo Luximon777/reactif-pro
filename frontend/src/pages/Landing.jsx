@@ -26,6 +26,7 @@ import {
   FileCheck
 } from "lucide-react";
 import { toast } from "sonner";
+import LogoReactifPro from "@/components/LogoReactifPro";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -120,11 +121,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img 
-                src="/logo-reactif-pro-hd.png?v=2" 
-                alt="RE'ACTIF PRO" 
-                className="h-12 w-auto"
-              />
+              <LogoReactifPro size="sm" />
             </div>
             <Badge variant="secondary" className="bg-blue-50 text-[#1e3a5f] border-blue-200">
               Région Grand Est
@@ -137,11 +134,11 @@ const Landing = () => {
       <section className="pt-24 pb-16 px-4 bg-[#1e3a5f] text-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto py-16 animate-fade-in">
-            <img 
-              src="/logo-reactif-pro-hd.png?v=2" 
-              alt="RE'ACTIF PRO - Intelligence Professionnelle" 
-              className="h-24 sm:h-32 mx-auto mb-8 rounded-2xl shadow-lg"
-            />
+            <div className="flex justify-center mb-8">
+              <div className="bg-white/95 rounded-2xl shadow-lg p-8">
+                <LogoReactifPro size="xl" />
+              </div>
+            </div>
             <p className="text-xl sm:text-2xl text-blue-100 mb-4 italic">
               Dispositif de réactivation rapide des parcours vers l'emploi
             </p>

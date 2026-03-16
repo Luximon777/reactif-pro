@@ -30,6 +30,7 @@ import {
   Shield
 } from "lucide-react";
 import { toast } from "sonner";
+import LogoReactifPro from "@/components/LogoReactifPro";
 
 // Dashboard Views
 import ParticulierView from "@/views/ParticulierView";
@@ -141,12 +142,8 @@ const Dashboard = () => {
           <div className="flex items-center justify-between h-20">
             {/* Logo & Nav */}
             <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
-                <img 
-                  src="/logo-reactif-pro-hd.png?v=2" 
-                  alt="RE'ACTIF PRO" 
-                  className="h-14 w-auto"
-                />
+              <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
+                <LogoReactifPro size="md" />
               </div>
               
               {/* Desktop Nav */}
