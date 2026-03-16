@@ -596,7 +596,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
       if (onComplete) onComplete();
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV. Réessayez.";
+      let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV. Réessayez.";
+      if (msg.includes("502") || err.response?.status === 502) {
+        msg = "Le serveur a mis trop de temps à répondre. Veuillez réessayer dans quelques secondes.";
+      } else if (msg.toLowerCase().includes("budget")) {
+        msg = "Le crédit d'analyse IA est temporairement épuisé. Veuillez réessayer dans quelques instants.";
+      }
       setUploadError(msg);
       toast.error(msg);
     }
