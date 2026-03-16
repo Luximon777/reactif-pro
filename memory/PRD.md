@@ -21,6 +21,7 @@ Métiers -> Savoir-faire (Hard Skills) -> Savoir-être (Soft Skills) -> Qualité
 - [x] **Auto-remplissage Passeport** - Profil, compétences, expériences, formations complétés depuis le CV
 - [x] **Logo SVG vectoriel** - Remplacement du PNG flou par un composant SVG/CSS net (16 mars 2026)
 - [x] **Minuteur de progression CV** - Timer avec 12 étapes animées pendant l'analyse IA (16 mars 2026)
+- [x] **Bug fix: résultats CV disparus** - Corrigé le bug où onComplete() déclenchait un re-render complet qui perdait les résultats d'analyse (16 mars 2026)
 
 ## Key API Endpoints
 - `/api/cv/analyze` (POST) - Upload + analyse IA complète du CV

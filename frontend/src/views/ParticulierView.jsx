@@ -45,8 +45,8 @@ const ParticulierView = ({ token, section }) => {
     loadData();
   }, [token]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [profileRes, jobsRes, learningRes] = await Promise.all([
         axios.get(`${API}/profile?token=${token}`),
@@ -58,9 +58,9 @@ const ParticulierView = ({ token, section }) => {
       setLearningModules(learningRes.data);
     } catch (error) {
       console.error("Error loading data:", error);
-      toast.error("Erreur lors du chargement des données");
+      if (!silent) toast.error("Erreur lors du chargement des données");
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const addSkill = async () => {
@@ -216,7 +216,7 @@ const ParticulierView = ({ token, section }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <CvAnalysisSection token={token} onComplete={() => loadData()} />
+            <CvAnalysisSection token={token} onComplete={() => loadData(true)} />
 
             {/* Skills list */}
             <div className="space-y-4 mt-6">
