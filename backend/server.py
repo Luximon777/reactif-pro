@@ -1,9 +1,10 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import json
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -11,6 +12,8 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import secrets
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+import PyPDF2
+import io
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -2112,6 +2115,242 @@ async def get_ccsp_diagnostic(token: str):
         "nature_distribution": nature_dist,
         "recommendations": recommendations
     }
+
+# ============== CV ANALYSIS & GENERATION ==============
+
+async def extract_text_from_upload(file: UploadFile) -> str:
+    """Extract text from uploaded PDF or DOCX file"""
+    content = await file.read()
+    text = ""
+    if file.filename.lower().endswith(".pdf"):
+        reader = PyPDF2.PdfReader(io.BytesIO(content))
+        for page in reader.pages:
+            text += (page.extract_text() or "") + "\n"
+    elif file.filename.lower().endswith((".docx", ".doc")):
+        import docx
+        doc = docx.Document(io.BytesIO(content))
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+    else:
+        text = content.decode("utf-8", errors="ignore")
+    return text.strip()
+
+
+@api_router.post("/cv/analyze")
+async def analyze_cv(token: str, file: UploadFile = File(...)):
+    """Upload CV, analyze with AI, extract competences, generate 4 CV models, fill passport"""
+    token_doc = await get_current_token(token)
+
+    # Extract text
+    cv_text = await extract_text_from_upload(file)
+    if not cv_text or len(cv_text) < 50:
+        raise HTTPException(status_code=400, detail="Le fichier ne contient pas assez de texte exploitable")
+
+    # Step 1: Deep AI analysis of the CV
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"cv-analysis-{uuid.uuid4()}",
+        system_message="""Tu es un expert RH et conseiller en orientation professionnelle. Analyse ce CV en profondeur.
+Tu dois répondre UNIQUEMENT en JSON valide (pas de markdown, pas de texte avant/après).
+Le JSON doit avoir cette structure exacte:
+{
+  "profile": {
+    "professional_summary": "Synthèse professionnelle en 2-3 phrases",
+    "career_project": "Projet de carrière identifié",
+    "motivations": ["motivation1", "motivation2"],
+    "compatible_environments": ["env1", "env2"],
+    "target_sectors": ["secteur1", "secteur2"]
+  },
+  "savoir_faire": [
+    {"name": "nom", "category": "technique|transversale|transferable|sectorielle", "level": "debutant|intermediaire|avance|expert", "ccsp_pole": "realisation|interaction|initiative", "ccsp_degree": "imitation|adaptation|transposition"}
+  ],
+  "savoir_etre": [
+    {"name": "nom", "category": "transversale|transferable", "level": "debutant|intermediaire|avance|expert", "linked_qualites": ["qualité1"], "linked_valeurs": ["valeur_id"], "linked_vertus": ["vertu_id"]}
+  ],
+  "competences_transversales": ["comp1", "comp2"],
+  "competences_transferables": ["comp1", "comp2"],
+  "experiences": [
+    {"title": "Poste", "organization": "Entreprise", "description": "Description courte", "experience_type": "professionnel|personnel|benevole|projet", "skills_used": ["skill1"], "achievements": ["réalisation1"]}
+  ],
+  "formations_suggestions": [
+    {"title": "Formation suggérée", "reason": "Pourquoi cette formation", "priority": "haute|moyenne|basse", "skills_to_gain": ["comp1"]}
+  ],
+  "cv_classique": "Texte du CV reformaté en format classique (chronologique, sobre, professionnel)",
+  "cv_competences": "Texte du CV reformaté axé sur les savoir-faire et savoir-être, regroupés par domaine",
+  "cv_fonctionnel": "Texte du CV reformaté par domaines de compétences transversales, sans chronologie",
+  "cv_mixte": "Texte du CV reformaté combinant parcours chronologique et compétences transférables"
+}
+Pour les valeurs, utilise les IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
+Pour les vertus: sagesse, courage, humanite, justice, temperance, transcendance."""
+    ).with_model("openai", "gpt-5.2")
+
+    try:
+        response = await chat.send_message(
+            UserMessage(text=f"Analyse ce CV en profondeur:\n\n{cv_text[:8000]}")
+        )
+        raw = response.strip() if isinstance(response, str) else response.text.strip()
+        # Clean markdown wrapping if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+            raw = raw.strip()
+        analysis = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="L'IA n'a pas pu analyser le CV correctement. Réessayez.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse IA: {str(e)}")
+
+    # Step 2: Save CV models to DB
+    cv_models = {
+        "classique": analysis.get("cv_classique", ""),
+        "competences": analysis.get("cv_competences", ""),
+        "fonctionnel": analysis.get("cv_fonctionnel", ""),
+        "mixte": analysis.get("cv_mixte", ""),
+    }
+    await db.cv_models.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {
+            "token_id": token_doc["id"],
+            "models": cv_models,
+            "original_filename": file.filename,
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True
+    )
+
+    # Step 3: Auto-fill Passport
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if not passport:
+        passport = {
+            "token_id": token_doc["id"],
+            "professional_summary": "",
+            "career_project": "",
+            "motivations": [],
+            "compatible_environments": [],
+            "target_sectors": [],
+            "competences": [],
+            "experiences": [],
+            "learning_path": [],
+            "passerelles": [],
+            "sharing": {"is_public": False},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.passports.insert_one(passport)
+
+    # Build competences from analysis
+    new_competences = list(passport.get("competences", []))
+    existing_names = {c.get("name", "").lower() for c in new_competences}
+
+    for sf in analysis.get("savoir_faire", []):
+        if sf.get("name", "").lower() not in existing_names:
+            new_competences.append(PassportCompetence(
+                name=sf["name"], nature="savoir_faire",
+                category=sf.get("category", "technique"),
+                level=sf.get("level", "intermediaire"),
+                source="ia_detectee",
+                ccsp_pole=sf.get("ccsp_pole", ""),
+                ccsp_degree=sf.get("ccsp_degree", ""),
+            ).model_dump())
+            existing_names.add(sf["name"].lower())
+
+    for se in analysis.get("savoir_etre", []):
+        if se.get("name", "").lower() not in existing_names:
+            new_competences.append(PassportCompetence(
+                name=se["name"], nature="savoir_etre",
+                category=se.get("category", "transversale"),
+                level=se.get("level", "intermediaire"),
+                source="ia_detectee",
+                linked_qualites=se.get("linked_qualites", []),
+                linked_valeurs=se.get("linked_valeurs", []),
+                linked_vertus=se.get("linked_vertus", []),
+            ).model_dump())
+            existing_names.add(se["name"].lower())
+
+    # Build experiences
+    new_experiences = list(passport.get("experiences", []))
+    existing_exp_titles = {e.get("title", "").lower() for e in new_experiences}
+
+    for exp in analysis.get("experiences", []):
+        if exp.get("title", "").lower() not in existing_exp_titles:
+            new_experiences.append(PassportExperience(
+                title=exp["title"],
+                organization=exp.get("organization", ""),
+                description=exp.get("description", ""),
+                experience_type=exp.get("experience_type", "professionnel"),
+                skills_used=exp.get("skills_used", []),
+                achievements=exp.get("achievements", []),
+                source="ia_detectee",
+            ).model_dump())
+            existing_exp_titles.add(exp["title"].lower())
+
+    # Build learning suggestions
+    new_learning = list(passport.get("learning_path", []))
+    for fs in analysis.get("formations_suggestions", []):
+        new_learning.append({
+            "title": fs.get("title", ""),
+            "provider": f"Suggestion IA - Priorité {fs.get('priority', 'moyenne')}",
+            "status": "suggere",
+            "skills_acquired": fs.get("skills_to_gain", []),
+            "reason": fs.get("reason", ""),
+            "source": "ia_detectee",
+        })
+
+    # Profile data
+    profile_data = analysis.get("profile", {})
+    update_fields = {
+        "competences": new_competences,
+        "experiences": new_experiences,
+        "learning_path": new_learning,
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    }
+    if profile_data.get("professional_summary") and not passport.get("professional_summary"):
+        update_fields["professional_summary"] = profile_data["professional_summary"]
+    if profile_data.get("career_project") and not passport.get("career_project"):
+        update_fields["career_project"] = profile_data["career_project"]
+    if profile_data.get("motivations") and not passport.get("motivations"):
+        update_fields["motivations"] = profile_data["motivations"]
+    if profile_data.get("compatible_environments") and not passport.get("compatible_environments"):
+        update_fields["compatible_environments"] = profile_data["compatible_environments"]
+    if profile_data.get("target_sectors") and not passport.get("target_sectors"):
+        update_fields["target_sectors"] = profile_data["target_sectors"]
+
+    # Recalculate completeness
+    merged = {**passport, **update_fields}
+    update_fields["completeness_score"] = calculate_completeness(merged)
+
+    await db.passports.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": update_fields}
+    )
+
+    return {
+        "message": "CV analysé avec succès",
+        "filename": file.filename,
+        "savoir_faire_count": len(analysis.get("savoir_faire", [])),
+        "savoir_etre_count": len(analysis.get("savoir_etre", [])),
+        "experiences_count": len(analysis.get("experiences", [])),
+        "formations_suggestions": analysis.get("formations_suggestions", []),
+        "competences_transversales": analysis.get("competences_transversales", []),
+        "competences_transferables": analysis.get("competences_transferables", []),
+        "cv_models_generated": list(cv_models.keys()),
+        "completeness_score": update_fields.get("completeness_score", 0),
+    }
+
+
+@api_router.get("/cv/models")
+async def get_cv_models(token: str):
+    """Get generated CV models for the user"""
+    token_doc = await get_current_token(token)
+    cv_data = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not cv_data:
+        return {"models": {}, "analyzed_at": None, "original_filename": None}
+    return {
+        "models": cv_data.get("models", {}),
+        "analyzed_at": cv_data.get("analyzed_at"),
+        "original_filename": cv_data.get("original_filename"),
+    }
+
 
 # ============== REFERENTIEL & ARCHÉOLOGIE DES COMPÉTENCES ==============
 

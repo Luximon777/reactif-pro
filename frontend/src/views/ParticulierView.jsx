@@ -204,70 +204,23 @@ const ParticulierView = ({ token, section }) => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Skills Section */}
+        {/* CV Section with AI Analysis */}
         <Card className="lg:col-span-2 card-base" data-testid="skills-section">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <div>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#1e3a5f]" />
                 Mes CV
               </CardTitle>
-              <CardDescription>Téléchargez et personnalisez vos modèles de CV</CardDescription>
+              <CardDescription>Chargez votre CV pour que l'IA génère 4 modèles et complète votre passeport</CardDescription>
             </div>
-            <Dialog open={editingProfile} onOpenChange={setEditingProfile}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" data-testid="add-skill-btn">
-                  <Plus className="w-4 h-4 mr-1" />
-                  Ajouter
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Ajouter une compétence</DialogTitle>
-                  <DialogDescription>
-                    Ajoutez une nouvelle compétence à votre profil
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <Input
-                    placeholder="Nom de la compétence"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    data-testid="new-skill-input"
-                  />
-                  <Button onClick={addSkill} className="w-full btn-primary" data-testid="submit-skill-btn">
-                    Ajouter la compétence
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
           </CardHeader>
           <CardContent>
-            {/* CV Models Download Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-              {[
-                { name: "CV Classique", desc: "Format traditionnel, sobre et professionnel", color: "bg-blue-50 border-blue-200 text-blue-700" },
-                { name: "CV Compétences", desc: "Axé sur les savoir-faire et savoir-être", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
-                { name: "CV Fonctionnel", desc: "Par domaines de compétences transversales", color: "bg-violet-50 border-violet-200 text-violet-700" },
-                { name: "CV Mixte", desc: "Combine parcours et compétences transférables", color: "bg-amber-50 border-amber-200 text-amber-700" },
-              ].map((cv, idx) => (
-                <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border ${cv.color}`} data-testid={`cv-model-${idx}`}>
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold">{cv.name}</p>
-                      <p className="text-xs opacity-70">{cv.desc}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => toast.info(`Modèle "${cv.name}" bientôt disponible`)} data-testid={`download-cv-${idx}`}>
-                    <FileDown className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+            <CvAnalysisSection token={token} onComplete={() => loadData()} />
 
             {/* Skills list */}
-            <div className="space-y-4">
+            <div className="space-y-4 mt-6">
+              <h4 className="text-sm font-semibold text-slate-700">Compétences identifiées</h4>
               {displayProfile.skills?.length > 0 ? (
                 displayProfile.skills.map((skill, idx) => (
                   <div key={idx} className="space-y-2" data-testid={`skill-${idx}`}>
@@ -282,10 +235,8 @@ const ParticulierView = ({ token, section }) => {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Zap className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                  <p>Aucune compétence ajoutée</p>
-                  <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
+                <div className="text-center py-4 text-slate-400 text-sm">
+                  <p>Chargez un CV pour identifier vos compétences automatiquement</p>
                 </div>
               )}
             </div>
@@ -537,5 +488,193 @@ const LearningSection = ({ modules, updateProgress }) => (
     </div>
   </div>
 );
+
+// ============== CV ANALYSIS SECTION ==============
+
+const CV_MODELS_CONFIG = [
+  { key: "classique", name: "CV Classique", desc: "Chronologique, sobre et professionnel", color: "bg-blue-50 border-blue-200 text-blue-700", icon: FileText },
+  { key: "competences", name: "CV Compétences", desc: "Axé sur les savoir-faire et savoir-être", color: "bg-emerald-50 border-emerald-200 text-emerald-700", icon: Zap },
+  { key: "fonctionnel", name: "CV Fonctionnel", desc: "Par domaines de compétences transversales", color: "bg-violet-50 border-violet-200 text-violet-700", icon: Target },
+  { key: "mixte", name: "CV Mixte", desc: "Parcours + compétences transférables", color: "bg-amber-50 border-amber-200 text-amber-700", icon: Briefcase },
+];
+
+const CvAnalysisSection = ({ token, onComplete }) => {
+  const [uploading, setUploading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [cvModels, setCvModels] = useState(null);
+  const [viewingModel, setViewingModel] = useState(null);
+
+  useEffect(() => {
+    // Load existing CV models
+    axios.get(`${API}/cv/models?token=${token}`).then(res => {
+      if (res.data.models && Object.keys(res.data.models).length > 0) {
+        setCvModels(res.data);
+      }
+    }).catch(() => {});
+  }, [token]);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setAnalysisResult(null);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 120000,
+      });
+      setAnalysisResult(res.data);
+      // Reload CV models
+      const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
+      if (modelsRes.data.models) setCvModels(modelsRes.data);
+      toast.success(`CV analysé : ${res.data.savoir_faire_count} savoir-faire, ${res.data.savoir_etre_count} savoir-être détectés`);
+      if (onComplete) onComplete();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur lors de l'analyse du CV");
+    }
+    setUploading(false);
+  };
+
+  const downloadModel = (key, name) => {
+    if (!cvModels?.models?.[key]) return;
+    const blob = new Blob([cvModels.models[key]], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Upload Zone */}
+      <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${uploading ? "border-blue-400 bg-blue-50/50" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50"}`}>
+        <input
+          type="file"
+          accept=".pdf,.docx,.doc,.txt"
+          onChange={handleUpload}
+          disabled={uploading}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          data-testid="cv-upload-input"
+        />
+        {uploading ? (
+          <div className="space-y-2">
+            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-sm font-medium text-blue-700">Analyse IA en cours...</p>
+            <p className="text-xs text-blue-500">Extraction des compétences, génération des 4 modèles de CV, identification des formations</p>
+          </div>
+        ) : (
+          <div>
+            <FileDown className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+            <p className="text-sm font-medium text-slate-700">Chargez votre CV (PDF, DOCX, TXT)</p>
+            <p className="text-xs text-slate-400">L'IA analysera vos compétences et générera 4 modèles de CV</p>
+          </div>
+        )}
+      </div>
+
+      {/* Analysis Result Summary */}
+      {analysisResult && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3" data-testid="cv-analysis-result">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <h4 className="font-semibold text-emerald-800 text-sm">Analyse terminée — {analysisResult.filename}</h4>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+            <div className="bg-white rounded-lg p-2">
+              <p className="text-xl font-bold text-sky-600">{analysisResult.savoir_faire_count}</p>
+              <p className="text-[10px] text-slate-500">Savoir-faire</p>
+            </div>
+            <div className="bg-white rounded-lg p-2">
+              <p className="text-xl font-bold text-rose-500">{analysisResult.savoir_etre_count}</p>
+              <p className="text-[10px] text-slate-500">Savoir-être</p>
+            </div>
+            <div className="bg-white rounded-lg p-2">
+              <p className="text-xl font-bold text-blue-600">{analysisResult.experiences_count}</p>
+              <p className="text-[10px] text-slate-500">Expériences</p>
+            </div>
+            <div className="bg-white rounded-lg p-2">
+              <p className="text-xl font-bold text-emerald-600">{analysisResult.formations_suggestions?.length || 0}</p>
+              <p className="text-[10px] text-slate-500">Formations suggérées</p>
+            </div>
+          </div>
+          {/* Transversal competences */}
+          {analysisResult.competences_transversales?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-violet-700 mb-1">Compétences transversales identifiées :</p>
+              <div className="flex flex-wrap gap-1">
+                {analysisResult.competences_transversales.map((c, i) => (
+                  <span key={i} className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Formation suggestions */}
+          {analysisResult.formations_suggestions?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-amber-700 mb-1">Besoins de formation identifiés :</p>
+              <div className="space-y-1">
+                {analysisResult.formations_suggestions.map((f, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg p-2">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${f.priority === "haute" ? "bg-red-100 text-red-700" : f.priority === "moyenne" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{f.priority}</span>
+                    <div>
+                      <p className="font-medium text-slate-800">{f.title}</p>
+                      <p className="text-slate-500">{f.reason}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-emerald-600 font-medium">Passeport automatiquement complété avec les données extraites</p>
+        </div>
+      )}
+
+      {/* CV Models Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {CV_MODELS_CONFIG.map((cv) => {
+          const hasModel = cvModels?.models?.[cv.key];
+          const Icon = cv.icon;
+          return (
+            <div key={cv.key} className={`flex items-center justify-between p-3 rounded-lg border ${cv.color} ${!hasModel ? "opacity-50" : ""}`} data-testid={`cv-model-${cv.key}`}>
+              <div className="flex items-center gap-3">
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">{cv.name}</p>
+                  <p className="text-xs opacity-70">{cv.desc}</p>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                {hasModel && (
+                  <>
+                    <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => setViewingModel(viewingModel === cv.key ? null : cv.key)} data-testid={`view-cv-${cv.key}`}>
+                      <Play className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => downloadModel(cv.key, cv.name)} data-testid={`download-cv-${cv.key}`}>
+                      <FileDown className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* CV Preview */}
+      {viewingModel && cvModels?.models?.[viewingModel] && (
+        <div className="bg-white border rounded-xl p-4 max-h-96 overflow-y-auto" data-testid="cv-preview">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-sm text-slate-800">{CV_MODELS_CONFIG.find(c => c.key === viewingModel)?.name}</h4>
+            <Button variant="ghost" size="sm" onClick={() => setViewingModel(null)}>Fermer</Button>
+          </div>
+          <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">{cvModels.models[viewingModel]}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ParticulierView;
