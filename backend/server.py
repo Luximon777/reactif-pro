@@ -2567,20 +2567,14 @@ async def get_referentiel_vertus():
 
 @api_router.get("/referentiel/explorer")
 async def get_explorer_filieres():
-    """Get all filières with their secteurs (no deep data for speed)"""
-    filieres = await db.referentiel_metiers.find({}, {"_id": 0, "name": 1, "id": 1, "secteurs.name": 1}).to_list(100)
-    for f in filieres:
-        f["secteurs"] = [{"name": s["name"], "metiers_count": 0} for s in f.get("secteurs", [])]
-    # Count metiers per secteur
-    all_data = await db.referentiel_metiers.find({}, {"_id": 0}).to_list(100)
-    secteur_counts = {}
-    for fd in all_data:
-        for s in fd.get("secteurs", []):
-            secteur_counts[s["name"]] = len(s.get("metiers", []))
-    for f in filieres:
-        for s in f["secteurs"]:
-            s["metiers_count"] = secteur_counts.get(s["name"], 0)
-    return {"filieres": filieres, "total_filieres": len(filieres)}
+    """Get all filières with their secteurs and metier names"""
+    all_data = await db.referentiel_metiers.find({}, {"_id": 0, "name": 1, "id": 1, "secteurs.name": 1, "secteurs.metiers.name": 1}).to_list(100)
+    for f in all_data:
+        for s in f.get("secteurs", []):
+            metier_names = [m.get("name", "") for m in s.get("metiers", [])]
+            s["metiers"] = metier_names
+            s["metiers_count"] = len(metier_names)
+    return {"filieres": all_data, "total_filieres": len(all_data)}
 
 
 @api_router.get("/referentiel/explorer/secteur/{secteur_name}")
@@ -2603,18 +2597,21 @@ async def get_explorer_secteur(secteur_name: str):
 
 @api_router.get("/referentiel/explorer/metier/{metier_name}")
 async def get_explorer_metier(metier_name: str):
-    """Get full detail for a specific metier with chains to qualites/valeurs/vertus"""
+    """Get full detail for a specific metier with chains and similar metiers"""
     all_data = await db.referentiel_metiers.find({}, {"_id": 0}).to_list(100)
+    found = None
+    same_secteur_metiers = []
     for f in all_data:
         for s in f.get("secteurs", []):
             for m in s.get("metiers", []):
                 if m["name"].lower() == metier_name.lower():
-                    return {
-                        "filiere": f["name"],
-                        "secteur": s["name"],
-                        "metier": m,
-                    }
-    raise HTTPException(status_code=404, detail="Métier non trouvé")
+                    found = {"filiere": f["name"], "secteur": s["name"], "metier": m}
+                    # Collect other metiers in same secteur
+                    same_secteur_metiers = [om["name"] for om in s.get("metiers", []) if om["name"].lower() != metier_name.lower()]
+    if not found:
+        raise HTTPException(status_code=404, detail="Métier non trouvé")
+    found["metiers_similaires"] = same_secteur_metiers
+    return found
 
 
 @api_router.get("/referentiel/explorer/search")
