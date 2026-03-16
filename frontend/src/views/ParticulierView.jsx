@@ -505,9 +505,11 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [viewingModel, setViewingModel] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
+  const [uploadError, setUploadError] = useState(null);
+  const [serverStep, setServerStep] = useState("");
 
   const STEPS = [
-    { at: 0, label: "Lecture du document...", icon: FileText },
+    { at: 0, label: "Envoi du fichier...", icon: FileText },
     { at: 3, label: "Extraction du contenu...", icon: FileText },
     { at: 8, label: "Identification des savoir-faire...", icon: Briefcase },
     { at: 15, label: "Détection des savoir-être...", icon: Star },
@@ -546,25 +548,57 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     }).catch(() => {});
   }, [token]);
 
+  const pollForResult = async (jobId) => {
+    const maxPolls = 120; // 120 * 3s = 6 minutes max
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      try {
+        const res = await axios.get(`${API}/cv/analyze/status?token=${token}&job_id=${jobId}`);
+        if (res.data.step) setServerStep(res.data.step);
+        if (res.data.status === "completed") {
+          return res.data.result;
+        }
+        if (res.data.status === "failed") {
+          throw new Error(res.data.error || "L'analyse a échoué");
+        }
+      } catch (err) {
+        if (err.response?.status === 404) continue;
+        if (err.message) throw err;
+      }
+    }
+    throw new Error("L'analyse a pris trop de temps. Réessayez.");
+  };
+
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     setAnalysisResult(null);
+    setUploadError(null);
+    setServerStep("");
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
+      // Step 1: Start analysis (returns immediately)
+      const startRes = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 120000,
+        timeout: 30000,
       });
-      setAnalysisResult(res.data);
+      const jobId = startRes.data.job_id;
+
+      // Step 2: Poll for results
+      const result = await pollForResult(jobId);
+      setAnalysisResult(result);
+
+      // Step 3: Fetch generated CV models
       const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
       if (modelsRes.data.models) setCvModels(modelsRes.data);
-      toast.success(`CV analysé : ${res.data.savoir_faire_count} savoir-faire, ${res.data.savoir_etre_count} savoir-être détectés`);
+      toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
       if (onComplete) onComplete();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Erreur lors de l'analyse du CV");
+      const msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV. Réessayez.";
+      setUploadError(msg);
+      toast.error(msg);
     }
     setUploading(false);
   };
@@ -613,9 +647,16 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${Math.min((elapsed / 90) * 100, 95)}%` }}
+                style={{ width: `${Math.min((elapsed / 120) * 100, 95)}%` }}
               />
             </div>
+
+            {/* Server step info */}
+            {serverStep && (
+              <div className="text-xs text-indigo-600 font-medium bg-white/60 px-2 py-1 rounded">
+                {serverStep}
+              </div>
+            )}
 
             {/* Steps timeline */}
             <div className="space-y-1.5">
@@ -650,6 +691,18 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           </div>
         )}
       </div>
+
+      {/* Error display */}
+      {uploadError && !uploading && !analysisResult && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4" data-testid="cv-upload-error">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <h4 className="font-semibold text-red-800 text-sm">Erreur d'analyse</h4>
+          </div>
+          <p className="text-sm text-red-700">{uploadError}</p>
+          <p className="text-xs text-red-500 mt-2">Cliquez sur la zone ci-dessus pour réessayer avec votre CV.</p>
+        </div>
+      )}
 
       {/* Analysis Result Summary */}
       {analysisResult && (
