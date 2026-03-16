@@ -2662,6 +2662,78 @@ async def get_explorer_stats():
         "savoirs_etre": len(se_set),
     }
 
+
+@api_router.post("/referentiel/explorer/generate")
+async def generate_metier_fiche(token: str, payload: dict):
+    """Generate a complete metier fiche using AI when not found in DB"""
+    await get_current_token(token)
+    metier_name = payload.get("metier", "").strip()
+    if not metier_name or len(metier_name) < 2:
+        raise HTTPException(status_code=400, detail="Nom de métier invalide")
+
+    # Check cache first
+    cached = await db.generated_metiers.find_one({"name_lower": metier_name.lower()}, {"_id": 0})
+    if cached:
+        return cached["data"]
+
+    job_id = str(uuid.uuid4())
+    await db.explorer_jobs.insert_one({"job_id": job_id, "metier": metier_name, "status": "started", "created_at": datetime.now(timezone.utc).isoformat()})
+
+    asyncio.create_task(_generate_metier_fiche(job_id, metier_name))
+    return {"job_id": job_id, "status": "started"}
+
+
+@api_router.get("/referentiel/explorer/generate/status")
+async def get_generate_status(token: str, job_id: str):
+    """Poll for metier generation status"""
+    await get_current_token(token)
+    job = await db.explorer_jobs.find_one({"job_id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job non trouvé")
+    return {"job_id": job["job_id"], "status": job["status"], "result": job.get("result"), "error": job.get("error")}
+
+
+async def _generate_metier_fiche(job_id: str, metier_name: str):
+    """Background: generate complete metier fiche via AI"""
+    try:
+        await db.explorer_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating"}})
+        result = await _llm_call_with_retry(
+            system_msg="""Tu es un expert en référentiels métiers et en archéologie des compétences.
+Pour le métier demandé, génère une fiche complète en JSON valide:
+{
+  "filiere": "nom de la filière professionnelle",
+  "secteur": "secteur d'activité",
+  "metier": {
+    "name": "nom du métier",
+    "mission": "description détaillée de la mission (2-3 phrases)",
+    "savoirs_faire": [
+      {"name": "savoir-faire", "capacite_technique": "description de la capacité technique associée"}
+    ],
+    "savoirs_etre": [
+      {"name": "savoir-être", "capacite_professionnelle": "description de la capacité professionnelle", "qualites_humaines": ["qualité1"], "valeurs": ["id_valeur"], "vertus": ["id_vertu"]}
+    ]
+  },
+  "metiers_similaires": ["métier1", "métier2", "métier3", "métier4", "métier5"]
+}
+Règles:
+- 6 à 10 savoir-faire avec capacités techniques détaillées
+- 5 à 8 savoir-être avec la chaîne complète (capacité pro → qualités → valeurs → vertus)
+- 5 métiers similaires dans le même secteur
+- IDs valeurs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme
+- IDs vertus: sagesse, courage, humanite, justice, temperance, transcendance""",
+            user_msg=f"Génère la fiche métier complète pour : {metier_name}"
+        )
+        # Cache the result
+        await db.generated_metiers.update_one(
+            {"name_lower": metier_name.lower()},
+            {"$set": {"name_lower": metier_name.lower(), "data": result, "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        await db.explorer_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result}})
+    except Exception as e:
+        logging.error(f"Metier generation failed: {e}")
+        await db.explorer_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
+
 @api_router.get("/passport/archeologie")
 async def get_passport_archeologie(token: str):
     """For a user's competences, trace the full archaeology chain"""

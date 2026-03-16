@@ -218,9 +218,44 @@ const ExplorateurView = ({ token }) => {
       const res = await axios.get(`${API}/referentiel/explorer/metier/${encodeURIComponent(name)}`);
       setSelectedMetier(res.data);
     } catch {
-      setSelectedMetier(null);
+      // Not in DB - generate via AI
+      await generateMetierIA(name);
     }
     setLoading(false);
+  };
+
+  const generateMetierIA = async (name) => {
+    try {
+      const startRes = await axios.post(`${API}/referentiel/explorer/generate?token=${token}`, { metier: name });
+      if (startRes.data.filiere) {
+        // Was cached - instant result
+        setSelectedMetier(startRes.data);
+        return;
+      }
+      const jobId = startRes.data.job_id;
+      // Poll for result
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const statusRes = await axios.get(`${API}/referentiel/explorer/generate/status?token=${token}&job_id=${jobId}`);
+          if (statusRes.data.status === "completed") {
+            setSelectedMetier(statusRes.data.result);
+            return;
+          }
+          if (statusRes.data.status === "failed") break;
+        } catch {
+          continue;
+        }
+      }
+    } catch {}
+    setSelectedMetier(null);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (searchQuery.trim().length >= 2) {
+      selectMetier(searchQuery.trim());
+    }
   };
 
   const handleBack = () => {
@@ -246,13 +281,13 @@ const ExplorateurView = ({ token }) => {
       </div>
 
       {/* Search bar - Primary entry point */}
-      <div className="relative max-w-2xl mx-auto">
+      <form onSubmit={handleSearchSubmit} className="relative max-w-2xl mx-auto">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={e => handleSearch(e.target.value)}
-          placeholder="Saisissez un métier : ingénieur, chef de projet, développeur..."
+          placeholder="Saisissez un métier : cariste, développeur, infirmier..."
           className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 shadow-sm"
           data-testid="explorer-search-input"
           autoFocus
@@ -278,11 +313,13 @@ const ExplorateurView = ({ token }) => {
             })}
           </div>
         )}
-      </div>
+      </form>
 
       {loading && (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex flex-col items-center justify-center py-12 gap-3" data-testid="generating-loader">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <p className="text-sm text-slate-500">Génération de la fiche métier par l'IA...</p>
+          <p className="text-xs text-slate-400">Analyse de la chaîne archéologique en cours</p>
         </div>
       )}
 
