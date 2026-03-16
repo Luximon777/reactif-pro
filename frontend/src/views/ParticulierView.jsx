@@ -25,7 +25,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Play,
-  FolderLock
+  FolderLock,
+  FileDown,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -207,10 +209,10 @@ const ParticulierView = ({ token, section }) => {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-[#1e3a5f]" />
-                Mes Compétences
+                <FileText className="w-5 h-5 text-[#1e3a5f]" />
+                Mes CV
               </CardTitle>
-              <CardDescription>Votre coffre-fort numérique des compétences</CardDescription>
+              <CardDescription>Téléchargez et personnalisez vos modèles de CV</CardDescription>
             </div>
             <Dialog open={editingProfile} onOpenChange={setEditingProfile}>
               <DialogTrigger asChild>
@@ -241,6 +243,30 @@ const ParticulierView = ({ token, section }) => {
             </Dialog>
           </CardHeader>
           <CardContent>
+            {/* CV Models Download Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {[
+                { name: "CV Classique", desc: "Format traditionnel, sobre et professionnel", color: "bg-blue-50 border-blue-200 text-blue-700" },
+                { name: "CV Compétences", desc: "Axé sur les savoir-faire et savoir-être", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+                { name: "CV Fonctionnel", desc: "Par domaines de compétences transversales", color: "bg-violet-50 border-violet-200 text-violet-700" },
+                { name: "CV Mixte", desc: "Combine parcours et compétences transférables", color: "bg-amber-50 border-amber-200 text-amber-700" },
+              ].map((cv, idx) => (
+                <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border ${cv.color}`} data-testid={`cv-model-${idx}`}>
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold">{cv.name}</p>
+                      <p className="text-xs opacity-70">{cv.desc}</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => toast.info(`Modèle "${cv.name}" bientôt disponible`)} data-testid={`download-cv-${idx}`}>
+                    <FileDown className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Skills list */}
             <div className="space-y-4">
               {displayProfile.skills?.length > 0 ? (
                 displayProfile.skills.map((skill, idx) => (
