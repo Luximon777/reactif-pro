@@ -2164,11 +2164,37 @@ async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int 
     raise Exception(f"Erreur IA après {max_retries+1} tentatives: {last_error}")
 
 
-async def _run_cv_analysis(job_id: str, token_id: str, cv_text: str, filename: str):
-    """Background task: run CV analysis and save results to DB."""
+def _extract_text_from_bytes(content: bytes, filename: str) -> str:
+    """Extract text from file bytes (PDF, DOCX, TXT)"""
+    text = ""
+    if filename.lower().endswith(".pdf"):
+        reader = PyPDF2.PdfReader(io.BytesIO(content))
+        for page in reader.pages:
+            text += (page.extract_text() or "") + "\n"
+    elif filename.lower().endswith((".docx", ".doc")):
+        import docx
+        doc = docx.Document(io.BytesIO(content))
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+    else:
+        text = content.decode("utf-8", errors="ignore")
+    return text.strip()
+
+
+async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str):
+    """Background task: extract text, run CV analysis and save results to DB."""
     try:
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "analyzing", "step": "Analyse des compétences..."}})
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "analyzing", "step": "Extraction du texte..."}})
+
+        # Extract text from file
+        cv_text = _extract_text_from_bytes(file_content, filename)
+        if not cv_text or len(cv_text) < 50:
+            await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
+            return
+
         cv_excerpt = cv_text[:6000]
+
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences..."}})
 
         # CALL 1: Analyse des compétences
         analysis = await _llm_call_with_retry(
@@ -2288,12 +2314,18 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
 
 @api_router.post("/cv/analyze")
 async def analyze_cv(token: str, file: UploadFile = File(...)):
-    """Upload CV, start background analysis, return job_id for polling"""
+    """Upload CV, start background analysis, return job_id immediately"""
     token_doc = await get_current_token(token)
 
-    cv_text = await extract_text_from_upload(file)
-    if not cv_text or len(cv_text) < 50:
-        raise HTTPException(status_code=400, detail="Le fichier ne contient pas assez de texte exploitable")
+    # Validate file type
+    ext = (file.filename or "").lower().split(".")[-1]
+    if ext not in ("pdf", "docx", "doc", "txt"):
+        raise HTTPException(status_code=400, detail="Format non supporté. Utilisez PDF, DOCX ou TXT.")
+
+    # Read raw content (fast)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 10 Mo)")
 
     job_id = str(uuid.uuid4())
     await db.cv_jobs.insert_one({
@@ -2305,8 +2337,8 @@ async def analyze_cv(token: str, file: UploadFile = File(...)):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    # Launch background task
-    asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], cv_text, file.filename))
+    # Launch background task with raw file bytes
+    asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], file_content, file.filename))
 
     return {"job_id": job_id, "status": "started", "message": "Analyse lancée en arrière-plan"}
 

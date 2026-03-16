@@ -569,9 +569,42 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     throw new Error("L'analyse a pris trop de temps. Réessayez.");
   };
 
+  const startAnalysis = async (formData, retries = 2) => {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const res = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 30000,
+        });
+        return res.data.job_id;
+      } catch (err) {
+        if (i < retries && (err.response?.status === 502 || err.response?.status === 504 || err.code === "ECONNABORTED")) {
+          setServerStep(`Reconnexion... (tentative ${i + 2})`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        throw err;
+      }
+    }
+  };
+
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux (max 10 Mo). Essayez un fichier plus petit.");
+      return;
+    }
+
+    // Validate file type
+    const ext = file.name.toLowerCase().split(".").pop();
+    if (!["pdf", "docx", "doc", "txt"].includes(ext)) {
+      toast.error("Format non supporté. Utilisez un fichier PDF, DOCX ou TXT.");
+      return;
+    }
+
     setUploading(true);
     setAnalysisResult(null);
     setUploadError(null);
@@ -579,12 +612,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      // Step 1: Start analysis (returns immediately)
-      const startRes = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: 30000,
-      });
-      const jobId = startRes.data.job_id;
+      // Step 1: Start analysis with auto-retry on 502
+      const jobId = await startAnalysis(formData);
 
       // Step 2: Poll for results
       const result = await pollForResult(jobId);
@@ -596,16 +625,20 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
       if (onComplete) onComplete();
     } catch (err) {
-      let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV. Réessayez.";
-      if (msg.includes("502") || err.response?.status === 502) {
-        msg = "Le serveur a mis trop de temps à répondre. Veuillez réessayer dans quelques secondes.";
+      let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV.";
+      if (err.response?.status === 502 || err.response?.status === 504) {
+        msg = "Le serveur n'a pas pu traiter le fichier. Essayez un fichier plus petit ou un format différent (TXT).";
+      } else if (err.code === "ECONNABORTED") {
+        msg = "La connexion a expiré. Vérifiez votre connexion internet et réessayez.";
       } else if (msg.toLowerCase().includes("budget")) {
-        msg = "Le crédit d'analyse IA est temporairement épuisé. Veuillez réessayer dans quelques instants.";
+        msg = "Le crédit d'analyse IA est temporairement épuisé. Rechargez votre clé dans Profil > Universal Key.";
       }
       setUploadError(msg);
       toast.error(msg);
     }
     setUploading(false);
+    // Reset file input for re-upload
+    e.target.value = "";
   };
 
   const downloadModel = (key, name) => {
