@@ -27,7 +27,8 @@ import {
   FolderLock,
   Brain,
   Gauge,
-  Shield
+  Shield,
+  Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
@@ -40,6 +41,7 @@ import CoffreFortView from "@/views/CoffreFortView";
 import ObservatoireView from "@/views/ObservatoireView";
 import EvolutionIndexView from "@/views/EvolutionIndexView";
 import PassportView from "@/views/PassportView";
+import ExplorateurView from "@/views/ExplorateurView";
 
 const Dashboard = () => {
   const { token, role, switchRole, logout } = useAuth();
@@ -127,6 +129,7 @@ const Dashboard = () => {
     { label: "Passeport", icon: Shield, path: "/dashboard/passeport", roles: ["particulier"] },
     { label: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
     { label: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
+    { label: "Explorateur", icon: Layers, path: "/dashboard/explorateur" },
     { label: "Indice Évolution", icon: Gauge, path: "/dashboard/evolution" },
     { label: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
     { label: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
@@ -295,6 +298,7 @@ const Dashboard = () => {
             <Route path="/passeport" element={<PassportView token={token} key={`passport-${refreshKey}`} />} />
             <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
             <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
+            <Route path="/explorateur" element={<ExplorateurView token={token} key={`explorateur-${refreshKey}`} />} />
             <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
             <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
             <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />

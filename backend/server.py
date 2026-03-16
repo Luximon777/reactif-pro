@@ -2562,6 +2562,109 @@ async def get_referentiel_vertus():
     """Get vertues with their full chain"""
     return {"vertus": REFERENTIEL_VERTUS, "valeurs": REFERENTIEL_VALEURS}
 
+
+# ===== Explorateur des Filières Professionnelles =====
+
+@api_router.get("/referentiel/explorer")
+async def get_explorer_filieres():
+    """Get all filières with their secteurs (no deep data for speed)"""
+    filieres = await db.referentiel_metiers.find({}, {"_id": 0, "name": 1, "id": 1, "secteurs.name": 1}).to_list(100)
+    for f in filieres:
+        f["secteurs"] = [{"name": s["name"], "metiers_count": 0} for s in f.get("secteurs", [])]
+    # Count metiers per secteur
+    all_data = await db.referentiel_metiers.find({}, {"_id": 0}).to_list(100)
+    secteur_counts = {}
+    for fd in all_data:
+        for s in fd.get("secteurs", []):
+            secteur_counts[s["name"]] = len(s.get("metiers", []))
+    for f in filieres:
+        for s in f["secteurs"]:
+            s["metiers_count"] = secteur_counts.get(s["name"], 0)
+    return {"filieres": filieres, "total_filieres": len(filieres)}
+
+
+@api_router.get("/referentiel/explorer/secteur/{secteur_name}")
+async def get_explorer_secteur(secteur_name: str):
+    """Get metiers for a specific secteur"""
+    doc = await db.referentiel_metiers.find_one(
+        {"secteurs.name": secteur_name}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Secteur non trouvé")
+    for s in doc.get("secteurs", []):
+        if s["name"] == secteur_name:
+            return {
+                "filiere": doc["name"],
+                "secteur": secteur_name,
+                "metiers": s.get("metiers", []),
+            }
+    raise HTTPException(status_code=404, detail="Secteur non trouvé")
+
+
+@api_router.get("/referentiel/explorer/metier/{metier_name}")
+async def get_explorer_metier(metier_name: str):
+    """Get full detail for a specific metier with chains to qualites/valeurs/vertus"""
+    all_data = await db.referentiel_metiers.find({}, {"_id": 0}).to_list(100)
+    for f in all_data:
+        for s in f.get("secteurs", []):
+            for m in s.get("metiers", []):
+                if m["name"].lower() == metier_name.lower():
+                    return {
+                        "filiere": f["name"],
+                        "secteur": s["name"],
+                        "metier": m,
+                    }
+    raise HTTPException(status_code=404, detail="Métier non trouvé")
+
+
+@api_router.get("/referentiel/explorer/search")
+async def search_explorer(q: str):
+    """Search across filieres, secteurs, metiers, savoirs"""
+    q_lower = q.lower()
+    results = {"filieres": [], "secteurs": [], "metiers": [], "savoirs_faire": [], "savoirs_etre": []}
+    all_data = await db.referentiel_metiers.find({}, {"_id": 0}).to_list(100)
+    for f in all_data:
+        if q_lower in f["name"].lower():
+            results["filieres"].append({"name": f["name"], "type": "filiere"})
+        for s in f.get("secteurs", []):
+            if q_lower in s["name"].lower():
+                results["secteurs"].append({"name": s["name"], "filiere": f["name"], "type": "secteur"})
+            for m in s.get("metiers", []):
+                if q_lower in m["name"].lower():
+                    results["metiers"].append({"name": m["name"], "secteur": s["name"], "filiere": f["name"], "type": "metier"})
+                for sf in m.get("savoirs_faire", []):
+                    if q_lower in sf["name"].lower():
+                        results["savoirs_faire"].append({"name": sf["name"], "metier": m["name"], "type": "savoir_faire"})
+                for se in m.get("savoirs_etre", []):
+                    if q_lower in se["name"].lower():
+                        results["savoirs_etre"].append({"name": se["name"], "metier": m["name"], "type": "savoir_etre"})
+    return results
+
+
+@api_router.get("/referentiel/explorer/stats")
+async def get_explorer_stats():
+    """Get overall statistics for the referentiel"""
+    all_data = await db.referentiel_metiers.find({}, {"_id": 0}).to_list(100)
+    n_filieres = len(all_data)
+    n_secteurs = sum(len(f.get("secteurs", [])) for f in all_data)
+    n_metiers = sum(len(m.get("metiers", [])) for f in all_data for m in f.get("secteurs", []))
+    sf_set = set()
+    se_set = set()
+    for f in all_data:
+        for s in f.get("secteurs", []):
+            for m in s.get("metiers", []):
+                for sf in m.get("savoirs_faire", []):
+                    sf_set.add(sf["name"])
+                for se in m.get("savoirs_etre", []):
+                    se_set.add(se["name"])
+    return {
+        "filieres": n_filieres,
+        "secteurs": n_secteurs,
+        "metiers": n_metiers,
+        "savoirs_faire": len(sf_set),
+        "savoirs_etre": len(se_set),
+    }
+
 @api_router.get("/passport/archeologie")
 async def get_passport_archeologie(token: str):
     """For a user's competences, trace the full archaeology chain"""
