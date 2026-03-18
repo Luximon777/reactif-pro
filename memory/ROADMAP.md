@@ -4,6 +4,7 @@
 - [x] Persistance des resultats d'analyse CV
 - [x] Enrichissement analyse CV (competences transversales + offres emploi)
 - [x] Refactoring backend monolithique
+- [x] Selection des modeles de CV avant analyse (gain de temps)
 
 ## P1 - A venir
 - [ ] Refactoring frontend: decomposer ParticulierView.jsx (400+ lignes)

@@ -2,6 +2,13 @@
 
 ## 2026-03-18 - Session courante
 
+### Feature: Selection des modeles de CV avant analyse
+- Apres upload du CV, l'utilisateur choisit les modeles a generer (Classique, Competences, Fonctionnel, Mixte)
+- Seuls les modeles selectionnes sont generes par l'IA → gain de temps significatif
+- Option "analyse seule" (0 modeles) pour une analyse ultra-rapide
+- Backend: CvTextPayload.selected_models parametre, filtrage dans _run_cv_analysis
+- Frontend: ecran de selection interactif avec toggles, compteur et indice de vitesse
+
 ### P0 Bug Fix: Persistance des resultats d'analyse CV
 - Cree endpoint `GET /api/cv/latest-analysis` qui retourne la derniere analyse completee
 - Frontend `CvAnalysisSection` charge l'analyse precedente au montage du composant
