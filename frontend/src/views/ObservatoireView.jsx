@@ -943,7 +943,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href="https://cv-analyzer-53.preview.emergentagent.com/"
+              href="https://competence-vault.preview.emergentagent.com/"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"

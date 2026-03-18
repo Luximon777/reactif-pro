@@ -507,6 +507,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadError, setUploadError] = useState(null);
   const [serverStep, setServerStep] = useState("");
+  const [loadingPrevious, setLoadingPrevious] = useState(true);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -541,11 +542,25 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   }, [uploading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    axios.get(`${API}/cv/models?token=${token}`).then(res => {
-      if (res.data.models && Object.keys(res.data.models).length > 0) {
-        setCvModels(res.data);
+    // Load previous analysis result AND CV models on mount
+    const loadPrevious = async () => {
+      try {
+        const [analysisRes, modelsRes] = await Promise.all([
+          axios.get(`${API}/cv/latest-analysis?token=${token}`),
+          axios.get(`${API}/cv/models?token=${token}`)
+        ]);
+        if (analysisRes.data.has_analysis) {
+          setAnalysisResult(analysisRes.data.result);
+        }
+        if (modelsRes.data.models && Object.keys(modelsRes.data.models).length > 0) {
+          setCvModels(modelsRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading previous analysis:", err);
       }
-    }).catch(() => {});
+      setLoadingPrevious(false);
+    };
+    loadPrevious();
   }, [token]);
 
   const pollForResult = async (jobId) => {
@@ -699,6 +714,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
 
   return (
     <div className="space-y-4">
+      {loadingPrevious && (
+        <div className="flex items-center justify-center py-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-sm text-slate-500">Chargement...</span>
+        </div>
+      )}
       {/* Upload Zone */}
       <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
         {!uploading && (
@@ -834,6 +855,36 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                     <div>
                       <p className="font-medium text-slate-800">{f.title}</p>
                       <p className="text-slate-500">{f.reason}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Offres d'emploi suggérées */}
+          {analysisResult.offres_emploi_suggerees?.length > 0 && (
+            <div data-testid="cv-suggested-jobs">
+              <p className="text-xs font-medium text-blue-700 mb-1">Offres d'emploi suggérées :</p>
+              <div className="space-y-1">
+                {analysisResult.offres_emploi_suggerees.map((offre, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg p-2 border border-blue-100">
+                    <Briefcase className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-slate-800">{offre.titre}</p>
+                        {offre.type_contrat && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">{offre.type_contrat}</span>
+                        )}
+                      </div>
+                      {offre.secteur && <p className="text-slate-500">{offre.secteur}</p>}
+                      {offre.description_courte && <p className="text-slate-400 mt-0.5">{offre.description_courte}</p>}
+                      {offre.competences_requises?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {offre.competences_requises.map((c, j) => (
+                            <span key={j} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">{c}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

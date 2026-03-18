@@ -2206,11 +2206,15 @@ Structure exacte:
   "profile": {"professional_summary": "2-3 phrases", "career_project": "string", "motivations": [], "compatible_environments": [], "target_sectors": []},
   "savoir_faire": [{"name": "string", "category": "technique|transversale|transferable|sectorielle", "level": "debutant|intermediaire|avance|expert", "ccsp_pole": "realisation|interaction|initiative", "ccsp_degree": "imitation|adaptation|transposition"}],
   "savoir_etre": [{"name": "string", "category": "transversale|transferable", "level": "debutant|intermediaire|avance|expert", "linked_qualites": [], "linked_valeurs": [], "linked_vertus": []}],
-  "competences_transversales": [],
+  "competences_transversales": ["communication", "travail en equipe", ...],
   "competences_transferables": [],
   "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "skills_used": [], "achievements": []}],
-  "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}]
+  "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
+  "offres_emploi_suggerees": [{"titre": "string", "secteur": "string", "type_contrat": "CDI|CDD|Interim|Alternance", "description_courte": "string", "competences_requises": []}]
 }
+IMPORTANT:
+- competences_transversales: liste de 5-10 compétences transversales identifiées (communication, adaptabilité, gestion du temps, travail en équipe, résolution de problèmes, etc.)
+- offres_emploi_suggerees: liste de 3-5 offres d'emploi pertinentes basées sur le profil, le secteur et les compétences du candidat
 Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
 Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
             user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
@@ -2303,6 +2307,7 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             "formations_suggestions": analysis.get("formations_suggestions", []),
             "competences_transversales": analysis.get("competences_transversales", []),
             "competences_transferables": analysis.get("competences_transferables", []),
+            "offres_emploi_suggerees": analysis.get("offres_emploi_suggerees", []),
             "cv_models_generated": list(cv_models.keys()),
             "completeness_score": update_fields.get("completeness_score", 0),
         }
@@ -2419,6 +2424,20 @@ async def get_cv_analysis_status(token: str, job_id: str):
         "result": job.get("result"),
         "error": job.get("error"),
     }
+
+
+@api_router.get("/cv/latest-analysis")
+async def get_latest_cv_analysis(token: str):
+    """Get the most recent completed CV analysis for this user"""
+    token_doc = await get_current_token(token)
+    job = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    if not job or not job.get("result"):
+        return {"has_analysis": False}
+    return {"has_analysis": True, "result": job["result"]}
 
 
 @api_router.get("/cv/models")

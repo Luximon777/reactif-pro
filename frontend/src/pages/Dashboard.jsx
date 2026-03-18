@@ -174,7 +174,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               {/* Ubuntoo Link */}
               <a
-                href="https://cv-analyzer-53.preview.emergentagent.com/"
+                href="https://competence-vault.preview.emergentagent.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hidden sm:flex"
@@ -270,7 +270,7 @@ const Dashboard = () => {
                 );
               })}
               <a
-                href="https://cv-analyzer-53.preview.emergentagent.com/"
+                href="https://competence-vault.preview.emergentagent.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"
