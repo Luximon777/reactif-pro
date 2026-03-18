@@ -762,7 +762,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               <div>
                 <h4 className="text-sm font-semibold text-slate-800">CV chargé : {pendingFile}</h4>
-                <p className="text-xs text-slate-500">Sélectionnez les modèles de CV à générer pour gagner du temps</p>
+                <p className="text-xs text-slate-500">Sélectionnez les modèles de CV à générer par Claude IA</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

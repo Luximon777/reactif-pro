@@ -1,15 +1,44 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
 import asyncio
 import uuid
+import json
 import logging
 import base64
 from datetime import datetime, timezone
 from models import CvTextPayload, CvBase64Payload, PassportCompetence, PassportExperience
-from db import db
+from db import db, EMERGENT_LLM_KEY
 from helpers import get_current_token, _llm_call_with_retry, _extract_text_from_bytes
 from routes.passport import calculate_completeness
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 router = APIRouter()
+
+
+async def _claude_generate_cv(system_msg: str, user_msg: str, max_retries: int = 2) -> dict:
+    """Use Claude Sonnet for CV text generation - superior writing quality"""
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"cv-claude-{uuid.uuid4()}",
+                system_message=system_msg
+            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+            response = await chat.send_message(UserMessage(text=user_msg))
+            raw = response.strip() if isinstance(response, str) else response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+                raw = raw.strip()
+            return json.loads(raw)
+        except json.JSONDecodeError as e:
+            last_error = f"Réponse Claude non valide (tentative {attempt+1})"
+            logging.warning(f"Claude CV generation JSON error attempt {attempt+1}: {e}")
+        except Exception as e:
+            last_error = str(e)
+            logging.warning(f"Claude CV generation error attempt {attempt+1}: {e}")
+    raise Exception(f"Erreur Claude après {max_retries+1} tentatives: {last_error}")
 
 
 async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False, selected_models: list = None):
@@ -48,29 +77,49 @@ Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
             user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
         )
 
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Génération des modèles de CV..."}})
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Génération des CV par Claude IA..."}})
 
         cv_gen = {}
         if selected_models:
             model_map = {
-                "classique": ("cv_classique", "chronologique, sobre, professionnel"),
-                "competences": ("cv_competences", "axé savoir-faire et savoir-être par domaine"),
-                "fonctionnel": ("cv_fonctionnel", "par domaines de compétences, sans chronologie"),
-                "mixte": ("cv_mixte", "parcours + compétences transférables"),
+                "classique": ("cv_classique", "CV chronologique classique : sobre, professionnel, avec sections claires (Coordonnées, Profil, Expériences, Formation, Compétences). Utilise un ton formel et structuré."),
+                "competences": ("cv_competences", "CV axé compétences : organise par domaines de savoir-faire et savoir-être. Met en avant les compétences clés regroupées par thématique avant les expériences."),
+                "fonctionnel": ("cv_fonctionnel", "CV fonctionnel : présente les compétences par grands domaines fonctionnels sans chronologie. Idéal pour reconversion ou parcours atypique."),
+                "mixte": ("cv_mixte", "CV mixte : combine parcours chronologique et mise en valeur des compétences transférables. Montre l'évolution professionnelle tout en soulignant la polyvalence."),
             }
             selected = {k: v for k, v in model_map.items() if k in selected_models}
             if selected:
-                keys_json = ", ".join([f'"{v[0]}": "texte complet"' for v in selected.values()])
+                keys_json = ", ".join([f'"{v[0]}": "texte complet du CV"' for v in selected.values()])
                 instructions = "\n".join([f"- {v[0]}: {v[1]}" for v in selected.values()])
                 try:
-                    cv_gen = await _llm_call_with_retry(
-                        system_msg=f"""Tu es un rédacteur de CV professionnel. Génère les versions demandées d'un CV. Réponds UNIQUEMENT en JSON valide.
+                    cv_gen = await _claude_generate_cv(
+                        system_msg=f"""Tu es un rédacteur de CV professionnel expert en France. Reconstitue et génère des CV complets, bien rédigés et prêts à l'emploi à partir du profil fourni.
+
+RÈGLES IMPORTANTES :
+- Rédige des CV complets, détaillés et professionnels en français
+- Chaque CV doit faire au moins 300 mots avec des phrases complètes
+- Utilise un vocabulaire riche et professionnel adapté au secteur
+- Mets en valeur les réalisations concrètes et les résultats chiffrés quand possible
+- Adapte le ton et la structure au type de CV demandé
+- Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de commentaires)
+
+Structure attendue : {{{keys_json}}}
+
+Description de chaque modèle :
+{instructions}""",
+                        user_msg=f"Voici le profil à partir duquel reconstituer les CV :\n\n{cv_excerpt}"
+                    )
+                except Exception as e:
+                    logging.warning(f"Claude CV generation failed ({e}), falling back to GPT")
+                    try:
+                        cv_gen = await _llm_call_with_retry(
+                            system_msg=f"""Tu es un rédacteur de CV professionnel. Génère les versions demandées d'un CV. Réponds UNIQUEMENT en JSON valide.
 Structure: {{{keys_json}}}
 {instructions}""",
-                        user_msg=f"Génère les versions de CV pour ce profil:\n\n{cv_excerpt}"
-                    )
-                except Exception:
-                    logging.warning("CV model generation failed, continuing with analysis only")
+                            user_msg=f"Génère les versions de CV pour ce profil:\n\n{cv_excerpt}"
+                        )
+                    except Exception:
+                        logging.warning("Fallback GPT CV generation also failed")
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Remplissage du passeport..."}})
 
