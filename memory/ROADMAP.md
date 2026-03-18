@@ -5,6 +5,7 @@
 - [x] Enrichissement analyse CV (competences transversales + offres emploi)
 - [x] Refactoring backend monolithique
 - [x] Selection des modeles de CV avant analyse (gain de temps)
+- [x] Integration Claude AI pour la generation/reconstitution de CV
 
 ## P1 - A venir
 - [ ] Refactoring frontend: decomposer ParticulierView.jsx (400+ lignes)

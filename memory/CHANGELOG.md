@@ -9,6 +9,12 @@
 - Backend: CvTextPayload.selected_models parametre, filtrage dans _run_cv_analysis
 - Frontend: ecran de selection interactif avec toggles, compteur et indice de vitesse
 
+### Feature: Integration Claude AI pour la generation de CV
+- Claude Sonnet (anthropic, claude-sonnet-4-5-20250929) genere les CV reconstitues
+- GPT-5.2 reste utilise pour l'analyse des competences (extraction savoir-faire, savoir-etre)
+- Fallback automatique vers GPT si Claude echoue (resilience)
+- Prompt enrichi: CV detailles 300+ mots, vocabulaire professionnel, realisations chiffrees
+
 ### P0 Bug Fix: Persistance des resultats d'analyse CV
 - Cree endpoint `GET /api/cv/latest-analysis` qui retourne la derniere analyse completee
 - Frontend `CvAnalysisSection` charge l'analyse precedente au montage du composant
