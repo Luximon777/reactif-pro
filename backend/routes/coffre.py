@@ -1,0 +1,170 @@
+from fastapi import APIRouter, HTTPException
+from typing import Optional
+from datetime import datetime, timezone, timedelta
+from models import CoffreDocument, DocumentShare, CreateDocumentRequest
+from db import db
+from helpers import get_current_token
+from referentiel_data import DOCUMENT_CATEGORIES
+
+router = APIRouter()
+
+
+@router.get("/coffre/categories")
+async def get_coffre_categories():
+    return DOCUMENT_CATEGORIES
+
+
+@router.get("/coffre/documents")
+async def get_coffre_documents(token: str, category: Optional[str] = None, search: Optional[str] = None):
+    token_doc = await get_current_token(token)
+    query = {"token_id": token_doc["id"]}
+    if category:
+        query["category"] = category
+    documents = await db.coffre_documents.find(query, {"_id": 0}).to_list(500)
+    if search:
+        search_lower = search.lower()
+        documents = [d for d in documents if
+            search_lower in d.get("title", "").lower() or
+            search_lower in d.get("description", "").lower() or
+            any(search_lower in c.lower() for c in d.get("competences_liees", []))]
+    today = datetime.now(timezone.utc)
+    for doc in documents:
+        if doc.get("date_expiration"):
+            try:
+                exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
+                days_until = (exp_date - today).days
+                doc["is_expiring_soon"] = 0 <= days_until <= 30
+                doc["days_until_expiry"] = days_until
+            except Exception:
+                pass
+    return sorted(documents, key=lambda x: x.get("created_at", ""), reverse=True)
+
+
+@router.get("/coffre/documents/{document_id}")
+async def get_coffre_document(token: str, document_id: str):
+    token_doc = await get_current_token(token)
+    doc = await db.coffre_documents.find_one({"id": document_id, "token_id": token_doc["id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    return doc
+
+
+@router.post("/coffre/documents")
+async def create_coffre_document(token: str, request: CreateDocumentRequest):
+    token_doc = await get_current_token(token)
+    document = CoffreDocument(token_id=token_doc["id"], **request.model_dump())
+    await db.coffre_documents.insert_one(document.model_dump())
+    if request.competences_liees:
+        profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+        if profile:
+            existing_skills = [s.get("name") for s in profile.get("skills", [])]
+            new_skills = profile.get("skills", [])
+            for comp in request.competences_liees:
+                if comp not in existing_skills:
+                    new_skills.append({"name": comp, "level": 50, "proven": True})
+            await db.profiles.update_one({"token_id": token_doc["id"]}, {"$set": {"skills": new_skills}})
+    return document.model_dump()
+
+
+@router.put("/coffre/documents/{document_id}")
+async def update_coffre_document(token: str, document_id: str, request: CreateDocumentRequest):
+    token_doc = await get_current_token(token)
+    update_data = request.model_dump()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.coffre_documents.update_one({"id": document_id, "token_id": token_doc["id"]}, {"$set": update_data})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    return await db.coffre_documents.find_one({"id": document_id}, {"_id": 0})
+
+
+@router.delete("/coffre/documents/{document_id}")
+async def delete_coffre_document(token: str, document_id: str):
+    token_doc = await get_current_token(token)
+    result = await db.coffre_documents.delete_one({"id": document_id, "token_id": token_doc["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    return {"message": "Document supprimé"}
+
+
+@router.post("/coffre/documents/{document_id}/share")
+async def share_document(token: str, document_id: str, shared_with_email: Optional[str] = None, shared_with_role: Optional[str] = None, expires_in_days: int = 7):
+    token_doc = await get_current_token(token)
+    doc = await db.coffre_documents.find_one({"id": document_id, "token_id": token_doc["id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=expires_in_days)).isoformat()
+    share = DocumentShare(document_id=document_id, shared_by=token_doc["id"], shared_with_email=shared_with_email, shared_with_role=shared_with_role, expires_at=expires_at)
+    await db.document_shares.insert_one(share.model_dump())
+    await db.coffre_documents.update_one(
+        {"id": document_id},
+        {"$set": {"privacy_level": "shared_recruteur" if shared_with_role == "recruteur" else "shared_conseiller"}, "$push": {"shared_with": share.id}}
+    )
+    return {"share_id": share.id, "access_token": share.access_token, "expires_at": expires_at}
+
+
+@router.get("/coffre/shares")
+async def get_document_shares(token: str):
+    token_doc = await get_current_token(token)
+    shares = await db.document_shares.find({"shared_by": token_doc["id"]}, {"_id": 0}).to_list(100)
+    for share in shares:
+        doc = await db.coffre_documents.find_one({"id": share["document_id"]}, {"_id": 0})
+        if doc:
+            share["document_title"] = doc.get("title")
+            share["document_category"] = doc.get("category")
+    return shares
+
+
+@router.delete("/coffre/shares/{share_id}")
+async def revoke_share(token: str, share_id: str):
+    token_doc = await get_current_token(token)
+    share = await db.document_shares.find_one({"id": share_id, "shared_by": token_doc["id"]}, {"_id": 0})
+    if not share:
+        raise HTTPException(status_code=404, detail="Partage non trouvé")
+    await db.document_shares.delete_one({"id": share_id})
+    await db.coffre_documents.update_one({"id": share["document_id"]}, {"$pull": {"shared_with": share_id}})
+    return {"message": "Partage révoqué"}
+
+
+@router.get("/coffre/stats")
+async def get_coffre_stats(token: str):
+    token_doc = await get_current_token(token)
+    documents = await db.coffre_documents.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(500)
+    stats = {"total_documents": len(documents), "by_category": {}, "competences_prouvees": set(), "documents_partages": 0, "documents_expirants": 0, "documents_sensibles": 0}
+    today = datetime.now(timezone.utc)
+    for doc in documents:
+        cat = doc.get("category", "autre")
+        stats["by_category"][cat] = stats["by_category"].get(cat, 0) + 1
+        for comp in doc.get("competences_liees", []):
+            stats["competences_prouvees"].add(comp)
+        if doc.get("privacy_level") != "private":
+            stats["documents_partages"] += 1
+        if doc.get("is_sensitive"):
+            stats["documents_sensibles"] += 1
+        if doc.get("date_expiration"):
+            try:
+                exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
+                if 0 <= (exp_date - today).days <= 30:
+                    stats["documents_expirants"] += 1
+            except Exception:
+                pass
+    stats["competences_prouvees"] = list(stats["competences_prouvees"])
+    return stats
+
+
+@router.get("/coffre/expiring")
+async def get_expiring_documents(token: str):
+    token_doc = await get_current_token(token)
+    documents = await db.coffre_documents.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(500)
+    today = datetime.now(timezone.utc)
+    expiring = []
+    for doc in documents:
+        if doc.get("date_expiration"):
+            try:
+                exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
+                days_until = (exp_date - today).days
+                if 0 <= days_until <= 30:
+                    doc["days_until_expiry"] = days_until
+                    expiring.append(doc)
+            except Exception:
+                pass
+    return sorted(expiring, key=lambda x: x.get("days_until_expiry", 999))
