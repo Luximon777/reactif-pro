@@ -19,6 +19,7 @@ async def get_current_token(token: str) -> dict:
 
 
 async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 1) -> dict:
+    import re
     last_error = None
     for attempt in range(max_retries + 1):
         try:
@@ -34,6 +35,8 @@ async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int 
                 if raw.endswith("```"):
                     raw = raw[:-3]
                 raw = raw.strip()
+            # Clean control characters that break JSON
+            raw = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw)
             return json.loads(raw)
         except json.JSONDecodeError as e:
             last_error = f"Réponse IA non valide (tentative {attempt+1})"

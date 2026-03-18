@@ -48,13 +48,15 @@ Reponds UNIQUEMENT en JSON valide:
 {{"nom":"","titre":"Titre professionnel cible","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"Accroche 3-5 phrases: Qui je suis / Points forts / Objectif","competences_cles":[],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":["verbe action + chiffre"]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{"Domaine":["comp1"]}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}
 Regles: verbes d'action + chiffres, titre cible, accroche structuree, 4-6 missions/poste."""
             ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-            response = await chat.send_message(UserMessage(text=f"Optimise ce CV au format '{model_type}' en corrigeant tous les points faibles :\n\n{cv_text[:6000]}"))
+            response = await chat.send_message(UserMessage(text=f"Optimise ce CV:\n\n{cv_text[:4000]}"))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
             if raw.startswith("```"):
                 raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
                 if raw.endswith("```"):
                     raw = raw[:-3]
                 raw = raw.strip()
+            import re as _re
+            raw = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw)
             return json.loads(raw)
         except json.JSONDecodeError:
             logging.warning(f"Claude CV gen JSON error attempt {attempt+1}")
@@ -63,13 +65,15 @@ Regles: verbes d'action + chiffres, titre cible, accroche structuree, 4-6 missio
             if attempt == 2:
                 try:
                     chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Optimise un CV en JSON structure. Type: {desc}. Meme structure JSON.").with_model("openai", "gpt-5.2")
-                    response = await chat.send_message(UserMessage(text=f"CV :\n\n{cv_text[:6000]}"))
+                    response = await chat.send_message(UserMessage(text=f"CV :\n\n{cv_text[:4000]}"))
                     raw = response.strip() if isinstance(response, str) else response.text.strip()
                     if raw.startswith("```"):
                         raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
                         if raw.endswith("```"):
                             raw = raw[:-3]
-                    return json.loads(raw.strip())
+                    import re as _re2
+                    raw = _re2.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw.strip())
+                    return json.loads(raw)
                 except Exception as e2:
                     raise Exception(f"Impossible d'optimiser le CV: {e2}")
     raise Exception("Echec apres 3 tentatives")
@@ -333,7 +337,7 @@ def _build_pdf(cv_data: dict, model_type: str) -> bytes:
 
 
 async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False):
-    """Analysis only - no CV generation. Fast."""
+    """Fast 2-parallel-call analysis: audit + skills extraction"""
     try:
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "analyzing", "step": "Extraction du texte..."}})
         if text_ready:
@@ -343,51 +347,36 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
         if not cv_text or len(cv_text) < 50:
             await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
             return
-        cv_excerpt = cv_text[:4000]
+        cv_excerpt = cv_text[:3000]
 
-        # Store CV text for later model generation
         await db.cv_texts.update_one(
             {"token_id": token_id},
             {"$set": {"token_id": token_id, "text": cv_text, "filename": filename, "updated_at": datetime.now(timezone.utc).isoformat()}},
             upsert=True
         )
 
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences..."}})
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Audit et analyse en cours..."}})
 
-        analysis = await _llm_call_with_retry(
-            system_msg="""Expert RH. Analyse ce CV. Reponds UNIQUEMENT en JSON valide.
-{
-  "profile": {"professional_summary": "2-3 phrases", "career_project": "", "motivations": [], "compatible_environments": [], "target_sectors": []},
-  "savoir_faire": [{"name": "", "category": "technique|transversale|transferable", "level": "debutant|intermediaire|avance|expert"}],
-  "savoir_etre": [{"name": "", "category": "transversale|transferable", "level": "intermediaire"}],
-  "competences_transversales": [],
-  "competences_transferables": [],
-  "experiences": [{"title": "", "organization": "", "description": "", "experience_type": "professionnel", "skills_used": [], "achievements": []}],
-  "formations_suggestions": [{"title": "", "reason": "", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
-  "offres_emploi_suggerees": [{"titre": "", "secteur": "", "type_contrat": "CDI|CDD", "description_courte": "", "competences_requises": []}],
-  "audit_cv": [
-    {"regle": "Clarte et lisibilite", "score": 0, "statut": "ok|ameliorable|absent", "diagnostic": "", "recommandation": ""},
-    {"regle": "Titre clair et cible", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Accroche professionnelle", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Valorisation des experiences", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Competences (hard+soft)", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Formation", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Mots-cles ATS", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Absence de superflu", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Coherence du parcours", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
-    {"regle": "Structure type", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""}
-  ],
-  "score_global_cv": 0,
-  "modele_suggere": "classique|competences|transversale",
-  "raison_modele": ""
-}
-Regles: score 0-10, statut ok/ameliorable/absent. Score global sur 100. modele_suggere parmi classique, competences, transversale.""",
-            user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
+        # PARALLEL: Run audit + skills extraction at the same time
+        audit_task = _llm_call_with_retry(
+            system_msg="""Expert RH. Audite ce CV. JSON uniquement.
+{"audit_cv":[{"regle":"Clarte","score":0,"statut":"ok|ameliorable|absent","diagnostic":"court","recommandation":"court"},{"regle":"Titre cible","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Accroche","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Experiences","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Competences","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Formation","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Mots-cles ATS","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Superflu","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Coherence","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Structure","score":0,"statut":"","diagnostic":"","recommandation":""}],"score_global_cv":0,"modele_suggere":"classique|competences|transversale","raison_modele":""}
+Score 0-10 par regle. Score global /100. Diagnostic et recommandation en 1 phrase max.""",
+            user_msg=f"Audite:\n{cv_excerpt}"
         )
 
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Remplissage du passeport..."}})
+        skills_task = _llm_call_with_retry(
+            system_msg="""Expert RH. Extrais competences et experiences. JSON uniquement.
+{"profile":{"professional_summary":"","career_project":"","target_sectors":[]},"savoir_faire":[{"name":"","category":"technique|transversale","level":"intermediaire"}],"savoir_etre":[{"name":"","level":"intermediaire"}],"competences_transversales":[],"experiences":[{"title":"","organization":"","description":"","skills_used":[]}],"offres_emploi_suggerees":[{"titre":"","secteur":"","type_contrat":"CDI","description_courte":"","competences_requises":[]}]}
+Max 10 savoir_faire, 5 savoir_etre, 3 offres.""",
+            user_msg=f"Extrais:\n{cv_excerpt}"
+        )
 
-        # Fill passport from analysis
+        audit_result, skills_result = await asyncio.gather(audit_task, skills_task)
+
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Mise a jour du passeport..."}})
+
+        # Fill passport
         passport = await db.passports.find_one({"token_id": token_id})
         if not passport:
             passport = {"token_id": token_id, "professional_summary": "", "career_project": "", "motivations": [], "compatible_environments": [], "target_sectors": [], "competences": [], "experiences": [], "learning_path": [], "passerelles": [], "sharing": {"is_public": False}, "created_at": datetime.now(timezone.utc).isoformat()}
@@ -395,32 +384,26 @@ Regles: score 0-10, statut ok/ameliorable/absent. Score global sur 100. modele_s
 
         new_competences = list(passport.get("competences", []))
         existing_names = {c.get("name", "").lower() for c in new_competences}
-        for sf in analysis.get("savoir_faire", []):
+        for sf in skills_result.get("savoir_faire", []):
             if sf.get("name", "").lower() not in existing_names:
-                new_competences.append(PassportCompetence(name=sf["name"], nature="savoir_faire", category=sf.get("category", "technique"), level=sf.get("level", "intermediaire"), source="ia_detectee", ccsp_pole=sf.get("ccsp_pole", ""), ccsp_degree=sf.get("ccsp_degree", "")).model_dump())
+                new_competences.append(PassportCompetence(name=sf["name"], nature="savoir_faire", category=sf.get("category", "technique"), level=sf.get("level", "intermediaire"), source="ia_detectee").model_dump())
                 existing_names.add(sf["name"].lower())
-        for se in analysis.get("savoir_etre", []):
+        for se in skills_result.get("savoir_etre", []):
             if se.get("name", "").lower() not in existing_names:
-                new_competences.append(PassportCompetence(name=se["name"], nature="savoir_etre", category=se.get("category", "transversale"), level=se.get("level", "intermediaire"), source="ia_detectee", linked_qualites=se.get("linked_qualites", []), linked_valeurs=se.get("linked_valeurs", []), linked_vertus=se.get("linked_vertus", [])).model_dump())
+                new_competences.append(PassportCompetence(name=se["name"], nature="savoir_etre", category=se.get("category", "transversale"), level=se.get("level", "intermediaire"), source="ia_detectee").model_dump())
                 existing_names.add(se["name"].lower())
 
         new_experiences = list(passport.get("experiences", []))
         existing_exp_titles = {e.get("title", "").lower() for e in new_experiences}
-        for exp in analysis.get("experiences", []):
+        for exp in skills_result.get("experiences", []):
             if exp.get("title", "").lower() not in existing_exp_titles:
-                new_experiences.append(PassportExperience(title=exp["title"], organization=exp.get("organization", ""), description=exp.get("description", ""), experience_type=exp.get("experience_type", "professionnel"), skills_used=exp.get("skills_used", []), achievements=exp.get("achievements", []), source="ia_detectee").model_dump())
+                new_experiences.append(PassportExperience(title=exp["title"], organization=exp.get("organization", ""), description=exp.get("description", ""), experience_type="professionnel", skills_used=exp.get("skills_used", []), achievements=[], source="ia_detectee").model_dump())
                 existing_exp_titles.add(exp["title"].lower())
 
-        new_learning = list(passport.get("learning_path", []))
-        for fs in analysis.get("formations_suggestions", []):
-            new_learning.append({"title": fs.get("title", ""), "provider": f"Suggestion IA - Priorité {fs.get('priority', 'moyenne')}", "status": "suggere", "skills_acquired": fs.get("skills_to_gain", []), "reason": fs.get("reason", ""), "source": "ia_detectee"})
-
-        profile_data = analysis.get("profile", {})
-        update_fields = {"competences": new_competences, "experiences": new_experiences, "learning_path": new_learning, "last_updated": datetime.now(timezone.utc).isoformat()}
+        profile_data = skills_result.get("profile", {})
+        update_fields = {"competences": new_competences, "experiences": new_experiences, "last_updated": datetime.now(timezone.utc).isoformat()}
         if profile_data.get("professional_summary") and not passport.get("professional_summary"): update_fields["professional_summary"] = profile_data["professional_summary"]
         if profile_data.get("career_project") and not passport.get("career_project"): update_fields["career_project"] = profile_data["career_project"]
-        if profile_data.get("motivations") and not passport.get("motivations"): update_fields["motivations"] = profile_data["motivations"]
-        if profile_data.get("compatible_environments") and not passport.get("compatible_environments"): update_fields["compatible_environments"] = profile_data["compatible_environments"]
         if profile_data.get("target_sectors") and not passport.get("target_sectors"): update_fields["target_sectors"] = profile_data["target_sectors"]
 
         merged = {**passport, **update_fields}
@@ -429,20 +412,18 @@ Regles: score 0-10, statut ok/ameliorable/absent. Score global sur 100. modele_s
 
         result = {
             "message": "CV analyse avec succes", "filename": filename,
-            "savoir_faire_count": len(analysis.get("savoir_faire", [])),
-            "savoir_etre_count": len(analysis.get("savoir_etre", [])),
-            "experiences_count": len(analysis.get("experiences", [])),
-            "formations_suggestions": analysis.get("formations_suggestions", []),
-            "competences_transversales": analysis.get("competences_transversales", []),
-            "competences_transferables": analysis.get("competences_transferables", []),
-            "offres_emploi_suggerees": analysis.get("offres_emploi_suggerees", []),
+            "savoir_faire_count": len(skills_result.get("savoir_faire", [])),
+            "savoir_etre_count": len(skills_result.get("savoir_etre", [])),
+            "experiences_count": len(skills_result.get("experiences", [])),
+            "competences_transversales": skills_result.get("competences_transversales", []),
+            "offres_emploi_suggerees": skills_result.get("offres_emploi_suggerees", []),
             "completeness_score": update_fields.get("completeness_score", 0),
-            "audit_cv": analysis.get("audit_cv", []),
-            "score_global_cv": analysis.get("score_global_cv", 0),
-            "modele_suggere": analysis.get("modele_suggere", "classique"),
-            "raison_modele": analysis.get("raison_modele", ""),
+            "audit_cv": audit_result.get("audit_cv", []),
+            "score_global_cv": audit_result.get("score_global_cv", 0),
+            "modele_suggere": audit_result.get("modele_suggere", "classique"),
+            "raison_modele": audit_result.get("raison_modele", ""),
         }
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Terminé"}})
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Termine"}})
         logging.info(f"CV analysis job {job_id} completed successfully")
     except Exception as e:
         logging.error(f"CV analysis job {job_id} failed: {e}")
