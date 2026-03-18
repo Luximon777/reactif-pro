@@ -510,10 +510,9 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [uploadError, setUploadError] = useState(null);
   const [serverStep, setServerStep] = useState("");
   const [loadingPrevious, setLoadingPrevious] = useState(true);
-  const [pendingFile, setPendingFile] = useState(null);
-  const [pendingText, setPendingText] = useState(null);
-  const [selectedModels, setSelectedModels] = useState(["classique", "competences", "fonctionnel", "mixte"]);
-  const [showModelSelection, setShowModelSelection] = useState(false);
+  const [generatingModel, setGeneratingModel] = useState(null);
+  const [selectedGenModels, setSelectedGenModels] = useState([]);
+  const [genProgress, setGenProgress] = useState(null);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -521,13 +520,9 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     { at: 8, label: "Identification des savoir-faire...", icon: Briefcase },
     { at: 15, label: "Détection des savoir-être...", icon: Star },
     { at: 22, label: "Analyse des compétences transversales...", icon: Target },
-    { at: 30, label: "Identification des besoins de formation...", icon: BookOpen },
-    { at: 40, label: "Génération du CV Classique...", icon: FileText },
-    { at: 50, label: "Génération du CV Compétences...", icon: Zap },
-    { at: 58, label: "Génération du CV Fonctionnel...", icon: Target },
-    { at: 65, label: "Génération du CV Mixte...", icon: Briefcase },
-    { at: 72, label: "Remplissage du Passeport...", icon: Award },
-    { at: 80, label: "Finalisation de l'analyse...", icon: CheckCircle2 },
+    { at: 30, label: "Suggestions d'offres d'emploi...", icon: Briefcase },
+    { at: 38, label: "Remplissage du Passeport...", icon: Award },
+    { at: 45, label: "Finalisation de l'analyse...", icon: CheckCircle2 },
   ];
 
   useEffect(() => {
@@ -650,47 +645,25 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       return;
     }
 
+    setUploading(true);
+    setAnalysisResult(null);
     setUploadError(null);
     setServerStep("Lecture du fichier...");
 
     try {
       const cvText = await extractTextFromFile(file);
       if (!cvText || cvText.trim().length < 50) {
-        throw new Error("Le fichier ne contient pas assez de texte exploitable. Vérifiez que votre CV contient du texte sélectionnable.");
+        throw new Error("Le fichier ne contient pas assez de texte exploitable.");
       }
-      setPendingFile(file.name);
-      setPendingText(cvText);
-      setShowModelSelection(true);
-    } catch (err) {
-      const msg = err.response?.data?.detail || err.message || "Erreur lors de la lecture du fichier.";
-      setUploadError(msg);
-      toast.error(msg);
-    }
-    e.target.value = "";
-  };
 
-  const toggleModel = (key) => {
-    setSelectedModels(prev => 
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    );
-  };
+      setServerStep("Envoi du texte au serveur...");
 
-  const startAnalysis = async () => {
-    if (!pendingText) return;
-    setShowModelSelection(false);
-    setUploading(true);
-    setAnalysisResult(null);
-    setUploadError(null);
-    setServerStep("Envoi du texte au serveur...");
-
-    try {
       let jobId;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const startRes = await axios.post(`${API}/cv/analyze-text?token=${token}`, {
-            text: pendingText,
-            filename: pendingFile,
-            selected_models: selectedModels,
+            text: cvText,
+            filename: file.name,
           }, { timeout: 15000 });
           jobId = startRes.data.job_id;
           break;
@@ -705,12 +678,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       }
 
       setServerStep("Analyse IA en cours...");
-
       const result = await pollForResult(jobId);
       setAnalysisResult(result);
-
-      const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
-      if (modelsRes.data.models) setCvModels(modelsRes.data);
       toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
       if (onComplete) onComplete();
     } catch (err) {
@@ -722,8 +691,51 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       toast.error(msg);
     }
     setUploading(false);
-    setPendingFile(null);
-    setPendingText(null);
+    e.target.value = "";
+  };
+
+  const toggleGenModel = (key) => {
+    setSelectedGenModels(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const generateSelectedModels = async () => {
+    if (selectedGenModels.length === 0) return;
+    setGeneratingModel(true);
+    setGenProgress({ current: 0, total: selectedGenModels.length, currentModel: "" });
+    try {
+      const startRes = await axios.post(`${API}/cv/generate-models?token=${token}`, {
+        model_types: selectedGenModels,
+      }, { timeout: 15000 });
+      const jobId = startRes.data.job_id;
+
+      for (let i = 0; i < 120; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const res = await axios.get(`${API}/cv/generate-models/status?token=${token}&job_id=${jobId}`);
+          setGenProgress({ current: res.data.progress, total: res.data.total, currentModel: res.data.current_model || "" });
+          if (res.data.status === "completed") {
+            const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
+            if (modelsRes.data.models) setCvModels(modelsRes.data);
+            toast.success(`${selectedGenModels.length} CV généré${selectedGenModels.length > 1 ? "s" : ""} par Claude IA`);
+            setSelectedGenModels([]);
+            break;
+          }
+          if (res.data.status === "failed") {
+            throw new Error(res.data.error || "La génération a échoué");
+          }
+        } catch (err) {
+          if (err.response?.status === 502 || err.response?.status === 504 || !err.response) continue;
+          throw err;
+        }
+      }
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || "Erreur lors de la génération.";
+      toast.error(msg);
+    }
+    setGeneratingModel(false);
+    setGenProgress(null);
   };
 
   const downloadModel = (key, name) => {
@@ -746,8 +758,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         </div>
       )}
       {/* Upload Zone */}
-      <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : showModelSelection ? "border-emerald-400 bg-emerald-50/30 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
-        {!uploading && !showModelSelection && (
+      <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
+        {!uploading && (
           <input
             type="file"
             accept=".pdf,.docx,.doc,.txt"
@@ -756,62 +768,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             data-testid="cv-upload-input"
           />
         )}
-        {showModelSelection ? (
-          <div className="p-5 space-y-4" data-testid="cv-model-selection">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <div>
-                <h4 className="text-sm font-semibold text-slate-800">CV chargé : {pendingFile}</h4>
-                <p className="text-xs text-slate-500">Sélectionnez les modèles de CV à générer par Claude IA</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {CV_MODELS_CONFIG.map((cv) => {
-                const Icon = cv.icon;
-                const isSelected = selectedModels.includes(cv.key);
-                return (
-                  <button
-                    key={cv.key}
-                    onClick={() => toggleModel(cv.key)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${isSelected ? `${cv.color} border-current shadow-sm` : "bg-white border-slate-200 opacity-60 hover:opacity-80"}`}
-                    data-testid={`select-model-${cv.key}`}
-                  >
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? "border-current bg-current/10" : "border-slate-300"}`}>
-                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    </div>
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold">{cv.name}</p>
-                      <p className="text-[10px] opacity-70">{cv.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-between pt-1">
-              <p className="text-xs text-slate-500">
-                {selectedModels.length === 0 
-                  ? "Analyse seule (sans génération de CV)" 
-                  : `${selectedModels.length} modèle${selectedModels.length > 1 ? "s" : ""} sélectionné${selectedModels.length > 1 ? "s" : ""}`}
-                {selectedModels.length < 4 && selectedModels.length > 0 && (
-                  <span className="text-emerald-600 font-medium"> — analyse plus rapide</span>
-                )}
-                {selectedModels.length === 0 && (
-                  <span className="text-emerald-600 font-medium"> — analyse ultra-rapide</span>
-                )}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => { setShowModelSelection(false); setPendingFile(null); setPendingText(null); }} data-testid="cv-cancel-btn">
-                  Annuler
-                </Button>
-                <Button size="sm" onClick={startAnalysis} className="bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white" data-testid="cv-start-analysis-btn">
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Lancer l'analyse
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : uploading ? (
+        {uploading ? (
           <div className="p-6 space-y-4" data-testid="cv-upload-progress">
             {/* Timer header */}
             <div className="flex items-center justify-between">
@@ -975,36 +932,124 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         </div>
       )}
 
-      {/* CV Models Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {CV_MODELS_CONFIG.map((cv) => {
-          const hasModel = cvModels?.models?.[cv.key];
-          const Icon = cv.icon;
-          return (
-            <div key={cv.key} className={`flex items-center justify-between p-3 rounded-lg border ${cv.color} ${!hasModel ? "opacity-50" : ""}`} data-testid={`cv-model-${cv.key}`}>
-              <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold">{cv.name}</p>
-                  <p className="text-xs opacity-70">{cv.desc}</p>
-                </div>
+      {/* CV Models - Generate on demand */}
+      {analysisResult && (
+        <div className="space-y-3" data-testid="cv-models-section">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            <h4 className="text-sm font-semibold text-slate-800">Générer vos CV avec Claude IA</h4>
+          </div>
+          <p className="text-xs text-slate-500">Sélectionnez le ou les modèles de CV à générer, puis cliquez sur "Générer".</p>
+
+          {/* Generation progress */}
+          {generatingModel && genProgress && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3" data-testid="cv-gen-progress">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs font-medium text-blue-800">
+                  Génération en cours ({genProgress.current}/{genProgress.total})
+                  {genProgress.currentModel && ` — ${CV_MODELS_CONFIG.find(c => c.key === genProgress.currentModel)?.name || genProgress.currentModel}`}
+                </p>
               </div>
-              <div className="flex gap-1">
-                {hasModel && (
-                  <>
-                    <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => setViewingModel(viewingModel === cv.key ? null : cv.key)} data-testid={`view-cv-${cv.key}`}>
-                      <Play className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => downloadModel(cv.key, cv.name)} data-testid={`download-cv-${cv.key}`}>
-                      <FileDown className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
+              <div className="w-full bg-blue-200 rounded-full h-1.5">
+                <div className="bg-blue-600 h-1.5 rounded-full transition-all" style={{ width: `${Math.max(5, (genProgress.current / genProgress.total) * 100)}%` }} />
               </div>
             </div>
-          );
-        })}
-      </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {CV_MODELS_CONFIG.map((cv) => {
+              const hasModel = cvModels?.models?.[cv.key];
+              const isSelected = selectedGenModels.includes(cv.key);
+              const Icon = cv.icon;
+              return (
+                <button
+                  key={cv.key}
+                  onClick={() => !generatingModel && toggleGenModel(cv.key)}
+                  disabled={!!generatingModel}
+                  className={`p-3 rounded-lg border-2 text-left transition-all ${isSelected ? `${cv.color} border-current shadow-sm` : hasModel ? `${cv.color} border-current/30` : "bg-white border-slate-200 hover:border-slate-400"}`}
+                  data-testid={`cv-model-${cv.key}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? "border-current bg-current/20" : "border-slate-300"}`}>
+                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold truncate">{cv.name}</p>
+                        {hasModel && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Généré</span>}
+                      </div>
+                      <p className="text-[10px] opacity-70">{cv.desc}</p>
+                    </div>
+                  </div>
+                  {hasModel && (
+                    <div className="flex gap-1 mt-2 ml-8" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" size="sm" className="text-[10px] h-6 px-2" onClick={() => setViewingModel(viewingModel === cv.key ? null : cv.key)} data-testid={`view-cv-${cv.key}`}>
+                        <Play className="w-3 h-3 mr-0.5" /> Voir
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-[10px] h-6 px-2" onClick={() => downloadModel(cv.key, cv.name)} data-testid={`download-cv-${cv.key}`}>
+                        <FileDown className="w-3 h-3 mr-0.5" /> Télécharger
+                      </Button>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Generate button */}
+          {!generatingModel && (
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-slate-500">
+                {selectedGenModels.length === 0
+                  ? "Sélectionnez au moins un modèle"
+                  : `${selectedGenModels.length} modèle${selectedGenModels.length > 1 ? "s" : ""} sélectionné${selectedGenModels.length > 1 ? "s" : ""}`}
+              </p>
+              <Button
+                size="sm"
+                className="bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white"
+                onClick={generateSelectedModels}
+                disabled={selectedGenModels.length === 0}
+                data-testid="cv-generate-btn"
+              >
+                <Sparkles className="w-4 h-4 mr-1" />
+                Générer {selectedGenModels.length > 0 ? `(${selectedGenModels.length})` : ""}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CV Models - show if models exist but no current analysis displayed */}
+      {!analysisResult && cvModels?.models && Object.values(cvModels.models).some(v => v) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {CV_MODELS_CONFIG.map((cv) => {
+            const hasModel = cvModels?.models?.[cv.key];
+            const Icon = cv.icon;
+            if (!hasModel) return null;
+            return (
+              <div key={cv.key} className={`flex items-center justify-between p-3 rounded-lg border ${cv.color}`} data-testid={`cv-model-${cv.key}`}>
+                <div className="flex items-center gap-3">
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">{cv.name}</p>
+                    <p className="text-xs opacity-70">{cv.desc}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setViewingModel(viewingModel === cv.key ? null : cv.key)} data-testid={`view-cv-${cv.key}`}>
+                    <Play className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => downloadModel(cv.key, cv.name)} data-testid={`download-cv-${cv.key}`}>
+                    <FileDown className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* CV Preview */}
       {viewingModel && cvModels?.models?.[viewingModel] && (
