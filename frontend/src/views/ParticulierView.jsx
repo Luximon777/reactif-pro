@@ -1039,11 +1039,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               const isSelected = selectedGenModels.includes(cv.key);
               const Icon = cv.icon;
               return (
-                <button
+                <div
                   key={cv.key}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => !generatingModel && toggleGenModel(cv.key)}
-                  disabled={!!generatingModel}
-                  className={`p-3 rounded-lg border-2 text-left transition-all ${isSelected ? `${cv.color} border-current shadow-sm` : hasModel ? `${cv.color} border-current/30` : "bg-white border-slate-200 hover:border-slate-400"}`}
+                  className={`p-3 rounded-lg border-2 text-left transition-all cursor-pointer ${isSelected ? `${cv.color} border-current shadow-sm` : hasModel ? `${cv.color} border-current/30` : "bg-white border-slate-200 hover:border-slate-400"} ${generatingModel ? "opacity-60 cursor-not-allowed" : ""}`}
                   data-testid={`cv-model-${cv.key}`}
                 >
                   <div className="flex items-center gap-3">
@@ -1072,7 +1073,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                       </Button>
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>

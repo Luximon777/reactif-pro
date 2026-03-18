@@ -1,19 +1,18 @@
-# Re'Actif Pro - ROADMAP
+# Re'Actif Pro - Roadmap
 
-## P0 - Complete
-- [x] Persistance des resultats d'analyse CV
-- [x] Enrichissement analyse CV (competences transversales + offres emploi)
-- [x] Refactoring backend monolithique
-- [x] Selection des modeles de CV avant analyse (gain de temps)
-- [x] Integration Claude AI pour la generation/reconstitution de CV
+## Completed (P0)
+- [x] CV Analysis 2-step flow (fast + on-demand)
+- [x] DOCX generation and download
+- [x] PDF generation and download
+- [x] Backend modular architecture
 
-## P1 - A venir
-- [ ] Refactoring frontend: decomposer ParticulierView.jsx (400+ lignes)
-- [ ] Refactoring frontend: decomposer ExplorateurView.jsx (300+ lignes)
+## P2 - Technical Debt
+- [ ] Refactor ParticulierView.jsx (>1100 lines monolith)
+  - Split into: CvUploadZone, CvAnalysisResult, CvModelGrid, CvPreview
 
-## P2 - Backlog
-- [ ] Integration referentiel CCSP (Doc 1 & 2) pour l'evaluation des competences
-- [ ] Outil de diagnostic fonctionnel base sur CCSP
-- [ ] Modules d'auto-evaluation Soft Skills (CSE) et Valeurs (VIA)
-- [ ] Fonctionnalite ateliers de Codeveloppement
-- [ ] Systeme de micro-titres/badges pour certification des competences
+## P3 - Future Features
+- [ ] Integration approfondie du referentiel CCSP
+- [ ] Outil de diagnostic fonctionnel base sur le CCSP
+- [ ] Modules d'auto-evaluation (Soft Skills CSE, Valeurs VIA)
+- [ ] Ateliers de Codeveloppement
+- [ ] Systeme de micro-titres/badges
