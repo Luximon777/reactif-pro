@@ -25,10 +25,9 @@ class GenerateModelRequest(BaseModel):
 async def _claude_generate_single_cv(cv_text: str, model_type: str, audit_data: list = None) -> dict:
     """Use Claude to generate an OPTIMIZED CV based on audit findings"""
     model_descriptions = {
-        "classique": "CV chronologique classique : profil, experiences par ordre chronologique inverse, formation, competences.",
+        "classique": "CV chronologique classique : experiences par ordre chronologique inverse, formation, competences.",
         "competences": "CV axe competences : competences cles regroupees par domaine en premier, puis experiences.",
-        "fonctionnel": "CV fonctionnel : competences par domaines fonctionnels, sans chronologie stricte.",
-        "mixte": "CV mixte : parcours chronologique + competences transferables mises en valeur.",
+        "transversale": "CV transversal : competences transferables et transversales mises en valeur, parcours multi-secteurs.",
     }
     desc = model_descriptions.get(model_type, model_descriptions["classique"])
 
@@ -43,46 +42,11 @@ async def _claude_generate_single_cv(cv_text: str, model_type: str, audit_data: 
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"cv-gen-{uuid.uuid4()}",
-                system_message=f"""Tu es un expert en optimisation de CV professionnel en France.
-Tu dois OPTIMISER le CV fourni en corrigeant tous les points faibles identifies.
-
-Type de CV demande : {desc}
-
-REGLES D'OPTIMISATION OBLIGATOIRES :
-1. TITRE CLAIR ET CIBLE : Repond a "Pour quel poste cette personne postule?" (ex: "Developpeur Full Stack - React & Python")
-2. ACCROCHE PERCUTANTE : 3-5 lignes structurees (Qui je suis / Mes points forts / Mon objectif)
-3. EXPERIENCES VALORISEES : Verbes d'action + chiffres concrets (ex: "Gestion de 50 dossiers/mois", "Reduction des erreurs de 20%")
-4. COMPETENCES DISTINGUEES : Hard skills (techniques) et soft skills (transverses) bien separees
-5. FORMATION SYNTHETIQUE : Seulement les elements pertinents
-6. MOTS-CLES ATS : Inclure les termes cles du secteur pour passer les filtres automatiques
-7. ZERO SUPERFLU : Pas d'objectifs flous, pas d'infos inutiles
-8. COHERENCE : Parcours logique, alignement avec le projet professionnel
+                system_message=f"""Expert en optimisation CV professionnel. Type: {desc}
 {audit_context}
-
-Reponds UNIQUEMENT en JSON valide. Structure exacte :
-{{
-  "nom": "Prenom NOM",
-  "titre": "Titre professionnel cible et percutant",
-  "contact": {{"email": "...", "telephone": "...", "adresse": "...", "linkedin": "..."}},
-  "profil": "Accroche professionnelle percutante en 3-5 phrases (Qui je suis / Points forts / Objectif)",
-  "competences_cles": ["competence 1", "competence 2", ...],
-  "experiences": [
-    {{"poste": "...", "entreprise": "...", "periode": "...", "missions": ["mission avec verbe d'action + chiffre", ...]}}
-  ],
-  "formations": [
-    {{"diplome": "...", "etablissement": "...", "annee": "..."}}
-  ],
-  "competences_techniques": {{"Domaine 1": ["comp1", "comp2"], "Domaine 2": ["comp3"]}},
-  "langues": [{{"langue": "...", "niveau": "..."}}],
-  "centres_interet": ["..."]
-}}
-
-IMPORTANT :
-- Chaque mission doit commencer par un verbe d'action (Coordonne, Gere, Developpe, Optimise...)
-- Ajouter des chiffres et resultats concrets aux missions quand possible
-- L'accroche (profil) doit suivre la structure : Qui je suis / Points forts / Objectif
-- Le titre doit etre precis et cible, PAS generique
-- Contenu riche, minimum 4-6 missions par poste, vocabulaire professionnel"""
+Reponds UNIQUEMENT en JSON valide:
+{{"nom":"","titre":"Titre professionnel cible","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"Accroche 3-5 phrases: Qui je suis / Points forts / Objectif","competences_cles":[],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":["verbe action + chiffre"]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{"Domaine":["comp1"]}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}
+Regles: verbes d'action + chiffres, titre cible, accroche structuree, 4-6 missions/poste."""
             ).with_model("anthropic", "claude-sonnet-4-5-20250929")
             response = await chat.send_message(UserMessage(text=f"Optimise ce CV au format '{model_type}' en corrigeant tous les points faibles :\n\n{cv_text[:6000]}"))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
@@ -98,7 +62,7 @@ IMPORTANT :
             logging.warning(f"Claude CV gen attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 try:
-                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Optimise un CV en JSON structure. Type: {desc}. Meme structure JSON que demande. Utilise des verbes d'action et des chiffres concrets.").with_model("openai", "gpt-5.2")
+                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Optimise un CV en JSON structure. Type: {desc}. Meme structure JSON.").with_model("openai", "gpt-5.2")
                     response = await chat.send_message(UserMessage(text=f"CV :\n\n{cv_text[:6000]}"))
                     raw = response.strip() if isinstance(response, str) else response.text.strip()
                     if raw.startswith("```"):
@@ -379,7 +343,7 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
         if not cv_text or len(cv_text) < 50:
             await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
             return
-        cv_excerpt = cv_text[:6000]
+        cv_excerpt = cv_text[:4000]
 
         # Store CV text for later model generation
         await db.cv_texts.update_one(
@@ -391,47 +355,34 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences..."}})
 
         analysis = await _llm_call_with_retry(
-            system_msg="""Tu es un expert RH et consultant en optimisation de CV. Analyse ce CV selon les 12 regles professionnelles. Reponds UNIQUEMENT en JSON valide (pas de markdown).
-Structure exacte:
+            system_msg="""Expert RH. Analyse ce CV. Reponds UNIQUEMENT en JSON valide.
 {
-  "profile": {"professional_summary": "2-3 phrases", "career_project": "string", "motivations": [], "compatible_environments": [], "target_sectors": []},
-  "savoir_faire": [{"name": "string", "category": "technique|transversale|transferable|sectorielle", "level": "debutant|intermediaire|avance|expert", "ccsp_pole": "realisation|interaction|initiative", "ccsp_degree": "imitation|adaptation|transposition"}],
-  "savoir_etre": [{"name": "string", "category": "transversale|transferable", "level": "debutant|intermediaire|avance|expert", "linked_qualites": [], "linked_valeurs": [], "linked_vertus": []}],
-  "competences_transversales": ["communication", "travail en equipe", ...],
+  "profile": {"professional_summary": "2-3 phrases", "career_project": "", "motivations": [], "compatible_environments": [], "target_sectors": []},
+  "savoir_faire": [{"name": "", "category": "technique|transversale|transferable", "level": "debutant|intermediaire|avance|expert"}],
+  "savoir_etre": [{"name": "", "category": "transversale|transferable", "level": "intermediaire"}],
+  "competences_transversales": [],
   "competences_transferables": [],
-  "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "skills_used": [], "achievements": []}],
-  "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
-  "offres_emploi_suggerees": [{"titre": "string", "secteur": "string", "type_contrat": "CDI|CDD|Interim|Alternance", "description_courte": "string", "competences_requises": []}],
+  "experiences": [{"title": "", "organization": "", "description": "", "experience_type": "professionnel", "skills_used": [], "achievements": []}],
+  "formations_suggestions": [{"title": "", "reason": "", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
+  "offres_emploi_suggerees": [{"titre": "", "secteur": "", "type_contrat": "CDI|CDD", "description_courte": "", "competences_requises": []}],
   "audit_cv": [
-    {"regle": "Clarte et lisibilite", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "Explication precise de ce qui va ou ne va pas", "recommandation": "Conseil concret d'amelioration"},
-    {"regle": "Titre clair et cible", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Accroche professionnelle", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Valorisation des experiences", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Mise en avant des competences", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Formation synthetique", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Adaptation a l'offre", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Mots-cles ATS", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Absence de superflu", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Coherence et authenticite", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Structure type respectee", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
-    {"regle": "Strategie globale (lisibilite, credibilite, alignement)", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."}
+    {"regle": "Clarte et lisibilite", "score": 0, "statut": "ok|ameliorable|absent", "diagnostic": "", "recommandation": ""},
+    {"regle": "Titre clair et cible", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Accroche professionnelle", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Valorisation des experiences", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Competences (hard+soft)", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Formation", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Mots-cles ATS", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Absence de superflu", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Coherence du parcours", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""},
+    {"regle": "Structure type", "score": 0, "statut": "", "diagnostic": "", "recommandation": ""}
   ],
-  "score_global_cv": 0-100,
-  "modele_suggere": "classique|competences|fonctionnel|mixte",
-  "raison_modele": "Explication de pourquoi ce modele est le plus adapte au profil"
+  "score_global_cv": 0,
+  "modele_suggere": "classique|competences|transversale",
+  "raison_modele": ""
 }
-IMPORTANT:
-- audit_cv: evalue CHACUNE des 12 regles avec un score /10, un diagnostic precis, et une recommandation concrete
-- score_global_cv: moyenne ponderee des 12 scores (sur 100)
-- modele_suggere: le type de CV le plus adapte au profil du candidat parmi classique, competences, fonctionnel, mixte
-- competences_transversales: liste de 5-10 competences transversales identifiees
-- offres_emploi_suggerees: liste de 3-5 offres d'emploi pertinentes
-- Pour les experiences: identifie si elles utilisent des verbes d'action et des chiffres concrets
-- Pour le titre: verifie qu'il repond a "Pour quel poste cette personne postule?"
-- Pour l'accroche: verifie la structure Qui je suis / Mes points forts / Mon objectif
-Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
-Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
-            user_msg=f"Analyse et audite ce CV selon les 12 regles professionnelles:\n\n{cv_excerpt}"
+Regles: score 0-10, statut ok/ameliorable/absent. Score global sur 100. modele_suggere parmi classique, competences, transversale.""",
+            user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
         )
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Remplissage du passeport..."}})
@@ -551,7 +502,7 @@ async def analyze_cv_text(token: str, payload: CvTextPayload):
 async def generate_cv_models(token: str, request: GenerateModelRequest):
     """Optimize and generate selected CV models using Claude AI"""
     token_doc = await get_current_token(token)
-    valid_types = {"classique", "competences", "fonctionnel", "mixte"}
+    valid_types = {"classique", "competences", "transversale"}
     selected = [m for m in request.model_types if m in valid_types]
     if not selected:
         raise HTTPException(status_code=400, detail="Aucun type de modele valide selectionne")
@@ -605,11 +556,11 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
 async def download_cv_docx(token: str, model_type: str):
     """Download a generated CV as DOCX file"""
     token_doc = await get_current_token(token)
-    if model_type not in ("classique", "competences", "fonctionnel", "mixte"):
-        raise HTTPException(status_code=400, detail="Type de modèle invalide")
+    if model_type not in ("classique", "competences", "transversale"):
+        raise HTTPException(status_code=400, detail="Type de modele invalide")
     cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not cv_doc or not cv_doc.get("docx", {}).get(model_type):
-        raise HTTPException(status_code=404, detail="Ce modèle de CV n'a pas encore été généré")
+        raise HTTPException(status_code=404, detail="Ce modele de CV n'a pas encore ete genere")
     docx_bytes = base64.b64decode(cv_doc["docx"][model_type])
     filename = f"CV_{model_type.capitalize()}.docx"
     return StreamingResponse(
@@ -623,7 +574,7 @@ async def download_cv_docx(token: str, model_type: str):
 async def download_cv_pdf(token: str, model_type: str):
     """Download a generated CV as PDF file"""
     token_doc = await get_current_token(token)
-    if model_type not in ("classique", "competences", "fonctionnel", "mixte"):
+    if model_type not in ("classique", "competences", "transversale"):
         raise HTTPException(status_code=400, detail="Type de modele invalide")
     cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not cv_doc or not cv_doc.get("pdf", {}).get(model_type):

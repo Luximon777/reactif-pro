@@ -18,7 +18,7 @@ async def get_current_token(token: str) -> dict:
     return token_doc
 
 
-async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 2) -> dict:
+async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 1) -> dict:
     last_error = None
     for attempt in range(max_retries + 1):
         try:
