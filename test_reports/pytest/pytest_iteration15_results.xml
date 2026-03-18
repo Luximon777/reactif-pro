@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="10" time="281.528" timestamp="2026-03-18T19:26:14.840450+00:00" hostname="agent-env-bd44c681-44c6-4654-bf0d-18f67aea658c"><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_analyze_text_starts_job" time="20.936" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_analyze_status_endpoint" time="60.157"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:976: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_cv_endpoints_quick.py:56: in test_analyze_status_endpoint
+    job_id = response.json()["job_id"]
+             ^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:980: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_generate_models_requires_cv_text" time="60.226"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:976: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_cv_endpoints_quick.py:71: in test_generate_models_requires_cv_text
+    new_token = requests.post(f"{BASE_URL}/api/auth/anonymous", json={"role": "particulier"}).json()["token"]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:980: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_generate_models_rejects_invalid_types" time="3.277" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_generate_models_rejects_empty_list" time="0.134" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_cv_models_endpoint" time="0.191" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestCVEndpoints" name="test_latest_analysis_endpoint" time="0.113" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestDownloadEndpoints" name="test_download_docx_without_generation" time="136.112" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestDownloadEndpoints" name="test_download_pdf_without_generation" time="0.132" /><testcase classname="backend.tests.test_cv_endpoints_quick.TestDownloadEndpoints" name="test_invalid_model_type_download" time="0.122" /></testsuite></testsuites>

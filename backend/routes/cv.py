@@ -239,6 +239,113 @@ def _build_docx(cv_data: dict, model_type: str) -> bytes:
     return buf.getvalue()
 
 
+def _build_pdf(cv_data: dict, model_type: str) -> bytes:
+    """Build a professionally formatted PDF from structured CV data"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm, mm
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+
+    NAVY = "#1e3a5f"
+    DARK = "#1e293b"
+    GRAY = "#64748b"
+    LIGHT_GRAY = "#d1d5db"
+
+    styles = getSampleStyleSheet()
+    s_name = ParagraphStyle("CVName", parent=styles["Title"], fontSize=20, textColor=HexColor(NAVY), alignment=TA_CENTER, spaceAfter=2*mm, fontName="Helvetica-Bold")
+    s_title = ParagraphStyle("CVTitle", parent=styles["Normal"], fontSize=12, textColor=HexColor(GRAY), alignment=TA_CENTER, spaceAfter=2*mm)
+    s_contact = ParagraphStyle("CVContact", parent=styles["Normal"], fontSize=8, textColor=HexColor(GRAY), alignment=TA_CENTER, spaceAfter=4*mm)
+    s_heading = ParagraphStyle("CVHeading", parent=styles["Heading2"], fontSize=11, textColor=HexColor(NAVY), spaceBefore=6*mm, spaceAfter=2*mm, fontName="Helvetica-Bold")
+    s_body = ParagraphStyle("CVBody", parent=styles["Normal"], fontSize=9, textColor=HexColor(DARK), leading=13, spaceAfter=2*mm)
+    s_sub = ParagraphStyle("CVSub", parent=styles["Normal"], fontSize=8, textColor=HexColor(GRAY), spaceAfter=1*mm)
+    s_bold = ParagraphStyle("CVBold", parent=styles["Normal"], fontSize=10, textColor=HexColor(DARK), fontName="Helvetica-Bold", spaceAfter=1*mm)
+    s_bullet = ParagraphStyle("CVBullet", parent=styles["Normal"], fontSize=9, textColor=HexColor(DARK), leftIndent=10*mm, bulletIndent=5*mm, leading=12, spaceAfter=1*mm)
+
+    elements = []
+
+    # Name
+    name = cv_data.get("nom", "Candidat")
+    elements.append(Paragraph(name.upper(), s_name))
+
+    # Title
+    titre = cv_data.get("titre", "")
+    if titre:
+        elements.append(Paragraph(titre, s_title))
+
+    # Contact
+    contact = cv_data.get("contact", {})
+    contact_parts = [v for k in ("email", "telephone", "adresse", "linkedin") if (v := contact.get(k))]
+    if contact_parts:
+        elements.append(Paragraph(" | ".join(contact_parts), s_contact))
+
+    # Separator
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=HexColor(LIGHT_GRAY), spaceAfter=4*mm))
+
+    # Profile
+    profil = cv_data.get("profil", "")
+    if profil:
+        elements.append(Paragraph("PROFIL PROFESSIONNEL", s_heading))
+        elements.append(Paragraph(profil, s_body))
+
+    # Key skills
+    competences_cles = cv_data.get("competences_cles", [])
+    if competences_cles:
+        elements.append(Paragraph("COMP&Eacute;TENCES CL&Eacute;S", s_heading))
+        elements.append(Paragraph(" &bull; ".join(competences_cles), s_body))
+
+    # Experiences
+    experiences = cv_data.get("experiences", [])
+    if experiences:
+        elements.append(Paragraph("EXP&Eacute;RIENCES PROFESSIONNELLES", s_heading))
+        for exp in experiences:
+            elements.append(Paragraph(exp.get("poste", ""), s_bold))
+            sub_parts = [exp.get("entreprise", ""), exp.get("periode", "")]
+            elements.append(Paragraph(" &mdash; ".join([p for p in sub_parts if p]), s_sub))
+            for mission in exp.get("missions", []):
+                safe_mission = mission.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                elements.append(Paragraph(f"&bull; {safe_mission}", s_bullet))
+            elements.append(Spacer(1, 2*mm))
+
+    # Education
+    formations = cv_data.get("formations", [])
+    if formations:
+        elements.append(Paragraph("FORMATION", s_heading))
+        for f in formations:
+            elements.append(Paragraph(f.get("diplome", ""), s_bold))
+            details = [f.get("etablissement", ""), f.get("annee", "")]
+            elements.append(Paragraph(" &mdash; ".join([d for d in details if d]), s_sub))
+
+    # Technical skills
+    comp_tech = cv_data.get("competences_techniques", {})
+    if comp_tech:
+        elements.append(Paragraph("COMP&Eacute;TENCES TECHNIQUES", s_heading))
+        for domain, skills in comp_tech.items():
+            skill_str = ", ".join(skills) if isinstance(skills, list) else str(skills)
+            elements.append(Paragraph(f"<b>{domain} :</b> {skill_str}", s_body))
+
+    # Languages
+    langues = cv_data.get("langues", [])
+    if langues:
+        elements.append(Paragraph("LANGUES", s_heading))
+        for l in langues:
+            elements.append(Paragraph(f"{l.get('langue', '')} &mdash; {l.get('niveau', '')}", s_body))
+
+    # Interests
+    centres = cv_data.get("centres_interet", [])
+    if centres:
+        elements.append(Paragraph("CENTRES D'INT&Eacute;R&Ecirc;T", s_heading))
+        elements.append(Paragraph(" &bull; ".join(centres), s_body))
+
+    doc.build(elements)
+    buf.seek(0)
+    return buf.getvalue()
+
+
 async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False):
     """Analysis only - no CV generation. Fast."""
     try:
@@ -412,15 +519,18 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
                 cv_data = await _claude_generate_single_cv(cv_text_doc["text"], model_type)
-                # Build DOCX
+                # Build DOCX + PDF
                 docx_bytes = _build_docx(cv_data, model_type)
                 docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
-                # Store structured data + DOCX
+                pdf_bytes = _build_pdf(cv_data, model_type)
+                pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+                # Store structured data + DOCX + PDF
                 await db.cv_models.update_one(
                     {"token_id": token_doc["id"]},
                     {"$set": {
                         f"models.{model_type}": json.dumps(cv_data, ensure_ascii=False),
                         f"docx.{model_type}": docx_b64,
+                        f"pdf.{model_type}": pdf_b64,
                         "analyzed_at": datetime.now(timezone.utc).isoformat()
                     }},
                     upsert=True
@@ -448,6 +558,24 @@ async def download_cv_docx(token: str, model_type: str):
     return StreamingResponse(
         io.BytesIO(docx_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.get("/cv/download-pdf/{model_type}")
+async def download_cv_pdf(token: str, model_type: str):
+    """Download a generated CV as PDF file"""
+    token_doc = await get_current_token(token)
+    if model_type not in ("classique", "competences", "fonctionnel", "mixte"):
+        raise HTTPException(status_code=400, detail="Type de modele invalide")
+    cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not cv_doc or not cv_doc.get("pdf", {}).get(model_type):
+        raise HTTPException(status_code=404, detail="Ce modele de CV PDF n'a pas encore ete genere")
+    pdf_bytes = base64.b64decode(cv_doc["pdf"][model_type])
+    filename = f"CV_{model_type.capitalize()}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 

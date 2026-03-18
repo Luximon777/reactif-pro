@@ -821,6 +821,10 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     window.open(`${API}/cv/download/${key}?token=${token}`, '_blank');
   };
 
+  const downloadModelPdf = (key) => {
+    window.open(`${API}/cv/download-pdf/${key}?token=${token}`, '_blank');
+  };
+
   return (
     <div className="space-y-4">
       {loadingPrevious && (
@@ -1061,7 +1065,10 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                         <Play className="w-3 h-3 mr-0.5" /> Voir
                       </Button>
                       <Button variant="outline" size="sm" className="text-[10px] h-6 px-2" onClick={() => downloadModel(cv.key)} data-testid={`download-cv-${cv.key}`}>
-                        <FileDown className="w-3 h-3 mr-0.5" /> DOCX
+                        <FileDown className="w-3 h-3 mr-0.5" /> Word
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-[10px] h-6 px-2 text-red-600 border-red-200 hover:bg-red-50" onClick={() => downloadModelPdf(cv.key)} data-testid={`download-pdf-${cv.key}`}>
+                        <FileDown className="w-3 h-3 mr-0.5" /> PDF
                       </Button>
                     </div>
                   )}
@@ -1116,6 +1123,9 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                   <Button variant="ghost" size="sm" onClick={() => downloadModel(cv.key)} data-testid={`download-cv-${cv.key}`}>
                     <FileDown className="w-4 h-4" />
                   </Button>
+                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => downloadModelPdf(cv.key)} data-testid={`download-pdf-${cv.key}`}>
+                    <FileText className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             );
@@ -1129,8 +1139,11 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-semibold text-sm text-slate-800">{CV_MODELS_CONFIG.find(c => c.key === viewingModel)?.name}</h4>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => downloadModel(viewingModel)} data-testid="cv-preview-download">
-                <FileDown className="w-3 h-3 mr-1" /> Télécharger DOCX
+              <Button variant="outline" size="sm" onClick={() => downloadModel(viewingModel)} data-testid="cv-preview-download-word">
+                <FileDown className="w-3 h-3 mr-1" /> Word
+              </Button>
+              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => downloadModelPdf(viewingModel)} data-testid="cv-preview-download-pdf">
+                <FileDown className="w-3 h-3 mr-1" /> PDF
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setViewingModel(null)}>Fermer</Button>
             </div>
