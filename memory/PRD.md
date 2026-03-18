@@ -1,31 +1,51 @@
-# Ré'Actif Pro - Product Requirements Document
+# Re'Actif Pro - PRD (Product Requirements Document)
 
-## Core Concept
-Plateforme d'intelligence professionnelle basée sur l'archéologie des compétences.
-Chaîne : Filière → Secteur → Métier → Mission → Savoir-faire/Capacité technique → Savoir-être → Capacité pro → Qualités humaines → Valeurs → Vertus
+## Problem Statement
+Plateforme full-stack "Re'Actif Pro" axee sur l'analyse de CV par IA, la gestion d'un "Passeport de Competences" dynamique et l'exploration des metiers via une "archeologie des competences" (reliant savoir-faire, savoir-etre, qualites, valeurs et vertus).
 
-## Completed Features
-- [x] Auth anonyme, 3 dashboards, Passeport Dynamique, Observatoire
-- [x] Analyse IA de CV (PDF/DOCX/TXT) avec background processing + polling
-- [x] Logo SVG vectoriel
-- [x] **Explorateur des Métiers v2** (16 mars 2026)
-  - Saisie métier + Entrée comme point d'entrée principal
-  - Auto-complétion depuis la base (45 métiers) + génération IA pour tout métier inconnu
-  - Fiche complète: Filière, Secteur, Mission, Métiers similaires, Savoir-faire/CT
-  - **Chaîne archéologique complète** : SE → Capacité pro → Qualités → Valeurs → Vertus
-  - Cache des fiches générées par l'IA (MongoDB: generated_metiers)
-  - Background processing + polling pour la génération IA
+## Core Requirements
+1. **Authentification** : Systeme d'authentification anonyme
+2. **Analyse de CV par IA** : Upload CV + extraction + analyse IA + auto-remplissage du passeport
+3. **Explorateur de Metiers** : Interface search-first avec fiches metiers et chaine archeologique
+4. **Passeport de Competences** : Visualisation dynamique des competences (CCSP, Lamri-Lubart)
+5. **Observatoire des Competences** : Suivi des competences emergentes et tendances sectorielles
+6. **Indice d'Evolution** : Mesure de la mutation des metiers et secteurs
+7. **Ubuntoo Intelligence** : Analyse des signaux faibles du marche du travail
+8. **Coffre-Fort Numerique** : Stockage securise de documents professionnels
 
-## Key Endpoints
-- GET `/api/referentiel/explorer/metier/{name}` - Fiche DB
-- POST `/api/referentiel/explorer/generate` - Génération IA (background)
-- GET `/api/referentiel/explorer/generate/status` - Poll résultat IA
+## Tech Stack
+- **Backend**: FastAPI, MongoDB, Python
+- **Frontend**: React, Tailwind CSS, Shadcn/UI
+- **AI**: OpenAI GPT-5.2 (via Emergent LLM Key)
+- **Architecture**: Modular routes with APIRouter
 
-## Prioritized Backlog
-### P0
-- [ ] Refactoring backend (server.py ~3900+ lignes)
-### P1
-- [ ] Génération PDF des modèles de CV
-- [ ] Quiz d'orientation basé sur l'explorateur
-### P2
-- [ ] CCSP diagnostic, export PDF passeport, mode sombre
+## What's Been Implemented
+- Analyse de CV robuste (background jobs + polling + client-side extraction)
+- Explorateur de Metiers avec generation IA
+- Passeport de Competences dynamique
+- Observatoire des Competences
+- Indice d'Evolution des Metiers
+- Ubuntoo Intelligence
+- Coffre-Fort Numerique
+- Logo SVG corrige
+
+## Architecture (v2.0 - Refactored)
+```
+/app/backend/
+  server.py          # Slim app setup (45 lines)
+  db.py              # Database connection
+  models.py          # All Pydantic models
+  helpers.py         # Shared helper functions
+  referentiel_data.py # Static reference data
+  routes/
+    auth.py          # Auth + profile
+    cv.py            # CV analysis (with persistence)
+    passport.py      # Passport + archaeology
+    explorer.py      # Referentiel explorer
+    jobs.py          # Jobs, learning, RH, metrics
+    coffre.py        # Coffre-fort
+    observatoire.py  # Observatoire
+    evolution.py     # Evolution index
+    ubuntoo.py       # Ubuntoo intelligence
+    seed.py          # Seed data + root
+```
