@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 import asyncio
 import uuid
 import json
 import logging
 import base64
+import io
 from datetime import datetime, timezone
 from models import CvTextPayload, CvBase64Payload, PassportCompetence, PassportExperience
 from db import db, EMERGENT_LLM_KEY
@@ -17,16 +19,16 @@ router = APIRouter()
 
 
 class GenerateModelRequest(BaseModel):
-    model_types: List[str]  # ["classique", "competences", "fonctionnel", "mixte"]
+    model_types: List[str]
 
 
-async def _claude_generate_single_cv(cv_text: str, model_type: str) -> str:
-    """Use Claude Sonnet to generate a single CV model"""
+async def _claude_generate_single_cv(cv_text: str, model_type: str) -> dict:
+    """Use Claude to generate structured CV content as JSON sections"""
     model_descriptions = {
-        "classique": "CV chronologique classique : sobre, professionnel, avec sections claires (Coordonnées, Profil, Expériences, Formation, Compétences). Utilise un ton formel et structuré.",
-        "competences": "CV axé compétences : organise par domaines de savoir-faire et savoir-être. Met en avant les compétences clés regroupées par thématique avant les expériences.",
-        "fonctionnel": "CV fonctionnel : présente les compétences par grands domaines fonctionnels sans chronologie. Idéal pour reconversion ou parcours atypique.",
-        "mixte": "CV mixte : combine parcours chronologique et mise en valeur des compétences transférables. Montre l'évolution professionnelle tout en soulignant la polyvalence.",
+        "classique": "CV chronologique classique : profil, expériences par ordre chronologique inverse, formation, compétences.",
+        "competences": "CV axé compétences : compétences clés regroupées par domaine en premier, puis expériences.",
+        "fonctionnel": "CV fonctionnel : compétences par domaines fonctionnels, sans chronologie stricte.",
+        "mixte": "CV mixte : parcours chronologique + compétences transférables mises en valeur.",
     }
     desc = model_descriptions.get(model_type, model_descriptions["classique"])
 
@@ -36,34 +38,205 @@ async def _claude_generate_single_cv(cv_text: str, model_type: str) -> str:
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"cv-gen-{uuid.uuid4()}",
                 system_message=f"""Tu es un rédacteur de CV professionnel expert en France.
-Reconstitue et génère un CV complet, bien rédigé et prêt à l'emploi.
+Génère un CV complet et détaillé. Réponds UNIQUEMENT en JSON valide.
 
-Type demandé : {desc}
+Type : {desc}
 
-RÈGLES :
-- Rédige un CV complet, détaillé et professionnel en français
-- Le CV doit faire au moins 300 mots avec des phrases complètes
-- Utilise un vocabulaire riche et professionnel adapté au secteur
-- Mets en valeur les réalisations concrètes et les résultats chiffrés
-- Réponds UNIQUEMENT avec le texte du CV, pas de JSON, pas de markdown"""
+Structure JSON exacte :
+{{
+  "nom": "Prénom NOM",
+  "titre": "Titre professionnel",
+  "contact": {{"email": "...", "telephone": "...", "adresse": "...", "linkedin": "..."}},
+  "profil": "Résumé professionnel en 3-4 phrases percutantes",
+  "competences_cles": ["compétence 1", "compétence 2", ...],
+  "experiences": [
+    {{"poste": "...", "entreprise": "...", "periode": "...", "missions": ["mission 1", "mission 2", ...]}}
+  ],
+  "formations": [
+    {{"diplome": "...", "etablissement": "...", "annee": "..."}}
+  ],
+  "competences_techniques": {{"Domaine 1": ["comp1", "comp2"], "Domaine 2": ["comp3"]}},
+  "langues": [{{"langue": "...", "niveau": "..."}}],
+  "centres_interet": ["..."]
+}}
+
+IMPORTANT : Contenu riche et détaillé, minimum 6 expériences/missions par poste, vocabulaire professionnel."""
             ).with_model("anthropic", "claude-sonnet-4-5-20250929")
             response = await chat.send_message(UserMessage(text=f"Reconstitue ce CV au format '{model_type}' :\n\n{cv_text[:6000]}"))
-            return response.strip() if isinstance(response, str) else response.text.strip()
+            raw = response.strip() if isinstance(response, str) else response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+                raw = raw.strip()
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            logging.warning(f"Claude CV gen JSON error attempt {attempt+1}")
         except Exception as e:
             logging.warning(f"Claude CV gen attempt {attempt+1} failed: {e}")
             if attempt == 2:
-                # Fallback to GPT
                 try:
-                    chat = LlmChat(
-                        api_key=EMERGENT_LLM_KEY,
-                        session_id=f"cv-gpt-{uuid.uuid4()}",
-                        system_message=f"Tu es un rédacteur de CV professionnel. Génère un CV complet au format: {desc}. Réponds uniquement avec le texte du CV."
-                    ).with_model("openai", "gpt-5.2")
-                    response = await chat.send_message(UserMessage(text=f"Génère ce CV :\n\n{cv_text[:6000]}"))
-                    return response.strip() if isinstance(response, str) else response.text.strip()
+                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Génère un CV en JSON structuré. Type: {desc}. Même structure JSON que demandé.").with_model("openai", "gpt-5.2")
+                    response = await chat.send_message(UserMessage(text=f"CV :\n\n{cv_text[:6000]}"))
+                    raw = response.strip() if isinstance(response, str) else response.text.strip()
+                    if raw.startswith("```"):
+                        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                        if raw.endswith("```"):
+                            raw = raw[:-3]
+                    return json.loads(raw.strip())
                 except Exception as e2:
-                    logging.error(f"GPT fallback also failed: {e2}")
                     raise Exception(f"Impossible de générer le CV: {e2}")
+    raise Exception("Échec après 3 tentatives")
+
+
+def _build_docx(cv_data: dict, model_type: str) -> bytes:
+    """Build a professionally formatted DOCX from structured CV data"""
+    from docx import Document
+    from docx.shared import Pt, Inches, Cm, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+
+    # Page margins
+    for section in doc.sections:
+        section.top_margin = Cm(1.5)
+        section.bottom_margin = Cm(1.5)
+        section.left_margin = Cm(2)
+        section.right_margin = Cm(2)
+
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Calibri'
+    font.size = Pt(10)
+    font.color.rgb = RGBColor(0x33, 0x41, 0x55)
+
+    NAVY = RGBColor(0x1e, 0x3a, 0x5f)
+    DARK = RGBColor(0x1e, 0x29, 0x3b)
+    GRAY = RGBColor(0x64, 0x74, 0x8b)
+
+    def add_heading_styled(text, level=1):
+        h = doc.add_heading(text, level=level)
+        for run in h.runs:
+            run.font.color.rgb = NAVY
+            run.font.name = 'Calibri'
+        return h
+
+    # Name
+    name = cv_data.get("nom", "Candidat")
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run(name.upper())
+    run.font.size = Pt(22)
+    run.font.color.rgb = NAVY
+    run.bold = True
+    run.font.name = 'Calibri'
+
+    # Title
+    titre = cv_data.get("titre", "")
+    if titre:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(titre)
+        run.font.size = Pt(13)
+        run.font.color.rgb = GRAY
+        run.font.name = 'Calibri'
+
+    # Contact
+    contact = cv_data.get("contact", {})
+    contact_parts = []
+    if contact.get("email"): contact_parts.append(contact["email"])
+    if contact.get("telephone"): contact_parts.append(contact["telephone"])
+    if contact.get("adresse"): contact_parts.append(contact["adresse"])
+    if contact_parts:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(" | ".join(contact_parts))
+        run.font.size = Pt(9)
+        run.font.color.rgb = GRAY
+
+    # Separator
+    doc.add_paragraph("_" * 60).runs[0].font.color.rgb = RGBColor(0xd1, 0xd5, 0xdb)
+
+    # Profile
+    profil = cv_data.get("profil", "")
+    if profil:
+        add_heading_styled("PROFIL PROFESSIONNEL", level=2)
+        p = doc.add_paragraph(profil)
+        p.paragraph_format.space_after = Pt(6)
+
+    # Key skills
+    competences_cles = cv_data.get("competences_cles", [])
+    if competences_cles:
+        add_heading_styled("COMPÉTENCES CLÉS", level=2)
+        p = doc.add_paragraph(" • ".join(competences_cles))
+        for run in p.runs:
+            run.font.size = Pt(10)
+
+    # Experiences
+    experiences = cv_data.get("experiences", [])
+    if experiences:
+        add_heading_styled("EXPÉRIENCES PROFESSIONNELLES", level=2)
+        for exp in experiences:
+            p = doc.add_paragraph()
+            run = p.add_run(exp.get("poste", ""))
+            run.bold = True
+            run.font.size = Pt(11)
+            run.font.color.rgb = DARK
+            if exp.get("entreprise") or exp.get("periode"):
+                run = p.add_run(f"\n{exp.get('entreprise', '')} — {exp.get('periode', '')}")
+                run.font.size = Pt(9)
+                run.font.color.rgb = GRAY
+            for mission in exp.get("missions", []):
+                mp = doc.add_paragraph(mission, style='List Bullet')
+                mp.paragraph_format.space_after = Pt(1)
+                mp.paragraph_format.left_indent = Cm(1)
+
+    # Education
+    formations = cv_data.get("formations", [])
+    if formations:
+        add_heading_styled("FORMATION", level=2)
+        for f in formations:
+            p = doc.add_paragraph()
+            run = p.add_run(f.get("diplome", ""))
+            run.bold = True
+            run.font.color.rgb = DARK
+            details = []
+            if f.get("etablissement"): details.append(f["etablissement"])
+            if f.get("annee"): details.append(f["annee"])
+            if details:
+                run = p.add_run(f"\n{' — '.join(details)}")
+                run.font.size = Pt(9)
+                run.font.color.rgb = GRAY
+
+    # Technical skills
+    comp_tech = cv_data.get("competences_techniques", {})
+    if comp_tech:
+        add_heading_styled("COMPÉTENCES TECHNIQUES", level=2)
+        for domain, skills in comp_tech.items():
+            p = doc.add_paragraph()
+            run = p.add_run(f"{domain} : ")
+            run.bold = True
+            run.font.size = Pt(10)
+            run = p.add_run(", ".join(skills) if isinstance(skills, list) else str(skills))
+            run.font.size = Pt(10)
+
+    # Languages
+    langues = cv_data.get("langues", [])
+    if langues:
+        add_heading_styled("LANGUES", level=2)
+        for l in langues:
+            doc.add_paragraph(f"{l.get('langue', '')} — {l.get('niveau', '')}")
+
+    # Interests
+    centres = cv_data.get("centres_interet", [])
+    if centres:
+        add_heading_styled("CENTRES D'INTÉRÊT", level=2)
+        doc.add_paragraph(" • ".join(centres))
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
 
 
 async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False):
@@ -227,8 +400,8 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
     if not selected:
         raise HTTPException(status_code=400, detail="Aucun type de modèle valide sélectionné")
 
-    cv_data = await db.cv_texts.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    if not cv_data or not cv_data.get("text"):
+    cv_text_doc = await db.cv_texts.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not cv_text_doc or not cv_text_doc.get("text"):
         raise HTTPException(status_code=404, detail="Aucun CV analysé. Veuillez d'abord uploader votre CV.")
 
     job_id = str(uuid.uuid4())
@@ -238,10 +411,18 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
         try:
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
-                cv_content = await _claude_generate_single_cv(cv_data["text"], model_type)
+                cv_data = await _claude_generate_single_cv(cv_text_doc["text"], model_type)
+                # Build DOCX
+                docx_bytes = _build_docx(cv_data, model_type)
+                docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
+                # Store structured data + DOCX
                 await db.cv_models.update_one(
                     {"token_id": token_doc["id"]},
-                    {"$set": {f"models.{model_type}": cv_content, "analyzed_at": datetime.now(timezone.utc).isoformat()}},
+                    {"$set": {
+                        f"models.{model_type}": json.dumps(cv_data, ensure_ascii=False),
+                        f"docx.{model_type}": docx_b64,
+                        "analyzed_at": datetime.now(timezone.utc).isoformat()
+                    }},
                     upsert=True
                 )
             await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "progress": len(selected)}})
@@ -251,6 +432,24 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
 
     asyncio.create_task(_generate_all())
     return {"job_id": job_id, "status": "started", "model_types": selected, "total": len(selected)}
+
+
+@router.get("/cv/download/{model_type}")
+async def download_cv_docx(token: str, model_type: str):
+    """Download a generated CV as DOCX file"""
+    token_doc = await get_current_token(token)
+    if model_type not in ("classique", "competences", "fonctionnel", "mixte"):
+        raise HTTPException(status_code=400, detail="Type de modèle invalide")
+    cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not cv_doc or not cv_doc.get("docx", {}).get(model_type):
+        raise HTTPException(status_code=404, detail="Ce modèle de CV n'a pas encore été généré")
+    docx_bytes = base64.b64decode(cv_doc["docx"][model_type])
+    filename = f"CV_{model_type.capitalize()}.docx"
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 @router.get("/cv/generate-models/status")
