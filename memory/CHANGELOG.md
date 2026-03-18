@@ -13,7 +13,11 @@
 - Claude Sonnet (anthropic, claude-sonnet-4-5-20250929) genere les CV reconstitues
 - GPT-5.2 reste utilise pour l'analyse des competences (extraction savoir-faire, savoir-etre)
 - Fallback automatique vers GPT si Claude echoue (resilience)
-- Prompt enrichi: CV detailles 300+ mots, vocabulaire professionnel, realisations chiffrees
+- Flux en 2 etapes decouples:
+  1. Upload → Analyse rapide des competences (~15s, sans generation de CV)
+  2. Apres resultats → Selection des modeles souhaites → Generation a la demande par Claude IA
+- L'utilisateur choisit 1, 2, 3 ou 4 modeles selon ses besoins
+- Barre de progression pendant la generation (X/N modeles)
 
 ### P0 Bug Fix: Persistance des resultats d'analyse CV
 - Cree endpoint `GET /api/cv/latest-analysis` qui retourne la derniere analyse completee
