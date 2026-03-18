@@ -1,0 +1,92 @@
+{
+  "summary": "Complete E2E testing of RE'ACTIF PRO CV 3-step flow with 4 model types (classique, competences, transversale, nouvelle_generation) and Passport 'Profil Dynamique' tab with 7 dimensions. All features verified working.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": {
+    "backend_api": {
+      "GET /api/cv/latest-analysis": "Returns has_analysis=true with full result",
+      "audit_cv array": "Returns exactly 10 rules with regle, score, statut (ok/ameliorable/absent), diagnostic, recommandation",
+      "score_global_cv": "Returns numeric score 0-100 (test value: 78)",
+      "modele_suggere": "Returns one of: classique, competences, transversale, nouvelle_generation",
+      "raison_modele": "Returns explanation string for suggested model",
+      "POST /api/cv/generate-models with nouvelle_generation": "Accepts nouvelle_generation as valid model type",
+      "POST /api/cv/generate-models with all 4 types": "All 4 model types accepted (classique, competences, transversale, nouvelle_generation)",
+      "Invalid model types rejection": "Filters out invalid types (fonctionnel, invalid_type)",
+      "GET /api/cv/download/classique": "Returns valid DOCX file",
+      "GET /api/cv/download-pdf/classique": "Returns valid PDF file with %PDF magic bytes",
+      "GET /api/passport": "Returns full passport with all 7 dimension fields",
+      "Passport competences": "Returns 33 competences with source field for validation tracking",
+      "Passport experiences": "Returns 4 experiences"
+    },
+    "frontend_ui": {
+      "CV Analysis Section": {
+        "Audit heading": "'Audit CV — 10 criteres professionnels' displayed correctly",
+        "Score global": "78/100 displayed with color coding",
+        "10 audit rule cards": "All 10 audit rules displayed with data-testid",
+        "Color-coded badges": "OK (green), A ameliorer (orange) badges working",
+        "Model suggestion box": "Shows 'CV Classique' with raison_modele explanation"
+      },
+      "4 Model Cards": {
+        "cv-model-classique": "Found with Voir/Word/PDF buttons (Optimise badge)",
+        "cv-model-competences": "Found with Voir/Word/PDF buttons (Optimise badge)",
+        "cv-model-transversale": "Found with Voir/Word/PDF buttons (Optimise badge)",
+        "cv-model-nouvelle_generation": "Found with Voir/Word/PDF buttons (Optimise badge)"
+      },
+      "Optimiser Button": "Button text correctly shows 'Optimiser' (not 'Generer')",
+      "Download buttons": "Voir/Word/PDF buttons present for all 4 model types"
+    },
+    "passport_profil_dynamique": {
+      "Tab presence": "'Profil Dynamique' tab found in Passport tabs (data-testid='passport-tab-dynamique')",
+      "7 dimensions": "All 7 dimensions found with numbered circles (1-7)",
+      "Dimension 1 - Identite": "Found with 'Anonymisable' badge",
+      "Dimension 2 - Intentions": "Found with project, motivations, environment",
+      "Dimension 3 - Competences": "Found showing 33 competences (Hard Skills 24, Soft Skills 9)",
+      "Dimension 4 - Experiences": "Found showing 4 experiences with achievements",
+      "Dimension 5 - Potentiel": "Found with evolution capabilities",
+      "Dimension 6 - Valeurs": "Found with motivations and compatible environments",
+      "Dimension 7 - Validation": "Found with Auto-declare/Valide IA/Valide humain counts"
+    }
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_cv_models_and_passport.py",
+    "/app/test_reports/pytest/pytest_cv_4models_passport.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_cv_models_and_passport.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  
+  "test_credentials": {
+    "test_token": "BzCnm4CfG4cm6aixgdgcrwcjM-tIpnl99ycJWySXOGs",
+    "role": "particulier",
+    "existing_data": "Has analysis results with audit (score 78/100) and 4 optimized models (classique, competences, transversale, nouvelle_generation)"
+  },
+  
+  "seed_data_creation": "None - used existing test token data",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "CV 3-step flow fully verified with 4 model types: (1) Upload CV text triggers analysis job, (2) Analysis returns 10 audit rules with scores/statuts + score_global_cv + modele_suggere from 4 valid types (classique/competences/transversale/nouvelle_generation), (3) Generate-models optimizes selected models and stores DOCX/PDF for all 4 types. Frontend shows correct button text 'Optimiser', exactly 4 model cards, proper color-coded audit badges. Passport 'Profil Dynamique' tab working with all 7 dimensions displayed correctly."
+}

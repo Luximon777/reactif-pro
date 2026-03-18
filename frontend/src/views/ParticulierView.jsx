@@ -578,6 +578,7 @@ const CV_MODELS_CONFIG = [
   { key: "classique", name: "CV Classique", desc: "Chronologique, sobre et professionnel", color: "bg-blue-50 border-blue-200 text-blue-700", icon: FileText },
   { key: "competences", name: "CV Competences", desc: "Axe sur les savoir-faire et savoir-etre", color: "bg-emerald-50 border-emerald-200 text-emerald-700", icon: Zap },
   { key: "transversale", name: "CV Transversal", desc: "Competences transferables et transversales", color: "bg-violet-50 border-violet-200 text-violet-700", icon: Target },
+  { key: "nouvelle_generation", name: "CV Nouvelle Generation", desc: "Profil dynamique : intentions, preuves, potentiel, valeurs", color: "bg-amber-50 border-amber-200 text-amber-700", icon: Star },
 ];
 
 const CvAnalysisSection = ({ token, onComplete }) => {

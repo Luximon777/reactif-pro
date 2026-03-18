@@ -335,6 +335,9 @@ const PassportView = ({ token }) => {
           <TabsTrigger value="passerelles" className="text-xs sm:text-sm py-2" data-testid="passport-tab-passerelles">
             <Compass className="w-4 h-4 mr-1 hidden sm:inline" />Passerelles
           </TabsTrigger>
+          <TabsTrigger value="profil_dynamique" className="text-xs sm:text-sm py-2" data-testid="passport-tab-dynamique">
+            <TrendingUp className="w-4 h-4 mr-1 hidden sm:inline" />Profil Dynamique
+          </TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
@@ -546,6 +549,160 @@ const PassportView = ({ token }) => {
           {passerelles.length === 0 && !loadingPasserelles && (
             <EmptyState text="Cliquez sur 'Analyser mon profil' pour découvrir vos passerelles professionnelles" />
           )}
+        </TabsContent>
+
+        {/* Profil Dynamique Tab - 7 Dimensions */}
+        <TabsContent value="profil_dynamique" className="space-y-4 mt-4">
+          <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5a8f] text-white rounded-xl p-4">
+            <h3 className="font-bold text-base">Profil Dynamique — 7 Dimensions</h3>
+            <p className="text-xs text-white/70 mt-1">Vision nouvelle generation : au-dela du CV classique, un profil base sur le potentiel, les preuves et les valeurs.</p>
+          </div>
+
+          {/* 1. Identite professionnelle */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-identite">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold">1</div>
+              <h4 className="font-semibold text-sm text-slate-800">Identite professionnelle</h4>
+              <Badge variant="outline" className="text-[10px]">Anonymisable</Badge>
+            </div>
+            <p className="text-xs text-slate-600 ml-8">{passport?.professional_summary || "Completez votre profil ou chargez un CV pour remplir cette section"}</p>
+            {passport?.target_sectors?.length > 0 && (
+              <div className="flex flex-wrap gap-1 ml-8">{passport.target_sectors.map((s, i) => <Badge key={i} variant="secondary" className="text-[10px]">{s}</Badge>)}</div>
+            )}
+          </div>
+
+          {/* 2. Intentions professionnelles */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-intentions">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xs font-bold">2</div>
+              <h4 className="font-semibold text-sm text-slate-800">Intentions professionnelles</h4>
+            </div>
+            <div className="ml-8 space-y-1">
+              <p className="text-xs text-slate-600"><span className="font-medium text-slate-700">Projet :</span> {passport?.career_project || "Non renseigne"}</p>
+              {passport?.motivations?.length > 0 && (
+                <p className="text-xs text-slate-600"><span className="font-medium text-slate-700">Motivations :</span> {passport.motivations.join(", ")}</p>
+              )}
+              {passport?.compatible_environments?.length > 0 && (
+                <p className="text-xs text-slate-600"><span className="font-medium text-slate-700">Environnement ideal :</span> {passport.compatible_environments.join(", ")}</p>
+              )}
+            </div>
+          </div>
+
+          {/* 3. Competences avec preuves */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-competences">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 text-xs font-bold">3</div>
+              <h4 className="font-semibold text-sm text-slate-800">Competences operationnelles avec preuves</h4>
+              <Badge variant="secondary" className="text-[10px]">{competences.length} competences</Badge>
+            </div>
+            <div className="ml-8 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <p className="text-[10px] font-semibold text-sky-700 mb-1">Hard Skills ({savoirFaire.length})</p>
+                {savoirFaire.slice(0, 5).map((c, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                    <span className="text-slate-700">{c.name}</span>
+                    <span className="text-slate-400">{LEVEL_CONFIG[c.level]?.label || c.level}</span>
+                  </div>
+                ))}
+                {savoirFaire.length > 5 && <p className="text-[10px] text-slate-400">+ {savoirFaire.length - 5} autres</p>}
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-rose-600 mb-1">Soft Skills ({savoirEtre.length})</p>
+                {savoirEtre.slice(0, 5).map((c, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                    <span className="text-slate-700">{c.name}</span>
+                    <span className="text-slate-400">{LEVEL_CONFIG[c.level]?.label || c.level}</span>
+                  </div>
+                ))}
+                {savoirEtre.length > 5 && <p className="text-[10px] text-slate-400">+ {savoirEtre.length - 5} autres</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Experiences en situations */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-experiences">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold">4</div>
+              <h4 className="font-semibold text-sm text-slate-800">Experiences en situations</h4>
+              <Badge variant="secondary" className="text-[10px]">{experiences.length} experiences</Badge>
+            </div>
+            <div className="ml-8 space-y-2">
+              {experiences.slice(0, 3).map((exp, i) => (
+                <div key={i} className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs font-semibold text-slate-800">{exp.title} — {exp.organization}</p>
+                  {exp.description && <p className="text-[10px] text-slate-500 mt-0.5">{exp.description}</p>}
+                  {exp.achievements?.length > 0 && (
+                    <div className="mt-1">{exp.achievements.map((a, j) => <p key={j} className="text-[10px] text-emerald-700">→ {a}</p>)}</div>
+                  )}
+                </div>
+              ))}
+              {experiences.length > 3 && <p className="text-[10px] text-slate-400">+ {experiences.length - 3} autres experiences</p>}
+              {experiences.length === 0 && <p className="text-xs text-slate-400">Chargez un CV pour remplir cette section</p>}
+            </div>
+          </div>
+
+          {/* 5. Potentiel & evolution */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-potentiel">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-700 text-xs font-bold">5</div>
+              <h4 className="font-semibold text-sm text-slate-800">Potentiel et capacites d'evolution</h4>
+            </div>
+            <div className="ml-8 space-y-1">
+              {passport?.learning_path?.length > 0 ? (
+                passport.learning_path.slice(0, 3).map((l, i) => (
+                  <div key={i} className="text-xs text-slate-600">
+                    <span className="font-medium text-slate-700">{l.title}</span>
+                    {l.reason && <span className="text-slate-400"> — {l.reason}</span>}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400">Analysez votre CV pour decouvrir vos axes d'evolution</p>
+              )}
+            </div>
+          </div>
+
+          {/* 6. Valeurs & environnement */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-valeurs">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 text-xs font-bold">6</div>
+              <h4 className="font-semibold text-sm text-slate-800">Valeurs et environnement de travail</h4>
+            </div>
+            <div className="ml-8">
+              {passport?.compatible_environments?.length > 0 || passport?.motivations?.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {passport?.motivations?.map((m, i) => <Badge key={`m-${i}`} className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">{m}</Badge>)}
+                  {passport?.compatible_environments?.map((e, i) => <Badge key={`e-${i}`} className="text-[10px] bg-slate-50 text-slate-700 border-slate-200">{e}</Badge>)}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">Completez votre profil pour renseigner vos valeurs</p>
+              )}
+            </div>
+          </div>
+
+          {/* 7. Validation */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-2" data-testid="dim-validation">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs font-bold">7</div>
+              <h4 className="font-semibold text-sm text-slate-800">Niveaux de validation</h4>
+            </div>
+            <div className="ml-8 grid grid-cols-3 gap-2">
+              <div className="bg-slate-50 rounded-lg p-2 text-center">
+                <User className="w-4 h-4 mx-auto text-slate-500" />
+                <p className="text-[10px] font-medium text-slate-700 mt-1">Auto-declare</p>
+                <p className="text-[10px] text-slate-400">{competences.filter(c => c.source === "declaratif").length} comp.</p>
+              </div>
+              <div className="bg-violet-50 rounded-lg p-2 text-center">
+                <Brain className="w-4 h-4 mx-auto text-violet-500" />
+                <p className="text-[10px] font-medium text-violet-700 mt-1">Valide IA</p>
+                <p className="text-[10px] text-slate-400">{competences.filter(c => c.source === "ia_detectee").length} comp.</p>
+              </div>
+              <div className="bg-emerald-50 rounded-lg p-2 text-center">
+                <Shield className="w-4 h-4 mx-auto text-emerald-500" />
+                <p className="text-[10px] font-medium text-emerald-700 mt-1">Valide humain</p>
+                <p className="text-[10px] text-slate-400">{competences.filter(c => ["ubuntoo", "contribution"].includes(c.source)).length} comp.</p>
+              </div>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

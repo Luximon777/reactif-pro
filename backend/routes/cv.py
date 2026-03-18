@@ -22,12 +22,15 @@ class GenerateModelRequest(BaseModel):
     model_types: List[str]
 
 
-async def _claude_generate_single_cv(cv_text: str, model_type: str, audit_data: list = None) -> dict:
-    """Use Claude to generate an OPTIMIZED CV based on audit findings"""
+async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None) -> dict:
+    """Generate an optimized CV using GPT-5.2 (faster + reliable JSON)"""
+    import re as _re
+
     model_descriptions = {
-        "classique": "CV chronologique classique : experiences par ordre chronologique inverse, formation, competences.",
+        "classique": "CV chronologique classique : identite, titre, accroche, competences, experiences chronologiques, formation.",
         "competences": "CV axe competences : competences cles regroupees par domaine en premier, puis experiences.",
-        "transversale": "CV transversal : competences transferables et transversales mises en valeur, parcours multi-secteurs.",
+        "transversale": "CV transversal : competences transferables et transversales mises en valeur.",
+        "nouvelle_generation": "CV nouvelle generation : identite anonymisable, intentions pro, competences avec preuves, experiences en situations (Contexte/Actions/Resultats), potentiel d'evolution, valeurs.",
     }
     desc = model_descriptions.get(model_type, model_descriptions["classique"])
 
@@ -35,48 +38,31 @@ async def _claude_generate_single_cv(cv_text: str, model_type: str, audit_data: 
     if audit_data:
         issues = [f"- {a['regle']}: {a['recommandation']}" for a in audit_data if a.get("statut") in ("ameliorable", "absent")]
         if issues:
-            audit_context = f"\n\nPOINTS A CORRIGER ET OPTIMISER (issus de l'audit):\n" + "\n".join(issues)
+            audit_context = "\nCORRIGER:" + "; ".join([a['recommandation'] for a in audit_data if a.get("statut") in ("ameliorable", "absent")])
 
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
-                session_id=f"cv-gen-{uuid.uuid4()}",
-                system_message=f"""Expert en optimisation CV professionnel. Type: {desc}
-{audit_context}
-Reponds UNIQUEMENT en JSON valide:
-{{"nom":"","titre":"Titre professionnel cible","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"Accroche 3-5 phrases: Qui je suis / Points forts / Objectif","competences_cles":[],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":["verbe action + chiffre"]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{"Domaine":["comp1"]}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}
-Regles: verbes d'action + chiffres, titre cible, accroche structuree, 4-6 missions/poste."""
-            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-            response = await chat.send_message(UserMessage(text=f"Optimise ce CV:\n\n{cv_text[:4000]}"))
+                session_id=f"cv-opt-{uuid.uuid4()}",
+                system_message=f"""Optimise ce CV. Type: {desc}{audit_context}
+IMPORTANT: GARDE les vraies infos du candidat (nom, contact, entreprises, postes, dates, diplomes). Ameliore la formulation, ajoute verbes d'action et chiffres. Ne change PAS les faits.
+JSON uniquement:
+{{"nom":"","titre":"","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"","competences_cles":[],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":[]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}"""
+            ).with_model("openai", "gpt-5.2")
+            response = await chat.send_message(UserMessage(text=f"CV original a optimiser:\n\n{cv_text[:4000]}"))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
             if raw.startswith("```"):
                 raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
                 if raw.endswith("```"):
                     raw = raw[:-3]
-                raw = raw.strip()
-            import re as _re
-            raw = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw)
+            raw = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw.strip())
             return json.loads(raw)
         except json.JSONDecodeError:
-            logging.warning(f"Claude CV gen JSON error attempt {attempt+1}")
+            logging.warning(f"CV opt JSON error attempt {attempt+1}")
         except Exception as e:
-            logging.warning(f"Claude CV gen attempt {attempt+1} failed: {e}")
-            if attempt == 2:
-                try:
-                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Optimise un CV en JSON structure. Type: {desc}. Meme structure JSON.").with_model("openai", "gpt-5.2")
-                    response = await chat.send_message(UserMessage(text=f"CV :\n\n{cv_text[:4000]}"))
-                    raw = response.strip() if isinstance(response, str) else response.text.strip()
-                    if raw.startswith("```"):
-                        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-                        if raw.endswith("```"):
-                            raw = raw[:-3]
-                    import re as _re2
-                    raw = _re2.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw.strip())
-                    return json.loads(raw)
-                except Exception as e2:
-                    raise Exception(f"Impossible d'optimiser le CV: {e2}")
-    raise Exception("Echec apres 3 tentatives")
+            logging.warning(f"CV opt attempt {attempt+1} failed: {e}")
+    raise Exception("Echec optimisation CV")
 
 
 def _build_docx(cv_data: dict, model_type: str) -> bytes:
@@ -360,8 +346,8 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
         # PARALLEL: Run audit + skills extraction at the same time
         audit_task = _llm_call_with_retry(
             system_msg="""Expert RH. Audite ce CV. JSON uniquement.
-{"audit_cv":[{"regle":"Clarte","score":0,"statut":"ok|ameliorable|absent","diagnostic":"court","recommandation":"court"},{"regle":"Titre cible","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Accroche","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Experiences","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Competences","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Formation","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Mots-cles ATS","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Superflu","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Coherence","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Structure","score":0,"statut":"","diagnostic":"","recommandation":""}],"score_global_cv":0,"modele_suggere":"classique|competences|transversale","raison_modele":""}
-Score 0-10 par regle. Score global /100. Diagnostic et recommandation en 1 phrase max.""",
+{"audit_cv":[{"regle":"Clarte","score":0,"statut":"ok|ameliorable|absent","diagnostic":"court","recommandation":"court"},{"regle":"Titre cible","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Accroche","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Experiences","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Competences","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Formation","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Mots-cles ATS","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Superflu","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Coherence","score":0,"statut":"","diagnostic":"","recommandation":""},{"regle":"Structure","score":0,"statut":"","diagnostic":"","recommandation":""}],"score_global_cv":0,"modele_suggere":"classique|competences|transversale|nouvelle_generation","raison_modele":""}
+Score 0-10 par regle. Score global /100. Diagnostic et recommandation en 1 phrase max. modele_suggere parmi classique, competences, transversale, nouvelle_generation (profil dynamique pour parcours atypiques/reconversion).""",
             user_msg=f"Audite:\n{cv_excerpt}"
         )
 
@@ -483,7 +469,7 @@ async def analyze_cv_text(token: str, payload: CvTextPayload):
 async def generate_cv_models(token: str, request: GenerateModelRequest):
     """Optimize and generate selected CV models using Claude AI"""
     token_doc = await get_current_token(token)
-    valid_types = {"classique", "competences", "transversale"}
+    valid_types = {"classique", "competences", "transversale", "nouvelle_generation"}
     selected = [m for m in request.model_types if m in valid_types]
     if not selected:
         raise HTTPException(status_code=400, detail="Aucun type de modele valide selectionne")
@@ -507,7 +493,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
         try:
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
-                cv_data = await _claude_generate_single_cv(cv_text_doc["text"], model_type, audit_data)
+                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data)
                 # Build DOCX + PDF
                 docx_bytes = _build_docx(cv_data, model_type)
                 docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
@@ -537,7 +523,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
 async def download_cv_docx(token: str, model_type: str):
     """Download a generated CV as DOCX file"""
     token_doc = await get_current_token(token)
-    if model_type not in ("classique", "competences", "transversale"):
+    if model_type not in ("classique", "competences", "transversale", "nouvelle_generation"):
         raise HTTPException(status_code=400, detail="Type de modele invalide")
     cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not cv_doc or not cv_doc.get("docx", {}).get(model_type):
@@ -555,7 +541,7 @@ async def download_cv_docx(token: str, model_type: str):
 async def download_cv_pdf(token: str, model_type: str):
     """Download a generated CV as PDF file"""
     token_doc = await get_current_token(token)
-    if model_type not in ("classique", "competences", "transversale"):
+    if model_type not in ("classique", "competences", "transversale", "nouvelle_generation"):
         raise HTTPException(status_code=400, detail="Type de modele invalide")
     cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not cv_doc or not cv_doc.get("pdf", {}).get(model_type):
