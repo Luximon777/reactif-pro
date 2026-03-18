@@ -318,7 +318,7 @@ const ParticulierView = ({ token, section }) => {
                 <FileText className="w-5 h-5 text-[#1e3a5f]" />
                 Mes CV
               </CardTitle>
-              <CardDescription>Chargez votre CV pour un audit complet et une optimisation par IA</CardDescription>
+              <CardDescription>Re'Actif Pro IA audite, optimise et adapte votre CV pour passer les filtres ATS</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -617,6 +617,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [generatingModel, setGeneratingModel] = useState(null);
   const [selectedGenModels, setSelectedGenModels] = useState([]);
   const [genProgress, setGenProgress] = useState(null);
+  const [jobOfferText, setJobOfferText] = useState("");
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -814,6 +815,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     try {
       const startRes = await axios.post(`${API}/cv/generate-models?token=${token}`, {
         model_types: selectedGenModels,
+        job_offer: jobOfferText || undefined,
       }, { timeout: 15000 });
       const jobId = startRes.data.job_id;
 
@@ -1100,7 +1102,28 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <Sparkles className="w-4 h-4 text-blue-600" />
             <h4 className="text-sm font-semibold text-slate-800">Optimiser votre CV par IA</h4>
           </div>
-          <p className="text-xs text-slate-500">Selectionnez le ou les modeles de CV a optimiser. L'IA corrigera les points faibles identifies dans l'audit.</p>
+          <p className="text-xs text-slate-500">Re'Actif Pro IA optimise et adapte votre CV pour passer les filtres ATS des recruteurs. Selectionnez un modele et collez une offre d'emploi pour une optimisation ciblee.</p>
+
+          {/* Job offer input for ATS optimization */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2" data-testid="job-offer-input">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-[#1e3a5f]" />
+              Offre d'emploi cible (optionnel — pour optimisation ATS ciblee)
+            </label>
+            <textarea
+              className="w-full text-xs border border-slate-200 rounded-lg p-2 resize-none focus:ring-1 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] placeholder:text-slate-400"
+              rows={3}
+              placeholder="Collez ici le texte de l'offre d'emploi pour que l'IA reprenne les mots-cles exacts, les competences demandees et l'intitule du poste..."
+              value={jobOfferText}
+              onChange={(e) => setJobOfferText(e.target.value)}
+              data-testid="job-offer-textarea"
+            />
+            {jobOfferText && (
+              <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> L'IA integrera les mots-cles de cette offre pour optimiser le passage ATS
+              </p>
+            )}
+          </div>
 
           {/* Generation progress */}
           {generatingModel && genProgress && (
@@ -1186,7 +1209,33 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         </div>
       )}
 
-      {/* CV Models - show if models exist but no current analysis displayed */}
+      {/* ATS Strategy Section */}
+      {(cvModels?.models && Object.values(cvModels.models).some(v => v)) && (
+        <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5a8f] rounded-xl p-4 text-white space-y-3" data-testid="ats-strategy-section">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            <h4 className="font-semibold text-sm">Strategie Re'Actif Pro — Optimisation ATS</h4>
+          </div>
+          <p className="text-xs text-white/80">Votre CV est optimise par l'IA pour passer les filtres automatiques (ATS) des recruteurs : mots-cles adaptes, format simple, intitules clairs, competences explicites.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Canal ATS</p>
+              <p className="text-xs text-white mt-1">CV optimise mots-cles</p>
+              <p className="text-[10px] text-white/60 mt-0.5">Format Word/PDF simple, intitules exacts, competences explicites</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Canal Reseau</p>
+              <p className="text-xs text-white mt-1">Recommandations et contacts</p>
+              <p className="text-[10px] text-white/60 mt-0.5">Activez votre reseau : l'ATS standardise, le reseau humanise</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Approche directe</p>
+              <p className="text-xs text-white mt-1">Mail, LinkedIn, appel</p>
+              <p className="text-[10px] text-white/60 mt-0.5">Demarquez-vous au-dela des filtres automatiques</p>
+            </div>
+          </div>
+        </div>
+      )}
       {!analysisResult && cvModels?.models && Object.values(cvModels.models).some(v => v) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {CV_MODELS_CONFIG.map((cv) => {

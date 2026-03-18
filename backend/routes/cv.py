@@ -20,9 +20,10 @@ router = APIRouter()
 
 class GenerateModelRequest(BaseModel):
     model_types: List[str]
+    job_offer: str = ""
 
 
-async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None, savoir_faire: list = None, savoir_etre: list = None) -> dict:
+async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None, savoir_faire: list = None, savoir_etre: list = None, job_offer: str = "") -> dict:
     """Generate an optimized CV using GPT-5.2 (faster + reliable JSON)"""
     import re as _re
 
@@ -50,13 +51,18 @@ async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list
         se_list = [f"{se['name']} ({se.get('level','intermediaire')})" for se in savoir_etre[:10]]
         se_context = f"\nSAVOIR-ETRE PRO identifies: {', '.join(se_list)}"
 
+    # ATS optimization from job offer
+    ats_context = ""
+    if job_offer:
+        ats_context = f"\nOFFRE D'EMPLOI CIBLE (reprendre les mots-cles exacts, intitule de poste, competences demandees, outils mentionnes pour passer les filtres ATS):\n{job_offer[:2000]}"
+
     for attempt in range(2):
         try:
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"cv-opt-{uuid.uuid4()}",
-                system_message=f"""Optimise ce CV. Type: {desc}{audit_context}{sf_context}{se_context}
-IMPORTANT: GARDE les vraies infos du candidat (nom, contact, entreprises, postes, dates, diplomes). Ameliore formulation, verbes d'action et chiffres. Ne change PAS les faits. INTEGRE les savoir-faire et savoir-etre identifies dans le CV.
+                system_message=f"""Optimise ce CV pour passer les filtres ATS. Type: {desc}{audit_context}{sf_context}{se_context}{ats_context}
+IMPORTANT: GARDE les vraies infos du candidat (nom, contact, entreprises, postes, dates, diplomes). Ameliore formulation, verbes d'action et chiffres. Ne change PAS les faits. INTEGRE les savoir-faire et savoir-etre. Format ATS: intitules clairs, competences explicites, dates structurees, pas de design graphique.
 JSON uniquement:
 {{"nom":"","titre":"","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"","competences_cles":[],"savoir_faire":[{{"name":"","level":"debutant|intermediaire|avance|expert","category":"technique|transversale|transferable"}}],"savoir_etre":[{{"name":"","level":"intermediaire"}}],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":[]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}"""
             ).with_model("openai", "gpt-5.2")
@@ -552,6 +558,8 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
     savoir_faire = [c for c in competences if c.get("nature") == "savoir_faire"]
     savoir_etre = [c for c in competences if c.get("nature") == "savoir_etre"]
 
+    job_offer_text = request.job_offer.strip() if request.job_offer else ""
+
     job_id = str(uuid.uuid4())
     await db.cv_gen_jobs.insert_one({"job_id": job_id, "token_id": token_doc["id"], "model_types": selected, "status": "started", "progress": 0, "total": len(selected), "created_at": datetime.now(timezone.utc).isoformat()})
 
@@ -559,7 +567,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
         try:
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
-                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data, savoir_faire, savoir_etre)
+                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data, savoir_faire, savoir_etre, job_offer_text)
                 # Build DOCX + PDF
                 docx_bytes = _build_docx(cv_data, model_type)
                 docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
