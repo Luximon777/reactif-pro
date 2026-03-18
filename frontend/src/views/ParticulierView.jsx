@@ -70,6 +70,29 @@ const CvPreview = ({ data }) => {
           </div>
         </div>
       )}
+      {cv.savoir_faire?.length > 0 && (
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "#1e3a5f" }}>Savoir-faire</h2>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {cv.savoir_faire.map((sf, i) => (
+              <div key={i} className="flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-700">{sf.name}</span>
+                <span className="text-slate-400 text-[10px]">{sf.level && sf.level.charAt(0).toUpperCase() + sf.level.slice(1)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {cv.savoir_etre?.length > 0 && (
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "#1e3a5f" }}>Savoir-être professionnels</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {cv.savoir_etre.map((se, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">{se.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
       {cv.experiences?.length > 0 && (
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#1e3a5f" }}>Expériences professionnelles</h2>

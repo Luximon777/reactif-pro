@@ -22,7 +22,7 @@ class GenerateModelRequest(BaseModel):
     model_types: List[str]
 
 
-async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None) -> dict:
+async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None, savoir_faire: list = None, savoir_etre: list = None) -> dict:
     """Generate an optimized CV using GPT-5.2 (faster + reliable JSON)"""
     import re as _re
 
@@ -40,15 +40,25 @@ async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list
         if issues:
             audit_context = "\nCORRIGER:" + "; ".join([a['recommandation'] for a in audit_data if a.get("statut") in ("ameliorable", "absent")])
 
+    # Build competences context from passport analysis
+    sf_context = ""
+    if savoir_faire:
+        sf_list = [f"{sf['name']} ({sf.get('level','intermediaire')})" for sf in savoir_faire[:15]]
+        sf_context = f"\nSAVOIR-FAIRE identifies: {', '.join(sf_list)}"
+    se_context = ""
+    if savoir_etre:
+        se_list = [f"{se['name']} ({se.get('level','intermediaire')})" for se in savoir_etre[:10]]
+        se_context = f"\nSAVOIR-ETRE PRO identifies: {', '.join(se_list)}"
+
     for attempt in range(2):
         try:
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"cv-opt-{uuid.uuid4()}",
-                system_message=f"""Optimise ce CV. Type: {desc}{audit_context}
-IMPORTANT: GARDE les vraies infos du candidat (nom, contact, entreprises, postes, dates, diplomes). Ameliore la formulation, ajoute verbes d'action et chiffres. Ne change PAS les faits.
+                system_message=f"""Optimise ce CV. Type: {desc}{audit_context}{sf_context}{se_context}
+IMPORTANT: GARDE les vraies infos du candidat (nom, contact, entreprises, postes, dates, diplomes). Ameliore formulation, verbes d'action et chiffres. Ne change PAS les faits. INTEGRE les savoir-faire et savoir-etre identifies dans le CV.
 JSON uniquement:
-{{"nom":"","titre":"","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"","competences_cles":[],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":[]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}"""
+{{"nom":"","titre":"","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"","competences_cles":[],"savoir_faire":[{{"name":"","level":"debutant|intermediaire|avance|expert","category":"technique|transversale|transferable"}}],"savoir_etre":[{{"name":"","level":"intermediaire"}}],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":[]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}"""
             ).with_model("openai", "gpt-5.2")
             response = await chat.send_message(UserMessage(text=f"CV original a optimiser:\n\n{cv_text[:4000]}"))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
@@ -147,6 +157,37 @@ def _build_docx(cv_data: dict, model_type: str) -> bytes:
         p = doc.add_paragraph(" • ".join(competences_cles))
         for run in p.runs:
             run.font.size = Pt(10)
+
+    # Savoir-faire
+    sf_list = cv_data.get("savoir_faire", [])
+    if sf_list:
+        add_heading_styled("SAVOIR-FAIRE", level=2)
+        for sf in sf_list:
+            p = doc.add_paragraph()
+            run = p.add_run(sf.get("name", ""))
+            run.bold = True
+            run.font.size = Pt(10)
+            run.font.color.rgb = DARK
+            level = sf.get("level", "")
+            cat = sf.get("category", "")
+            meta = []
+            if level: meta.append(level.capitalize())
+            if cat: meta.append(cat.capitalize())
+            if meta:
+                run = p.add_run(f"  ({' | '.join(meta)})")
+                run.font.size = Pt(9)
+                run.font.color.rgb = GRAY
+            p.paragraph_format.space_after = Pt(2)
+
+    # Savoir-être professionnels
+    se_list = cv_data.get("savoir_etre", [])
+    if se_list:
+        add_heading_styled("SAVOIR-ÊTRE PROFESSIONNELS", level=2)
+        se_names = [se.get("name", "") for se in se_list if se.get("name")]
+        if se_names:
+            p = doc.add_paragraph(" • ".join(se_names))
+            for run in p.runs:
+                run.font.size = Pt(10)
 
     # Experiences
     experiences = cv_data.get("experiences", [])
@@ -273,6 +314,25 @@ def _build_pdf(cv_data: dict, model_type: str) -> bytes:
     if competences_cles:
         elements.append(Paragraph("COMP&Eacute;TENCES CL&Eacute;S", s_heading))
         elements.append(Paragraph(" &bull; ".join(competences_cles), s_body))
+
+    # Savoir-faire
+    sf_list = cv_data.get("savoir_faire", [])
+    if sf_list:
+        elements.append(Paragraph("SAVOIR-FAIRE", s_heading))
+        for sf in sf_list:
+            level = sf.get("level", "")
+            cat = sf.get("category", "")
+            meta = f" ({level.capitalize()})" if level else ""
+            name_safe = sf.get("name", "").replace("&", "&amp;")
+            elements.append(Paragraph(f"<b>{name_safe}</b>{meta}", s_body))
+
+    # Savoir-être
+    se_list = cv_data.get("savoir_etre", [])
+    if se_list:
+        elements.append(Paragraph("SAVOIR-&Ecirc;TRE PROFESSIONNELS", s_heading))
+        se_names = [se.get("name", "").replace("&", "&amp;") for se in se_list if se.get("name")]
+        if se_names:
+            elements.append(Paragraph(" &bull; ".join(se_names), s_body))
 
     # Experiences
     experiences = cv_data.get("experiences", [])
@@ -486,6 +546,12 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
     )
     audit_data = latest_job.get("result", {}).get("audit_cv", []) if latest_job else []
 
+    # Fetch passport competences (savoir-faire + savoir-etre)
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0, "competences": 1})
+    competences = passport.get("competences", []) if passport else []
+    savoir_faire = [c for c in competences if c.get("nature") == "savoir_faire"]
+    savoir_etre = [c for c in competences if c.get("nature") == "savoir_etre"]
+
     job_id = str(uuid.uuid4())
     await db.cv_gen_jobs.insert_one({"job_id": job_id, "token_id": token_doc["id"], "model_types": selected, "status": "started", "progress": 0, "total": len(selected), "created_at": datetime.now(timezone.utc).isoformat()})
 
@@ -493,7 +559,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
         try:
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
-                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data)
+                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data, savoir_faire, savoir_etre)
                 # Build DOCX + PDF
                 docx_bytes = _build_docx(cv_data, model_type)
                 docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
