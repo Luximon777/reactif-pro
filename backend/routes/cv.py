@@ -12,7 +12,9 @@ from routes.passport import calculate_completeness
 router = APIRouter()
 
 
-async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False):
+async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False, selected_models: list = None):
+    if selected_models is None:
+        selected_models = ["classique", "competences", "fonctionnel", "mixte"]
     try:
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "analyzing", "step": "Extraction du texte..."}})
         if text_ready:
@@ -48,23 +50,36 @@ Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Génération des modèles de CV..."}})
 
-        try:
-            cv_gen = await _llm_call_with_retry(
-                system_msg="""Tu es un rédacteur de CV professionnel. Génère 4 versions d'un CV. Réponds UNIQUEMENT en JSON valide.
-Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", "cv_fonctionnel": "texte complet", "cv_mixte": "texte complet"}
-- cv_classique: chronologique, sobre, professionnel
-- cv_competences: axé savoir-faire et savoir-être par domaine
-- cv_fonctionnel: par domaines de compétences, sans chronologie
-- cv_mixte: parcours + compétences transférables""",
-                user_msg=f"Génère 4 versions de CV pour ce profil:\n\n{cv_excerpt}"
-            )
-        except Exception:
-            logging.warning("CV model generation failed, continuing with analysis only")
-            cv_gen = {"cv_classique": "", "cv_competences": "", "cv_fonctionnel": "", "cv_mixte": ""}
+        cv_gen = {}
+        if selected_models:
+            model_map = {
+                "classique": ("cv_classique", "chronologique, sobre, professionnel"),
+                "competences": ("cv_competences", "axé savoir-faire et savoir-être par domaine"),
+                "fonctionnel": ("cv_fonctionnel", "par domaines de compétences, sans chronologie"),
+                "mixte": ("cv_mixte", "parcours + compétences transférables"),
+            }
+            selected = {k: v for k, v in model_map.items() if k in selected_models}
+            if selected:
+                keys_json = ", ".join([f'"{v[0]}": "texte complet"' for v in selected.values()])
+                instructions = "\n".join([f"- {v[0]}: {v[1]}" for v in selected.values()])
+                try:
+                    cv_gen = await _llm_call_with_retry(
+                        system_msg=f"""Tu es un rédacteur de CV professionnel. Génère les versions demandées d'un CV. Réponds UNIQUEMENT en JSON valide.
+Structure: {{{keys_json}}}
+{instructions}""",
+                        user_msg=f"Génère les versions de CV pour ce profil:\n\n{cv_excerpt}"
+                    )
+                except Exception:
+                    logging.warning("CV model generation failed, continuing with analysis only")
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Remplissage du passeport..."}})
 
-        cv_models = {"classique": cv_gen.get("cv_classique", ""), "competences": cv_gen.get("cv_competences", ""), "fonctionnel": cv_gen.get("cv_fonctionnel", ""), "mixte": cv_gen.get("cv_mixte", "")}
+        cv_models = {
+            "classique": cv_gen.get("cv_classique", ""),
+            "competences": cv_gen.get("cv_competences", ""),
+            "fonctionnel": cv_gen.get("cv_fonctionnel", ""),
+            "mixte": cv_gen.get("cv_mixte", ""),
+        }
         await db.cv_models.update_one({"token_id": token_id}, {"$set": {"token_id": token_id, "models": cv_models, "original_filename": filename, "analyzed_at": datetime.now(timezone.utc).isoformat()}}, upsert=True)
 
         passport = await db.passports.find_one({"token_id": token_id})
@@ -169,8 +184,8 @@ async def analyze_cv_text(token: str, payload: CvTextPayload):
     if not payload.text or len(payload.text.strip()) < 50:
         raise HTTPException(status_code=400, detail="Le texte du CV est trop court pour être analysé")
     job_id = str(uuid.uuid4())
-    await db.cv_jobs.insert_one({"job_id": job_id, "token_id": token_doc["id"], "filename": payload.filename, "status": "started", "step": "Démarrage de l'analyse...", "created_at": datetime.now(timezone.utc).isoformat()})
-    asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], payload.text.encode("utf-8"), payload.filename, text_ready=True))
+    await db.cv_jobs.insert_one({"job_id": job_id, "token_id": token_doc["id"], "filename": payload.filename, "status": "started", "step": "Démarrage de l'analyse...", "selected_models": payload.selected_models, "created_at": datetime.now(timezone.utc).isoformat()})
+    asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], payload.text.encode("utf-8"), payload.filename, text_ready=True, selected_models=payload.selected_models))
     return {"job_id": job_id, "status": "started", "message": "Analyse lancée en arrière-plan"}
 
 

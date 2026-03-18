@@ -27,7 +27,9 @@ import {
   Play,
   FolderLock,
   FileDown,
-  FileText
+  FileText,
+  LayoutList,
+  Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -212,7 +214,7 @@ const ParticulierView = ({ token, section }) => {
                 <FileText className="w-5 h-5 text-[#1e3a5f]" />
                 Mes CV
               </CardTitle>
-              <CardDescription>Chargez votre CV pour que l'IA génère 4 modèles et complète votre passeport</CardDescription>
+              <CardDescription>Chargez votre CV pour que l'IA analyse vos compétences et génère les modèles de votre choix</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -508,6 +510,10 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [uploadError, setUploadError] = useState(null);
   const [serverStep, setServerStep] = useState("");
   const [loadingPrevious, setLoadingPrevious] = useState(true);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [pendingText, setPendingText] = useState(null);
+  const [selectedModels, setSelectedModels] = useState(["classique", "competences", "fonctionnel", "mixte"]);
+  const [showModelSelection, setShowModelSelection] = useState(false);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -644,27 +650,47 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       return;
     }
 
-    setUploading(true);
-    setAnalysisResult(null);
     setUploadError(null);
     setServerStep("Lecture du fichier...");
 
     try {
-      // Step 1: Extract text client-side (no file upload to server!)
       const cvText = await extractTextFromFile(file);
       if (!cvText || cvText.trim().length < 50) {
         throw new Error("Le fichier ne contient pas assez de texte exploitable. Vérifiez que votre CV contient du texte sélectionnable.");
       }
+      setPendingFile(file.name);
+      setPendingText(cvText);
+      setShowModelSelection(true);
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || "Erreur lors de la lecture du fichier.";
+      setUploadError(msg);
+      toast.error(msg);
+    }
+    e.target.value = "";
+  };
 
-      setServerStep("Envoi du texte au serveur...");
+  const toggleModel = (key) => {
+    setSelectedModels(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
-      // Step 2: Send extracted text as JSON - retry on transient errors
+  const startAnalysis = async () => {
+    if (!pendingText) return;
+    setShowModelSelection(false);
+    setUploading(true);
+    setAnalysisResult(null);
+    setUploadError(null);
+    setServerStep("Envoi du texte au serveur...");
+
+    try {
       let jobId;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const startRes = await axios.post(`${API}/cv/analyze-text?token=${token}`, {
-            text: cvText,
-            filename: file.name,
+            text: pendingText,
+            filename: pendingFile,
+            selected_models: selectedModels,
           }, { timeout: 15000 });
           jobId = startRes.data.job_id;
           break;
@@ -680,11 +706,9 @@ const CvAnalysisSection = ({ token, onComplete }) => {
 
       setServerStep("Analyse IA en cours...");
 
-      // Step 3: Poll for results
       const result = await pollForResult(jobId);
       setAnalysisResult(result);
 
-      // Step 4: Fetch generated CV models
       const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
       if (modelsRes.data.models) setCvModels(modelsRes.data);
       toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
@@ -698,7 +722,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       toast.error(msg);
     }
     setUploading(false);
-    e.target.value = "";
+    setPendingFile(null);
+    setPendingText(null);
   };
 
   const downloadModel = (key, name) => {
@@ -721,8 +746,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         </div>
       )}
       {/* Upload Zone */}
-      <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
-        {!uploading && (
+      <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : showModelSelection ? "border-emerald-400 bg-emerald-50/30 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
+        {!uploading && !showModelSelection && (
           <input
             type="file"
             accept=".pdf,.docx,.doc,.txt"
@@ -731,7 +756,62 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             data-testid="cv-upload-input"
           />
         )}
-        {uploading ? (
+        {showModelSelection ? (
+          <div className="p-5 space-y-4" data-testid="cv-model-selection">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800">CV chargé : {pendingFile}</h4>
+                <p className="text-xs text-slate-500">Sélectionnez les modèles de CV à générer pour gagner du temps</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {CV_MODELS_CONFIG.map((cv) => {
+                const Icon = cv.icon;
+                const isSelected = selectedModels.includes(cv.key);
+                return (
+                  <button
+                    key={cv.key}
+                    onClick={() => toggleModel(cv.key)}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${isSelected ? `${cv.color} border-current shadow-sm` : "bg-white border-slate-200 opacity-60 hover:opacity-80"}`}
+                    data-testid={`select-model-${cv.key}`}
+                  >
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? "border-current bg-current/10" : "border-slate-300"}`}>
+                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold">{cv.name}</p>
+                      <p className="text-[10px] opacity-70">{cv.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-slate-500">
+                {selectedModels.length === 0 
+                  ? "Analyse seule (sans génération de CV)" 
+                  : `${selectedModels.length} modèle${selectedModels.length > 1 ? "s" : ""} sélectionné${selectedModels.length > 1 ? "s" : ""}`}
+                {selectedModels.length < 4 && selectedModels.length > 0 && (
+                  <span className="text-emerald-600 font-medium"> — analyse plus rapide</span>
+                )}
+                {selectedModels.length === 0 && (
+                  <span className="text-emerald-600 font-medium"> — analyse ultra-rapide</span>
+                )}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setShowModelSelection(false); setPendingFile(null); setPendingText(null); }} data-testid="cv-cancel-btn">
+                  Annuler
+                </Button>
+                <Button size="sm" onClick={startAnalysis} className="bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white" data-testid="cv-start-analysis-btn">
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  Lancer l'analyse
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : uploading ? (
           <div className="p-6 space-y-4" data-testid="cv-upload-progress">
             {/* Timer header */}
             <div className="flex items-center justify-between">
@@ -791,7 +871,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div>
             <FileDown className="w-8 h-8 mx-auto text-slate-400 mb-2" />
             <p className="text-sm font-medium text-slate-700">Chargez votre CV (PDF, DOCX, TXT)</p>
-            <p className="text-xs text-slate-400">L'IA analysera vos compétences et générera 4 modèles de CV</p>
+            <p className="text-xs text-slate-400">L'IA analysera vos compétences et vous pourrez choisir les modèles de CV à générer</p>
           </div>
         )}
       </div>

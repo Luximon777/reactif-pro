@@ -308,6 +308,7 @@ class CreateJobRequest(BaseModel):
 class CvTextPayload(BaseModel):
     text: str
     filename: str = "cv.txt"
+    selected_models: List[str] = ["classique", "competences", "fonctionnel", "mixte"]
 
 
 class CvBase64Payload(BaseModel):
