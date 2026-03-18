@@ -1,19 +1,24 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-18 - Audit CV 12 Regles + Optimisation IA
+- **FEATURE**: Audit CV selon 12 regles professionnelles (clarte, titre cible, accroche, valorisation, ATS, etc.)
+- **FEATURE**: Score global /100 + score par critere /10 avec diagnostic et recommandations
+- **FEATURE**: Suggestion automatique du modele de CV le plus adapte au profil
+- **FEATURE**: Optimisation du CV par IA (corrige les points faibles identifies dans l'audit)
+- **UI**: "Generer vos CV avec Claude IA" -> "Optimiser votre CV par IA"
+- **UI**: Section audit avec grille 2 colonnes, codes couleur (OK/Ameliorable/Absent)
+- **UI**: Auto-selection du modele suggere
+
 ## 2026-03-18 - PDF Generation + DOCX Validation
-- **FEATURE**: Implemented PDF generation using `reportlab` for all CV models
-- **FEATURE**: Added `GET /api/cv/download-pdf/{model_type}` endpoint
-- **FEATURE**: Added PDF download buttons in UI (alongside Word buttons)
-- **VALIDATED**: Full E2E DOCX flow tested and working (analysis -> generation -> download)
-- **FIX**: Fixed button-inside-button React hydration warning in model selection grid
-- **TESTED**: 100% pass rate on both backend (curl) and frontend (Playwright) tests
+- **FEATURE**: Generation PDF avec reportlab
+- **FEATURE**: Endpoint GET /api/cv/download-pdf/{model_type}
+- **FEATURE**: Boutons Word + PDF dans l'UI
+- **VALIDATED**: Flux DOCX bout en bout
+- **FIX**: Warning React button imbrique
 
 ## Previous Sessions
-- Backend refactoring from monolithic server.py to modular routes/
-- 2-step CV analysis flow (fast analysis + on-demand generation)
-- Claude AI integration for structured CV generation (JSON)
+- Backend refactoring (monolith -> modular routes)
+- 2-step CV analysis flow
+- Claude AI integration for CV generation
 - DOCX generation with python-docx
-- CV model selection grid with checkboxes
-- Analysis result persistence across navigation
-- Job suggestions from CV analysis
-- All core platform features (Explorer, Passport, Observatory, etc.)
+- All core platform features

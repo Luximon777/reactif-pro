@@ -22,35 +22,52 @@ class GenerateModelRequest(BaseModel):
     model_types: List[str]
 
 
-async def _claude_generate_single_cv(cv_text: str, model_type: str) -> dict:
-    """Use Claude to generate structured CV content as JSON sections"""
+async def _claude_generate_single_cv(cv_text: str, model_type: str, audit_data: list = None) -> dict:
+    """Use Claude to generate an OPTIMIZED CV based on audit findings"""
     model_descriptions = {
-        "classique": "CV chronologique classique : profil, expériences par ordre chronologique inverse, formation, compétences.",
-        "competences": "CV axé compétences : compétences clés regroupées par domaine en premier, puis expériences.",
-        "fonctionnel": "CV fonctionnel : compétences par domaines fonctionnels, sans chronologie stricte.",
-        "mixte": "CV mixte : parcours chronologique + compétences transférables mises en valeur.",
+        "classique": "CV chronologique classique : profil, experiences par ordre chronologique inverse, formation, competences.",
+        "competences": "CV axe competences : competences cles regroupees par domaine en premier, puis experiences.",
+        "fonctionnel": "CV fonctionnel : competences par domaines fonctionnels, sans chronologie stricte.",
+        "mixte": "CV mixte : parcours chronologique + competences transferables mises en valeur.",
     }
     desc = model_descriptions.get(model_type, model_descriptions["classique"])
+
+    audit_context = ""
+    if audit_data:
+        issues = [f"- {a['regle']}: {a['recommandation']}" for a in audit_data if a.get("statut") in ("ameliorable", "absent")]
+        if issues:
+            audit_context = f"\n\nPOINTS A CORRIGER ET OPTIMISER (issus de l'audit):\n" + "\n".join(issues)
 
     for attempt in range(3):
         try:
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"cv-gen-{uuid.uuid4()}",
-                system_message=f"""Tu es un rédacteur de CV professionnel expert en France.
-Génère un CV complet et détaillé. Réponds UNIQUEMENT en JSON valide.
+                system_message=f"""Tu es un expert en optimisation de CV professionnel en France.
+Tu dois OPTIMISER le CV fourni en corrigeant tous les points faibles identifies.
 
-Type : {desc}
+Type de CV demande : {desc}
 
-Structure JSON exacte :
+REGLES D'OPTIMISATION OBLIGATOIRES :
+1. TITRE CLAIR ET CIBLE : Repond a "Pour quel poste cette personne postule?" (ex: "Developpeur Full Stack - React & Python")
+2. ACCROCHE PERCUTANTE : 3-5 lignes structurees (Qui je suis / Mes points forts / Mon objectif)
+3. EXPERIENCES VALORISEES : Verbes d'action + chiffres concrets (ex: "Gestion de 50 dossiers/mois", "Reduction des erreurs de 20%")
+4. COMPETENCES DISTINGUEES : Hard skills (techniques) et soft skills (transverses) bien separees
+5. FORMATION SYNTHETIQUE : Seulement les elements pertinents
+6. MOTS-CLES ATS : Inclure les termes cles du secteur pour passer les filtres automatiques
+7. ZERO SUPERFLU : Pas d'objectifs flous, pas d'infos inutiles
+8. COHERENCE : Parcours logique, alignement avec le projet professionnel
+{audit_context}
+
+Reponds UNIQUEMENT en JSON valide. Structure exacte :
 {{
-  "nom": "Prénom NOM",
-  "titre": "Titre professionnel",
+  "nom": "Prenom NOM",
+  "titre": "Titre professionnel cible et percutant",
   "contact": {{"email": "...", "telephone": "...", "adresse": "...", "linkedin": "..."}},
-  "profil": "Résumé professionnel en 3-4 phrases percutantes",
-  "competences_cles": ["compétence 1", "compétence 2", ...],
+  "profil": "Accroche professionnelle percutante en 3-5 phrases (Qui je suis / Points forts / Objectif)",
+  "competences_cles": ["competence 1", "competence 2", ...],
   "experiences": [
-    {{"poste": "...", "entreprise": "...", "periode": "...", "missions": ["mission 1", "mission 2", ...]}}
+    {{"poste": "...", "entreprise": "...", "periode": "...", "missions": ["mission avec verbe d'action + chiffre", ...]}}
   ],
   "formations": [
     {{"diplome": "...", "etablissement": "...", "annee": "..."}}
@@ -60,9 +77,14 @@ Structure JSON exacte :
   "centres_interet": ["..."]
 }}
 
-IMPORTANT : Contenu riche et détaillé, minimum 6 expériences/missions par poste, vocabulaire professionnel."""
+IMPORTANT :
+- Chaque mission doit commencer par un verbe d'action (Coordonne, Gere, Developpe, Optimise...)
+- Ajouter des chiffres et resultats concrets aux missions quand possible
+- L'accroche (profil) doit suivre la structure : Qui je suis / Points forts / Objectif
+- Le titre doit etre precis et cible, PAS generique
+- Contenu riche, minimum 4-6 missions par poste, vocabulaire professionnel"""
             ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-            response = await chat.send_message(UserMessage(text=f"Reconstitue ce CV au format '{model_type}' :\n\n{cv_text[:6000]}"))
+            response = await chat.send_message(UserMessage(text=f"Optimise ce CV au format '{model_type}' en corrigeant tous les points faibles :\n\n{cv_text[:6000]}"))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
             if raw.startswith("```"):
                 raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
@@ -76,7 +98,7 @@ IMPORTANT : Contenu riche et détaillé, minimum 6 expériences/missions par pos
             logging.warning(f"Claude CV gen attempt {attempt+1} failed: {e}")
             if attempt == 2:
                 try:
-                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Génère un CV en JSON structuré. Type: {desc}. Même structure JSON que demandé.").with_model("openai", "gpt-5.2")
+                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cv-gpt-{uuid.uuid4()}", system_message=f"Optimise un CV en JSON structure. Type: {desc}. Meme structure JSON que demande. Utilise des verbes d'action et des chiffres concrets.").with_model("openai", "gpt-5.2")
                     response = await chat.send_message(UserMessage(text=f"CV :\n\n{cv_text[:6000]}"))
                     raw = response.strip() if isinstance(response, str) else response.text.strip()
                     if raw.startswith("```"):
@@ -85,8 +107,8 @@ IMPORTANT : Contenu riche et détaillé, minimum 6 expériences/missions par pos
                             raw = raw[:-3]
                     return json.loads(raw.strip())
                 except Exception as e2:
-                    raise Exception(f"Impossible de générer le CV: {e2}")
-    raise Exception("Échec après 3 tentatives")
+                    raise Exception(f"Impossible d'optimiser le CV: {e2}")
+    raise Exception("Echec apres 3 tentatives")
 
 
 def _build_docx(cv_data: dict, model_type: str) -> bytes:
@@ -369,7 +391,7 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences..."}})
 
         analysis = await _llm_call_with_retry(
-            system_msg="""Tu es un expert RH. Analyse ce CV. Réponds UNIQUEMENT en JSON valide (pas de markdown).
+            system_msg="""Tu es un expert RH et consultant en optimisation de CV. Analyse ce CV selon les 12 regles professionnelles. Reponds UNIQUEMENT en JSON valide (pas de markdown).
 Structure exacte:
 {
   "profile": {"professional_summary": "2-3 phrases", "career_project": "string", "motivations": [], "compatible_environments": [], "target_sectors": []},
@@ -379,14 +401,37 @@ Structure exacte:
   "competences_transferables": [],
   "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "skills_used": [], "achievements": []}],
   "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
-  "offres_emploi_suggerees": [{"titre": "string", "secteur": "string", "type_contrat": "CDI|CDD|Interim|Alternance", "description_courte": "string", "competences_requises": []}]
+  "offres_emploi_suggerees": [{"titre": "string", "secteur": "string", "type_contrat": "CDI|CDD|Interim|Alternance", "description_courte": "string", "competences_requises": []}],
+  "audit_cv": [
+    {"regle": "Clarte et lisibilite", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "Explication precise de ce qui va ou ne va pas", "recommandation": "Conseil concret d'amelioration"},
+    {"regle": "Titre clair et cible", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Accroche professionnelle", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Valorisation des experiences", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Mise en avant des competences", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Formation synthetique", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Adaptation a l'offre", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Mots-cles ATS", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Absence de superflu", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Coherence et authenticite", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Structure type respectee", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."},
+    {"regle": "Strategie globale (lisibilite, credibilite, alignement)", "score": 0-10, "statut": "ok|ameliorable|absent", "diagnostic": "...", "recommandation": "..."}
+  ],
+  "score_global_cv": 0-100,
+  "modele_suggere": "classique|competences|fonctionnel|mixte",
+  "raison_modele": "Explication de pourquoi ce modele est le plus adapte au profil"
 }
 IMPORTANT:
-- competences_transversales: liste de 5-10 compétences transversales identifiées
+- audit_cv: evalue CHACUNE des 12 regles avec un score /10, un diagnostic precis, et une recommandation concrete
+- score_global_cv: moyenne ponderee des 12 scores (sur 100)
+- modele_suggere: le type de CV le plus adapte au profil du candidat parmi classique, competences, fonctionnel, mixte
+- competences_transversales: liste de 5-10 competences transversales identifiees
 - offres_emploi_suggerees: liste de 3-5 offres d'emploi pertinentes
+- Pour les experiences: identifie si elles utilisent des verbes d'action et des chiffres concrets
+- Pour le titre: verifie qu'il repond a "Pour quel poste cette personne postule?"
+- Pour l'accroche: verifie la structure Qui je suis / Mes points forts / Mon objectif
 Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
 Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
-            user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
+            user_msg=f"Analyse et audite ce CV selon les 12 regles professionnelles:\n\n{cv_excerpt}"
         )
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Remplissage du passeport..."}})
@@ -432,7 +477,7 @@ Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
         await db.passports.update_one({"token_id": token_id}, {"$set": update_fields})
 
         result = {
-            "message": "CV analysé avec succès", "filename": filename,
+            "message": "CV analyse avec succes", "filename": filename,
             "savoir_faire_count": len(analysis.get("savoir_faire", [])),
             "savoir_etre_count": len(analysis.get("savoir_etre", [])),
             "experiences_count": len(analysis.get("experiences", [])),
@@ -441,6 +486,10 @@ Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
             "competences_transferables": analysis.get("competences_transferables", []),
             "offres_emploi_suggerees": analysis.get("offres_emploi_suggerees", []),
             "completeness_score": update_fields.get("completeness_score", 0),
+            "audit_cv": analysis.get("audit_cv", []),
+            "score_global_cv": analysis.get("score_global_cv", 0),
+            "modele_suggere": analysis.get("modele_suggere", "classique"),
+            "raison_modele": analysis.get("raison_modele", ""),
         }
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Terminé"}})
         logging.info(f"CV analysis job {job_id} completed successfully")
@@ -500,16 +549,24 @@ async def analyze_cv_text(token: str, payload: CvTextPayload):
 
 @router.post("/cv/generate-models")
 async def generate_cv_models(token: str, request: GenerateModelRequest):
-    """Generate selected CV models on demand using Claude AI"""
+    """Optimize and generate selected CV models using Claude AI"""
     token_doc = await get_current_token(token)
     valid_types = {"classique", "competences", "fonctionnel", "mixte"}
     selected = [m for m in request.model_types if m in valid_types]
     if not selected:
-        raise HTTPException(status_code=400, detail="Aucun type de modèle valide sélectionné")
+        raise HTTPException(status_code=400, detail="Aucun type de modele valide selectionne")
 
     cv_text_doc = await db.cv_texts.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not cv_text_doc or not cv_text_doc.get("text"):
-        raise HTTPException(status_code=404, detail="Aucun CV analysé. Veuillez d'abord uploader votre CV.")
+        raise HTTPException(status_code=404, detail="Aucun CV analyse. Veuillez d'abord uploader votre CV.")
+
+    # Fetch latest audit data to guide optimization
+    latest_job = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"},
+        {"_id": 0, "result.audit_cv": 1},
+        sort=[("created_at", -1)]
+    )
+    audit_data = latest_job.get("result", {}).get("audit_cv", []) if latest_job else []
 
     job_id = str(uuid.uuid4())
     await db.cv_gen_jobs.insert_one({"job_id": job_id, "token_id": token_doc["id"], "model_types": selected, "status": "started", "progress": 0, "total": len(selected), "created_at": datetime.now(timezone.utc).isoformat()})
@@ -518,7 +575,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
         try:
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
-                cv_data = await _claude_generate_single_cv(cv_text_doc["text"], model_type)
+                cv_data = await _claude_generate_single_cv(cv_text_doc["text"], model_type, audit_data)
                 # Build DOCX + PDF
                 docx_bytes = _build_docx(cv_data, model_type)
                 docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
@@ -537,7 +594,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
                 )
             await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "progress": len(selected)}})
         except Exception as e:
-            logging.error(f"CV models generation failed: {e}")
+            logging.error(f"CV models optimization failed: {e}")
             await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
 
     asyncio.create_task(_generate_all())

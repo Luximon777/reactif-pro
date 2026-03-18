@@ -29,7 +29,9 @@ import {
   FileDown,
   FileText,
   LayoutList,
-  Layers
+  Layers,
+  Shield,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -293,7 +295,7 @@ const ParticulierView = ({ token, section }) => {
                 <FileText className="w-5 h-5 text-[#1e3a5f]" />
                 Mes CV
               </CardTitle>
-              <CardDescription>Chargez votre CV pour que l'IA analyse vos compétences et génère les modèles de votre choix</CardDescription>
+              <CardDescription>Chargez votre CV pour un audit complet et une optimisation par IA</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -759,7 +761,10 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       setServerStep("Analyse IA en cours...");
       const result = await pollForResult(jobId);
       setAnalysisResult(result);
-      toast.success(`CV analysé : ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
+      if (result.modele_suggere && !selectedGenModels.includes(result.modele_suggere)) {
+        setSelectedGenModels([result.modele_suggere]);
+      }
+      toast.success(`CV audite : score ${result.score_global_cv || 0}/100 — ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-etre detectes`);
       if (onComplete) onComplete();
     } catch (err) {
       let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV.";
@@ -797,7 +802,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           if (res.data.status === "completed") {
             const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
             if (modelsRes.data.models) setCvModels(modelsRes.data);
-            toast.success(`${selectedGenModels.length} CV généré${selectedGenModels.length > 1 ? "s" : ""} par Claude IA`);
+            toast.success(`${selectedGenModels.length} CV optimise${selectedGenModels.length > 1 ? "s" : ""} par IA`);
             setSelectedGenModels([]);
             break;
           }
@@ -904,7 +909,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div>
             <FileDown className="w-8 h-8 mx-auto text-slate-400 mb-2" />
             <p className="text-sm font-medium text-slate-700">Chargez votre CV (PDF, DOCX, TXT)</p>
-            <p className="text-xs text-slate-400">L'IA analysera vos compétences et vous pourrez choisir les modèles de CV à générer</p>
+            <p className="text-xs text-slate-400">L'IA auditera votre CV selon 12 criteres professionnels et proposera une optimisation percutante</p>
           </div>
         )}
       </div>
@@ -1004,7 +1009,64 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               </div>
             </div>
           )}
-          <p className="text-xs text-emerald-600 font-medium">Passeport automatiquement complété avec les données extraites</p>
+          <p className="text-xs text-emerald-600 font-medium">Passeport automatiquement complete avec les donnees extraites</p>
+        </div>
+      )}
+
+      {/* CV Audit - 12 Rules */}
+      {analysisResult?.audit_cv?.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3" data-testid="cv-audit-section">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#1e3a5f]" />
+              <h4 className="font-semibold text-slate-800 text-sm">Audit CV — 12 criteres professionnels</h4>
+            </div>
+            {analysisResult.score_global_cv != null && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">Score global</span>
+                <span className={`text-lg font-bold ${analysisResult.score_global_cv >= 70 ? "text-emerald-600" : analysisResult.score_global_cv >= 40 ? "text-amber-600" : "text-red-600"}`} data-testid="cv-audit-score">
+                  {analysisResult.score_global_cv}/100
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {analysisResult.audit_cv.map((item, i) => {
+              const statusColor = item.statut === "ok" ? "bg-emerald-50 border-emerald-200" : item.statut === "ameliorable" ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
+              const statusBadge = item.statut === "ok" ? "bg-emerald-100 text-emerald-700" : item.statut === "ameliorable" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+              const statusLabel = item.statut === "ok" ? "OK" : item.statut === "ameliorable" ? "A ameliorer" : "Absent";
+              return (
+                <div key={i} className={`p-2.5 rounded-lg border ${statusColor} space-y-1`} data-testid={`audit-rule-${i}`}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-slate-800">{item.regle}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500">{item.score}/10</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusBadge}`}>{statusLabel}</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-600">{item.diagnostic}</p>
+                  {item.statut !== "ok" && item.recommandation && (
+                    <p className="text-[10px] text-blue-700 font-medium">Conseil : {item.recommandation}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Suggested model */}
+      {analysisResult?.modele_suggere && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-3" data-testid="cv-model-suggestion">
+          <BarChart3 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-blue-800">
+              Modele recommande : <span className="text-blue-600">{CV_MODELS_CONFIG.find(c => c.key === analysisResult.modele_suggere)?.name || analysisResult.modele_suggere}</span>
+            </p>
+            {analysisResult.raison_modele && (
+              <p className="text-[10px] text-blue-600 mt-0.5">{analysisResult.raison_modele}</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -1013,9 +1075,9 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="space-y-3" data-testid="cv-models-section">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
-            <h4 className="text-sm font-semibold text-slate-800">Générer vos CV avec Claude IA</h4>
+            <h4 className="text-sm font-semibold text-slate-800">Optimiser votre CV par IA</h4>
           </div>
-          <p className="text-xs text-slate-500">Sélectionnez le ou les modèles de CV à générer, puis cliquez sur "Générer".</p>
+          <p className="text-xs text-slate-500">Selectionnez le ou les modeles de CV a optimiser. L'IA corrigera les points faibles identifies dans l'audit.</p>
 
           {/* Generation progress */}
           {generatingModel && genProgress && (
@@ -1023,7 +1085,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs font-medium text-blue-800">
-                  Génération en cours ({genProgress.current}/{genProgress.total})
+                  Optimisation en cours ({genProgress.current}/{genProgress.total})
                   {genProgress.currentModel && ` — ${CV_MODELS_CONFIG.find(c => c.key === genProgress.currentModel)?.name || genProgress.currentModel}`}
                 </p>
               </div>
@@ -1055,7 +1117,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold truncate">{cv.name}</p>
-                        {hasModel && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Généré</span>}
+                        {hasModel && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Optimise</span>}
                       </div>
                       <p className="text-[10px] opacity-70">{cv.desc}</p>
                     </div>
@@ -1083,8 +1145,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <div className="flex items-center justify-between pt-1">
               <p className="text-xs text-slate-500">
                 {selectedGenModels.length === 0
-                  ? "Sélectionnez au moins un modèle"
-                  : `${selectedGenModels.length} modèle${selectedGenModels.length > 1 ? "s" : ""} sélectionné${selectedGenModels.length > 1 ? "s" : ""}`}
+                  ? "Selectionnez au moins un modele"
+                  : `${selectedGenModels.length} modele${selectedGenModels.length > 1 ? "s" : ""} selectionne${selectedGenModels.length > 1 ? "s" : ""}`}
               </p>
               <Button
                 size="sm"
@@ -1094,7 +1156,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                 data-testid="cv-generate-btn"
               >
                 <Sparkles className="w-4 h-4 mr-1" />
-                Générer {selectedGenModels.length > 0 ? `(${selectedGenModels.length})` : ""}
+                Optimiser {selectedGenModels.length > 0 ? `(${selectedGenModels.length})` : ""}
               </Button>
             </div>
           )}
