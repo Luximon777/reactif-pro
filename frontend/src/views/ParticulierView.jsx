@@ -908,7 +908,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div>
             <FileDown className="w-8 h-8 mx-auto text-slate-400 mb-2" />
             <p className="text-sm font-medium text-slate-700">Chargez votre CV (PDF, DOCX, TXT)</p>
-            <p className="text-xs text-slate-400">L'IA auditera votre CV selon 12 criteres professionnels et proposera une optimisation percutante</p>
+            <p className="text-xs text-slate-400">L'IA auditera votre CV selon 10 criteres professionnels et proposera une optimisation percutante</p>
           </div>
         )}
       </div>
@@ -1018,7 +1018,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-[#1e3a5f]" />
-              <h4 className="font-semibold text-slate-800 text-sm">Audit CV — 12 criteres professionnels</h4>
+              <h4 className="font-semibold text-slate-800 text-sm">Audit CV — 10 criteres professionnels</h4>
             </div>
             {analysisResult.score_global_cv != null && (
               <div className="flex items-center gap-2">

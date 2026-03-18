@@ -1,24 +1,20 @@
 # Re'Actif Pro - Changelog
 
-## 2026-03-18 - Audit CV 12 Regles + Optimisation IA
-- **FEATURE**: Audit CV selon 12 regles professionnelles (clarte, titre cible, accroche, valorisation, ATS, etc.)
-- **FEATURE**: Score global /100 + score par critere /10 avec diagnostic et recommandations
-- **FEATURE**: Suggestion automatique du modele de CV le plus adapte au profil
-- **FEATURE**: Optimisation du CV par IA (corrige les points faibles identifies dans l'audit)
-- **UI**: "Generer vos CV avec Claude IA" -> "Optimiser votre CV par IA"
-- **UI**: Section audit avec grille 2 colonnes, codes couleur (OK/Ameliorable/Absent)
-- **UI**: Auto-selection du modele suggere
-
-## 2026-03-18 - PDF Generation + DOCX Validation
-- **FEATURE**: Generation PDF avec reportlab
-- **FEATURE**: Endpoint GET /api/cv/download-pdf/{model_type}
-- **FEATURE**: Boutons Word + PDF dans l'UI
-- **VALIDATED**: Flux DOCX bout en bout
-- **FIX**: Warning React button imbrique
+## 2026-03-18 - Flux CV 3 etapes optimise
+- **PERF**: Analyse CV reduite de 6+ minutes a ~50 secondes (prompt allege, retries reduits)
+- **FEATURE**: Audit CV selon 10 regles professionnelles avec score /10 par regle + score global /100
+- **FEATURE**: Diagnostic detaille avec recommandations concretes (couleurs OK/Ameliorable/Absent)
+- **FEATURE**: Suggestion automatique du modele CV le plus adapte au profil par l'IA
+- **FEATURE**: 3 modeles de CV : Classique, Competences, Transversal (remplacement fonctionnel/mixte)
+- **FEATURE**: Optimisation du CV par Claude IA (corrige les points faibles de l'audit)
+- **FEATURE**: Telechargement Word (DOCX) et PDF pour chaque modele optimise
+- **UI**: Labels mis a jour : "Optimiser votre CV par IA", bouton "Optimiser"
+- **UI**: Section audit avec grille 2 colonnes, badges couleur, conseils en bleu
+- **UI**: Encart suggestion modele recommande avec explication IA
+- **TESTED**: 100% pass rate backend (17/17) + frontend (all UI verified)
 
 ## Previous Sessions
 - Backend refactoring (monolith -> modular routes)
 - 2-step CV analysis flow
-- Claude AI integration for CV generation
-- DOCX generation with python-docx
-- All core platform features
+- Claude AI + GPT integration
+- All core platform features (Explorer, Passeport, Observatoire, etc.)
