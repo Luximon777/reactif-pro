@@ -1,5 +1,12 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-19 - Competences Emergentes Phase 1
+- **FEATURE**: 3eme appel LLM parallele dans _run_cv_analysis pour detection competences emergentes
+- **FEATURE**: Stockage MongoDB 'emerging_competences' avec score, niveau, categorie, justification, indicateurs
+- **FEATURE**: Endpoints CRUD: GET /api/emerging/competences, GET /api/emerging/competence/{id}, POST /api/emerging/validate/{id}, GET /api/emerging/observatory
+- **FEATURE**: Affichage enrichi PassportView onglet "Emergentes" avec EmergingCompetenceCard (score SVG, badges, indicateurs, secteurs, metiers)
+- **TESTED**: 100% backend (12/12) + frontend (UI complete)
+
 ## 2026-03-18 - CV Nouvelle Generation + Profil Dynamique + Performance
 - **PERF**: Optimisation CV reduite de 88s a ~15s (GPT-5.2 au lieu de Claude, parsing JSON robuste)
 - **FIX**: Le CV optimise contient bien les donnees du candidat original (prompt ameliore)
