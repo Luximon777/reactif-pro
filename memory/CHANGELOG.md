@@ -1,5 +1,10 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-19 - Refactoring Composants Frontend
+- **REFACTORING**: ParticulierView.jsx 1294->354 lignes (-73%). Extraction de CvAnalysisSection.jsx (693 lignes) et CvPreview.jsx (105 lignes) dans /components/CvAnalysis/
+- **REFACTORING**: PassportView.jsx 1823->1670 lignes. Extraction de EmergingCompetenceCard.jsx (85 lignes) et passportConfig.js (84 lignes) dans /components/Passport/
+- **TESTED**: 100% frontend - tous les composants extraits fonctionnent correctement, navigation OK, onglets OK
+
 ## 2026-03-19 - Competences Emergentes Phase 1
 - **FEATURE**: 3eme appel LLM parallele dans _run_cv_analysis pour detection competences emergentes
 - **FEATURE**: Stockage MongoDB 'emerging_competences' avec score, niveau, categorie, justification, indicateurs
