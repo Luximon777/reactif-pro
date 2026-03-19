@@ -174,7 +174,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               {/* Ubuntoo Link */}
               <a
-                href="https://resume-builder-pro-19.preview.emergentagent.com/"
+                href="https://ats-engine.preview.emergentagent.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hidden sm:flex"
@@ -270,7 +270,7 @@ const Dashboard = () => {
                 );
               })}
               <a
-                href="https://resume-builder-pro-19.preview.emergentagent.com/"
+                href="https://ats-engine.preview.emergentagent.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"

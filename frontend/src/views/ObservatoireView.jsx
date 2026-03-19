@@ -943,7 +943,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href="https://resume-builder-pro-19.preview.emergentagent.com/"
+              href="https://ats-engine.preview.emergentagent.com/"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"
