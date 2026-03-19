@@ -33,56 +33,13 @@ import {
   ChevronRight, Star, Award, BookOpen, Share2, Trash2, Zap, Edit3,
   Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot
 } from "lucide-react";
+import EmergingCompetenceCard from "@/components/Passport/EmergingCompetenceCard";
+import {
+  SOURCE_CONFIG, LEVEL_CONFIG, CATEGORY_CONFIG, NATURE_CONFIG,
+  CCSP_POLES, CCSP_DEGREES, COMPONENT_LABELS, VERTU_COLORS
+} from "@/components/Passport/passportConfig";
 
-const SOURCE_CONFIG = {
-  declaratif: { label: "Déclaré", color: "bg-slate-100 text-slate-600", icon: User },
-  coffre_fort: { label: "Coffre-fort", color: "bg-blue-100 text-blue-700", icon: FolderLock },
-  profil: { label: "Profil", color: "bg-indigo-100 text-indigo-700", icon: User },
-  module: { label: "Formation", color: "bg-emerald-100 text-emerald-700", icon: GraduationCap },
-  plateforme: { label: "RE'ACTIF PRO", color: "bg-blue-100 text-blue-700", icon: BookOpen },
-  ubuntoo: { label: "Ubuntoo", color: "bg-teal-100 text-teal-700", icon: MessageCircle },
-  ia_detectee: { label: "Détecté IA", color: "bg-violet-100 text-violet-700", icon: Brain },
-  contribution: { label: "Contribution", color: "bg-amber-100 text-amber-700", icon: Sparkles },
-};
-
-const LEVEL_CONFIG = {
-  debutant: { label: "Débutant", color: "bg-slate-200 text-slate-700", width: 25 },
-  intermediaire: { label: "Intermédiaire", color: "bg-blue-200 text-blue-700", width: 50 },
-  avance: { label: "Avancé", color: "bg-emerald-200 text-emerald-700", width: 75 },
-  expert: { label: "Expert", color: "bg-amber-200 text-amber-700", width: 100 },
-};
-
-const CATEGORY_CONFIG = {
-  technique: { label: "Technique", color: "text-blue-700 bg-blue-50 border-blue-200", desc: "Compétence spécifique à un métier" },
-  transversale: { label: "Transversale", color: "text-violet-700 bg-violet-50 border-violet-200", desc: "Universelle, commune à différents métiers et secteurs" },
-  transferable: { label: "Transférable", color: "text-amber-700 bg-amber-50 border-amber-200", desc: "Mobilisable dans un même secteur ou entreprise" },
-  sectorielle: { label: "Sectorielle", color: "text-slate-700 bg-slate-50 border-slate-200", desc: "Propre à un secteur d'activité" },
-};
-
-const NATURE_CONFIG = {
-  savoir_faire: { label: "Savoir-faire", color: "bg-sky-600 text-white", icon: Briefcase, bgLight: "bg-sky-50 border-sky-200 text-sky-700" },
-  savoir_etre: { label: "Savoir-être", color: "bg-rose-500 text-white", icon: Activity, bgLight: "bg-rose-50 border-rose-200 text-rose-700" },
-};
-
-const CCSP_POLES = {
-  realisation: { label: "Réalisation", color: "bg-blue-600", textColor: "text-blue-700", bgLight: "bg-blue-50" },
-  interaction: { label: "Interaction", color: "bg-emerald-600", textColor: "text-emerald-700", bgLight: "bg-emerald-50" },
-  initiative: { label: "Initiative", color: "bg-amber-600", textColor: "text-amber-700", bgLight: "bg-amber-50" },
-};
-
-const CCSP_DEGREES = {
-  imitation: { label: "Imitation", color: "bg-slate-500", level: 1 },
-  adaptation: { label: "Adaptation", color: "bg-blue-500", level: 2 },
-  transposition: { label: "Transposition", color: "bg-emerald-500", level: 3 },
-};
-
-const COMPONENT_LABELS = {
-  connaissance: { label: "Connaissance", short: "Sav.", desc: "Savoirs théoriques et factuels", icon: BookOpen, color: "#3b82f6" },
-  cognition: { label: "Cognition", short: "Cog.", desc: "Analyse, raisonnement, résolution", icon: Brain, color: "#8b5cf6" },
-  conation: { label: "Conation", short: "Con.", desc: "Motivation, volonté, engagement", icon: Zap, color: "#f59e0b" },
-  affection: { label: "Affection", short: "Aff.", desc: "Gestion émotionnelle, empathie", icon: Activity, color: "#ef4444" },
-  sensori_moteur: { label: "Sensori-moteur", short: "S-M.", desc: "Habiletés physiques et pratiques", icon: Hexagon, color: "#10b981" },
-};
+// Configs imported from @/components/Passport/passportConfig
 
 const PassportView = ({ token }) => {
   const [passport, setPassport] = useState(null);
@@ -1432,106 +1389,6 @@ const CompetenceCard = ({ comp, onDelete, onEvaluate, emerging }) => {
   );
 };
 
-const NIVEAU_CONFIG = {
-  signal_faible: { label: "Signal faible", color: "bg-slate-100 text-slate-600", barColor: "#94a3b8", width: 20 },
-  emergente: { label: "Émergente", color: "bg-violet-100 text-violet-700", barColor: "#8b5cf6", width: 45 },
-  en_croissance: { label: "En croissance", color: "bg-amber-100 text-amber-700", barColor: "#f59e0b", width: 70 },
-  etablie: { label: "Établie", color: "bg-emerald-100 text-emerald-700", barColor: "#10b981", width: 95 },
-};
-
-const CATEGORIE_EMERGING_CONFIG = {
-  tech_emergente: { label: "Tech émergente", color: "text-blue-700 bg-blue-50" },
-  hybride: { label: "Hybride", color: "text-purple-700 bg-purple-50" },
-  soft_skill_avancee: { label: "Soft skill avancée", color: "text-rose-700 bg-rose-50" },
-  methodologique: { label: "Méthodologique", color: "text-teal-700 bg-teal-50" },
-  sectorielle: { label: "Sectorielle", color: "text-orange-700 bg-orange-50" },
-};
-
-const TENDANCE_CONFIG = {
-  hausse: { label: "En hausse", icon: TrendingUp, color: "text-emerald-600" },
-  stable: { label: "Stable", icon: ArrowRight, color: "text-slate-500" },
-  nouvelle: { label: "Nouvelle", icon: Sparkles, color: "text-violet-600" },
-};
-
-const EmergingCompetenceCard = ({ comp }) => {
-  const niveau = NIVEAU_CONFIG[comp.niveau_emergence] || NIVEAU_CONFIG.emergente;
-  const cat = CATEGORIE_EMERGING_CONFIG[comp.categorie] || CATEGORIE_EMERGING_CONFIG.hybride;
-  const tendance = TENDANCE_CONFIG[comp.tendance] || TENDANCE_CONFIG.hausse;
-  const TendanceIcon = tendance.icon;
-  const score = comp.score_emergence || 0;
-
-  return (
-    <Card className="border-violet-200 bg-gradient-to-br from-white to-violet-50/40 hover:shadow-lg transition-all" data-testid="emerging-competence-card">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h4 className="font-bold text-slate-900 text-sm" data-testid="emerging-comp-name">{comp.nom_principal}</h4>
-            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-              <Badge className={`text-xs ${cat.color}`}>{cat.label}</Badge>
-              <Badge className={`text-xs ${niveau.color}`}>{niveau.label}</Badge>
-              <span className={`flex items-center gap-0.5 text-xs font-medium ${tendance.color}`}>
-                <TendanceIcon className="w-3 h-3" />{tendance.label}
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-col items-center ml-3">
-            <div className="relative w-12 h-12">
-              <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
-                <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                <circle cx="18" cy="18" r="15" fill="none" stroke={niveau.barColor} strokeWidth="3"
-                  strokeDasharray={`${(score / 100) * 94.2} 94.2`} strokeLinecap="round" />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-700">{score}</span>
-            </div>
-            <span className="text-[10px] text-slate-400 mt-0.5">Score</span>
-          </div>
-        </div>
-
-        {comp.justification && (
-          <p className="text-xs text-slate-600 mb-3 leading-relaxed">{comp.justification}</p>
-        )}
-
-        {comp.indicateurs_cles?.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Indicateurs clés</p>
-            <div className="space-y-1">
-              {comp.indicateurs_cles.map((ind, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
-                  <Zap className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
-                  <span>{ind}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-3 text-xs">
-          {comp.secteurs_porteurs?.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Secteurs porteurs</p>
-              <div className="flex flex-wrap gap-1">
-                {comp.secteurs_porteurs.map((s, i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] border-blue-200 text-blue-600">{s}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          {comp.metiers_associes?.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Métiers associés</p>
-              <div className="flex flex-wrap gap-1">
-                {comp.metiers_associes.map((m, i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] border-emerald-200 text-emerald-600">{m}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 const ExperienceCard = ({ exp, onDelete }) => {
   const typeLabels = { professionnel: "Professionnel", personnel: "Personnel", benevole: "Bénévole", projet: "Projet" };
   return (
@@ -1645,15 +1502,6 @@ const PasserelleCard = ({ passerelle }) => {
 };
 
 // ============== ARCHÉOLOGIE TAB ==============
-
-const VERTU_COLORS = {
-  sagesse: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-300", accent: "#3b82f6" },
-  courage: { bg: "bg-red-50", text: "text-red-700", border: "border-red-300", accent: "#ef4444" },
-  humanite: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-300", accent: "#f43f5e" },
-  justice: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-300", accent: "#f59e0b" },
-  temperance: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-300", accent: "#14b8a6" },
-  transcendance: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-300", accent: "#8b5cf6" },
-};
 
 const ArcheologieTab = ({ archeologie, loading, onLoad, savoirFaire, savoirEtre, nonClassees }) => {
   const [referentiel, setReferentiel] = useState(null);
