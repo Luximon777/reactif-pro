@@ -257,8 +257,8 @@ const PassportView = ({ token }) => {
   if (!passport) return <div className="text-center py-12 text-slate-500">Impossible de charger le passeport</div>;
 
   const { completeness_score = 0, competences = [], experiences = [], learning_path = [], passerelles = [], sources_count = {} } = passport;
-  const mainCompetences = competences.filter(c => !c.is_emerging);
-  const emergingCompetences = competences.filter(c => c.is_emerging);
+  const mainCompetences = competences.filter(c => !c.is_emerging && c.source !== "ia_detectee");
+  const emergingCompetences = competences.filter(c => c.is_emerging || c.source === "ia_detectee");
   const savoirFaire = competences.filter(c => c.nature === "savoir_faire");
   const savoirEtre = competences.filter(c => c.nature === "savoir_etre");
   const nonClassees = competences.filter(c => !c.nature);
