@@ -105,6 +105,8 @@ const PassportView = ({ token }) => {
   const [profileEdit, setProfileEdit] = useState({ professional_summary: "", career_project: "", motivations: "", compatible_environments: "", target_sectors: "" });
   const [archeologie, setArcheologie] = useState(null);
   const [loadingArcheologie, setLoadingArcheologie] = useState(false);
+  const [emergingFromApi, setEmergingFromApi] = useState([]);
+  const [loadingEmerging, setLoadingEmerging] = useState(false);
 
   const loadPassport = useCallback(async () => {
     try {
@@ -116,7 +118,18 @@ const PassportView = ({ token }) => {
     setLoading(false);
   }, [token]);
 
-  useEffect(() => { loadPassport(); }, [loadPassport]);
+  const loadEmerging = useCallback(async () => {
+    setLoadingEmerging(true);
+    try {
+      const res = await axios.get(`${API}/emerging/competences?token=${token}`);
+      setEmergingFromApi(res.data.competences || []);
+    } catch (e) {
+      console.error("Error loading emerging:", e);
+    }
+    setLoadingEmerging(false);
+  }, [token]);
+
+  useEffect(() => { loadPassport(); loadEmerging(); }, [loadPassport, loadEmerging]);
 
   const loadDiagnostic = async () => {
     setLoadingDiagnostic(true);
@@ -466,16 +479,35 @@ const PassportView = ({ token }) => {
         {/* Emerging Competences Tab */}
         <TabsContent value="emerging" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900">Compétences émergentes ({emergingCompetences.length})</h3>
-            <Badge className="bg-violet-100 text-violet-700"><Brain className="w-3 h-3 mr-1" />Détectées automatiquement</Badge>
+            <h3 className="font-semibold text-slate-900" data-testid="emerging-title">
+              Compétences émergentes ({emergingFromApi.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-violet-100 text-violet-700"><Brain className="w-3 h-3 mr-1" />Détection IA</Badge>
+              <Button variant="outline" size="sm" onClick={loadEmerging} disabled={loadingEmerging} data-testid="refresh-emerging-btn">
+                <RefreshCw className={`w-3 h-3 mr-1 ${loadingEmerging ? "animate-spin" : ""}`} />Actualiser
+              </Button>
+            </div>
           </div>
-          <p className="text-sm text-slate-500">Compétences identifiées via l'IA, les échanges Ubuntoo et vos contributions</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {emergingCompetences.map(comp => (
-              <CompetenceCard key={comp.id} comp={comp} onDelete={handleDeleteCompetence} onEvaluate={handleOpenEvaluation} emerging />
-            ))}
-          </div>
-          {emergingCompetences.length === 0 && <EmptyState text="Les compétences émergentes seront détectées automatiquement" />}
+          <p className="text-sm text-slate-500">Compétences rares, en forte croissance ou atypiques détectées dans votre CV par l'IA</p>
+
+          {loadingEmerging && (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-violet-500" />
+            </div>
+          )}
+
+          {!loadingEmerging && emergingFromApi.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {emergingFromApi.map(ec => (
+                <EmergingCompetenceCard key={ec.id} comp={ec} />
+              ))}
+            </div>
+          )}
+
+          {!loadingEmerging && emergingFromApi.length === 0 && (
+            <EmptyState text="Analysez votre CV pour détecter automatiquement les compétences émergentes" />
+          )}
         </TabsContent>
 
         {/* Experiences Tab */}
@@ -1395,6 +1427,106 @@ const CompetenceCard = ({ comp, onDelete, onEvaluate, emerging }) => {
             <Award className="w-3 h-3" /><span>Preuve: {comp.proof}</span>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const NIVEAU_CONFIG = {
+  signal_faible: { label: "Signal faible", color: "bg-slate-100 text-slate-600", barColor: "#94a3b8", width: 20 },
+  emergente: { label: "Émergente", color: "bg-violet-100 text-violet-700", barColor: "#8b5cf6", width: 45 },
+  en_croissance: { label: "En croissance", color: "bg-amber-100 text-amber-700", barColor: "#f59e0b", width: 70 },
+  etablie: { label: "Établie", color: "bg-emerald-100 text-emerald-700", barColor: "#10b981", width: 95 },
+};
+
+const CATEGORIE_EMERGING_CONFIG = {
+  tech_emergente: { label: "Tech émergente", color: "text-blue-700 bg-blue-50" },
+  hybride: { label: "Hybride", color: "text-purple-700 bg-purple-50" },
+  soft_skill_avancee: { label: "Soft skill avancée", color: "text-rose-700 bg-rose-50" },
+  methodologique: { label: "Méthodologique", color: "text-teal-700 bg-teal-50" },
+  sectorielle: { label: "Sectorielle", color: "text-orange-700 bg-orange-50" },
+};
+
+const TENDANCE_CONFIG = {
+  hausse: { label: "En hausse", icon: TrendingUp, color: "text-emerald-600" },
+  stable: { label: "Stable", icon: ArrowRight, color: "text-slate-500" },
+  nouvelle: { label: "Nouvelle", icon: Sparkles, color: "text-violet-600" },
+};
+
+const EmergingCompetenceCard = ({ comp }) => {
+  const niveau = NIVEAU_CONFIG[comp.niveau_emergence] || NIVEAU_CONFIG.emergente;
+  const cat = CATEGORIE_EMERGING_CONFIG[comp.categorie] || CATEGORIE_EMERGING_CONFIG.hybride;
+  const tendance = TENDANCE_CONFIG[comp.tendance] || TENDANCE_CONFIG.hausse;
+  const TendanceIcon = tendance.icon;
+  const score = comp.score_emergence || 0;
+
+  return (
+    <Card className="border-violet-200 bg-gradient-to-br from-white to-violet-50/40 hover:shadow-lg transition-all" data-testid="emerging-competence-card">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h4 className="font-bold text-slate-900 text-sm" data-testid="emerging-comp-name">{comp.nom_principal}</h4>
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <Badge className={`text-xs ${cat.color}`}>{cat.label}</Badge>
+              <Badge className={`text-xs ${niveau.color}`}>{niveau.label}</Badge>
+              <span className={`flex items-center gap-0.5 text-xs font-medium ${tendance.color}`}>
+                <TendanceIcon className="w-3 h-3" />{tendance.label}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col items-center ml-3">
+            <div className="relative w-12 h-12">
+              <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15" fill="none" stroke={niveau.barColor} strokeWidth="3"
+                  strokeDasharray={`${(score / 100) * 94.2} 94.2`} strokeLinecap="round" />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-700">{score}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 mt-0.5">Score</span>
+          </div>
+        </div>
+
+        {comp.justification && (
+          <p className="text-xs text-slate-600 mb-3 leading-relaxed">{comp.justification}</p>
+        )}
+
+        {comp.indicateurs_cles?.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Indicateurs clés</p>
+            <div className="space-y-1">
+              {comp.indicateurs_cles.map((ind, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
+                  <Zap className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
+                  <span>{ind}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-3 text-xs">
+          {comp.secteurs_porteurs?.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Secteurs porteurs</p>
+              <div className="flex flex-wrap gap-1">
+                {comp.secteurs_porteurs.map((s, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] border-blue-200 text-blue-600">{s}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {comp.metiers_associes?.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Métiers associés</p>
+              <div className="flex flex-wrap gap-1">
+                {comp.metiers_associes.map((m, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] border-emerald-200 text-emerald-600">{m}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

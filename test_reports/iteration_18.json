@@ -1,0 +1,85 @@
+{
+  "summary": "Complete E2E testing of Emerging Competences Detection feature. All backend APIs (12/12 tests passed) and frontend Émergentes tab verified working. The 3rd parallel LLM call during CV analysis detects emerging competences and stores them in MongoDB.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": {
+    "backend_api": {
+      "GET /api/emerging/competences?token=TOKEN": "Returns empty list for new user (status 200, correct structure)",
+      "GET /api/emerging/competence/{comp_id}?token=TOKEN": "Returns 404 for non-existent competence",
+      "POST /api/emerging/validate/{comp_id}": "Validates/rejects emerging competences (valide, modifie, rejete decisions)",
+      "POST /api/emerging/validate/{comp_id} invalid": "Returns 400 for invalid decision",
+      "GET /api/emerging/observatory?token=TOKEN": "Returns observatory dashboard data (top_emerging, by_category, by_level)",
+      "POST /api/cv/analyze-text": "Triggers 3 parallel LLM calls including emerging detection",
+      "CV analysis emerging_count": "Returns emerging_count in result (tested: 6 competences detected)",
+      "GET /api/emerging/competences after analysis": "Returns detected competences with full structure",
+      "Emerging competence structure": "Verified: id, nom_principal, categorie, score_emergence, niveau_emergence, justification, indicateurs_cles, secteurs_porteurs, metiers_associes, tendance",
+      "Filter by category": "Category filter working for all 5 categories",
+      "Filter by min_score": "min_score filter working correctly"
+    },
+    "frontend_ui": {
+      "Émergentes tab": "Tab present in PassportView with data-testid='passport-tab-emerging'",
+      "Emerging title": "Shows 'Compétences émergentes (N)' with count",
+      "Détection IA badge": "Badge present indicating AI detection",
+      "Actualiser button": "Refresh button present with data-testid='refresh-emerging-btn'",
+      "Empty state": "Shows 'Analysez votre CV pour détecter automatiquement les compétences émergentes' when no CV analyzed",
+      "EmergingCompetenceCard component": "Component exists with data-testid='emerging-competence-card'"
+    },
+    "emerging_competence_card_structure": {
+      "nom_principal display": "data-testid='emerging-comp-name'",
+      "Score circle SVG": "Circular progress indicator showing score 0-100",
+      "Category badge": "Shows categorie (tech_emergente, hybride, soft_skill_avancee, methodologique, sectorielle)",
+      "Niveau badge": "Shows niveau_emergence (signal_faible, emergente, en_croissance, etablie)",
+      "Tendance indicator": "Shows trend (hausse, stable, nouvelle) with icon",
+      "Indicateurs clés section": "Lists key indicators from LLM detection",
+      "Secteurs porteurs section": "Shows target sectors as badges",
+      "Métiers associés section": "Shows related jobs as badges"
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_emerging_competences.py",
+    "/app/test_reports/pytest/pytest_emerging_competences.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_emerging_competences.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (UI elements verified, integration working)"
+  },
+
+  "test_credentials": {
+    "test_token_with_emerging": "oNoH2qWQ_9yqWT6C4hO529s_S000BLMqfzp6F2f2tVE",
+    "role": "particulier",
+    "emerging_count": 6,
+    "sample_emerging_competences": [
+      "Mise en production et industrialisation LLM (LLMOps) - score: 78",
+      "RAG (Retrieval-Augmented Generation) - score: 74",
+      "Ingénierie des bases de données vectorielles - score: 69"
+    ]
+  },
+
+  "seed_data_creation": "Created new token and analyzed CV with emerging competences detection",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Emerging competences feature fully tested. The 3rd parallel LLM call in _run_cv_analysis (lines 427-525 in cv.py) detects 3-8 emerging/rare/growing competences from CV text. Results stored in MongoDB 'emerging_competences' collection. Frontend PassportView has 'Émergentes' tab that loads via GET /api/emerging/competences and displays EmergingCompetenceCard with score circle, badges, indicators, sectors, and métiers. All backend endpoints (CRUD + observatory) working. Sample token with 6 emerging competences created for testing."
+}

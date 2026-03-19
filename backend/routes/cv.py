@@ -424,7 +424,28 @@ Max 10 savoir_faire, 5 savoir_etre, 3 offres.""",
             user_msg=f"Extrais:\n{cv_excerpt}"
         )
 
-        audit_result, skills_result = await asyncio.gather(audit_task, skills_task)
+        # 3rd PARALLEL CALL: Emerging competences detection
+        emerging_task = _llm_call_with_retry(
+            system_msg="""Expert en veille competences et prospective RH. A partir de ce CV, detecte les competences EMERGENTES : competences nouvelles, rares, en forte croissance sur le marche, ou atypiques combinant plusieurs domaines.
+
+Pour chaque competence emergente detectee, fournis:
+- nom: nom clair de la competence
+- categorie: "tech_emergente" | "hybride" | "soft_skill_avancee" | "methodologique" | "sectorielle"
+- score_emergence: 0-100 (0=classique, 100=tres emergente). Criteres: rarete (30%), croissance marche (25%), potentiel futur (25%), combinaison atypique (20%)
+- niveau_emergence: "signal_faible" (0-30) | "emergente" (31-60) | "en_croissance" (61-80) | "etablie" (81-100)
+- justification: 1 phrase expliquant pourquoi cette competence est emergente
+- indicateurs_cles: liste de 2-3 signaux concrets (ex: "demande +40% sur LinkedIn", "nouveau referentiel RNCP")
+- secteurs_porteurs: 1-3 secteurs ou cette competence est la plus demandee
+- metiers_associes: 1-3 metiers ou elle est utile
+- tendance: "hausse" | "stable" | "nouvelle"
+
+JSON uniquement:
+{"competences_emergentes":[{"nom":"","categorie":"","score_emergence":0,"niveau_emergence":"","justification":"","indicateurs_cles":[],"secteurs_porteurs":[],"metiers_associes":[],"tendance":"hausse"}]}
+Detecte 3 a 8 competences emergentes. Ne liste PAS les competences classiques/standard.""",
+            user_msg=f"Detecte les competences emergentes dans ce CV:\n{cv_excerpt}"
+        )
+
+        audit_result, skills_result, emerging_result = await asyncio.gather(audit_task, skills_task, emerging_task)
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Mise a jour du passeport..."}})
 
@@ -462,6 +483,48 @@ Max 10 savoir_faire, 5 savoir_etre, 3 offres.""",
         update_fields["completeness_score"] = calculate_completeness(merged)
         await db.passports.update_one({"token_id": token_id}, {"$set": update_fields})
 
+        # Store emerging competences in dedicated collection
+        emerging_comps = emerging_result.get("competences_emergentes", [])
+        if emerging_comps:
+            # Clear previous detections for this token and re-insert
+            await db.emerging_competences.delete_many({"token_id": token_id, "source_type": "cv_analysis"})
+            now_iso = datetime.now(timezone.utc).isoformat()
+            emerging_docs = []
+            for ec in emerging_comps:
+                score = ec.get("score_emergence", 0)
+                if isinstance(score, str):
+                    try: score = int(score)
+                    except: score = 0
+                niveau = ec.get("niveau_emergence", "signal_faible")
+                if not niveau or niveau not in ("signal_faible", "emergente", "en_croissance", "etablie"):
+                    if score <= 30: niveau = "signal_faible"
+                    elif score <= 60: niveau = "emergente"
+                    elif score <= 80: niveau = "en_croissance"
+                    else: niveau = "etablie"
+                emerging_docs.append({
+                    "id": str(uuid.uuid4()),
+                    "token_id": token_id,
+                    "nom_principal": ec.get("nom", ""),
+                    "categorie": ec.get("categorie", "hybride"),
+                    "score_emergence": score,
+                    "niveau_emergence": niveau,
+                    "justification": ec.get("justification", ""),
+                    "indicateurs_cles": ec.get("indicateurs_cles", []),
+                    "secteurs_porteurs": ec.get("secteurs_porteurs", []),
+                    "metiers_associes": ec.get("metiers_associes", []),
+                    "tendance": ec.get("tendance", "hausse"),
+                    "source_type": "cv_analysis",
+                    "valide": False,
+                    "validation_humaine": None,
+                    "date_detection": now_iso,
+                    "date_mise_a_jour": now_iso,
+                })
+            if emerging_docs:
+                await db.emerging_competences.insert_many(emerging_docs)
+                logging.info(f"Stored {len(emerging_docs)} emerging competences for token {token_id}")
+
+        emerging_count = len(emerging_comps)
+
         result = {
             "message": "CV analyse avec succes", "filename": filename,
             "savoir_faire_count": len(skills_result.get("savoir_faire", [])),
@@ -474,6 +537,7 @@ Max 10 savoir_faire, 5 savoir_etre, 3 offres.""",
             "score_global_cv": audit_result.get("score_global_cv", 0),
             "modele_suggere": audit_result.get("modele_suggere", "classique"),
             "raison_modele": audit_result.get("raison_modele", ""),
+            "emerging_count": emerging_count,
         }
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Termine"}})
         logging.info(f"CV analysis job {job_id} completed successfully")
