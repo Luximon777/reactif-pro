@@ -34,6 +34,7 @@ import {
   Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot
 } from "lucide-react";
 import EmergingCompetenceCard from "@/components/Passport/EmergingCompetenceCard";
+import EmergingTab from "@/components/Passport/EmergingTab";
 import {
   SOURCE_CONFIG, LEVEL_CONFIG, CATEGORY_CONFIG, NATURE_CONFIG,
   CCSP_POLES, CCSP_DEGREES, COMPONENT_LABELS, VERTU_COLORS
@@ -435,36 +436,7 @@ const PassportView = ({ token }) => {
 
         {/* Emerging Competences Tab */}
         <TabsContent value="emerging" className="space-y-4 mt-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900" data-testid="emerging-title">
-              Compétences émergentes ({emergingFromApi.length})
-            </h3>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-violet-100 text-violet-700"><Brain className="w-3 h-3 mr-1" />Détection IA</Badge>
-              <Button variant="outline" size="sm" onClick={loadEmerging} disabled={loadingEmerging} data-testid="refresh-emerging-btn">
-                <RefreshCw className={`w-3 h-3 mr-1 ${loadingEmerging ? "animate-spin" : ""}`} />Actualiser
-              </Button>
-            </div>
-          </div>
-          <p className="text-sm text-slate-500">Compétences rares, en forte croissance ou atypiques détectées dans votre CV par l'IA</p>
-
-          {loadingEmerging && (
-            <div className="flex items-center justify-center py-8">
-              <RefreshCw className="w-6 h-6 animate-spin text-violet-500" />
-            </div>
-          )}
-
-          {!loadingEmerging && emergingFromApi.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {emergingFromApi.map(ec => (
-                <EmergingCompetenceCard key={ec.id} comp={ec} />
-              ))}
-            </div>
-          )}
-
-          {!loadingEmerging && emergingFromApi.length === 0 && (
-            <EmptyState text="Analysez votre CV pour détecter automatiquement les compétences émergentes" />
-          )}
+          <EmergingTab competences={emergingFromApi} loading={loadingEmerging} onRefresh={loadEmerging} token={token} />
         </TabsContent>
 
         {/* Experiences Tab */}

@@ -62,6 +62,7 @@ const ObservatoireView = ({ token }) => {
   const [dashboard, setDashboard] = useState(null);
   const [contributions, setContributions] = useState([]);
   const [ubuntooDashboard, setUbuntooDashboard] = useState(null);
+  const [cvDetectedData, setCvDetectedData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSector, setSelectedSector] = useState(null);
@@ -84,14 +85,16 @@ const ObservatoireView = ({ token }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [dashboardRes, contributionsRes, ubuntooRes] = await Promise.all([
+      const [dashboardRes, contributionsRes, ubuntooRes, cvDetectedRes] = await Promise.all([
         axios.get(`${API}/observatoire/dashboard`),
         axios.get(`${API}/observatoire/contributions?token=${token}`),
-        axios.get(`${API}/ubuntoo/dashboard`)
+        axios.get(`${API}/ubuntoo/dashboard`),
+        axios.get(`${API}/emerging/observatory?token=${token}`).catch(() => ({ data: null }))
       ]);
       setDashboard(dashboardRes.data);
       setContributions(contributionsRes.data);
       setUbuntooDashboard(ubuntooRes.data);
+      setCvDetectedData(cvDetectedRes.data);
     } catch (error) {
       console.error("Error loading observatoire:", error);
     }
@@ -380,7 +383,7 @@ const ObservatoireView = ({ token }) => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-1 h-auto p-1 bg-slate-100">
+        <TabsList className="grid grid-cols-3 md:grid-cols-7 gap-1 h-auto p-1 bg-slate-100">
           <TabsTrigger value="overview" className="text-xs sm:text-sm py-2" data-testid="tab-overview">
             <BarChart3 className="w-4 h-4 mr-1 hidden sm:inline" />
             Vue d'ensemble
@@ -404,6 +407,10 @@ const ObservatoireView = ({ token }) => {
           <TabsTrigger value="contributions" className="text-xs sm:text-sm py-2" data-testid="tab-my-contributions">
             <Lightbulb className="w-4 h-4 mr-1 hidden sm:inline" />
             Contributions
+          </TabsTrigger>
+          <TabsTrigger value="cv_detected" className="text-xs sm:text-sm py-2" data-testid="tab-cv-detected">
+            <Target className="w-4 h-4 mr-1 hidden sm:inline" />
+            Détectées CV
           </TabsTrigger>
         </TabsList>
 
@@ -579,6 +586,11 @@ const ObservatoireView = ({ token }) => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* CV-Detected Emerging Competences Tab */}
+        <TabsContent value="cv_detected" className="space-y-4">
+          <CvDetectedTab data={cvDetectedData} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1295,6 +1307,126 @@ const UbuntooInsightCard = ({ insight }) => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+const CvDetectedTab = ({ data }) => {
+  if (!data) return (
+    <div className="text-center py-12 text-slate-400">
+      <Target className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+      <p className="text-sm">Analysez un CV pour voir les compétences émergentes détectées</p>
+    </div>
+  );
+
+  const { top_emerging = [], by_category = [], by_level = [] } = data;
+
+  return (
+    <div className="space-y-6" data-testid="cv-detected-tab">
+      <Card className="card-base">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-violet-600" />
+            Compétences émergentes détectées par analyse CV
+          </CardTitle>
+          <CardDescription>Compétences rares ou en croissance identifiées automatiquement dans les CV analysés</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card className="bg-violet-50 border-violet-200">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-violet-700">{top_emerging.length}</p>
+                <p className="text-xs text-violet-500">Total détectées</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-blue-700">{by_category.length}</p>
+                <p className="text-xs text-blue-500">Catégories</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-emerald-50 border-emerald-200">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-700">
+                  {top_emerging.length > 0 ? Math.round(top_emerging.reduce((s, c) => s + (c.score_emergence || 0), 0) / top_emerging.length) : 0}
+                </p>
+                <p className="text-xs text-emerald-500">Score moyen</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* By Category */}
+          {by_category.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-3">Répartition par catégorie</h4>
+              <div className="space-y-2">
+                {by_category.map((cat, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs text-slate-600 w-32 truncate">{cat.categorie}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+                      <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${Math.min(100, (cat.count / Math.max(...by_category.map(c => c.count))) * 100)}%` }} />
+                    </div>
+                    <span className="text-xs font-medium text-slate-700 w-12 text-right">{cat.count} ({cat.avg_score})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* By Level */}
+          {by_level.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-3">Répartition par niveau</h4>
+              <div className="flex gap-3">
+                {by_level.map((lvl, i) => {
+                  const levelColors = {
+                    signal_faible: "bg-slate-100 text-slate-700",
+                    emergente: "bg-violet-100 text-violet-700",
+                    en_croissance: "bg-amber-100 text-amber-700",
+                    etablie: "bg-emerald-100 text-emerald-700"
+                  };
+                  return (
+                    <Badge key={i} className={`${levelColors[lvl.level] || "bg-slate-100"} px-3 py-1.5`}>
+                      {lvl.level}: {lvl.count}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Top Competences List */}
+          {top_emerging.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-3">Top compétences émergentes (score &ge; 31)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {top_emerging.map((comp, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-violet-100 hover:bg-violet-50/30 transition-all">
+                    <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center font-bold text-violet-700 text-sm shrink-0">
+                      {comp.score_emergence}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{comp.nom_principal}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Badge variant="outline" className="text-[10px]">{comp.categorie}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{comp.niveau_emergence}</Badge>
+                      </div>
+                    </div>
+                    {comp.secteurs_porteurs?.length > 0 && (
+                      <div className="hidden md:flex flex-wrap gap-1">
+                        {comp.secteurs_porteurs.slice(0, 2).map((s, j) => (
+                          <Badge key={j} className="bg-blue-50 text-blue-600 text-[10px]">{s}</Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
