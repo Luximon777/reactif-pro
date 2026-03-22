@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Target, Briefcase, Clock, Star, Sparkles, Zap, Award,
-  CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3
+  CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3,
+  Link as LinkIcon, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import CvPreview from "./CvPreview";
@@ -32,6 +33,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [selectedGenModels, setSelectedGenModels] = useState([]);
   const [genProgress, setGenProgress] = useState(null);
   const [jobOfferText, setJobOfferText] = useState("");
+  const [scrapingOffer, setScrapingOffer] = useState(false);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -513,12 +515,40 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <textarea
               className="w-full text-xs border border-slate-200 rounded-lg p-2 resize-none focus:ring-1 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] placeholder:text-slate-400"
               rows={3}
-              placeholder="Collez ici le texte de l'offre d'emploi pour que l'IA reprenne les mots-cles exacts, les competences demandees et l'intitule du poste..."
+              placeholder="Collez un lien (URL) vers l'offre ou le texte de l'offre d'emploi..."
               value={jobOfferText}
               onChange={(e) => setJobOfferText(e.target.value)}
               data-testid="job-offer-textarea"
             />
-            {jobOfferText && (
+            {/* URL detection and scraping */}
+            {jobOfferText && /^https?:\/\/\S+$/i.test(jobOfferText.trim()) && !scrapingOffer && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setScrapingOffer(true);
+                  try {
+                    const res = await axios.get(`${API}/scrape/job-offer?url=${encodeURIComponent(jobOfferText.trim())}`);
+                    if (res.data.success) {
+                      setJobOfferText(res.data.text);
+                      toast.success("Offre d'emploi importee depuis le lien !");
+                    } else {
+                      toast.error(res.data.error || "Impossible d'importer l'offre");
+                    }
+                  } catch { toast.error("Erreur lors de l'import"); }
+                  setScrapingOffer(false);
+                }}
+                className="flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium hover:underline"
+                data-testid="scrape-offer-btn"
+              >
+                <LinkIcon className="w-3 h-3" /> Importer le contenu de l'offre depuis ce lien
+              </button>
+            )}
+            {scrapingOffer && (
+              <p className="text-xs text-blue-600 flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3 animate-spin" /> Import en cours...
+              </p>
+            )}
+            {jobOfferText && !/^https?:\/\/\S+$/i.test(jobOfferText.trim()) && (
               <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> L'IA integrera les mots-cles de cette offre pour optimiser le passage ATS
               </p>
