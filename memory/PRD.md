@@ -10,19 +10,21 @@ Plateforme full-stack "Re'Actif Pro" pour l'analyse de CV par IA, l'optimisation
 
 ## Systeme d'identite (Anonymat & Pseudonymat)
 3 niveaux d'acces:
-1. **Visiteur anonyme** : Acces libre sans compte
-2. **Compte pseudonyme** : Pseudo + mot de passe, email facultatif, aucune identite civile requise
-3. **Compte certifie** (futur) : Identite verifiee via FranceConnect / L'Identite Numerique La Poste
+1. **Espace Personnel** : Inscription sous pseudonyme (pseudo + mdp, email facultatif, aucune identite civile)
+2. **Espace Employeurs** : Inscription entreprise (nom entreprise, SIRET avec verification API INSEE, email pro, mdp, referent RH nom+prenom+fonction, signature charte ethique ALT&ACT)
+3. **Espace Partenaires** : Inscription structure (nom structure, type structure, SIRET, email pro, mdp, referent nom+prenom+fonction, signature charte ethique ALT&ACT)
 
-Fonctionnalites:
-- Inscription sous pseudo (min 3 chars) + mot de passe (min 6 chars)
-- Email de recuperation facultatif
+Plus d'acces anonyme/rapide depuis la landing page.
+
+Fonctionnalites auth:
+- Verification SIRET automatique via API Recherche d'Entreprises (data.gouv.fr)
+- Avertissement email non-professionnel (Gmail, Yahoo, etc.) - non bloquant
+- Signature charte ethique ALT&ACT (10 principes) obligatoire pour entreprise et partenaire
+- Login par email pour entreprise/partenaire, par pseudo pour espace personnel
+- Profil progressif avec pourcentage de completion
+- Export de donnees (RGPD) et suppression de compte
 - Consentements CGU, confidentialite, marketing
-- Upgrade anonymous -> pseudo
 - Niveaux de visibilite: prive, limite, public
-- Changement mot de passe
-- Export de donnees (RGPD)
-- Suppression de compte
 
 ## Architecture
 ```
@@ -64,6 +66,9 @@ backend/
 - Refactoring: ParticulierView 1294->354 lignes, PassportView 1823->1670 lignes
 - **Anonymat & Pseudonymat** : systeme complet 3 niveaux (anonymous/pseudo/certified architecture)
 - **Auth pseudo** : inscription, connexion, upgrade, changement mdp
+- **Inscriptions par role** : Entreprise (SIRET+referent+charte), Partenaire (structure+type+charte)
+- **Verification SIRET** : API Recherche d'Entreprises (data.gouv.fr) integration
+- **Charte Ethique ALT&ACT** : 10 principes, signature obligatoire entreprise/partenaire
 - **Confidentialite** : parametres de visibilite, export, suppression compte
 - **Collections MongoDB** : consent_history, external_identities (prete pour FranceConnect)
 

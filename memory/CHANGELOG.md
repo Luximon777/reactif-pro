@@ -1,5 +1,17 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-22 - Inscriptions par Rôle (Entreprise/Partenaire)
+- **FEATURE**: Formulaire inscription Entreprise (nom, SIRET, email pro, mdp, referent RH, fonction, charte ethique)
+- **FEATURE**: Formulaire inscription Partenaire (nom structure, type, SIRET, email pro, mdp, referent, fonction, charte ethique)
+- **FEATURE**: Verification SIRET automatique via API Recherche d'Entreprises (data.gouv.fr) - GET /api/siret/verify
+- **FEATURE**: Login professionnel par email - POST /api/auth/login-pro
+- **FEATURE**: Avertissement email non-professionnel (Gmail, Yahoo, etc.)
+- **FEATURE**: Charte Ethique ALT&ACT integree (10 principes, signature obligatoire)
+- **FEATURE**: Profil progressif avec calcul completion - GET /api/profile/completion
+- **FEATURE**: Suppression acces rapide/anonyme de la Landing page
+- **FEATURE**: ProRegisterModal.jsx avec formulaires entreprise et partenaire
+- **TESTED**: 100% backend (26/26) + frontend (tous les flows UI)
+
 ## 2026-03-22 - Anonymat & Pseudonymat (Phases 1-3)
 - **FEATURE**: Systeme complet d'identite a 3 niveaux (anonyme/pseudonyme/certifie)
 - **FEATURE**: Inscription sous pseudo (pseudo+mdp+CGU, email facultatif) - POST /api/auth/register
