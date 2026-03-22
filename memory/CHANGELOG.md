@@ -1,5 +1,8 @@
 # Re'Actif Pro - Changelog
 
+- **Correlation CV x Émergentes (Passeport)** : Nouvel endpoint `GET /api/emerging/market-correlation` qui croise les competences emergentes detectees par l'IA avec les tendances du marche (emerging_skills, sector_trends). Affiche: banniere d'alignement marche (% alignement, nombre sur le marche, forte demande, secteurs porteurs), badges de position marche sur chaque carte, info de croissance et score marche.
+- Tests: 100% backend (9/9), 100% frontend - iteration_23.json
+
 ## 2026-03-22 - Correlation CV x Observatoire/Evolution/Formations
 - **Observatoire personnalise** : Nouvel endpoint `GET /api/observatoire/personalized?token=` qui croise les competences du CV (passport, cv_jobs, emerging_competences) avec les tendances globales (emerging_skills, sector_trends). Affiche: competences emergentes du CV, lacunes a combler, alertes de declin, secteurs pertinents.
 - **Evolution enrichie** : Endpoint `GET /api/evolution-index/user-profile` enrichi pour utiliser les donnees du CV + passeport (pas seulement le profil). Affiche: sources de donnees (profile/passport/cv_analysis), competences emergentes du CV, formations recommandees.

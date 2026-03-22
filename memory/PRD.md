@@ -80,6 +80,8 @@ backend/
 - **Correlation CV x Evolution** : endpoint /api/evolution-index/user-profile enrichi avec donnees CV + passeport + competences emergentes
 - **Correlation CV x Formations** : endpoint /api/learning enrichi avec pertinence (haute/moyenne/basse) et lacunes combees
 
+- **Correlation CV x Emergentes** : endpoint market-correlation + badges marche sur cartes de competences emergentes
+
 ## Backlog
 - P1: Integration communautaire Ubuntoo (contribution participative)
 - P2: Coffre-fort numerique pour preuves de competences
