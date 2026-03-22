@@ -404,7 +404,7 @@ const Landing = () => {
             <Button 
               size="lg"
               className="bg-white text-[#1e3a5f] hover:bg-blue-50 font-semibold px-8"
-              onClick={() => handleRoleSelect("particulier")}
+              onClick={() => handlePersonalAuth()}
               data-testid="cta-start-btn"
             >
               Accéder à mon espace
