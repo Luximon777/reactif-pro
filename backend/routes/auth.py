@@ -2,13 +2,14 @@ from fastapi import APIRouter, HTTPException
 from models import (
     AnonymousToken, Profile, CreateTokenRequest, UpdateProfileRequest,
     RegisterRequest, LoginRequest, UpgradeAccountRequest, ChangePasswordRequest,
-    ConsentRecord
+    ConsentRecord, RegisterEntrepriseRequest, RegisterPartenaireRequest
 )
 from db import db
 from helpers import get_current_token
 import bcrypt
 import secrets
 from datetime import datetime, timezone
+import re
 
 router = APIRouter()
 
@@ -210,7 +211,9 @@ async def verify_token(token: str):
         "profile_id": token_doc.get("profile_id"),
         "auth_mode": profile.get("auth_mode", "anonymous") if profile else "anonymous",
         "pseudo": profile.get("pseudo") if profile else None,
-        "identity_level": profile.get("identity_level", "none") if profile else "none"
+        "identity_level": profile.get("identity_level", "none") if profile else "none",
+        "company_name": profile.get("company_name") if profile else None,
+        "profile_completion": profile.get("profile_completion", 0) if profile else 0
     }
 
 
@@ -341,3 +344,242 @@ async def check_pseudo(pseudo: str):
         return {"available": False, "reason": "Le pseudo doit contenir au moins 3 caractères"}
     existing = await db.profiles.find_one({"pseudo": pseudo_clean}, {"_id": 0})
     return {"available": existing is None}
+
+
+
+# ===== ENTREPRISE REGISTRATION =====
+
+def _check_email_professional(email: str):
+    """Check if email is professional (not gmail, yahoo, etc.) - returns warning, not blocking"""
+    free_domains = ["gmail.com", "yahoo.com", "yahoo.fr", "hotmail.com", "hotmail.fr",
+                    "outlook.com", "live.com", "live.fr", "orange.fr", "free.fr",
+                    "sfr.fr", "laposte.net", "wanadoo.fr", "aol.com"]
+    domain = email.split("@")[-1].lower() if "@" in email else ""
+    return domain in free_domains
+
+
+def _calc_profile_completion(profile: dict) -> int:
+    """Calculate profile completion percentage based on role"""
+    role = profile.get("role", "particulier")
+    filled = 0
+    total = 0
+
+    if role == "entreprise":
+        fields = [
+            ("company_name", 15), ("siret", 15), ("referent_first_name", 10),
+            ("referent_last_name", 10), ("referent_function", 10),
+            ("charte_ethique_signed", 15), ("bio", 10), ("display_name", 5),
+            ("visibility_level", 5), ("email_recovery", 5)
+        ]
+    elif role == "partenaire":
+        fields = [
+            ("company_name", 15), ("siret", 10), ("structure_type", 10),
+            ("referent_first_name", 10), ("referent_last_name", 10),
+            ("referent_function", 10), ("charte_ethique_signed", 15),
+            ("bio", 10), ("display_name", 5), ("visibility_level", 5)
+        ]
+    else:
+        fields = [
+            ("pseudo", 20), ("display_name", 10), ("bio", 10),
+            ("skills", 20), ("sectors", 15), ("experience_years", 10),
+            ("visibility_level", 5), ("email_recovery", 10)
+        ]
+
+    for field, weight in fields:
+        total += weight
+        val = profile.get(field)
+        if val is not None and val != "" and val != [] and val != 0 and val is not False:
+            filled += weight
+
+    return min(100, int((filled / total) * 100)) if total > 0 else 0
+
+
+@router.post("/auth/register-entreprise")
+async def register_entreprise(request: RegisterEntrepriseRequest):
+    if not request.company_name.strip():
+        raise HTTPException(status_code=400, detail="Le nom de l'entreprise est requis")
+    siret_clean = request.siret.strip().replace(" ", "")
+    if not siret_clean.isdigit() or len(siret_clean) not in (9, 14):
+        raise HTTPException(status_code=400, detail="SIRET/SIREN invalide")
+    if not request.email or "@" not in request.email:
+        raise HTTPException(status_code=400, detail="Email professionnel requis")
+    if len(request.password) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins 6 caractères")
+    if not request.referent_first_name.strip() or not request.referent_last_name.strip():
+        raise HTTPException(status_code=400, detail="Nom et prénom du référent requis")
+    if not request.charte_ethique_signed:
+        raise HTTPException(status_code=400, detail="Vous devez signer la charte éthique ALT&ACT")
+    if not request.consent_cgu or not request.consent_privacy:
+        raise HTTPException(status_code=400, detail="Vous devez accepter les CGU et la politique de confidentialité")
+
+    # Check unique email for entreprise
+    existing = await db.profiles.find_one({"email_recovery": request.email, "role": "entreprise"}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=409, detail="Cet email est déjà utilisé pour un compte entreprise")
+
+    email_warning = _check_email_professional(request.email)
+
+    token = AnonymousToken(role="entreprise")
+    await db.tokens.insert_one(token.model_dump())
+
+    display = f"{request.referent_first_name} {request.referent_last_name}"
+    profile = Profile(
+        token_id=token.id,
+        role="entreprise",
+        name=request.company_name.strip(),
+        pseudo=request.email,
+        email_recovery=request.email,
+        password_hash=hash_password(request.password),
+        auth_mode="pseudo",
+        identity_level="none",
+        visibility_level="limited",
+        display_name=display,
+        company_name=request.company_name.strip(),
+        siret=siret_clean,
+        referent_first_name=request.referent_first_name.strip(),
+        referent_last_name=request.referent_last_name.strip(),
+        referent_function=request.referent_function.strip(),
+        charte_ethique_signed=True,
+        charte_ethique_signed_at=datetime.now(timezone.utc).isoformat(),
+        consent_cgu=True,
+        consent_privacy=True,
+    )
+    profile_dict = profile.model_dump()
+    profile_dict["profile_completion"] = _calc_profile_completion(profile_dict)
+    await db.profiles.insert_one(profile_dict)
+    await db.tokens.update_one({"id": token.id}, {"$set": {"profile_id": profile.id}})
+
+    for ctype in ["cgu", "privacy", "charte_ethique"]:
+        consent = ConsentRecord(user_id=profile.id, consent_type=ctype, consent_value=True)
+        await db.consent_history.insert_one(consent.model_dump())
+
+    return {
+        "token": token.token,
+        "role": "entreprise",
+        "profile_id": profile.id,
+        "auth_mode": "pseudo",
+        "company_name": request.company_name.strip(),
+        "email_warning": "Nous recommandons d'utiliser un email professionnel pour plus de crédibilité." if email_warning else None,
+        "profile_completion": profile_dict["profile_completion"]
+    }
+
+
+# ===== PARTENAIRE REGISTRATION =====
+
+@router.post("/auth/register-partenaire")
+async def register_partenaire(request: RegisterPartenaireRequest):
+    valid_types = ["organisme_formation", "association", "institution_publique", "acteur_insertion", "autre"]
+    if request.structure_type not in valid_types:
+        raise HTTPException(status_code=400, detail=f"Type de structure invalide. Valeurs acceptées: {', '.join(valid_types)}")
+    if not request.structure_name.strip():
+        raise HTTPException(status_code=400, detail="Le nom de la structure est requis")
+    siret_clean = request.siret.strip().replace(" ", "")
+    if not siret_clean.isdigit() or len(siret_clean) not in (9, 14):
+        raise HTTPException(status_code=400, detail="SIRET/SIREN invalide")
+    if not request.email or "@" not in request.email:
+        raise HTTPException(status_code=400, detail="Email professionnel requis")
+    if len(request.password) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins 6 caractères")
+    if not request.referent_first_name.strip() or not request.referent_last_name.strip():
+        raise HTTPException(status_code=400, detail="Nom et prénom du référent requis")
+    if not request.charte_ethique_signed:
+        raise HTTPException(status_code=400, detail="Vous devez signer la charte éthique ALT&ACT")
+    if not request.consent_cgu or not request.consent_privacy:
+        raise HTTPException(status_code=400, detail="Vous devez accepter les CGU et la politique de confidentialité")
+
+    existing = await db.profiles.find_one({"email_recovery": request.email, "role": "partenaire"}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=409, detail="Cet email est déjà utilisé pour un compte partenaire")
+
+    token = AnonymousToken(role="partenaire")
+    await db.tokens.insert_one(token.model_dump())
+
+    display = f"{request.referent_first_name} {request.referent_last_name}"
+    profile = Profile(
+        token_id=token.id,
+        role="partenaire",
+        name=request.structure_name.strip(),
+        pseudo=request.email,
+        email_recovery=request.email,
+        password_hash=hash_password(request.password),
+        auth_mode="pseudo",
+        identity_level="none",
+        visibility_level="limited",
+        display_name=display,
+        company_name=request.structure_name.strip(),
+        siret=siret_clean,
+        structure_type=request.structure_type,
+        referent_first_name=request.referent_first_name.strip(),
+        referent_last_name=request.referent_last_name.strip(),
+        referent_function=request.referent_function.strip(),
+        charte_ethique_signed=True,
+        charte_ethique_signed_at=datetime.now(timezone.utc).isoformat(),
+        consent_cgu=True,
+        consent_privacy=True,
+    )
+    profile_dict = profile.model_dump()
+    profile_dict["profile_completion"] = _calc_profile_completion(profile_dict)
+    await db.profiles.insert_one(profile_dict)
+    await db.tokens.update_one({"id": token.id}, {"$set": {"profile_id": profile.id}})
+
+    for ctype in ["cgu", "privacy", "charte_ethique"]:
+        consent = ConsentRecord(user_id=profile.id, consent_type=ctype, consent_value=True)
+        await db.consent_history.insert_one(consent.model_dump())
+
+    return {
+        "token": token.token,
+        "role": "partenaire",
+        "profile_id": profile.id,
+        "auth_mode": "pseudo",
+        "structure_name": request.structure_name.strip(),
+        "structure_type": request.structure_type,
+        "profile_completion": profile_dict["profile_completion"]
+    }
+
+
+# ===== LOGIN ENTREPRISE/PARTENAIRE (by email) =====
+
+@router.post("/auth/login-pro")
+async def login_pro(request: LoginRequest):
+    """Login for entreprise/partenaire using email as pseudo"""
+    email_clean = request.pseudo.strip()
+    profile = await db.profiles.find_one(
+        {"email_recovery": email_clean, "auth_mode": "pseudo", "role": {"$in": ["entreprise", "partenaire"]}},
+        {"_id": 0}
+    )
+    if not profile:
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+
+    if not profile.get("password_hash") or not verify_password(request.password, profile["password_hash"]):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+
+    token_doc = await db.tokens.find_one({"id": profile["token_id"]}, {"_id": 0})
+    if not token_doc:
+        new_token = AnonymousToken(role=profile["role"])
+        await db.tokens.insert_one(new_token.model_dump())
+        await db.tokens.update_one({"id": new_token.id}, {"$set": {"profile_id": profile["id"]}})
+        await db.profiles.update_one({"id": profile["id"]}, {"$set": {"token_id": new_token.id}})
+        token_doc = new_token.model_dump()
+
+    return {
+        "token": token_doc["token"],
+        "role": profile["role"],
+        "profile_id": profile["id"],
+        "pseudo": profile.get("pseudo"),
+        "auth_mode": "pseudo",
+        "company_name": profile.get("company_name"),
+        "profile_completion": profile.get("profile_completion", 0)
+    }
+
+
+# ===== PROFILE COMPLETION =====
+
+@router.get("/profile/completion")
+async def get_profile_completion(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    completion = _calc_profile_completion(profile)
+    await db.profiles.update_one({"id": profile["id"]}, {"$set": {"profile_completion": completion}})
+    return {"profile_completion": completion, "role": profile.get("role")}

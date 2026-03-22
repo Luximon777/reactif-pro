@@ -29,43 +29,30 @@ import {
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
 import AuthModal from "@/components/AuthModal";
+import ProRegisterModal from "@/components/ProRegisterModal";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authRole, setAuthRole] = useState("particulier");
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [proModalRole, setProModalRole] = useState("entreprise");
 
-  const handleRoleSelect = async (role) => {
-    setSelectedRole(role);
-    setIsLoading(true);
-    
-    const success = await login(role);
-    
-    if (success) {
-      toast.success("Connexion réussie !");
-      navigate("/dashboard");
-    } else {
-      toast.error("Erreur de connexion");
-    }
-    
-    setIsLoading(false);
+  const handlePersonalAuth = () => {
+    setAuthModalOpen(true);
   };
 
-  const handlePseudoAuth = (role) => {
-    setAuthRole(role);
-    setAuthModalOpen(true);
+  const handleProAuth = (role) => {
+    setProModalRole(role);
+    setProModalOpen(true);
   };
 
   const handleAuthSuccess = () => {
     setAuthModalOpen(false);
-    toast.success("Bienvenue !");
+    setProModalOpen(false);
     navigate("/dashboard");
   };
 
-  // Ne pas rediriger automatiquement - laisser l'utilisateur choisir
   const handleGoToDashboard = () => {
     if (isAuthenticated) {
       navigate("/dashboard");
@@ -230,24 +217,29 @@ const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto stagger-children" data-testid="role-selection">
             {roles.map((role) => {
               const Icon = role.icon;
-              const isSelected = selectedRole === role.id;
-              const colorClasses = {
-                blue: "border-[#1e3a5f] bg-blue-50/50",
-                emerald: "border-emerald-300 bg-emerald-50/50",
-                violet: "border-violet-300 bg-violet-50/50"
-              };
               const iconColorClasses = {
                 blue: "bg-[#1e3a5f] text-white",
                 emerald: "bg-emerald-600 text-white",
                 violet: "bg-violet-600 text-white"
               };
               
+              const handleClick = () => {
+                if (role.id === "particulier") handlePersonalAuth();
+                else handleProAuth(role.id);
+              };
+
+              const btnLabel = role.id === "particulier"
+                ? "Créer mon compte confidentiel"
+                : role.id === "entreprise"
+                  ? "Inscription employeur"
+                  : "Inscription partenaire";
+              
               return (
                 <Card 
                   key={role.id}
                   data-testid={`role-card-${role.id}`}
-                  className={`card-interactive cursor-pointer ${isSelected ? colorClasses[role.color] : ""}`}
-                  onClick={() => !isLoading && handleRoleSelect(role.id)}
+                  className="card-interactive cursor-pointer hover:border-[#1e3a5f]/30 transition-all"
+                  onClick={handleClick}
                 >
                   <CardHeader>
                     <div className={`w-14 h-14 rounded-2xl ${iconColorClasses[role.color]} flex items-center justify-center mb-4`}>
@@ -269,31 +261,14 @@ const Landing = () => {
                         </li>
                       ))}
                     </ul>
-                    <div className="flex gap-2">
                     <Button 
-                      className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45] text-white group"
-                      disabled={isLoading && selectedRole === role.id}
-                      onClick={(e) => { e.stopPropagation(); handleRoleSelect(role.id); }}
-                      data-testid={`login-btn-${role.id}`}
+                      className="w-full bg-[#1e3a5f] hover:bg-[#152a45] text-white group"
+                      onClick={(e) => { e.stopPropagation(); handleClick(); }}
+                      data-testid={`register-btn-${role.id}`}
                     >
-                      {isLoading && selectedRole === role.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <>
-                          Accès rapide
-                          <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                        </>
-                      )}
+                      {btnLabel}
+                      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-blue-50"
-                      onClick={(e) => { e.stopPropagation(); handlePseudoAuth(role.id); }}
-                      data-testid={`pseudo-btn-${role.id}`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </Button>
-                    </div>
                   </CardContent>
                 </Card>
               );
@@ -346,10 +321,10 @@ const Landing = () => {
                     <Shield className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                    Compte sous pseudonyme
+                    Espace Personnel
                   </h3>
                   <p className="text-blue-200 text-sm">
-                    Votre identité civile n'est jamais requise
+                    Inscription confidentielle sous pseudonyme
                   </p>
                 </div>
                 <div className="md:col-span-3 p-8 space-y-4">
@@ -366,22 +341,14 @@ const Landing = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                  <div className="pt-2">
                     <Button
                       className="bg-[#1e3a5f] hover:bg-[#152a45] text-white"
-                      onClick={() => handlePseudoAuth("particulier")}
+                      onClick={() => handlePersonalAuth()}
                       data-testid="cta-register-pseudo-btn"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Créer un compte confidentiel
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="text-slate-600"
-                      onClick={() => handleRoleSelect("particulier")}
-                      data-testid="cta-anonymous-btn"
-                    >
-                      Continuer sans compte
+                      Créer mon compte confidentiel
                     </Button>
                   </div>
                 </div>
@@ -515,11 +482,19 @@ const Landing = () => {
         </div>
       </footer>
 
-      {/* Auth Modal */}
+      {/* Auth Modal (Personal) */}
       <AuthModal
         open={authModalOpen}
         onOpenChange={setAuthModalOpen}
-        defaultRole={authRole}
+        defaultRole="particulier"
+        onSuccess={handleAuthSuccess}
+      />
+
+      {/* Pro Register Modal (Entreprise/Partenaire) */}
+      <ProRegisterModal
+        open={proModalOpen}
+        onOpenChange={setProModalOpen}
+        roleType={proModalRole}
         onSuccess={handleAuthSuccess}
       />
     </div>

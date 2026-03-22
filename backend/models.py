@@ -47,6 +47,25 @@ class Profile(BaseModel):
     birth_place: Optional[str] = None
     verified_at: Optional[str] = None
     last_identity_sync_at: Optional[str] = None
+    # Entreprise fields
+    company_name: Optional[str] = None
+    siret: Optional[str] = None
+    referent_first_name: Optional[str] = None
+    referent_last_name: Optional[str] = None
+    referent_function: Optional[str] = None
+    company_verified: bool = False
+    badge_insertion: bool = False
+    charte_ethique_signed: bool = False
+    charte_ethique_signed_at: Optional[str] = None
+    # Partenaire fields
+    structure_type: Optional[str] = None
+    config_suivi_beneficiaires: bool = False
+    config_acces_coffre_fort: bool = False
+    config_co_construction: bool = False
+    config_contribution_competences: bool = False
+    config_signalement_besoins: bool = False
+    # Profile completion
+    profile_completion: int = 0
 
 
 class JobOffer(BaseModel):
@@ -459,3 +478,31 @@ class IdentityVerification(BaseModel):
     verification_status: str = "success"  # success, failed, revoked
     details: Dict[str, Any] = {}
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+
+class RegisterEntrepriseRequest(BaseModel):
+    company_name: str
+    siret: str
+    email: str
+    password: str
+    referent_first_name: str
+    referent_last_name: str
+    referent_function: str
+    charte_ethique_signed: bool = True
+    consent_cgu: bool = True
+    consent_privacy: bool = True
+
+
+class RegisterPartenaireRequest(BaseModel):
+    structure_name: str
+    structure_type: str  # organisme_formation, association, institution_publique, acteur_insertion
+    siret: str
+    email: str
+    password: str
+    referent_first_name: str
+    referent_last_name: str
+    referent_function: str
+    charte_ethique_signed: bool = True
+    consent_cgu: bool = True
+    consent_privacy: bool = True

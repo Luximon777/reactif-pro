@@ -14,6 +14,7 @@ from routes.explorer import router as explorer_router
 from routes.ubuntoo import router as ubuntoo_router
 from routes.seed import router as seed_router
 from routes.emerging import router as emerging_router
+from routes.siret import router as siret_router
 
 app = FastAPI(title="Re'Actif Pro API")
 
@@ -43,6 +44,7 @@ api_router.include_router(explorer_router)
 api_router.include_router(ubuntoo_router)
 api_router.include_router(seed_router)
 api_router.include_router(emerging_router)
+api_router.include_router(siret_router)
 
 app.include_router(api_router)
 

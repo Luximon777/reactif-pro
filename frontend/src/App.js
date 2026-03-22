@@ -123,6 +123,45 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  // Entreprise registration
+  const registerEntreprise = async (data) => {
+    try {
+      const response = await axios.post(`${API}/auth/register-entreprise`, data);
+      const { token: t, role: r, profile_id, auth_mode: am } = response.data;
+      setAuthState(t, r, profile_id, am || "pseudo", data.email, "none");
+      return { success: true, emailWarning: response.data.email_warning };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || "Erreur lors de l'inscription" };
+    }
+  };
+
+  // Partenaire registration
+  const registerPartenaire = async (data) => {
+    try {
+      const response = await axios.post(`${API}/auth/register-partenaire`, data);
+      const { token: t, role: r, profile_id, auth_mode: am } = response.data;
+      setAuthState(t, r, profile_id, am || "pseudo", data.email, "none");
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || "Erreur lors de l'inscription" };
+    }
+  };
+
+  // Login for entreprise/partenaire (by email)
+  const loginPro = async (email, password) => {
+    try {
+      const response = await axios.post(`${API}/auth/login-pro`, {
+        pseudo: email,
+        password
+      });
+      const { token: t, role: r, profile_id, pseudo: p, auth_mode: am } = response.data;
+      setAuthState(t, r, profile_id, am || "pseudo", p, "none");
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || "Email ou mot de passe incorrect" };
+    }
+  };
+
   const setAuthState = (newToken, newRole, profileId, am, p, il) => {
     setToken(newToken);
     setRole(newRole);
@@ -168,7 +207,8 @@ const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{
       token, role, profileId, authMode, pseudo, identityLevel,
-      isLoading, login, loginPseudo, register, upgradeAccount,
+      isLoading, login, loginPseudo, loginPro, register,
+      registerEntreprise, registerPartenaire, upgradeAccount,
       switchRole, logout, isAuthenticated: !!token
     }}>
       {children}
