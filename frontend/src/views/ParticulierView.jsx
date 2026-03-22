@@ -294,16 +294,31 @@ const JobCard = ({ job }) => {
 };
 
 const LearningCard = ({ module, onUpdateProgress }) => (
-  <Card className="card-interactive group overflow-hidden" data-testid={`learning-card-${module.id}`}>
+  <Card className={`card-interactive group overflow-hidden ${module.relevance === "haute" ? "ring-2 ring-amber-300" : ""}`} data-testid={`learning-card-${module.id}`}>
     {module.image_url && (
       <div className="h-32 overflow-hidden">
         <img src={module.image_url} alt={module.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
       </div>
     )}
     <CardContent className="p-5">
-      <Badge variant="secondary" className="text-xs mb-2">{module.category}</Badge>
+      <div className="flex items-center justify-between mb-2">
+        <Badge variant="secondary" className="text-xs">{module.category}</Badge>
+        {module.relevance === "haute" && (
+          <Badge className="bg-amber-100 text-amber-700 text-[10px]" data-testid="relevance-badge-high">
+            <Target className="w-3 h-3 mr-0.5" />
+            Recommandé pour vous
+          </Badge>
+        )}
+      </div>
       <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{module.title}</h3>
       <p className="text-xs text-slate-500 mb-3 line-clamp-2">{module.description}</p>
+      {module.gaps_addressed?.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {module.gaps_addressed.map((gap, i) => (
+            <Badge key={i} className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200">Comble : {gap}</Badge>
+          ))}
+        </div>
+      )}
       <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{module.duration}</span>
         <Badge variant="outline">{module.level}</Badge>

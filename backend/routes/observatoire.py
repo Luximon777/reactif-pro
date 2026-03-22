@@ -148,3 +148,163 @@ async def get_predictions():
 @router.get("/observatoire/skill-gaps")
 async def get_skill_gaps():
     return await db.sector_trends.find({"skill_gap_alert": True}, {"_id": 0}).to_list(20)
+
+
+@router.get("/observatoire/personalized")
+async def get_personalized_observatoire(token: str):
+    """Cross-reference observatory data with the user's CV analysis and passport."""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    # Fetch user data in parallel
+    passport_data = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    cv_job = await db.cv_jobs.find_one(
+        {"token_id": token_id, "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    user_emerging = await db.emerging_competences.find(
+        {"token_id": token_id}, {"_id": 0}
+    ).to_list(50)
+    global_skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(100)
+    sector_trends = await db.sector_trends.find({}, {"_id": 0}).to_list(50)
+
+    # Extract user skills from multiple sources
+    user_skill_names = set()
+    user_sectors = set()
+
+    if passport_data:
+        for c in passport_data.get("competences", []):
+            name = c.get("name", "").strip()
+            if name:
+                user_skill_names.add(name.lower())
+        for s in passport_data.get("target_sectors", []):
+            if s:
+                user_sectors.add(s)
+
+    cv_result = cv_job.get("result", {}) if cv_job else {}
+    for t in cv_result.get("competences_transversales", []):
+        if t:
+            user_skill_names.add(t.lower())
+
+    if not user_skill_names and not user_emerging:
+        return {
+            "has_cv": False,
+            "message": "Analysez votre CV pour obtenir des recommandations personnalisées",
+            "user_skills_count": 0,
+            "matches": [], "skill_gaps": [], "declining_alerts": [],
+            "sector_relevance": [], "emerging_from_cv": []
+        }
+
+    # Cross-reference: user skills vs global emerging skills
+    matches = []
+    all_emerging_names = set()
+    for skill in global_skills:
+        skill_name_lower = skill.get("skill_name", "").lower()
+        all_emerging_names.add(skill_name_lower)
+        # Check if any user skill matches or is contained in emerging skill
+        for us in user_skill_names:
+            if us in skill_name_lower or skill_name_lower in us or _fuzzy_match(us, skill_name_lower):
+                matches.append({
+                    "user_skill": us,
+                    "observatory_skill": skill.get("skill_name"),
+                    "status": skill.get("status", "emergente"),
+                    "emergence_score": skill.get("emergence_score", 0),
+                    "growth_rate": skill.get("growth_rate", 0),
+                    "related_sectors": skill.get("related_sectors", []),
+                    "related_jobs": skill.get("related_jobs", [])
+                })
+                break
+
+    # Identify declining skills from sector trends
+    declining_alerts = []
+    for trend in sector_trends:
+        for declining in trend.get("declining_skills", []):
+            if declining.lower() in user_skill_names:
+                declining_alerts.append({
+                    "skill": declining,
+                    "sector": trend.get("sector_name"),
+                    "transformation_index": trend.get("transformation_index", 0)
+                })
+
+    # Skill gaps: emerging skills the user doesn't have
+    skill_gaps = []
+    for skill in sorted(global_skills, key=lambda x: x.get("emergence_score", 0), reverse=True):
+        skill_name_lower = skill.get("skill_name", "").lower()
+        has_skill = any(us in skill_name_lower or skill_name_lower in us for us in user_skill_names)
+        if not has_skill:
+            # Check sector relevance
+            skill_sectors = set(s.lower() for s in skill.get("related_sectors", []))
+            user_sectors_lower = set(s.lower() for s in user_sectors)
+            sector_match = bool(skill_sectors & user_sectors_lower) if user_sectors_lower else True
+            skill_gaps.append({
+                "skill_name": skill.get("skill_name"),
+                "emergence_score": skill.get("emergence_score", 0),
+                "growth_rate": skill.get("growth_rate", 0),
+                "status": skill.get("status"),
+                "related_sectors": skill.get("related_sectors", []),
+                "sector_relevant": sector_match,
+                "priority": "haute" if sector_match and skill.get("emergence_score", 0) > 0.7 else "moyenne" if skill.get("emergence_score", 0) > 0.5 else "basse"
+            })
+
+    # Sector relevance analysis
+    sector_relevance = []
+    for trend in sector_trends:
+        sector_name = trend.get("sector_name", "")
+        emerging = set(s.lower() for s in trend.get("emerging_skills", []))
+        stable = set(s.lower() for s in trend.get("stable_skills", []))
+        declining = set(s.lower() for s in trend.get("declining_skills", []))
+        user_in_emerging = [s for s in user_skill_names if any(s in e or e in s for e in emerging)]
+        user_in_stable = [s for s in user_skill_names if any(s in st or st in s for st in stable)]
+        user_in_declining = [s for s in user_skill_names if any(s in d or d in s for d in declining)]
+        if user_in_emerging or user_in_stable or user_in_declining:
+            sector_relevance.append({
+                "sector": sector_name,
+                "transformation_index": trend.get("transformation_index", 0),
+                "hiring_trend": trend.get("hiring_trend"),
+                "your_emerging_skills": user_in_emerging,
+                "your_stable_skills": user_in_stable,
+                "your_declining_skills": user_in_declining,
+                "skill_gap_alert": trend.get("skill_gap_alert", False)
+            })
+
+    # Emerging competences detected from CV
+    emerging_from_cv = []
+    for ec in user_emerging:
+        emerging_from_cv.append({
+            "name": ec.get("nom_principal"),
+            "category": ec.get("categorie"),
+            "score": ec.get("score_emergence", 0),
+            "level": ec.get("niveau_emergence"),
+            "sectors": ec.get("secteurs_porteurs", []),
+            "jobs": ec.get("metiers_associes", []),
+            "trend": ec.get("tendance")
+        })
+
+    return {
+        "has_cv": True,
+        "user_skills_count": len(user_skill_names),
+        "matches": sorted(matches, key=lambda x: x.get("emergence_score", 0), reverse=True),
+        "skill_gaps": sorted(skill_gaps, key=lambda x: (x["priority"] == "haute", x.get("emergence_score", 0)), reverse=True)[:10],
+        "declining_alerts": declining_alerts,
+        "sector_relevance": sorted(sector_relevance, key=lambda x: len(x.get("your_emerging_skills", [])), reverse=True),
+        "emerging_from_cv": sorted(emerging_from_cv, key=lambda x: x.get("score", 0), reverse=True),
+        "summary": {
+            "total_skills_analyzed": len(user_skill_names),
+            "skills_in_observatory": len(matches),
+            "skills_declining": len(declining_alerts),
+            "gaps_to_fill": len([g for g in skill_gaps if g["priority"] == "haute"]),
+            "sectors_relevant": len(sector_relevance),
+            "cv_emerging_detected": len(emerging_from_cv)
+        }
+    }
+
+
+def _fuzzy_match(a: str, b: str) -> bool:
+    """Simple fuzzy matching for skill names."""
+    a_words = set(a.lower().split())
+    b_words = set(b.lower().split())
+    if not a_words or not b_words:
+        return False
+    common = a_words & b_words
+    return len(common) >= min(len(a_words), len(b_words)) * 0.5

@@ -418,9 +418,10 @@ const EvolutionExposureCard = ({ analysis }) => {
   const interpretation = analysis.exposure_interpretation || {};
   const levelConfig = INDEX_LEVELS[interpretation.level] || INDEX_LEVELS.evolutif;
   const Icon = levelConfig.icon;
+  const hasCv = analysis.has_cv;
 
   return (
-    <Card className={`${levelConfig.bgLight} border ${levelConfig.borderColor}`}>
+    <Card className={`${levelConfig.bgLight} border ${levelConfig.borderColor}`} data-testid="evolution-exposure-card">
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           <div className="flex items-center gap-4">
@@ -443,24 +444,98 @@ const EvolutionExposureCard = ({ analysis }) => {
           <div className="flex-1 md:border-l md:pl-6 border-slate-200">
             <p className="text-sm text-slate-700 mb-3">{interpretation.description}</p>
             <p className="text-sm font-medium text-slate-900">
-              💡 {interpretation.recommendation}
+              {interpretation.recommendation}
             </p>
+            {!hasCv && (
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Analysez votre CV pour une évaluation personnalisée basée sur vos compétences réelles
+              </p>
+            )}
+            {hasCv && analysis.data_sources && (
+              <div className="flex gap-2 mt-2">
+                {analysis.data_sources.cv_analysis && <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-600">CV analysé</Badge>}
+                {analysis.data_sources.passport && <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-600">Passeport enrichi</Badge>}
+              </div>
+            )}
           </div>
 
-          {analysis.skills_at_risk?.length > 0 && (
-            <div className="md:border-l md:pl-6 border-slate-200">
-              <p className="text-xs font-medium text-rose-600 mb-2 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" />
-                Compétences à risque
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {analysis.skills_at_risk.slice(0, 3).map((s, idx) => (
-                  <Badge key={idx} className="bg-rose-100 text-rose-700">{s.skill}</Badge>
-                ))}
+          <div className="flex flex-col gap-3 md:border-l md:pl-6 border-slate-200">
+            {analysis.skills_at_risk?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-rose-600 mb-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Compétences à risque
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {analysis.skills_at_risk.slice(0, 3).map((s, idx) => (
+                    <Badge key={idx} className="bg-rose-100 text-rose-700">{s.skill}</Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {analysis.skills_in_demand?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  Compétences en demande
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {analysis.skills_in_demand.slice(0, 3).map((s, idx) => (
+                    <Badge key={idx} className="bg-emerald-100 text-emerald-700">{s.skill}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {analysis.recommended_skills_to_acquire?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                  <Target className="w-3 h-3" />
+                  À acquérir
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {analysis.recommended_skills_to_acquire.slice(0, 3).map((s, idx) => (
+                    <Badge key={idx} className="bg-blue-100 text-blue-700">{s}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* CV Emerging competences section */}
+        {analysis.emerging_from_cv?.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-violet-500" />
+              Compétences émergentes détectées dans votre CV
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {analysis.emerging_from_cv.slice(0, 5).map((ec, idx) => (
+                <Badge key={idx} className="bg-violet-100 text-violet-700 border border-violet-200">
+                  {ec.name} <span className="opacity-60 ml-1">({ec.score})</span>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recommended trainings */}
+        {analysis.recommended_trainings?.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
+              <BookOpen className="w-3 h-3 text-blue-500" />
+              Formations recommandées
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {analysis.recommended_trainings.map((t, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">{t}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -90,31 +90,105 @@ async def get_evolution_dashboard():
 @router.get("/evolution-index/user-profile")
 async def get_user_evolution_analysis(token: str):
     token_doc = await get_current_token(token)
-    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profil non trouvé")
-    user_sectors = profile.get("sectors", [])
-    user_skills = [s.get("name", "") for s in profile.get("skills", [])]
+    token_id = token_doc["id"]
+    profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+
+    # Enrich user data from multiple sources: profile + passport + CV analysis
+    user_sectors = set()
+    user_skills = set()
+
+    if profile:
+        for s in profile.get("sectors", []):
+            if s:
+                user_sectors.add(s)
+        for sk in profile.get("skills", []):
+            name = sk.get("name", "")
+            if name:
+                user_skills.add(name)
+
+    # Pull from passport (richer data from CV analysis)
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    if passport:
+        for c in passport.get("competences", []):
+            name = c.get("name", "")
+            if name:
+                user_skills.add(name)
+        for s in passport.get("target_sectors", []):
+            if s:
+                user_sectors.add(s)
+
+    # Pull from latest CV analysis
+    cv_job = await db.cv_jobs.find_one(
+        {"token_id": token_id, "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    cv_result = cv_job.get("result", {}) if cv_job else {}
+    for t in cv_result.get("competences_transversales", []):
+        if t:
+            user_skills.add(t)
+
+    user_skills_list = list(user_skills)
+    user_sectors_list = list(user_sectors)
+
+    # If no data, try to match all job indices
     relevant_jobs = []
-    for sector in user_sectors:
-        jobs = await db.job_evolution_indices.find({"sector": {"$regex": sector, "$options": "i"}}, {"_id": 0}).to_list(20)
-        relevant_jobs.extend(jobs)
+    if user_sectors_list:
+        for sector in user_sectors_list:
+            jobs = await db.job_evolution_indices.find({"sector": {"$regex": sector, "$options": "i"}}, {"_id": 0}).to_list(20)
+            relevant_jobs.extend(jobs)
+    else:
+        # Fallback: use all jobs for general view
+        relevant_jobs = await db.job_evolution_indices.find({}, {"_id": 0}).to_list(20)
+
+    # Deduplicate jobs by name
+    seen_jobs = set()
+    unique_jobs = []
+    for job in relevant_jobs:
+        if job.get("job_name") not in seen_jobs:
+            seen_jobs.add(job.get("job_name"))
+            unique_jobs.append(job)
+    relevant_jobs = unique_jobs
+
     skills_at_risk = []
     skills_in_demand = []
+    user_skills_lower = {s.lower() for s in user_skills}
     for job in relevant_jobs:
-        for skill in user_skills:
-            if skill in job.get("declining_skills", []):
+        for skill in job.get("declining_skills", []):
+            if skill.lower() in user_skills_lower:
                 skills_at_risk.append({"skill": skill, "job": job["job_name"]})
-            if skill in job.get("emerging_skills", []):
+        for skill in job.get("emerging_skills", []):
+            if skill.lower() in user_skills_lower:
                 skills_in_demand.append({"skill": skill, "job": job["job_name"]})
+
     all_recommended = set()
     for job in relevant_jobs:
         all_recommended.update(job.get("recommended_skills", []))
+
+    # Fetch emerging competences detected from CV
+    cv_emerging = await db.emerging_competences.find({"token_id": token_id}, {"_id": 0}).to_list(20)
+    emerging_from_cv = [
+        {"name": ec.get("nom_principal"), "score": ec.get("score_emergence", 0),
+         "level": ec.get("niveau_emergence"), "sectors": ec.get("secteurs_porteurs", [])}
+        for ec in cv_emerging
+    ]
+
     avg_exposure = sum(j.get("evolution_index", 0) for j in relevant_jobs) / len(relevant_jobs) if relevant_jobs else 50
+
+    has_cv = bool(cv_job)
     return {
-        "profile_sectors": user_sectors, "profile_skills": user_skills, "evolution_exposure": round(avg_exposure, 1),
-        "exposure_interpretation": get_index_interpretation(avg_exposure), "relevant_jobs": relevant_jobs[:5],
+        "has_cv": has_cv,
+        "profile_sectors": user_sectors_list, "profile_skills": user_skills_list,
+        "evolution_exposure": round(avg_exposure, 1),
+        "exposure_interpretation": get_index_interpretation(avg_exposure),
+        "relevant_jobs": relevant_jobs[:5],
         "skills_at_risk": skills_at_risk, "skills_in_demand": skills_in_demand,
-        "recommended_skills_to_acquire": list(all_recommended - set(user_skills))[:10],
-        "recommended_trainings": list(set(t for j in relevant_jobs for t in j.get("recommended_trainings", [])))[:5]
+        "recommended_skills_to_acquire": list(all_recommended - user_skills)[:10],
+        "recommended_trainings": list(set(t for j in relevant_jobs for t in j.get("recommended_trainings", [])))[:5],
+        "emerging_from_cv": emerging_from_cv,
+        "data_sources": {
+            "profile": bool(profile and profile.get("skills")),
+            "passport": bool(passport and passport.get("competences")),
+            "cv_analysis": has_cv
+        }
     }

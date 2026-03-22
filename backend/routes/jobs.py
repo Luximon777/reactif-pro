@@ -87,11 +87,70 @@ async def get_job_match(token: str, job_id: str):
 @router.get("/learning")
 async def get_learning_modules(token: str):
     token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
     modules = await db.learning_modules.find({}, {"_id": 0}).to_list(50)
-    progress_docs = await db.learning_progress.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(100)
+    progress_docs = await db.learning_progress.find({"token_id": token_id}, {"_id": 0}).to_list(100)
     progress_map = {p["module_id"]: p["progress"] for p in progress_docs}
+
+    # Collect user skills and gaps from CV + passport
+    user_skills_lower = set()
+    skill_gaps = set()
+
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    if passport:
+        for c in passport.get("competences", []):
+            name = c.get("name", "").strip().lower()
+            if name:
+                user_skills_lower.add(name)
+
+    cv_job = await db.cv_jobs.find_one(
+        {"token_id": token_id, "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    cv_result = cv_job.get("result", {}) if cv_job else {}
+    for t in cv_result.get("competences_transversales", []):
+        if t:
+            user_skills_lower.add(t.lower())
+
+    # Get recommended skills from job evolution indices (skills user should acquire)
+    user_sectors = set()
+    if passport:
+        for s in passport.get("target_sectors", []):
+            if s:
+                user_sectors.add(s)
+    for sector in user_sectors:
+        jobs = await db.job_evolution_indices.find({"sector": {"$regex": sector, "$options": "i"}}, {"_id": 0, "recommended_skills": 1}).to_list(10)
+        for j in jobs:
+            for rs in j.get("recommended_skills", []):
+                if rs.lower() not in user_skills_lower:
+                    skill_gaps.add(rs.lower())
+
     for module in modules:
         module["progress"] = progress_map.get(module["id"], 0)
+        # Calculate relevance score based on skill gaps
+        module_skills = set(s.lower() for s in module.get("skills_developed", []))
+        gaps_addressed = module_skills & skill_gaps
+        skills_already_have = module_skills & user_skills_lower
+        if gaps_addressed:
+            module["relevance"] = "haute"
+            module["relevance_score"] = min(100, len(gaps_addressed) * 35 + 30)
+            module["gaps_addressed"] = list(gaps_addressed)
+        elif skills_already_have:
+            module["relevance"] = "moyenne"
+            module["relevance_score"] = 40
+            module["gaps_addressed"] = []
+        else:
+            module["relevance"] = "basse"
+            module["relevance_score"] = 10
+            module["gaps_addressed"] = []
+
+    # Sort: in-progress first, then by relevance, then alphabetical
+    modules.sort(key=lambda m: (
+        -(m.get("progress", 0) > 0 and m.get("progress", 0) < 100),
+        -m.get("relevance_score", 0)
+    ))
+
     return modules
 
 
