@@ -15,7 +15,6 @@ jobs:
           host: 51.91.124.85
           username: ubuntu
           key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
           script: |
             echo "=== Début du déploiement ==="
             cd ~/reactif-pro
@@ -29,8 +28,8 @@ jobs:
             pip install -r requirements.txt --quiet
 
             echo "=== Redémarrage du backend ==="
-            pkill -f uvicorn || true
-            nohup uvicorn server:app --host 0.0.0.0 --port 8001 > /dev/null 2>&1 &
+            kill $(pgrep -f "uvicorn server:app") 2>/dev/null; sleep 2
+            nohup uvicorn server:app --host 0.0.0.0 --port 8001 >> ~/uvicorn.log 2>&1 &
             deactivate
             cd ..
 
