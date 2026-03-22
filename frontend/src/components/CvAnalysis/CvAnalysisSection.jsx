@@ -131,12 +131,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           const res = await axios.post(`${API}/cv/extract-text-b64?token=${token}`, {
             data: base64,
             filename: file.name,
-          }, { timeout: 30000 });
+          }, { timeout: 60000 });
           return res.data.text;
         } catch (err) {
           const s = err.response?.status;
-          if (attempt < 2 && (s === 502 || s === 503 || s === 504 || !err.response)) {
-            await new Promise(r => setTimeout(r, 2000));
+          if (attempt < 2 && (s === 502 || s === 503 || s === 504 || s === 413 || !err.response)) {
+            await new Promise(r => setTimeout(r, 3000));
             continue;
           }
           throw err;
@@ -344,15 +344,16 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         )}
       </div>
 
-      {/* Error display */}
+      {/* Error display - clickable to retry */}
       {uploadError && !uploading && !analysisResult && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4" data-testid="cv-upload-error">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 cursor-pointer relative" data-testid="cv-upload-error"
+          onClick={() => { setUploadError(null); document.querySelector('[data-testid="cv-upload-input"]')?.click(); }}>
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle className="w-5 h-5 text-red-600" />
             <h4 className="font-semibold text-red-800 text-sm">Erreur d'analyse</h4>
           </div>
           <p className="text-sm text-red-700">{uploadError}</p>
-          <p className="text-xs text-red-500 mt-2">Cliquez sur la zone ci-dessus pour réessayer avec votre CV.</p>
+          <p className="text-xs text-blue-600 mt-2 font-medium underline">Cliquez ici pour réessayer</p>
         </div>
       )}
 
