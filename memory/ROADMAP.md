@@ -9,6 +9,7 @@
 - [x] Frontend refactoring (ParticulierView, PassportView)
 - [x] Deploiement OVH VPS (Nginx, Let's Encrypt, MongoDB Atlas)
 - [x] Anonymat & Pseudonymat (3 phases: backend, inscription/connexion, confidentialite)
+- [x] Correlation CV x Observatoire/Evolution/Formations (personnalisation basee sur le CV)
 
 ## P1 - Next Features
 - [ ] Integration communautaire Ubuntoo (contribution participative)

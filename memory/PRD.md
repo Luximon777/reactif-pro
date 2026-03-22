@@ -36,6 +36,8 @@ frontend/src/
     ParticulierView.jsx - Dashboard personnel
     PassportView.jsx - Passeport competences
     PrivacySettingsView.jsx - Parametres de confidentialite
+    ObservatoireView.jsx - Observatoire predictif (personnalise avec CV)
+    EvolutionIndexView.jsx - Indice d'evolution (enrichi avec CV)
   components/
     AuthModal.jsx - Modal connexion/inscription pseudonyme
     CvAnalysis/
@@ -49,6 +51,9 @@ backend/
     auth.py - Auth (anonymous, register, login, upgrade, privacy, export, delete)
     cv.py - Analyse CV + 3 appels LLM paralleles
     emerging.py - CRUD competences emergentes
+    observatoire.py - Observatoire predictif + endpoint personnalise
+    evolution.py - Indice d'evolution enrichi avec CV
+    jobs.py - Emplois + Formations (learning avec pertinence CV)
     passport.py, coffre.py, etc.
   models.py - Profile enrichi (pseudo, auth_mode, visibility_level, consent_*)
 ```
@@ -71,6 +76,9 @@ backend/
 - **Charte Ethique ALT&ACT** : 10 principes, signature obligatoire entreprise/partenaire
 - **Confidentialite** : parametres de visibilite, export, suppression compte
 - **Collections MongoDB** : consent_history, external_identities (prete pour FranceConnect)
+- **Correlation CV x Observatoire** : endpoint /api/observatoire/personalized croise les competences du CV avec les tendances globales (compétences emergentes, lacunes, secteurs)
+- **Correlation CV x Evolution** : endpoint /api/evolution-index/user-profile enrichi avec donnees CV + passeport + competences emergentes
+- **Correlation CV x Formations** : endpoint /api/learning enrichi avec pertinence (haute/moyenne/basse) et lacunes combees
 
 ## Backlog
 - P1: Integration communautaire Ubuntoo (contribution participative)
