@@ -15,6 +15,7 @@ jobs:
           host: 51.91.124.85
           username: ubuntu
           key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
           script: |
             echo "=== Début du déploiement ==="
             cd ~/reactif-pro
@@ -22,21 +23,20 @@ jobs:
             echo "=== Pull des dernières modifications ==="
             git pull origin main
 
-            echo "=== Installation des dépendances backend ==="
-            cd backend
-            source venv/bin/activate
-            pip install -r requirements.txt --quiet
-
-            echo "=== Redémarrage du backend ==="
-            kill $(pgrep -f "uvicorn server:app") 2>/dev/null; sleep 2
-            nohup uvicorn server:app --host 0.0.0.0 --port 8001 >> ~/uvicorn.log 2>&1 &
-            deactivate
-            cd ..
-
             echo "=== Build du frontend ==="
             cd frontend
             npm install --legacy-peer-deps
             npm run build
             cd ..
+
+            echo "=== Installation des dépendances backend ==="
+            cd backend
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+            deactivate
+            cd ..
+
+            echo "=== Redémarrage du backend ==="
+            bash -c 'cd ~/reactif-pro/backend && source venv/bin/activate && PID=$(cat /tmp/reactif.pid 2>/dev/null); [ -n "$PID" ] && kill $PID 2>/dev/null; sleep 1; nohup uvicorn server:app --host 0.0.0.0 --port 8001 >> ~/uvicorn.log 2>&1 & echo $! > /tmp/reactif.pid'
 
             echo "=== Déploiement terminé avec succès ==="
