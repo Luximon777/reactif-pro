@@ -310,54 +310,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pseudonymous Account Highlight */}
-      <section className="py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Card className="overflow-hidden border-2 border-blue-100">
-            <CardContent className="p-0">
-              <div className="grid md:grid-cols-5">
-                <div className="md:col-span-2 bg-gradient-to-br from-[#1e3a5f] to-[#2d4a6f] p-8 flex flex-col justify-center">
-                  <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-4">
-                    <Shield className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                    Espace Personnel
-                  </h3>
-                  <p className="text-blue-200 text-sm">
-                    Inscription confidentielle sous pseudonyme
-                  </p>
-                </div>
-                <div className="md:col-span-3 p-8 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {[
-                      { text: "Pseudo + mot de passe", ok: true },
-                      { text: "Email facultatif", ok: true },
-                      { text: "Nom, prénom, téléphone", ok: false },
-                      { text: "Date de naissance", ok: false },
-                    ].map((item, idx) => (
-                      <div key={idx} className={`flex items-center gap-2 text-sm ${item.ok ? "text-green-700" : "text-red-400 line-through"}`}>
-                        <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${item.ok ? "text-green-500" : "text-red-300"}`} />
-                        {item.text}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="pt-2">
-                    <Button
-                      className="bg-[#1e3a5f] hover:bg-[#152a45] text-white"
-                      onClick={() => handlePersonalAuth()}
-                      data-testid="cta-register-pseudo-btn"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Créer mon compte confidentiel
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       {/* Coffre-fort numérique */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
