@@ -1,5 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 from db import client
 from routes.auth import router as auth_router
 from routes.jobs import router as jobs_router
@@ -15,9 +17,15 @@ from routes.emerging import router as emerging_router
 
 app = FastAPI(title="Re'Actif Pro API")
 
+cors_origins = os.environ.get("CORS_ORIGINS", "*")
+if cors_origins == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in cors_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,6 +45,21 @@ api_router.include_router(seed_router)
 api_router.include_router(emerging_router)
 
 app.include_router(api_router)
+
+# Serve frontend static build if present (for OVH single-server deployment)
+frontend_build = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
+frontend_static = os.path.join(frontend_build, "static")
+if os.path.isdir(frontend_build) and os.path.isdir(frontend_static):
+    from fastapi.responses import FileResponse
+
+    app.mount("/static", StaticFiles(directory=frontend_static), name="static")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        file_path = os.path.join(frontend_build, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(frontend_build, "index.html"))
 
 
 @app.on_event("shutdown")
