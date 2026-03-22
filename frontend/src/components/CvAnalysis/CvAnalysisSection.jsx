@@ -532,15 +532,15 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                       setJobOfferText(res.data.text);
                       toast.success("Offre d'emploi importee depuis le lien !");
                     } else {
-                      toast.error(res.data.error || "Impossible d'importer l'offre");
+                      toast.error("Import impossible pour ce site. Copiez-collez le texte de l'offre directement.");
                     }
-                  } catch { toast.error("Erreur lors de l'import"); }
+                  } catch { toast.error("Erreur lors de l'import. Copiez-collez le texte directement."); }
                   setScrapingOffer(false);
                 }}
-                className="flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium hover:underline"
+                className="flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
                 data-testid="scrape-offer-btn"
               >
-                <LinkIcon className="w-3 h-3" /> Importer le contenu de l'offre depuis ce lien
+                <LinkIcon className="w-3 h-3" /> Importer le contenu depuis ce lien
               </button>
             )}
             {scrapingOffer && (
