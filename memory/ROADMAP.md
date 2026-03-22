@@ -5,14 +5,21 @@
 - [x] DOCX generation and download
 - [x] PDF generation and download
 - [x] Backend modular architecture
+- [x] Competences Emergentes (4 phases: detection, filtres, validation, observatoire)
+- [x] Frontend refactoring (ParticulierView, PassportView)
+- [x] Deploiement OVH VPS (Nginx, Let's Encrypt, MongoDB Atlas)
+- [x] Anonymat & Pseudonymat (3 phases: backend, inscription/connexion, confidentialite)
 
-## P2 - Technical Debt
-- [ ] Refactor ParticulierView.jsx (>1100 lines monolith)
-  - Split into: CvUploadZone, CvAnalysisResult, CvModelGrid, CvPreview
+## P1 - Next Features
+- [ ] Integration communautaire Ubuntoo (contribution participative)
+- [ ] Coffre-fort numerique pour preuves de competences
 
-## P3 - Future Features
+## P2 - Future Features
+- [ ] Certification identite via FranceConnect / L'Identite Numerique La Poste (architecture prete)
 - [ ] Integration approfondie du referentiel CCSP
 - [ ] Outil de diagnostic fonctionnel base sur le CCSP
 - [ ] Modules d'auto-evaluation (Soft Skills CSE, Valeurs VIA)
+
+## P3 - Long Term
 - [ ] Ateliers de Codeveloppement
 - [ ] Systeme de micro-titres/badges

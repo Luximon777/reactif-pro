@@ -1,5 +1,23 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-22 - Anonymat & Pseudonymat (Phases 1-3)
+- **FEATURE**: Systeme complet d'identite a 3 niveaux (anonyme/pseudonyme/certifie)
+- **FEATURE**: Inscription sous pseudo (pseudo+mdp+CGU, email facultatif) - POST /api/auth/register
+- **FEATURE**: Connexion pseudo - POST /api/auth/login
+- **FEATURE**: Upgrade anonymous->pseudo - POST /api/auth/upgrade
+- **FEATURE**: Changement mot de passe - POST /api/auth/change-password
+- **FEATURE**: Verification disponibilite pseudo - GET /api/auth/check-pseudo
+- **FEATURE**: Parametres de confidentialite (visibilite, bio, consentements) - PUT /api/profile/privacy
+- **FEATURE**: Export donnees RGPD - GET /api/auth/export-data
+- **FEATURE**: Suppression compte et donnees - DELETE /api/auth/account
+- **FEATURE**: AuthModal frontend (login/register avec tabs, message confidentialite)
+- **FEATURE**: PrivacySettingsView (/dashboard/confidentialite) avec statut compte, visibilite, consents, export, suppression
+- **FEATURE**: Badge auth mode dans Dashboard header (Anonyme/Pseudo)
+- **FEATURE**: Section "Compte sous pseudonyme" sur Landing page
+- **FEATURE**: Collections MongoDB consent_history, external_identities (preparation FranceConnect)
+- **SECURITY**: password_hash jamais retourne dans les reponses API
+- **TESTED**: 100% backend (24/24) + frontend (tous les flows UI)
+
 ## 2026-03-19 - Refactoring Composants Frontend
 - **REFACTORING**: ParticulierView.jsx 1294->354 lignes (-73%). Extraction de CvAnalysisSection.jsx (693 lignes) et CvPreview.jsx (105 lignes) dans /components/CvAnalysis/
 - **REFACTORING**: PassportView.jsx 1823->1670 lignes. Extraction de EmergingCompetenceCard.jsx (85 lignes) et passportConfig.js (84 lignes) dans /components/Passport/
