@@ -955,7 +955,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href="https://ats-engine.preview.emergentagent.com/"
+              href="https://identity-vault-22.preview.emergentagent.com/"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"
