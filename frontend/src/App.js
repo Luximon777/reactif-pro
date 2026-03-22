@@ -24,6 +24,9 @@ const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("reactif_token"));
   const [role, setRole] = useState(localStorage.getItem("reactif_role") || "particulier");
   const [profileId, setProfileId] = useState(localStorage.getItem("reactif_profile_id"));
+  const [authMode, setAuthMode] = useState(localStorage.getItem("reactif_auth_mode") || "anonymous");
+  const [pseudo, setPseudo] = useState(localStorage.getItem("reactif_pseudo") || null);
+  const [identityLevel, setIdentityLevel] = useState(localStorage.getItem("reactif_identity_level") || "none");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +37,12 @@ const AuthProvider = ({ children }) => {
           if (response.data.valid) {
             setRole(response.data.role);
             setProfileId(response.data.profile_id);
+            setAuthMode(response.data.auth_mode || "anonymous");
+            setPseudo(response.data.pseudo || null);
+            setIdentityLevel(response.data.identity_level || "none");
+            localStorage.setItem("reactif_auth_mode", response.data.auth_mode || "anonymous");
+            if (response.data.pseudo) localStorage.setItem("reactif_pseudo", response.data.pseudo);
+            if (response.data.identity_level) localStorage.setItem("reactif_identity_level", response.data.identity_level);
           } else {
             logout();
           }
@@ -46,24 +55,87 @@ const AuthProvider = ({ children }) => {
     verifyToken();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Anonymous login (existing behavior)
   const login = async (selectedRole = "particulier") => {
     try {
       const response = await axios.post(`${API}/auth/anonymous`, { role: selectedRole });
-      const { token: newToken, role: newRole, profile_id } = response.data;
-      
-      setToken(newToken);
-      setRole(newRole);
-      setProfileId(profile_id);
-      
-      localStorage.setItem("reactif_token", newToken);
-      localStorage.setItem("reactif_role", newRole);
-      localStorage.setItem("reactif_profile_id", profile_id);
-      
+      const { token: newToken, role: newRole, profile_id, auth_mode: am } = response.data;
+      setAuthState(newToken, newRole, profile_id, am || "anonymous", null, "none");
       return true;
     } catch (error) {
       console.error("Login error:", error);
       return false;
     }
+  };
+
+  // Pseudonymous registration
+  const register = async (pseudoName, password, selectedRole = "particulier", emailRecovery = null, consentMarketing = false) => {
+    try {
+      const response = await axios.post(`${API}/auth/register`, {
+        pseudo: pseudoName,
+        password,
+        role: selectedRole,
+        email_recovery: emailRecovery || null,
+        consent_cgu: true,
+        consent_privacy: true,
+        consent_marketing: consentMarketing
+      });
+      const { token: newToken, role: newRole, profile_id, pseudo: p, auth_mode: am } = response.data;
+      setAuthState(newToken, newRole, profile_id, am || "pseudo", p, "none");
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || "Erreur lors de l'inscription" };
+    }
+  };
+
+  // Pseudonymous login
+  const loginPseudo = async (pseudoName, password) => {
+    try {
+      const response = await axios.post(`${API}/auth/login`, {
+        pseudo: pseudoName,
+        password
+      });
+      const { token: newToken, role: newRole, profile_id, pseudo: p, auth_mode: am } = response.data;
+      setAuthState(newToken, newRole, profile_id, am || "pseudo", p, "none");
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || "Pseudo ou mot de passe incorrect" };
+    }
+  };
+
+  // Upgrade anonymous to pseudo
+  const upgradeAccount = async (pseudoName, password, emailRecovery = null) => {
+    try {
+      await axios.post(`${API}/auth/upgrade?token=${token}`, {
+        pseudo: pseudoName,
+        password,
+        email_recovery: emailRecovery || null,
+        consent_cgu: true,
+        consent_privacy: true
+      });
+      setAuthMode("pseudo");
+      setPseudo(pseudoName);
+      localStorage.setItem("reactif_auth_mode", "pseudo");
+      localStorage.setItem("reactif_pseudo", pseudoName);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || "Erreur lors de la mise à niveau" };
+    }
+  };
+
+  const setAuthState = (newToken, newRole, profileId, am, p, il) => {
+    setToken(newToken);
+    setRole(newRole);
+    setProfileId(profileId);
+    setAuthMode(am);
+    setPseudo(p);
+    setIdentityLevel(il);
+    localStorage.setItem("reactif_token", newToken);
+    localStorage.setItem("reactif_role", newRole);
+    localStorage.setItem("reactif_profile_id", profileId);
+    localStorage.setItem("reactif_auth_mode", am);
+    if (p) localStorage.setItem("reactif_pseudo", p);
+    if (il) localStorage.setItem("reactif_identity_level", il);
   };
 
   const switchRole = async (newRole) => {
@@ -82,13 +154,23 @@ const AuthProvider = ({ children }) => {
     setToken(null);
     setRole("particulier");
     setProfileId(null);
+    setAuthMode("anonymous");
+    setPseudo(null);
+    setIdentityLevel("none");
     localStorage.removeItem("reactif_token");
     localStorage.removeItem("reactif_role");
     localStorage.removeItem("reactif_profile_id");
+    localStorage.removeItem("reactif_auth_mode");
+    localStorage.removeItem("reactif_pseudo");
+    localStorage.removeItem("reactif_identity_level");
   };
 
   return (
-    <AuthContext.Provider value={{ token, role, profileId, isLoading, login, switchRole, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{
+      token, role, profileId, authMode, pseudo, identityLevel,
+      isLoading, login, loginPseudo, register, upgradeAccount,
+      switchRole, logout, isAuthenticated: !!token
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -27,6 +27,26 @@ class Profile(BaseModel):
     sectors: List[str] = []
     profile_score: int = 0
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Anonymat & Pseudonymat fields
+    pseudo: Optional[str] = None
+    email_recovery: Optional[str] = None
+    password_hash: Optional[str] = None
+    auth_mode: str = "anonymous"  # anonymous, pseudo, certified
+    identity_level: str = "none"  # none, verified, verified_plus
+    visibility_level: str = "private"  # private, limited, public
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    consent_cgu: bool = False
+    consent_privacy: bool = False
+    consent_marketing: bool = False
+    # Legal identity (FranceConnect - stored but hidden by default)
+    legal_first_name: Optional[str] = None
+    legal_last_name: Optional[str] = None
+    birth_date: Optional[str] = None
+    birth_place: Optional[str] = None
+    verified_at: Optional[str] = None
+    last_identity_sync_at: Optional[str] = None
 
 
 class JobOffer(BaseModel):
@@ -365,4 +385,77 @@ class UbuntooInsight(BaseModel):
     impacted_sectors: List[str] = []
     recommendation: str = ""
     priority: str = "moyenne"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+
+# ===== Anonymat & Pseudonymat Models =====
+
+class RegisterRequest(BaseModel):
+    pseudo: str
+    password: str
+    role: str = "particulier"
+    email_recovery: Optional[str] = None
+    consent_cgu: bool = True
+    consent_privacy: bool = True
+    consent_marketing: bool = False
+
+
+class LoginRequest(BaseModel):
+    pseudo: str
+    password: str
+
+
+class UpdatePrivacyRequest(BaseModel):
+    visibility_level: Optional[str] = None
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    consent_marketing: Optional[str] = None
+
+
+class UpgradeAccountRequest(BaseModel):
+    pseudo: str
+    password: str
+    email_recovery: Optional[str] = None
+    consent_cgu: bool = True
+    consent_privacy: bool = True
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ExternalIdentity(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    provider: str  # franceconnect, franceconnect_plus, identite_numerique_laposte
+    provider_user_id: str
+    provider_email: Optional[str] = None
+    provider_data: Dict[str, Any] = {}
+    is_active: bool = True
+    linked_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_login_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ConsentRecord(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    consent_type: str  # cgu, privacy, marketing
+    consent_value: bool
+    policy_version: str = "1.0"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class IdentityVerification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    provider: str
+    verification_level: str  # verified, verified_plus
+    verification_status: str = "success"  # success, failed, revoked
+    details: Dict[str, Any] = {}
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

@@ -42,9 +42,10 @@ import ObservatoireView from "@/views/ObservatoireView";
 import EvolutionIndexView from "@/views/EvolutionIndexView";
 import PassportView from "@/views/PassportView";
 import ExplorateurView from "@/views/ExplorateurView";
+import PrivacySettingsView from "@/views/PrivacySettingsView";
 
 const Dashboard = () => {
-  const { token, role, switchRole, logout } = useAuth();
+  const { token, role, switchRole, logout, authMode, pseudo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -133,6 +134,7 @@ const Dashboard = () => {
     { label: "Indice Évolution", icon: Gauge, path: "/dashboard/evolution" },
     { label: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
     { label: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
+    { label: "Confidentialité", icon: Settings, path: "/dashboard/confidentialite" },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.roles || item.roles.includes(role));
@@ -189,6 +191,19 @@ const Dashboard = () => {
                   <span className="hidden lg:inline">Espace Ubuntoo</span>
                 </Button>
               </a>
+
+              {/* Auth Mode Badge */}
+              {authMode === "pseudo" && pseudo && (
+                <Badge className="hidden sm:inline-flex bg-green-50 text-green-700 border-green-200" data-testid="pseudo-badge">
+                  <Shield className="w-3 h-3 mr-1" />
+                  {pseudo}
+                </Badge>
+              )}
+              {authMode === "anonymous" && (
+                <Badge className="hidden sm:inline-flex bg-amber-50 text-amber-700 border-amber-200" data-testid="anonymous-badge">
+                  Anonyme
+                </Badge>
+              )}
 
               {/* Role Switcher */}
               <DropdownMenu>
@@ -300,6 +315,7 @@ const Dashboard = () => {
             <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
             <Route path="/explorateur" element={<ExplorateurView token={token} key={`explorateur-${refreshKey}`} />} />
             <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
+            <Route path="/confidentialite" element={<PrivacySettingsView token={token} key={`privacy-${refreshKey}`} />} />
             <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
             <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

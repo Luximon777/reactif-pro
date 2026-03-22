@@ -23,16 +23,20 @@ import {
   Eye,
   Heart,
   Scale,
-  FileCheck
+  FileCheck,
+  UserPlus
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
+import AuthModal from "@/components/AuthModal";
 
 const Landing = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authRole, setAuthRole] = useState("particulier");
 
   const handleRoleSelect = async (role) => {
     setSelectedRole(role);
@@ -48,6 +52,17 @@ const Landing = () => {
     }
     
     setIsLoading(false);
+  };
+
+  const handlePseudoAuth = (role) => {
+    setAuthRole(role);
+    setAuthModalOpen(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setAuthModalOpen(false);
+    toast.success("Bienvenue !");
+    navigate("/dashboard");
   };
 
   // Ne pas rediriger automatiquement - laisser l'utilisateur choisir
@@ -254,20 +269,31 @@ const Landing = () => {
                         </li>
                       ))}
                     </ul>
+                    <div className="flex gap-2">
                     <Button 
-                      className="w-full bg-[#1e3a5f] hover:bg-[#152a45] text-white group"
+                      className="flex-1 bg-[#1e3a5f] hover:bg-[#152a45] text-white group"
                       disabled={isLoading && selectedRole === role.id}
+                      onClick={(e) => { e.stopPropagation(); handleRoleSelect(role.id); }}
                       data-testid={`login-btn-${role.id}`}
                     >
                       {isLoading && selectedRole === role.id ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       ) : (
                         <>
-                          Accéder
-                          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                          Accès rapide
+                          <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
                     </Button>
+                    <Button
+                      variant="outline"
+                      className="border-[#1e3a5f] text-[#1e3a5f] hover:bg-blue-50"
+                      onClick={(e) => { e.stopPropagation(); handlePseudoAuth(role.id); }}
+                      data-testid={`pseudo-btn-${role.id}`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                    </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -306,6 +332,62 @@ const Landing = () => {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* Pseudonymous Account Highlight */}
+      <section className="py-12 px-4">
+        <div className="max-w-4xl mx-auto">
+          <Card className="overflow-hidden border-2 border-blue-100">
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-5">
+                <div className="md:col-span-2 bg-gradient-to-br from-[#1e3a5f] to-[#2d4a6f] p-8 flex flex-col justify-center">
+                  <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-4">
+                    <Shield className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    Compte sous pseudonyme
+                  </h3>
+                  <p className="text-blue-200 text-sm">
+                    Votre identité civile n'est jamais requise
+                  </p>
+                </div>
+                <div className="md:col-span-3 p-8 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { text: "Pseudo + mot de passe", ok: true },
+                      { text: "Email facultatif", ok: true },
+                      { text: "Nom, prénom, téléphone", ok: false },
+                      { text: "Date de naissance", ok: false },
+                    ].map((item, idx) => (
+                      <div key={idx} className={`flex items-center gap-2 text-sm ${item.ok ? "text-green-700" : "text-red-400 line-through"}`}>
+                        <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${item.ok ? "text-green-500" : "text-red-300"}`} />
+                        {item.text}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    <Button
+                      className="bg-[#1e3a5f] hover:bg-[#152a45] text-white"
+                      onClick={() => handlePseudoAuth("particulier")}
+                      data-testid="cta-register-pseudo-btn"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Créer un compte confidentiel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="text-slate-600"
+                      onClick={() => handleRoleSelect("particulier")}
+                      data-testid="cta-anonymous-btn"
+                    >
+                      Continuer sans compte
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -432,6 +514,14 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        defaultRole={authRole}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 };
