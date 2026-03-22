@@ -71,16 +71,19 @@ const LoginForm = ({ onSuccess, loginPseudo }) => {
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!pseudo.trim() || !password) return;
     setLoading(true);
+    setLoginError(false);
     const result = await loginPseudo(pseudo, password);
     if (result.success) {
       toast.success("Connexion réussie !");
       onSuccess?.();
     } else {
+      setLoginError(true);
       toast.error(result.error);
     }
     setLoading(false);
@@ -96,8 +99,8 @@ const LoginForm = ({ onSuccess, loginPseudo }) => {
             id="login-pseudo"
             placeholder="Votre pseudonyme"
             value={pseudo}
-            onChange={(e) => setPseudo(e.target.value)}
-            className="pl-10"
+            onChange={(e) => { setPseudo(e.target.value); setLoginError(false); }}
+            className={`pl-10 ${loginError ? "border-red-300" : ""}`}
             data-testid="login-pseudo-input"
             autoComplete="username"
           />
@@ -112,8 +115,8 @@ const LoginForm = ({ onSuccess, loginPseudo }) => {
             type={showPwd ? "text" : "password"}
             placeholder="Votre mot de passe"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 pr-10"
+            onChange={(e) => { setPassword(e.target.value); setLoginError(false); }}
+            className={`pl-10 pr-10 ${loginError ? "border-red-300" : ""}`}
             data-testid="login-password-input"
             autoComplete="current-password"
           />
@@ -138,6 +141,17 @@ const LoginForm = ({ onSuccess, loginPseudo }) => {
           <>Se connecter <ArrowRight className="w-4 h-4 ml-2" /></>
         )}
       </Button>
+      {loginError && (
+        <div className="text-center space-y-2 pt-1" data-testid="login-error-help">
+          <p className="text-xs text-red-500 font-medium">Pseudo ou mot de passe incorrect</p>
+          <p className="text-xs text-slate-500">
+            Si vous avez oublié vos identifiants et que vous avez renseigné un email de récupération, contactez-nous pour réinitialiser votre mot de passe.
+          </p>
+          <a href="mailto:contact@reactif.pro?subject=Mot de passe oublié" className="text-xs text-[#1e3a5f] font-medium underline hover:text-blue-700 inline-block" data-testid="forgot-password-link">
+            Mot de passe oublié ?
+          </a>
+        </div>
+      )}
     </form>
   );
 };

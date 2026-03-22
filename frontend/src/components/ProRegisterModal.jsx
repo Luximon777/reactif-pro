@@ -73,16 +73,19 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
     setLoading(true);
+    setLoginError(false);
     const result = await loginPro(email, password);
     if (result.success) {
       toast.success("Connexion réussie !");
       onSuccess?.();
     } else {
+      setLoginError(true);
       toast.error(result.error);
     }
     setLoading(false);
@@ -94,8 +97,8 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
         <Label>Email professionnel</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="votre@email-pro.fr" value={email} onChange={(e) => setEmail(e.target.value)}
-            className="pl-10" data-testid={`pro-login-email-${roleType}`} autoComplete="email" />
+          <Input placeholder="votre@email-pro.fr" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(false); }}
+            className={`pl-10 ${loginError ? "border-red-300" : ""}`} data-testid={`pro-login-email-${roleType}`} autoComplete="email" />
         </div>
       </div>
       <div className="space-y-2">
@@ -103,7 +106,7 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Votre mot de passe" value={password}
-            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10"
+            onChange={(e) => { setPassword(e.target.value); setLoginError(false); }} className={`pl-10 pr-10 ${loginError ? "border-red-300" : ""}`}
             data-testid={`pro-login-password-${roleType}`} autoComplete="current-password" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -115,6 +118,14 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
         data-testid={`pro-login-submit-${roleType}`}>
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Se connecter <ArrowRight className="w-4 h-4 ml-2" /></>}
       </Button>
+      {loginError && (
+        <div className="text-center space-y-2 pt-1" data-testid="pro-login-error-help">
+          <p className="text-xs text-red-500 font-medium">Email ou mot de passe incorrect</p>
+          <a href="mailto:contact@reactif.pro?subject=Mot de passe oublié" className="text-xs text-[#1e3a5f] font-medium underline hover:text-blue-700 inline-block" data-testid="pro-forgot-password-link">
+            Mot de passe oublié ?
+          </a>
+        </div>
+      )}
     </form>
   );
 };
