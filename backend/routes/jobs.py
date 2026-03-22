@@ -13,11 +13,45 @@ async def get_jobs(token: str, limit: int = 20):
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).to_list(limit)
-    if profile and profile.get("skills"):
-        profile_skill_names = [s.get("name", "") for s in profile.get("skills", [])]
+
+    # Get latest CV analysis for richer matching
+    cv_data = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    cv_transversales = []
+    cv_offres = []
+    if cv_data and cv_data.get("result"):
+        result = cv_data["result"]
+        cv_transversales = result.get("competences_transversales", [])
+        cv_offres = result.get("offres_emploi_suggerees", [])
+
+    if profile and (profile.get("skills") or cv_transversales):
+        profile_skill_names = [s.get("name", "").lower() for s in profile.get("skills", [])]
+        all_skills = set(profile_skill_names + [c.lower() for c in cv_transversales])
         for job in jobs:
-            common = set(profile_skill_names) & set(job.get("required_skills", []))
-            job["match_score"] = min(100, int((len(common) / max(len(job.get("required_skills", [])), 1)) * 100) + 25)
+            req = [s.lower() for s in job.get("required_skills", [])]
+            common = all_skills & set(req)
+            job["match_score"] = min(100, int((len(common) / max(len(req), 1)) * 100) + 25)
+
+    # If no jobs in DB but CV has suggestions, generate virtual job cards
+    if not jobs and cv_offres:
+        for i, offre in enumerate(cv_offres[:6]):
+            jobs.append({
+                "id": f"cv-suggestion-{i}",
+                "title": offre,
+                "company": "Suggestion basée sur votre CV",
+                "location": "France",
+                "contract_type": "Tous types",
+                "match_score": max(60, 95 - i * 7),
+                "required_skills": cv_transversales[:4],
+                "salary_range": None,
+                "sector": "Basé sur votre profil",
+                "source": "cv_analysis",
+                "status": "active"
+            })
+
     return sorted(jobs, key=lambda x: x.get("match_score", 0), reverse=True)
 
 

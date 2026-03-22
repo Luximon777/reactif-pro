@@ -73,14 +73,31 @@ async def aggregate_passport_from_sources(token_id: str) -> dict:
     return aggregated
 
 
-async def generate_passerelles_with_ai(competences: List[dict], sectors: List[str]) -> List[dict]:
-    if not EMERGENT_LLM_KEY or not competences:
+async def generate_passerelles_with_ai(competences: List[dict], sectors: List[str], cv_data: dict = None) -> List[dict]:
+    if not EMERGENT_LLM_KEY or (not competences and not cv_data):
         return []
     try:
         skills_list = ", ".join([c.get("name", "") for c in competences[:15]])
         sectors_str = ", ".join(sectors[:5]) if sectors else "tous secteurs"
+
+        # Enrich with CV data if available
+        cv_context = ""
+        if cv_data:
+            result = cv_data.get("result", {})
+            sf = result.get("savoir_faire_count", 0)
+            se = result.get("savoir_etre_count", 0)
+            ct = result.get("competences_transversales", [])
+            offres = result.get("offres_emploi_suggerees", [])
+            if ct:
+                cv_context += f"\nCompétences transversales du CV: {', '.join(ct[:10])}"
+            if offres:
+                cv_context += f"\nMétiers suggérés par l'analyse CV: {', '.join(offres[:5])}"
+            if sf or se:
+                cv_context += f"\nSavoir-faire: {sf}, Savoir-être: {se}"
+
         chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"passerelle-{uuid.uuid4()}", system_message="Tu es un conseiller en évolution professionnelle français expert. Analyse les compétences et suggère des passerelles professionnelles réalistes. Réponds UNIQUEMENT en JSON valide: un array de max 5 objets avec les clés: job_name (str), compatibility_score (float 0-1), shared_skills (list str), skills_to_acquire (list str max 3), training_needed (str court), accessibility (str: accessible/formation_courte/formation_longue), sector (str).").with_model("openai", "gpt-5.2")
-        response = await chat.send_message(UserMessage(text=f"Compétences de la personne: {skills_list}\nSecteurs d'intérêt: {sectors_str}\n\nPropose 5 passerelles professionnelles réalistes."))
+        prompt = f"Compétences de la personne: {skills_list}\nSecteurs d'intérêt: {sectors_str}{cv_context}\n\nPropose 5 passerelles professionnelles réalistes basées sur le profil complet de cette personne."
+        response = await chat.send_message(UserMessage(text=prompt))
         try:
             result = json.loads(response)
             if isinstance(result, list):
@@ -209,7 +226,19 @@ async def get_passport_passerelles(token: str):
     passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not passport:
         raise HTTPException(status_code=404, detail="Passeport non trouvé")
-    passerelles = await generate_passerelles_with_ai(passport.get("competences", []), passport.get("target_sectors", []))
+
+    # Also get latest CV analysis for richer context
+    cv_data = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+
+    passerelles = await generate_passerelles_with_ai(
+        passport.get("competences", []),
+        passport.get("target_sectors", []),
+        cv_data
+    )
     await db.passports.update_one({"token_id": token_doc["id"]}, {"$set": {"passerelles": passerelles, "last_updated": datetime.now(timezone.utc).isoformat()}})
     return {"passerelles": passerelles}
 
