@@ -229,7 +229,7 @@ const Landing = () => {
               };
 
               const btnLabel = role.id === "particulier"
-                ? "Créer mon compte confidentiel"
+                ? "Compte confidentiel"
                 : role.id === "entreprise"
                   ? "Inscription employeur"
                   : "Inscription partenaire";
@@ -238,7 +238,7 @@ const Landing = () => {
                 <Card 
                   key={role.id}
                   data-testid={`role-card-${role.id}`}
-                  className="card-interactive cursor-pointer hover:border-[#1e3a5f]/30 transition-all"
+                  className="card-interactive cursor-pointer hover:border-[#1e3a5f]/30 transition-all flex flex-col"
                   onClick={handleClick}
                 >
                   <CardHeader>
@@ -252,8 +252,8 @@ const Landing = () => {
                       {role.description}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 mb-6">
+                  <CardContent className="flex flex-col flex-1">
+                    <ul className="space-y-2 mb-6 flex-1">
                       {role.features.map((feature, idx) => (
                         <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
                           <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -262,12 +262,12 @@ const Landing = () => {
                       ))}
                     </ul>
                     <Button 
-                      className="w-full bg-[#1e3a5f] hover:bg-[#152a45] text-white group"
+                      className="w-full bg-[#1e3a5f] hover:bg-[#152a45] text-white group mt-auto"
                       onClick={(e) => { e.stopPropagation(); handleClick(); }}
                       data-testid={`register-btn-${role.id}`}
                     >
                       {btnLabel}
-                      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 ml-1 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </CardContent>
                 </Card>
