@@ -126,15 +126,15 @@ const Dashboard = () => {
   const RoleIcon = getRoleIcon(role);
 
   const navItems = [
-    { label: "Tableau de bord", icon: Home, path: "/dashboard" },
-    { label: "Passeport", icon: Shield, path: "/dashboard/passeport", roles: ["particulier"] },
-    { label: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
-    { label: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
-    { label: "Explorateur", icon: Layers, path: "/dashboard/explorateur" },
-    { label: "Indice Évolution", icon: Gauge, path: "/dashboard/evolution" },
-    { label: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
-    { label: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
-    { label: "Confidentialité", icon: Settings, path: "/dashboard/confidentialite" },
+    { label: "Tableau de bord", shortLabel: "Accueil", icon: Home, path: "/dashboard" },
+    { label: "Passeport", shortLabel: "Passeport", icon: Shield, path: "/dashboard/passeport", roles: ["particulier"] },
+    { label: "Coffre-fort", shortLabel: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
+    { label: "Observatoire", shortLabel: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
+    { label: "Explorateur", shortLabel: "Explorateur", icon: Layers, path: "/dashboard/explorateur" },
+    { label: "Évolution", shortLabel: "Évolution", icon: Gauge, path: "/dashboard/evolution" },
+    { label: "Emplois", shortLabel: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
+    { label: "Formations", shortLabel: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
+    { label: "Confidentialité", shortLabel: "Confidentialité", icon: Settings, path: "/dashboard/confidentialite" },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.roles || item.roles.includes(role));
@@ -144,66 +144,36 @@ const Dashboard = () => {
       {/* Top Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo & Nav */}
-            <div className="flex items-center gap-8">
-              <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
-                <LogoReactifPro size="md" />
-              </div>
-              
-              {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-1">
-                {filteredNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className={`px-4 ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:text-slate-900"}`}
-                      onClick={() => navigate(item.path)}
-                      data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                    >
-                      <Icon className="w-4 h-4 mr-2" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </nav>
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
+              <LogoReactifPro size="md" />
             </div>
 
             {/* Right Side */}
-            <div className="flex items-center gap-3">
-              {/* Ubuntoo Link */}
-              <a
-                href="https://identity-vault-22.preview.emergentagent.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:flex"
-                data-testid="ubuntoo-link"
-              >
-                <Button variant="outline" className="border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 hover:border-teal-300 gap-2">
-                  <img
-                    src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
-                    alt="Ubuntoo"
-                    className="h-5 w-auto"
-                  />
-                  <span className="hidden lg:inline">Espace Ubuntoo</span>
-                </Button>
-              </a>
-
+            <div className="flex items-center gap-2">
               {/* Auth Mode Badge */}
               {authMode === "pseudo" && pseudo && (
-                <Badge className="hidden sm:inline-flex bg-green-50 text-green-700 border-green-200" data-testid="pseudo-badge">
+                <Badge className="hidden sm:inline-flex bg-green-50 text-green-700 border-green-200 text-xs" data-testid="pseudo-badge">
                   <Shield className="w-3 h-3 mr-1" />
                   {pseudo}
                 </Badge>
               )}
               {authMode === "anonymous" && (
-                <Badge className="hidden sm:inline-flex bg-amber-50 text-amber-700 border-amber-200" data-testid="anonymous-badge">
+                <Badge className="hidden sm:inline-flex bg-amber-50 text-amber-700 border-amber-200 text-xs" data-testid="anonymous-badge">
                   Anonyme
                 </Badge>
               )}
+
+              {/* Ubuntoo Link */}
+              <a href="https://identity-vault-22.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer"
+                className="hidden sm:flex" data-testid="ubuntoo-link">
+                <Button variant="outline" size="sm" className="border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 gap-1.5 text-xs">
+                  <img src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
+                    alt="Ubuntoo" className="h-4 w-auto" />
+                  <span className="hidden lg:inline">Ubuntoo</span>
+                </Button>
+              </a>
 
               {/* Role Switcher */}
               <DropdownMenu>
@@ -262,6 +232,33 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Desktop Sub-Nav Bar */}
+        <div className="hidden md:block border-t border-slate-100 bg-slate-50/80">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+            <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide py-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {filteredNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                      isActive 
+                        ? "bg-[#1e3a5f] text-white" 
+                        : "text-slate-600 hover:bg-white hover:text-slate-900"
+                    }`}
+                    onClick={() => navigate(item.path)}
+                    data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {item.shortLabel}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
         {/* Mobile Nav */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-100 bg-white">
@@ -306,7 +303,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="pt-24 pb-8">
+      <main className="pt-28 pb-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
             <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
