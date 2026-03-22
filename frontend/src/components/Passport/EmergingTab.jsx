@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { API } from "@/App";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +45,33 @@ const EmergingTab = ({ competences, loading, onRefresh, token }) => {
   const [minScore, setMinScore] = useState(0);
   const [selectedComp, setSelectedComp] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [marketData, setMarketData] = useState(null);
+  const [loadingMarket, setLoadingMarket] = useState(false);
+
+  // Load market correlation data
+  useEffect(() => {
+    const loadMarket = async () => {
+      setLoadingMarket(true);
+      try {
+        const res = await axios.get(`${API}/emerging/market-correlation?token=${token}`);
+        setMarketData(res.data);
+      } catch (e) {
+        console.error("Error loading market correlation:", e);
+      }
+      setLoadingMarket(false);
+    };
+    if (token) loadMarket();
+  }, [token]);
+
+  // Build a map of competence_id -> market correlation
+  const marketMap = useMemo(() => {
+    if (!marketData?.correlations) return {};
+    const map = {};
+    for (const c of marketData.correlations) {
+      map[c.competence_id] = c;
+    }
+    return map;
+  }, [marketData]);
 
   const filtered = useMemo(() => {
     let result = [...competences];
@@ -131,6 +158,43 @@ const EmergingTab = ({ competences, loading, onRefresh, token }) => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Market Correlation Banner */}
+      {marketData?.has_data && marketData?.summary && (
+        <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8f] border-0" data-testid="market-correlation-banner">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-white">Corrélation marché</h4>
+                  <p className="text-[11px] text-blue-100">Vos compétences émergentes vs. les tendances du marché</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:ml-auto">
+                <div className="bg-white/15 rounded-lg px-3 py-1.5 text-center">
+                  <p className="text-lg font-bold text-white">{marketData.summary.market_alignment_pct}%</p>
+                  <p className="text-[9px] text-blue-100">Alignement</p>
+                </div>
+                <div className="bg-white/15 rounded-lg px-3 py-1.5 text-center">
+                  <p className="text-lg font-bold text-emerald-300">{marketData.summary.in_market}</p>
+                  <p className="text-[9px] text-blue-100">Sur le marché</p>
+                </div>
+                <div className="bg-white/15 rounded-lg px-3 py-1.5 text-center">
+                  <p className="text-lg font-bold text-amber-300">{marketData.summary.high_demand}</p>
+                  <p className="text-[9px] text-blue-100">Forte demande</p>
+                </div>
+                <div className="bg-white/15 rounded-lg px-3 py-1.5 text-center">
+                  <p className="text-lg font-bold text-violet-300">{marketData.summary.growing_sectors}</p>
+                  <p className="text-[9px] text-blue-100">Secteurs porteurs</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Filters Panel */}
@@ -225,7 +289,7 @@ const EmergingTab = ({ competences, loading, onRefresh, token }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map(ec => (
             <div key={ec.id} className="cursor-pointer" onClick={() => setSelectedComp(ec)} data-testid="emerging-card-wrapper">
-              <EmergingCompetenceCard comp={ec} />
+              <EmergingCompetenceCard comp={ec} marketCorrelation={marketMap[ec.id]} />
             </div>
           ))}
         </div>

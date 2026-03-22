@@ -1,0 +1,57 @@
+{
+  "summary": "Tested new market-correlation endpoint and EmergingTab/EmergingCompetenceCard frontend components. Fixed critical bug: useState was used instead of useEffect for loading market correlation data. All 9 backend tests passed. Frontend UI verified correctly shows 'Analysez votre CV' message for new users and hides market correlation banner when no data.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DialogContent", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent} - minor accessibility issue (pre-existing)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_market_correlation.py",
+    "/app/test_reports/pytest/pytest_market_correlation.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIXED: EmergingTab.jsx line 52 used useState instead of useEffect for side effect (loading market correlation data). Changed to useEffect and added useEffect to imports."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_market_correlation.py",
+    "/app/frontend/src/components/Passport/EmergingTab.jsx"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all UI flows working)"
+  },
+  "test_credentials": "Test accounts created dynamically with unique pseudos during testing",
+  "seed_data_creation": "No seed data needed - tests create their own test accounts",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Market correlation feature fully tested. Backend endpoint GET /api/emerging/market-correlation?token= returns has_data=false when no emerging competences, and returns correlations with market_match, sector_matches, market_position when data exists. Frontend EmergingTab shows market correlation banner (data-testid='market-correlation-banner') only when has_data=true. EmergingCompetenceCard shows market position badge (data-testid='market-position-badge') and market match info (data-testid='market-match-info'). Fixed critical bug: useState was incorrectly used instead of useEffect for loading market correlation data.",
+  "features_tested": {
+    "backend_apis": [
+      "GET /api/emerging/market-correlation?token= - returns has_data=false when no emerging competences (PASSED)",
+      "GET /api/emerging/market-correlation?token= - response structure validation (PASSED)",
+      "GET /api/emerging/competences?token= - regression test (PASSED)",
+      "GET /api/emerging/competences?token= with filters - regression test (PASSED)",
+      "GET /api/emerging/observatory?token= - regression test (PASSED)",
+      "Invalid token handling for all endpoints (PASSED)"
+    ],
+    "frontend_flows": [
+      "EmergingTab shows 'Analysez votre CV pour détecter automatiquement les compétences émergentes' message when no competences detected (PASSED)",
+      "EmergingTab does NOT show market correlation banner when has_data=false (PASSED)",
+      "EmergingTab shows 'Détection IA' badge (PASSED)",
+      "EmergingTab shows Filtres and Actualiser buttons (PASSED)"
+    ]
+  },
+  "bug_fixed": {
+    "file": "/app/frontend/src/components/Passport/EmergingTab.jsx",
+    "issue": "useState was used instead of useEffect for loading market correlation data on line 52",
+    "fix": "Changed useState to useEffect and added useEffect to imports",
+    "impact": "Market correlation data was not being loaded properly due to incorrect React hook usage"
+  }
+}
