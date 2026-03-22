@@ -324,7 +324,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                         <StepIcon className="w-3 h-3 text-white" />
                       )}
                     </div>
-                    <span className={`text-xs ${isDone ? "text-emerald-700 line-through" : isCurrent ? "text-blue-800 font-semibold" : "text-slate-400"}`}>
+                    <span className={`text-xs ${isDone ? "text-emerald-700 font-medium" : isCurrent ? "text-blue-800 font-semibold" : "text-slate-400"}`}>
                       {step.label}
                     </span>
                     {isCurrent && <div className="ml-auto w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
