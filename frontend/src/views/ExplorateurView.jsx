@@ -282,16 +282,29 @@ const ExplorateurView = ({ token }) => {
 
       {/* Search bar - Primary entry point */}
       <form onSubmit={handleSearchSubmit} className="relative max-w-2xl mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => handleSearch(e.target.value)}
-          placeholder="Saisissez un métier : cariste, développeur, infirmier..."
-          className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 shadow-sm"
-          data-testid="explorer-search-input"
-          autoFocus
-        />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              placeholder="Saisissez un métier : cariste, développeur, infirmier..."
+              className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 shadow-sm"
+              data-testid="explorer-search-input"
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searchQuery.trim().length < 2 || loading}
+            className="px-6 py-4 rounded-xl bg-[#1e3a5f] text-white font-medium text-sm hover:bg-[#2d5a8f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2 whitespace-nowrap"
+            data-testid="explorer-search-btn"
+          >
+            <Search className="w-4 h-4" />
+            Rechercher
+          </button>
+        </div>
 
         {/* Suggestions dropdown */}
         {suggestions.length > 0 && (
