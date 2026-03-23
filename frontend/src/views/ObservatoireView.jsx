@@ -1147,7 +1147,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href="https://reactif-observatoire.preview.emergentagent.com/"
+              href="https://talent-matcher-26.preview.emergentagent.com/"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"
