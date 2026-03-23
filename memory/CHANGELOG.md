@@ -1,5 +1,14 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-24 - Job Matching Avancé avec Scoring Pondéré
+- **Algorithme de scoring** : Intégration de `job_matching.py` avec système de pondération 5 niveaux, critères bloquants (priorité 5), vigilances, points forts
+- **Filtres de recherche** : métier, secteur, contrat, temps de travail, mobilité (trajet max), télétravail, aménagement de poste, restrictions RQTH
+- **Nouveau composant** : `JobMatchingSection.jsx` extrait de ParticulierView avec panneau de filtres dépliable
+- **Endpoints** : POST `/api/jobs/matching/search` (recherche scorée), GET/PUT `/api/jobs/matching/preferences` (sauvegarde prefs)
+- **Offres IA enrichies** : GPT-5.2 génère des offres avec champs structurés (teletravail, trajet, amenagement, etc.) puis scorées par l'algorithme
+- **Affichage détaillé** : badge statut, score/max, blocages rouge, vigilances orange, points forts vert, détail par critère expandable
+- Tests: 100% backend (18/18), 100% frontend - iteration_27.json
+
 ## 2026-03-23 - Job Matching + Enrichissement CV optimisé
 - **Job Matching** : Nouvelle section remplaçant "Passerelles Métiers" dans la nav Emploi. Endpoint `GET /api/jobs/matching` qui combine les offres suggérées par l'analyse CV (enrichies avec taux de matching) + offres générées par GPT-5.2 avec scores de compatibilité, compétences matchées, salaires indicatifs.
 - **Observatoire enrichi** : L'endpoint personnalisé utilise maintenant les données du CV optimisé (cv_models: competences_cles, savoir_faire) en plus de l'analyse brute.

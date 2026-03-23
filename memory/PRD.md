@@ -14,18 +14,6 @@ Plateforme full-stack "Re'Actif Pro" pour l'analyse de CV par IA, l'optimisation
 2. **Espace Employeurs** : Inscription entreprise (nom entreprise, SIRET avec verification API INSEE, email pro, mdp, referent RH nom+prenom+fonction, signature charte ethique ALT&ACT)
 3. **Espace Partenaires** : Inscription structure (nom structure, type structure, SIRET, email pro, mdp, referent nom+prenom+fonction, signature charte ethique ALT&ACT)
 
-Plus d'acces anonyme/rapide depuis la landing page.
-
-Fonctionnalites auth:
-- Verification SIRET automatique via API Recherche d'Entreprises (data.gouv.fr)
-- Avertissement email non-professionnel (Gmail, Yahoo, etc.) - non bloquant
-- Signature charte ethique ALT&ACT (10 principes) obligatoire pour entreprise et partenaire
-- Login par email pour entreprise/partenaire, par pseudo pour espace personnel
-- Profil progressif avec pourcentage de completion
-- Export de donnees (RGPD) et suppression de compte
-- Consentements CGU, confidentialite, marketing
-- Niveaux de visibilite: prive, limite, public
-
 ## Architecture
 ```
 frontend/src/
@@ -38,8 +26,10 @@ frontend/src/
     PrivacySettingsView.jsx - Parametres de confidentialite
     ObservatoireView.jsx - Observatoire predictif (personnalise avec CV)
     EvolutionIndexView.jsx - Indice d'evolution (enrichi avec CV)
+    ExplorateurView.jsx - Explorateur de metiers (ISCO)
   components/
     AuthModal.jsx - Modal connexion/inscription pseudonyme
+    JobMatchingSection.jsx - NEW: Section Job Matching avec filtres + scoring avancé
     CvAnalysis/
       CvAnalysisSection.jsx - Upload, analyse, optimisation CV
       CvPreview.jsx - Apercu CV
@@ -53,9 +43,10 @@ backend/
     emerging.py - CRUD competences emergentes
     observatoire.py - Observatoire predictif + endpoint personnalise
     evolution.py - Indice d'evolution enrichi avec CV
-    jobs.py - Emplois + Formations (learning avec pertinence CV)
+    jobs.py - Job Matching avancé + Formations + RH
     passport.py, coffre.py, etc.
-  models.py - Profile enrichi (pseudo, auth_mode, visibility_level, consent_*)
+  job_matching.py - Algorithme de scoring pondéré (5 niveaux, critères bloquants, vigilances, points forts)
+  models.py - Profile enrichi + CandidateSearchProfile/CandidateSearchCriterion
 ```
 
 ## What's Implemented
@@ -68,27 +59,24 @@ backend/
 - Performance: analyse ~30s, optimisation ~15s
 - Detection competences emergentes (4 phases completes)
 - Endpoints: GET/POST emerging/competences, validate, observatory
-- Refactoring: ParticulierView 1294->354 lignes, PassportView 1823->1670 lignes
-- **Anonymat & Pseudonymat** : systeme complet 3 niveaux (anonymous/pseudo/certified architecture)
+- **Anonymat & Pseudonymat** : systeme complet 3 niveaux
 - **Auth pseudo** : inscription, connexion, upgrade, changement mdp
 - **Inscriptions par role** : Entreprise (SIRET+referent+charte), Partenaire (structure+type+charte)
-- **Verification SIRET** : API Recherche d'Entreprises (data.gouv.fr) integration
-- **Charte Ethique ALT&ACT** : 10 principes, signature obligatoire entreprise/partenaire
+- **Verification SIRET** : API Recherche d'Entreprises (data.gouv.fr)
+- **Charte Ethique ALT&ACT** : 10 principes, signature obligatoire
 - **Confidentialite** : parametres de visibilite, export, suppression compte
-- **Collections MongoDB** : consent_history, external_identities (prete pour FranceConnect)
-- **Correlation CV x Observatoire** : endpoint /api/observatoire/personalized croise les competences du CV avec les tendances globales (compétences emergentes, lacunes, secteurs)
-- **Correlation CV x Evolution** : endpoint /api/evolution-index/user-profile enrichi avec donnees CV + passeport + competences emergentes
-- **Correlation CV x Formations** : endpoint /api/learning enrichi avec pertinence (haute/moyenne/basse) et lacunes combees
-
-- **Correlation CV x Emergentes** : endpoint market-correlation + badges marche sur cartes de competences emergentes
-
-- **Intégration matrice ISCO INSEE** : 5853 métiers importés, recherche enrichie avec normalisation INSEE, code ISCO sur fiches
-- **Bouton Rechercher** ajouté à l'Explorateur des Métiers
-
-- **Job Matching** : remplace "Emplois/Passerelles" par des offres IA avec taux de matching basé sur le CV optimisé
-- **Enrichissement CV optimisé** : Observatoire et Évolution utilisent maintenant les données du CV optimisé (cv_models)
+- **Correlation CV x Observatoire/Evolution/Formations/Emergentes** : endpoints personnalises
+- **Integration matrice ISCO INSEE** : 5853 metiers importes, recherche enrichie
+- **Bouton Rechercher** dans Explorateur
+- **Job Matching avancé** : algorithme de scoring pondéré à 5 niveaux avec critères bloquants
+  - Filtres: métier, secteur, contrat, temps de travail, mobilité, télétravail, aménagement, restrictions RQTH
+  - Scoring transparent: score global, blocages (rouge), vigilances (orange), points forts (vert)
+  - Sauvegarde des préférences utilisateur en DB
+  - Offres générées par GPT-5.2 puis scorées par l'algorithme
+  - Endpoints: POST /api/jobs/matching/search, GET/PUT /api/jobs/matching/preferences
 
 ## Backlog
+- P0: Candidature via annonce sélectionnée (postuler directement)
 - P1: Integration communautaire Ubuntoo (contribution participative)
 - P2: Coffre-fort numerique pour preuves de competences
 - P3: Certification identite via FranceConnect (architecture prete)
