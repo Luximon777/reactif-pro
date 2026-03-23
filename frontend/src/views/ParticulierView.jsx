@@ -102,7 +102,7 @@ const ParticulierView = ({ token, section }) => {
   ];
 
   if (section === "jobs") return <JobsSection jobs={jobs} token={token} />;
-  if (section === "learning") return <LearningSection modules={learningModules} updateProgress={updateLearningProgress} />;
+  if (section === "learning") return <LearningSection modules={learningModules} updateProgress={updateLearningProgress} token={token} />;
 
   return (
     <div className="space-y-8 animate-fade-in" data-testid="particulier-dashboard">
@@ -354,16 +354,106 @@ const JobsSection = ({ jobs, token }) => (
   </div>
 );
 
-const LearningSection = ({ modules, updateProgress }) => (
-  <div className="space-y-6 animate-fade-in" data-testid="learning-section">
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Parcours de Formation</h1>
-      <p className="text-slate-600 mt-1">Développez vos compétences et sécurisez votre trajectoire professionnelle</p>
+const LearningSection = ({ modules, updateProgress, token }) => {
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
+
+  useEffect(() => {
+    const loadRecs = async () => {
+      setLoadingRecs(true);
+      try {
+        const res = await axios.get(`${API}/learning/recommendations?token=${token}`);
+        if (res.data.has_data) setRecommendations(res.data.recommendations || []);
+      } catch (e) { console.error("Recs error:", e); }
+      setLoadingRecs(false);
+    };
+    if (token) loadRecs();
+  }, [token]);
+
+  const priorityConfig = {
+    haute: { color: "bg-rose-100 text-rose-700 border-rose-200", label: "Prioritaire" },
+    moyenne: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Recommandée" },
+    basse: { color: "bg-slate-100 text-slate-600 border-slate-200", label: "Optionnelle" },
+  };
+
+  const typeConfig = {
+    certifiante: { color: "bg-blue-100 text-blue-700", label: "Certifiante" },
+    courte: { color: "bg-emerald-100 text-emerald-700", label: "Formation courte" },
+    mooc: { color: "bg-violet-100 text-violet-700", label: "MOOC" },
+    diplome: { color: "bg-amber-100 text-amber-700", label: "Diplôme" },
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in" data-testid="learning-section">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Parcours de Formation</h1>
+        <p className="text-slate-600 mt-1">Développez vos compétences et sécurisez votre trajectoire professionnelle</p>
+      </div>
+
+      {/* AI Recommendations */}
+      {(recommendations.length > 0 || loadingRecs) && (
+        <div data-testid="ai-recommendations-section">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-violet-600" />
+            <h2 className="text-lg font-semibold text-slate-900">Formations recommandées pour votre profil</h2>
+          </div>
+          {loadingRecs ? (
+            <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-xl border border-violet-100">
+              <div className="w-5 h-5 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+              <span className="text-sm text-violet-700">Analyse de votre profil en cours...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recommendations.map((rec, idx) => {
+                const pConf = priorityConfig[rec.priority] || priorityConfig.moyenne;
+                const tConf = typeConfig[rec.type] || typeConfig.courte;
+                return (
+                  <Card key={idx} className={`card-interactive group ${rec.priority === "haute" ? "ring-2 ring-violet-200" : ""}`} data-testid={`rec-card-${idx}`}>
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+                        <Badge className={`text-[10px] border ${pConf.color}`}>{pConf.label}</Badge>
+                        <Badge className={`text-[10px] ${tConf.color}`}>{tConf.label}</Badge>
+                      </div>
+                      <h3 className="font-semibold text-slate-900 text-sm mb-1 group-hover:text-violet-600 transition-colors">{rec.title}</h3>
+                      <p className="text-xs text-slate-500 mb-2">{rec.provider} {rec.duration && <span>- {rec.duration}</span>}</p>
+                      <p className="text-xs text-slate-600 mb-3 line-clamp-2">{rec.description}</p>
+                      {rec.relevance_reason && (
+                        <div className="p-2 bg-violet-50 rounded-lg mb-3 border border-violet-100">
+                          <p className="text-[11px] text-violet-700"><Sparkles className="w-3 h-3 inline mr-1" />{rec.relevance_reason}</p>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {rec.skills_developed?.slice(0, 3).map((s, i) => (
+                          <Badge key={i} variant="outline" className="text-[10px]">{s}</Badge>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2">
+                        <span>{rec.level === "debutant" ? "Débutant" : rec.level === "intermediaire" ? "Intermédiaire" : "Avancé"}</span>
+                        {rec.cpf_eligible && <Badge className="bg-emerald-50 text-emerald-600 text-[10px]">Éligible CPF</Badge>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Static modules */}
+      {modules.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-5 h-5 text-[#1e3a5f]" />
+            <h2 className="text-lg font-semibold text-slate-900">Modules de formation</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+            {modules.map((module, idx) => <LearningCard key={idx} module={module} onUpdateProgress={updateProgress} />)}
+          </div>
+        </div>
+      )}
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
-      {modules.map((module, idx) => <LearningCard key={idx} module={module} onUpdateProgress={updateProgress} />)}
-    </div>
-  </div>
-);
+  );
+};
 
 export default ParticulierView;

@@ -54,7 +54,13 @@ async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list
     # ATS optimization from job offer
     ats_context = ""
     if job_offer:
-        ats_context = f"\nOFFRE D'EMPLOI CIBLE (reprendre les mots-cles exacts, intitule de poste, competences demandees, outils mentionnes pour passer les filtres ATS):\n{job_offer[:2000]}"
+        ats_context = f"""\nOFFRE D'EMPLOI CIBLE (IMPORTANT - adapter le CV pour CE poste):
+{job_offer[:2000]}
+INSTRUCTIONS OBLIGATOIRES:
+- Le champ 'titre' du CV DOIT être l'intitulé exact du poste de l'offre d'emploi ci-dessus
+- Reprendre les mots-clés exacts, compétences demandées, outils mentionnés
+- Adapter l'accroche/profil pour répondre directement aux exigences de l'offre
+- Reformuler les expériences pour mettre en avant la pertinence avec le poste cible"""
 
     for attempt in range(2):
         try:

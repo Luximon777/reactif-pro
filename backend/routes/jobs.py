@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Optional
+import logging
 from datetime import datetime, timezone
 from models import JobOffer, Beneficiary, CreateJobRequest
 from db import db
@@ -163,6 +164,105 @@ async def update_learning_progress(token: str, module_id: str, progress: int):
         upsert=True
     )
     return {"message": "Progression mise à jour", "progress": progress}
+
+
+@router.get("/learning/recommendations")
+async def get_personalized_training_recommendations(token: str):
+    """Generate AI-powered personalized training recommendations based on CV and passport."""
+    from db import EMERGENT_LLM_KEY
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    # Gather user context
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    cv_job = await db.cv_jobs.find_one(
+        {"token_id": token_id, "status": "completed"}, {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+
+    if not passport and not cv_job:
+        return {"has_data": False, "recommendations": [], "message": "Analysez votre CV pour obtenir des recommandations de formation personnalisées"}
+
+    # Build context
+    competences = []
+    career_project = ""
+    professional_summary = ""
+    experiences = []
+
+    if passport:
+        competences = [c.get("name", "") for c in passport.get("competences", [])[:15]]
+        career_project = passport.get("career_project", "")
+        professional_summary = passport.get("professional_summary", "")
+        experiences = [f"{e.get('title','')} - {e.get('company','')}" for e in passport.get("experiences", [])[:5]]
+
+    cv_skills = []
+    if cv_job and cv_job.get("result"):
+        result = cv_job["result"]
+        cv_skills = result.get("competences_transversales", [])
+
+    context = f"""Profil de la personne:
+- Compétences: {', '.join(competences[:15])}
+- Compétences transversales CV: {', '.join(cv_skills[:10])}
+- Résumé professionnel: {professional_summary[:200]}
+- Projet professionnel: {career_project[:200]}
+- Expériences: {', '.join(experiences[:5])}"""
+
+    if not EMERGENT_LLM_KEY:
+        return {"has_data": False, "recommendations": [], "message": "Service IA indisponible"}
+
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"training-rec-{token_id[:8]}",
+            system_message="""Tu es un conseiller en formation professionnelle expert en France.
+Analyse le profil de la personne et propose 6 formations CONCRÈTES et PERTINENTES pour son évolution.
+
+Règles:
+- Propose des formations RÉELLES et accessibles en France (certifications, diplômes, formations courtes)
+- Adapte les formations au niveau de la personne et à son projet professionnel
+- Inclus un mix: formations certifiantes (titres RNCP), formations courtes (CPF), et MOOC/autoformation
+- Sois SPÉCIFIQUE: pas de formations génériques, mais des formations adaptées au métier visé
+
+Réponds UNIQUEMENT en JSON valide: un array de 6 objets avec:
+{
+  "title": "Titre exact de la formation",
+  "provider": "Organisme (ex: AFPA, CNAM, Université...)",
+  "type": "certifiante|courte|mooc|diplome",
+  "duration": "durée estimée",
+  "level": "debutant|intermediaire|avance",
+  "description": "Description courte (2 phrases max)",
+  "skills_developed": ["compétence1", "compétence2", "compétence3"],
+  "relevance_reason": "Pourquoi cette formation est pertinente pour ce profil",
+  "cpf_eligible": true/false,
+  "priority": "haute|moyenne|basse"
+}"""
+        ).with_model("openai", "gpt-5.2")
+
+        response = await chat.send_message(UserMessage(text=context))
+        raw = response.strip() if isinstance(response, str) else response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+
+        result = _json.loads(raw.strip())
+        recs = result if isinstance(result, list) else result.get("formations", result.get("recommendations", []))
+
+        return {
+            "has_data": True,
+            "recommendations": recs[:6],
+            "profile_context": {
+                "competences_count": len(competences),
+                "has_cv": bool(cv_job),
+                "has_career_project": bool(career_project)
+            }
+        }
+    except Exception as e:
+        logging.error(f"Training recommendations error: {e}")
+        return {"has_data": False, "recommendations": [], "message": "Erreur lors de la génération des recommandations"}
 
 
 @router.get("/rh/offers")

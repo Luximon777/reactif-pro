@@ -1,0 +1,100 @@
+{
+  "summary": "Tested 3 fixes: 1) CV optimization prompt now includes explicit title instruction, 2) Passerelles endpoint enriched with passport context, 3) New /api/learning/recommendations endpoint. All 12 backend tests passed (100%). Frontend LearningSection verified - shows static modules, AI recommendations section hidden for new users without CV (expected behavior).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DialogContent", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent} - minor accessibility issue (pre-existing)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_learning_recommendations.py",
+    "/app/test_reports/pytest/pytest_learning_recommendations.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CV optimization prompt (cv.py line 59-63): Now includes 'Le champ titre du CV DOIT être l'intitulé exact du poste de l'offre' - VERIFIED",
+    "Passerelles function (passport.py line 76-133): Now accepts passport parameter with professional_summary, career_project, experiences context - VERIFIED",
+    "Learning recommendations endpoint (jobs.py line 169-265): New endpoint generates AI-powered training recommendations based on CV and passport - VERIFIED"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_learning_recommendations.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (all UI flows working)"
+  },
+  "test_credentials": "test_learn_f18aba / testpass123 (created via UI)",
+  "seed_data_creation": "No seed data needed - tests create their own test accounts",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Learning recommendations feature tested. Backend endpoint GET /api/learning/recommendations?token= returns has_data=false when no CV analyzed, returns up to 6 AI-generated training recommendations when CV exists. Response includes title, provider, type, duration, skills_developed, relevance_reason, cpf_eligible, priority fields. Frontend LearningSection (data-testid='learning-section') shows AI recommendations section (data-testid='ai-recommendations-section') only when has_data=true. Passerelles endpoint now uses enriched passport context (professional_summary, career_project, experiences). CV optimization prompt explicitly instructs to use job offer title as CV title.",
+  "features_tested": {
+    "backend_apis": [
+      "GET /api/learning/recommendations?token= - returns has_data=false when no CV (PASSED)",
+      "GET /api/learning/recommendations?token= - response structure validation (PASSED)",
+      "GET /api/learning/recommendations?token= - invalid token rejection (PASSED)",
+      "GET /api/passport/passerelles?token= - returns passerelles with enriched context (PASSED)",
+      "GET /api/passport/passerelles?token= - response structure validation (PASSED)",
+      "GET /api/passport/passerelles?token= - invalid token rejection (PASSED)",
+      "GET /api/learning?token= - regression test (PASSED)",
+      "GET /api/learning?token= - module structure validation (PASSED)",
+      "GET /api/learning?token= - invalid token rejection (PASSED)",
+      "POST /api/cv/generate-models - endpoint exists (PASSED)",
+      "GET /api/cv/download/{model_type} - endpoint exists (PASSED)",
+      "GET /api/learning/recommendations with CV data - AI recommendations generation (PASSED)"
+    ],
+    "frontend_flows": [
+      "User registration via Espace Personnel (PASSED)",
+      "Navigation to /dashboard/learning (PASSED)",
+      "'Parcours de Formation' title displayed (PASSED)",
+      "Learning section container (data-testid='learning-section') present (PASSED)",
+      "'Modules de formation' section with static modules displayed (PASSED)",
+      "AI recommendations section hidden for new user without CV (PASSED - expected behavior)"
+    ]
+  },
+  "code_review_verification": {
+    "cv_optimization_prompt": {
+      "file": "/app/backend/routes/cv.py",
+      "lines": "54-63",
+      "change": "Added explicit instruction: 'Le champ titre du CV DOIT être l'intitulé exact du poste de l'offre d'emploi'",
+      "status": "VERIFIED"
+    },
+    "passerelles_enrichment": {
+      "file": "/app/backend/routes/passport.py",
+      "lines": "76-133",
+      "change": "Function generate_passerelles_with_ai now accepts passport parameter with professional_summary, career_project, experiences for richer context",
+      "status": "VERIFIED"
+    },
+    "learning_recommendations_endpoint": {
+      "file": "/app/backend/routes/jobs.py",
+      "lines": "169-265",
+      "change": "New GET /api/learning/recommendations endpoint that generates AI-powered personalized training recommendations",
+      "status": "VERIFIED"
+    }
+  },
+  "api_response_structure": {
+    "/api/learning/recommendations": {
+      "has_data": "boolean - false when no CV/passport data",
+      "recommendations": "array of up to 6 training objects",
+      "message": "string (optional) - shown when has_data=false",
+      "profile_context": "object (optional) - competences_count, has_cv, has_career_project"
+    },
+    "recommendation_object": {
+      "title": "string - exact training title",
+      "provider": "string - organization name",
+      "type": "certifiante|courte|mooc|diplome",
+      "duration": "string - estimated duration",
+      "level": "debutant|intermediaire|avance",
+      "description": "string - 2 sentences max",
+      "skills_developed": "array of strings",
+      "relevance_reason": "string - why relevant for this profile",
+      "cpf_eligible": "boolean",
+      "priority": "haute|moyenne|basse"
+    }
+  }
+}
