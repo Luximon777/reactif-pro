@@ -89,6 +89,8 @@ async def get_evolution_dashboard():
 
 @router.get("/evolution-index/user-profile")
 async def get_user_evolution_analysis(token: str):
+    from db import EMERGENT_LLM_KEY
+
     token_doc = await get_current_token(token)
     token_id = token_doc["id"]
     profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
@@ -96,6 +98,7 @@ async def get_user_evolution_analysis(token: str):
     # Enrich user data from multiple sources: profile + passport + CV analysis
     user_sectors = set()
     user_skills = set()
+    user_title = ""
 
     if profile:
         for s in profile.get("sectors", []):
@@ -133,6 +136,7 @@ async def get_user_evolution_analysis(token: str):
     if cv_optimized and cv_optimized.get("models"):
         for model_data in cv_optimized["models"].values():
             if isinstance(model_data, dict):
+                user_title = model_data.get("titre", "")
                 for ck in model_data.get("competences_cles", []):
                     if isinstance(ck, str) and ck.strip():
                         user_skills.add(ck)
@@ -142,18 +146,19 @@ async def get_user_evolution_analysis(token: str):
                         user_skills.add(str(name))
                 break
 
+    # Also try to get title from raw CV
+    if not user_title and cv_result:
+        user_title = cv_result.get("titre_profil_suggere", "")
+
     user_skills_list = list(user_skills)
     user_sectors_list = list(user_sectors)
 
-    # If no data, try to match all job indices
+    # Try to find matching job indices in DB
     relevant_jobs = []
     if user_sectors_list:
         for sector in user_sectors_list:
             jobs = await db.job_evolution_indices.find({"sector": {"$regex": sector, "$options": "i"}}, {"_id": 0}).to_list(20)
             relevant_jobs.extend(jobs)
-    else:
-        # Fallback: use all jobs for general view
-        relevant_jobs = await db.job_evolution_indices.find({}, {"_id": 0}).to_list(20)
 
     # Deduplicate jobs by name
     seen_jobs = set()
@@ -164,6 +169,42 @@ async def get_user_evolution_analysis(token: str):
             unique_jobs.append(job)
     relevant_jobs = unique_jobs
 
+    # Fetch emerging competences detected from CV
+    cv_emerging = await db.emerging_competences.find({"token_id": token_id}, {"_id": 0}).to_list(20)
+    emerging_from_cv = [
+        {"name": ec.get("nom_principal"), "score": ec.get("score_emergence", 0),
+         "level": ec.get("niveau_emergence"), "sectors": ec.get("secteurs_porteurs", [])}
+        for ec in cv_emerging
+    ]
+
+    has_cv = bool(cv_job)
+
+    # If we have a CV but no matching job indices, generate personalized analysis via AI
+    if has_cv and (not relevant_jobs or len(relevant_jobs) < 2) and EMERGENT_LLM_KEY and user_skills:
+        ai_analysis = await _generate_evolution_analysis_ai(
+            user_title, user_skills_list, user_sectors_list, EMERGENT_LLM_KEY, token_id
+        )
+        if ai_analysis:
+            return {
+                "has_cv": True,
+                "profile_sectors": user_sectors_list,
+                "profile_skills": user_skills_list,
+                "evolution_exposure": ai_analysis.get("evolution_exposure", 50),
+                "exposure_interpretation": get_index_interpretation(ai_analysis.get("evolution_exposure", 50)),
+                "relevant_jobs": ai_analysis.get("relevant_jobs", [])[:5],
+                "skills_at_risk": ai_analysis.get("skills_at_risk", []),
+                "skills_in_demand": ai_analysis.get("skills_in_demand", []),
+                "recommended_skills_to_acquire": ai_analysis.get("recommended_skills_to_acquire", [])[:10],
+                "recommended_trainings": ai_analysis.get("recommended_trainings", [])[:5],
+                "emerging_from_cv": emerging_from_cv,
+                "data_sources": {
+                    "profile": bool(profile and profile.get("skills")),
+                    "passport": bool(passport and passport.get("competences")),
+                    "cv_analysis": True
+                }
+            }
+
+    # Standard path with DB data
     skills_at_risk = []
     skills_in_demand = []
     user_skills_lower = {s.lower() for s in user_skills}
@@ -179,17 +220,8 @@ async def get_user_evolution_analysis(token: str):
     for job in relevant_jobs:
         all_recommended.update(job.get("recommended_skills", []))
 
-    # Fetch emerging competences detected from CV
-    cv_emerging = await db.emerging_competences.find({"token_id": token_id}, {"_id": 0}).to_list(20)
-    emerging_from_cv = [
-        {"name": ec.get("nom_principal"), "score": ec.get("score_emergence", 0),
-         "level": ec.get("niveau_emergence"), "sectors": ec.get("secteurs_porteurs", [])}
-        for ec in cv_emerging
-    ]
-
     avg_exposure = sum(j.get("evolution_index", 0) for j in relevant_jobs) / len(relevant_jobs) if relevant_jobs else 50
 
-    has_cv = bool(cv_job)
     return {
         "has_cv": has_cv,
         "profile_sectors": user_sectors_list, "profile_skills": user_skills_list,
@@ -206,3 +238,73 @@ async def get_user_evolution_analysis(token: str):
             "cv_analysis": has_cv
         }
     }
+
+
+async def _generate_evolution_analysis_ai(user_title, user_skills, user_sectors, api_key, token_id):
+    """Generate a personalized evolution analysis using AI when no DB data matches."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+    import logging
+
+    skills_str = ", ".join(user_skills[:25])
+    sectors_str = ", ".join(user_sectors[:5]) if user_sectors else "non précisé"
+    context = f"Titre du profil: {user_title}\nCompétences: {skills_str}\nSecteurs: {sectors_str}"
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"evolution-{token_id[:8]}",
+            system_message="""Tu es un expert en prospective des métiers et évolution des compétences en France.
+Analyse le profil professionnel donné et génère une analyse d'évolution des compétences PERSONNALISÉE.
+
+Évalue sur 0-100 la vitesse à laquelle les compétences de ce profil évoluent :
+- 0-20 : Très stable
+- 20-50 : Évolutif
+- 50-80 : En transformation
+- 80-100 : Forte mutation
+
+Réponds UNIQUEMENT en JSON valide:
+{
+  "evolution_exposure": 55,
+  "skills_at_risk": [
+    {"skill": "nom compétence en déclin", "job": "métier concerné"}
+  ],
+  "skills_in_demand": [
+    {"skill": "nom compétence en demande", "job": "métier concerné"}
+  ],
+  "recommended_skills_to_acquire": ["compétence 1 à acquérir", "compétence 2"],
+  "recommended_trainings": ["Formation 1", "Formation 2"],
+  "relevant_jobs": [
+    {
+      "job_name": "Métier proche",
+      "sector": "Secteur",
+      "evolution_index": 60,
+      "emerging_skills": ["skill1", "skill2"],
+      "declining_skills": ["old skill"],
+      "stable_skills": ["stable1", "stable2"],
+      "recommended_skills": ["rec1"],
+      "recommended_trainings": ["formation1"],
+      "job_passerelles": ["métier passerelle 1"]
+    }
+  ]
+}
+
+Règles:
+- Sois réaliste et précis par rapport au marché français actuel (2025-2026)
+- Identifie au moins 3 compétences en demande et 2 à risque parmi celles du profil
+- Propose 5 métiers proches pertinents avec leurs indices d'évolution
+- Recommande 5 compétences à acquérir et 3-5 formations concrètes
+- Base-toi sur les vraies tendances du marché (IA, numérique, transition écologique, etc.)"""
+        ).with_model("openai", "gpt-5.2")
+
+        response = await chat.send_message(UserMessage(text=context))
+        raw = response.strip() if isinstance(response, str) else response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+
+        return _json.loads(raw.strip())
+    except Exception as e:
+        logging.error(f"Evolution AI analysis error: {e}")
+        return None
