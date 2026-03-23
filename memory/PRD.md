@@ -85,6 +85,9 @@ backend/
 - **Intégration matrice ISCO INSEE** : 5853 métiers importés, recherche enrichie avec normalisation INSEE, code ISCO sur fiches
 - **Bouton Rechercher** ajouté à l'Explorateur des Métiers
 
+- **Job Matching** : remplace "Emplois/Passerelles" par des offres IA avec taux de matching basé sur le CV optimisé
+- **Enrichissement CV optimisé** : Observatoire et Évolution utilisent maintenant les données du CV optimisé (cv_models)
+
 ## Backlog
 - P1: Integration communautaire Ubuntoo (contribution participative)
 - P2: Coffre-fort numerique pour preuves de competences

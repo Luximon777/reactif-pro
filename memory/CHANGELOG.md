@@ -1,5 +1,11 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-23 - Job Matching + Enrichissement CV optimisé
+- **Job Matching** : Nouvelle section remplaçant "Passerelles Métiers" dans la nav Emploi. Endpoint `GET /api/jobs/matching` qui combine les offres suggérées par l'analyse CV (enrichies avec taux de matching) + offres générées par GPT-5.2 avec scores de compatibilité, compétences matchées, salaires indicatifs.
+- **Observatoire enrichi** : L'endpoint personnalisé utilise maintenant les données du CV optimisé (cv_models: competences_cles, savoir_faire) en plus de l'analyse brute.
+- **Évolution enrichie** : Idem, enrichi avec les savoir-faire et compétences clés du CV optimisé.
+- Tests: 100% backend (13/13), 100% frontend - iteration_26.json
+
 ## 2026-03-23 - Intégration matrice ISCO INSEE (5853 métiers)
 - Import de la matrice officielle de codification ISCO de l'INSEE (5853 libellés, 425 codes ISCO uniques)
 - Recherche enrichie: interroge la base ISCO en plus du référentiel existant, avec normalisation INSEE (accents, mots-vides)
