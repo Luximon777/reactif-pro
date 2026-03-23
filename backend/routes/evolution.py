@@ -128,6 +128,20 @@ async def get_user_evolution_analysis(token: str):
         if t:
             user_skills.add(t)
 
+    # Pull from optimized CV (richer data with competences_cles, savoir_faire)
+    cv_optimized = await db.cv_models.find_one({"token_id": token_id}, {"_id": 0})
+    if cv_optimized and cv_optimized.get("models"):
+        for model_data in cv_optimized["models"].values():
+            if isinstance(model_data, dict):
+                for ck in model_data.get("competences_cles", []):
+                    if isinstance(ck, str) and ck.strip():
+                        user_skills.add(ck)
+                for sf in model_data.get("savoir_faire", []):
+                    name = sf.get("name", "") if isinstance(sf, dict) else sf
+                    if name:
+                        user_skills.add(str(name))
+                break
+
     user_skills_list = list(user_skills)
     user_sectors_list = list(user_sectors)
 

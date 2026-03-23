@@ -163,13 +163,14 @@ async def get_personalized_observatoire(token: str):
         {"_id": 0},
         sort=[("created_at", -1)]
     )
+    cv_optimized = await db.cv_models.find_one({"token_id": token_id}, {"_id": 0})
     user_emerging = await db.emerging_competences.find(
         {"token_id": token_id}, {"_id": 0}
     ).to_list(50)
     global_skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(100)
     sector_trends = await db.sector_trends.find({}, {"_id": 0}).to_list(50)
 
-    # Extract user skills from multiple sources
+    # Extract user skills from multiple sources (analysis + optimized + passport)
     user_skill_names = set()
     user_sectors = set()
 
@@ -186,6 +187,22 @@ async def get_personalized_observatoire(token: str):
     for t in cv_result.get("competences_transversales", []):
         if t:
             user_skill_names.add(t.lower())
+
+    # Enrich with optimized CV data (richer competences)
+    if cv_optimized and cv_optimized.get("models"):
+        for model_data in cv_optimized["models"].values():
+            if isinstance(model_data, dict):
+                for ck in model_data.get("competences_cles", []):
+                    if isinstance(ck, str) and ck.strip():
+                        user_skill_names.add(ck.lower())
+                for sf in model_data.get("savoir_faire", []):
+                    name = sf.get("name", "") if isinstance(sf, dict) else sf
+                    if name:
+                        user_skill_names.add(str(name).lower())
+                titre = model_data.get("titre", "")
+                if titre:
+                    user_sectors.add(titre)
+                break  # Use first available model
 
     if not user_skill_names and not user_emerging:
         return {

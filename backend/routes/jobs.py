@@ -9,6 +9,153 @@ from helpers import get_current_token, calculate_match_with_ai
 router = APIRouter()
 
 
+@router.get("/jobs/matching")
+async def get_job_matching(token: str):
+    """Generate AI-powered job matching based on the user's CV analysis and optimized CV."""
+    from db import EMERGENT_LLM_KEY
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    cv_job = await db.cv_jobs.find_one(
+        {"token_id": token_id, "status": "completed"}, {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    cv_optimized = await db.cv_models.find_one({"token_id": token_id}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+
+    if not cv_job:
+        return {"has_data": False, "matches": [], "message": "Analysez votre CV pour obtenir des offres d'emploi personnalisées"}
+
+    cv_result = cv_job.get("result", {})
+    existing_suggestions = cv_result.get("offres_emploi_suggerees", [])
+
+    # Collect user skills from all sources
+    user_skills = set()
+    for t in cv_result.get("competences_transversales", []):
+        if t:
+            user_skills.add(t)
+
+    user_title = ""
+    if cv_optimized and cv_optimized.get("models"):
+        for model_data in cv_optimized["models"].values():
+            if isinstance(model_data, dict):
+                user_title = model_data.get("titre", "")
+                for ck in model_data.get("competences_cles", []):
+                    if isinstance(ck, str):
+                        user_skills.add(ck)
+                for sf in model_data.get("savoir_faire", []):
+                    name = sf.get("name", "") if isinstance(sf, dict) else sf
+                    if name:
+                        user_skills.add(str(name))
+                break
+
+    career_project = ""
+    if passport:
+        career_project = passport.get("career_project", "")
+        for c in passport.get("competences", []):
+            name = c.get("name", "")
+            if name:
+                user_skills.add(name)
+
+    # Enrich existing suggestions with matching scores
+    matches = []
+    if existing_suggestions:
+        user_skills_lower = {s.lower() for s in user_skills}
+        for sug in existing_suggestions:
+            required = sug.get("competences_requises", [])
+            matched_skills = []
+            for req in required:
+                req_lower = req.lower()
+                for us in user_skills_lower:
+                    if us in req_lower or req_lower in us:
+                        matched_skills.append(req)
+                        break
+            match_pct = round((len(matched_skills) / max(len(required), 1)) * 100)
+            matches.append({
+                "titre": sug.get("titre", ""),
+                "secteur": sug.get("secteur", ""),
+                "type_contrat": sug.get("type_contrat", "CDI"),
+                "description": sug.get("description_courte", ""),
+                "competences_requises": required,
+                "competences_matchees": matched_skills,
+                "matching_score": match_pct,
+                "source": "cv_analysis"
+            })
+
+    # Generate additional matches via AI
+    if EMERGENT_LLM_KEY and user_skills:
+        try:
+            skills_str = ", ".join(list(user_skills)[:20])
+            context = f"Titre du profil: {user_title}\nCompétences: {skills_str}"
+            if career_project:
+                context += f"\nProjet professionnel: {career_project[:200]}"
+
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"jobmatch-{token_id[:8]}",
+                system_message="""Tu es un expert en recrutement et matching emploi en France.
+Analyse le profil et génère 5 offres d'emploi RÉALISTES et CONCRÈTES qui correspondent au profil.
+
+Règles:
+- Les offres doivent être RÉALISTES (types d'offres qu'on trouve sur Indeed, Pôle Emploi, APEC)
+- Calcule un taux de matching (0-100%) basé sur l'adéquation compétences/poste
+- Varie les types de contrats (CDI, CDD, missions)
+- Varie les niveaux (des offres très compatibles à 90%+ et des offres atteignables à 60-70%)
+
+Réponds UNIQUEMENT en JSON valide: un array de 5 objets:
+{
+  "titre": "Intitulé exact du poste",
+  "entreprise_type": "Type d'entreprise",
+  "secteur": "Secteur d'activité",
+  "type_contrat": "CDI|CDD|Mission|Freelance",
+  "localisation": "Région ou ville type",
+  "description": "Description courte du poste (2-3 phrases)",
+  "competences_requises": ["comp1", "comp2", "comp3", "comp4", "comp5"],
+  "competences_matchees": ["comp du profil qui matche"],
+  "matching_score": 85,
+  "salaire_indicatif": "fourchette salariale",
+  "pourquoi_ce_match": "Explication courte du matching"
+}"""
+            ).with_model("openai", "gpt-5.2")
+
+            response = await chat.send_message(UserMessage(text=context))
+            raw = response.strip() if isinstance(response, str) else response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+
+            ai_matches = _json.loads(raw.strip())
+            if isinstance(ai_matches, list):
+                for m in ai_matches:
+                    m["source"] = "ai_generated"
+                matches.extend(ai_matches)
+            elif isinstance(ai_matches, dict):
+                arr = ai_matches.get("matches", ai_matches.get("offres", []))
+                for m in arr:
+                    m["source"] = "ai_generated"
+                matches.extend(arr)
+        except Exception as e:
+            logging.error(f"Job matching AI error: {e}")
+
+    matches.sort(key=lambda x: x.get("matching_score", 0), reverse=True)
+
+    return {
+        "has_data": True,
+        "matches": matches[:8],
+        "profile_summary": {
+            "titre": user_title,
+            "skills_count": len(user_skills),
+            "has_optimized_cv": bool(cv_optimized),
+            "has_career_project": bool(career_project)
+        }
+    }
+
+
+
 @router.get("/jobs")
 async def get_jobs(token: str, limit: int = 20):
     token_doc = await get_current_token(token)
