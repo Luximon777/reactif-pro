@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from typing import Optional
 import logging
 from datetime import datetime, timezone
-from models import JobOffer, Beneficiary, CreateJobRequest, CandidateSearchProfile
+from models import JobOffer, Beneficiary, CreateJobRequest, CandidateSearchProfile, JobApplication
 from db import db
 from helpers import get_current_token, calculate_match_with_ai
 from job_matching import calculate_job_score
@@ -356,21 +357,81 @@ async def get_jobs(token: str, limit: int = 20):
     # If no jobs in DB but CV has suggestions, generate virtual job cards
     if not jobs and cv_offres:
         for i, offre in enumerate(cv_offres[:6]):
-            jobs.append({
-                "id": f"cv-suggestion-{i}",
-                "title": offre,
-                "company": "Suggestion basée sur votre CV",
-                "location": "France",
-                "contract_type": "Tous types",
-                "match_score": max(60, 95 - i * 7),
-                "required_skills": cv_transversales[:4],
-                "salary_range": None,
-                "sector": "Basé sur votre profil",
-                "source": "cv_analysis",
-                "status": "active"
-            })
+            if isinstance(offre, dict):
+                jobs.append({
+                    "id": f"cv-suggestion-{i}",
+                    "title": offre.get("titre", offre.get("title", "Offre suggérée")),
+                    "company": offre.get("entreprise_type", offre.get("company", "Suggestion basée sur votre CV")),
+                    "location": offre.get("localisation", offre.get("location", "France")),
+                    "contract_type": offre.get("type_contrat", offre.get("contract_type", "Tous types")),
+                    "match_score": max(60, 95 - i * 7),
+                    "required_skills": offre.get("competences_requises", offre.get("required_skills", cv_transversales[:4])),
+                    "salary_range": offre.get("salaire_indicatif", None),
+                    "sector": offre.get("secteur", offre.get("sector", "Basé sur votre profil")),
+                    "description": offre.get("description_courte", offre.get("description", "")),
+                    "source": "cv_analysis",
+                    "status": "active"
+                })
+            else:
+                jobs.append({
+                    "id": f"cv-suggestion-{i}",
+                    "title": str(offre),
+                    "company": "Suggestion basée sur votre CV",
+                    "location": "France",
+                    "contract_type": "Tous types",
+                    "match_score": max(60, 95 - i * 7),
+                    "required_skills": cv_transversales[:4],
+                    "salary_range": None,
+                    "sector": "Basé sur votre profil",
+                    "source": "cv_analysis",
+                    "status": "active"
+                })
 
     return sorted(jobs, key=lambda x: x.get("match_score", 0), reverse=True)
+
+
+# NOTE: /jobs/apply and /jobs/applications MUST be defined BEFORE /jobs/{job_id}
+# to avoid FastAPI matching "apply" or "applications" as a job_id
+
+class ApplyRequest(BaseModel):
+    job_title: str
+    job_data: dict = {}
+    motivation: str = ""
+
+
+@router.post("/jobs/apply")
+async def apply_to_job(token: str, request: ApplyRequest):
+    """Submit an application for a job offer."""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    # Check if already applied to this exact job title
+    existing = await db.job_applications.find_one(
+        {"token_id": token_id, "job_title": request.job_title},
+        {"_id": 0}
+    )
+    if existing:
+        return {"already_applied": True, "application": existing, "message": "Vous avez déjà postulé à cette offre"}
+
+    application = JobApplication(
+        token_id=token_id,
+        job_title=request.job_title,
+        job_data=request.job_data,
+        motivation=request.motivation,
+    )
+    await db.job_applications.insert_one(application.model_dump())
+    return {"already_applied": False, "application": application.model_dump(), "message": "Candidature enregistrée avec succès"}
+
+
+@router.get("/jobs/applications")
+async def get_my_applications(token: str):
+    """Get all applications for the current user."""
+    token_doc = await get_current_token(token)
+    apps = await db.job_applications.find(
+        {"token_id": token_doc["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return apps
 
 
 @router.post("/jobs")

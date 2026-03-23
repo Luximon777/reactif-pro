@@ -16,7 +16,7 @@ import {
 import {
   Target, Sparkles, ChevronDown, ChevronUp, Search,
   AlertTriangle, ShieldAlert, CheckCircle2, Star, MapPin,
-  Filter, RotateCcw, Heart, Shield, Accessibility
+  Filter, RotateCcw, Heart, Shield, Accessibility, Send
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,10 +117,53 @@ const JobMatchingSection = ({ token }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [loadingPrefs, setLoadingPrefs] = useState(true);
   const [expandedCard, setExpandedCard] = useState(null);
+  const [appliedJobs, setAppliedJobs] = useState(new Set());
+  const [applyingJob, setApplyingJob] = useState(null);
 
   useEffect(() => {
-    if (token) loadPreferences();
+    if (token) {
+      loadPreferences();
+      loadApplications();
+    }
   }, [token]);
+
+  const loadApplications = async () => {
+    try {
+      const res = await axios.get(`${API}/jobs/applications?token=${token}`);
+      const titles = new Set(res.data.map((a) => a.job_title));
+      setAppliedJobs(titles);
+    } catch (e) {
+      console.error("Load applications error:", e);
+    }
+  };
+
+  const handleApply = async (match) => {
+    const title = match.titre || match.title || "";
+    if (appliedJobs.has(title)) return;
+    setApplyingJob(title);
+    try {
+      const res = await axios.post(`${API}/jobs/apply?token=${token}`, {
+        job_title: title,
+        job_data: {
+          secteur: match.secteur || "",
+          type_contrat: match.type_contrat || "",
+          localisation: match.localisation || "",
+          entreprise_type: match.entreprise_type || "",
+          matching_score: match.matching_score || 0,
+        },
+      });
+      if (res.data.already_applied) {
+        toast.info("Vous avez déjà postulé à cette offre");
+      } else {
+        toast.success("Candidature enregistrée !");
+      }
+      setAppliedJobs((prev) => new Set([...prev, title]));
+    } catch (e) {
+      console.error("Apply error:", e);
+      toast.error("Erreur lors de la candidature");
+    }
+    setApplyingJob(null);
+  };
 
   const loadPreferences = async () => {
     setLoadingPrefs(true);
@@ -730,6 +773,34 @@ const JobMatchingSection = ({ token }) => {
                       )}
                     </div>
                   )}
+
+                  {/* Apply Button */}
+                  {(() => {
+                    const jobTitle = match.titre || match.title || "";
+                    const isApplied = appliedJobs.has(jobTitle);
+                    const isApplying = applyingJob === jobTitle;
+                    return (
+                      <Button
+                        className={`w-full mt-4 ${
+                          isApplied
+                            ? "bg-emerald-600 hover:bg-emerald-700"
+                            : "bg-[#1e3a5f] hover:bg-[#2d4a6f]"
+                        }`}
+                        disabled={isApplied || isApplying}
+                        onClick={() => handleApply(match)}
+                        data-testid={`apply-btn-${idx}`}
+                      >
+                        {isApplying ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        ) : isApplied ? (
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Send className="w-4 h-4 mr-2" />
+                        )}
+                        {isApplied ? "Candidature envoyée" : isApplying ? "Envoi en cours..." : "Postuler"}
+                      </Button>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );

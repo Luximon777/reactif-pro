@@ -271,47 +271,56 @@ const ParticulierView = ({ token, section }) => {
   );
 };
 
-const JobCard = ({ job }) => (
-  <Card className="card-interactive group" data-testid={`job-card-${job.id || 'preview'}`}>
-    <CardContent className="p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
-            {job.title}
-          </h3>
-          <p className="text-sm text-slate-500 truncate">{job.company}</p>
+const JobCard = ({ job }) => {
+  const title = job.title || job.titre || "Offre";
+  const company = job.company || job.entreprise_type || "";
+  const location = job.location || job.localisation || "";
+  const contractType = job.contract_type || job.type_contrat || "";
+  const skills = job.required_skills || job.competences_requises || [];
+  const score = job.match_score ?? job.matching_score;
+
+  return (
+    <Card className="card-interactive group" data-testid={`job-card-${job.id || 'preview'}`}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+              {String(title)}
+            </h3>
+            <p className="text-sm text-slate-500 truncate">{String(company)}</p>
+          </div>
+          {score !== undefined && (
+            <div className={`px-2 py-1 rounded-lg text-xs font-bold ${
+              score >= 80 ? 'bg-emerald-100 text-emerald-700' :
+              score >= 60 ? 'bg-blue-100 text-blue-700' :
+              'bg-slate-100 text-slate-600'
+            }`}>
+              {score}%
+            </div>
+          )}
         </div>
-        {job.match_score !== undefined && (
-          <div className={`px-2 py-1 rounded-lg text-xs font-bold ${
-            job.match_score >= 80 ? 'bg-emerald-100 text-emerald-700' :
-            job.match_score >= 60 ? 'bg-blue-100 text-blue-700' :
-            'bg-slate-100 text-slate-600'
-          }`}>
-            {job.match_score}%
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+          {location && (
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {String(location)}
+            </span>
+          )}
+          {contractType && (
+            <Badge variant="outline" className="text-[10px]">{String(contractType)}</Badge>
+          )}
+        </div>
+        {Array.isArray(skills) && skills.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {skills.slice(0, 3).map((skill, i) => (
+              <Badge key={i} className="text-[10px] bg-slate-100 text-slate-600">{String(skill)}</Badge>
+            ))}
           </div>
         )}
-      </div>
-      <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
-        {job.location && (
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {job.location}
-          </span>
-        )}
-        {job.contract_type && (
-          <Badge variant="outline" className="text-[10px]">{job.contract_type}</Badge>
-        )}
-      </div>
-      {job.required_skills?.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {job.required_skills.slice(0, 3).map((skill, i) => (
-            <Badge key={i} className="text-[10px] bg-slate-100 text-slate-600">{skill}</Badge>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
+};
 
 const LearningCard = ({ module, onUpdateProgress }) => (
   <Card className={`card-interactive group overflow-hidden ${module.relevance === "haute" ? "ring-2 ring-amber-300" : ""}`} data-testid={`learning-card-${module.id}`}>

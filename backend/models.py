@@ -534,3 +534,14 @@ class RegisterPartenaireRequest(BaseModel):
     charte_ethique_signed: bool = True
     consent_cgu: bool = True
     consent_privacy: bool = True
+
+
+class JobApplication(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token_id: str
+    job_title: str
+    job_data: Dict[str, Any] = {}
+    motivation: str = ""
+    status: str = "submitted"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
