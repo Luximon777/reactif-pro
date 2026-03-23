@@ -1,5 +1,16 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-24 - Intégration RQTH/EQTH dans le moteur de matching
+- **RQTH/EQTH comme contexte** : status (rqth, eqth, en_cours, aucun, ne_souhaite_pas) + disclosure (oui, non, a_discuter) — JAMAIS discriminant
+- **3 nouvelles restrictions** : station_debout_prolongee_limitee, deplacements_frequents_difficiles, cadence_elevee_difficile (total: 8 restrictions)
+- **Score d'inclusion employeur** (0-100) : entreprise_inclusive, partenaire_cap_emploi, experience_recrutement_handicap, referent_handicap, obligation_emploi, poste_adapte
+- **Critère combiné** : compatibilité métier + handicap = min(metier, restrictions, aménagement)
+- **Ciblage employeurs inclusifs** : nouveau critère avec priorité configurable
+- **Accessibilité métier handicap** : nouveau critère avec priorité configurable
+- **Structure offre enrichie** : exigences_metier (nested object) + employeur (nested object)
+- **Frontend RQTH** : section violet avec 5 status, disclosure conditionnelle, 8 checkboxes restrictions
+- Tests: 100% backend (35/35), 100% frontend — iteration_28.json
+
 ## 2026-03-24 - Job Matching Avancé avec Scoring Pondéré
 - **Algorithme de scoring** : Intégration de `job_matching.py` avec système de pondération 5 niveaux, critères bloquants (priorité 5), vigilances, points forts
 - **Filtres de recherche** : métier, secteur, contrat, temps de travail, mobilité (trajet max), télétravail, aménagement de poste, restrictions RQTH

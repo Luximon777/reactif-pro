@@ -10,75 +10,45 @@ Plateforme full-stack "Re'Actif Pro" pour l'analyse de CV par IA, l'optimisation
 
 ## Systeme d'identite (Anonymat & Pseudonymat)
 3 niveaux d'acces:
-1. **Espace Personnel** : Inscription sous pseudonyme (pseudo + mdp, email facultatif, aucune identite civile)
-2. **Espace Employeurs** : Inscription entreprise (nom entreprise, SIRET avec verification API INSEE, email pro, mdp, referent RH nom+prenom+fonction, signature charte ethique ALT&ACT)
-3. **Espace Partenaires** : Inscription structure (nom structure, type structure, SIRET, email pro, mdp, referent nom+prenom+fonction, signature charte ethique ALT&ACT)
+1. **Espace Personnel** : Inscription sous pseudonyme
+2. **Espace Employeurs** : Inscription entreprise (SIRET+referent+charte)
+3. **Espace Partenaires** : Inscription structure (type+SIRET+referent+charte)
 
 ## Architecture
 ```
 frontend/src/
-  pages/
-    Landing.jsx - Page d'accueil avec AuthModal
-    Dashboard.jsx - Dashboard avec nav Confidentialite
-  views/
-    ParticulierView.jsx - Dashboard personnel
-    PassportView.jsx - Passeport competences
-    PrivacySettingsView.jsx - Parametres de confidentialite
-    ObservatoireView.jsx - Observatoire predictif (personnalise avec CV)
-    EvolutionIndexView.jsx - Indice d'evolution (enrichi avec CV)
-    ExplorateurView.jsx - Explorateur de metiers (ISCO)
-  components/
-    AuthModal.jsx - Modal connexion/inscription pseudonyme
-    JobMatchingSection.jsx - NEW: Section Job Matching avec filtres + scoring avancé
-    CvAnalysis/
-      CvAnalysisSection.jsx - Upload, analyse, optimisation CV
-      CvPreview.jsx - Apercu CV
-    Passport/
-      EmergingCompetenceCard.jsx - Carte competence emergente
-      passportConfig.js - Config partagees
+  pages/ Landing.jsx, Dashboard.jsx
+  views/ ParticulierView.jsx, PassportView.jsx, ObservatoireView.jsx, etc.
+  components/ AuthModal.jsx, JobMatchingSection.jsx, CvAnalysis/, Passport/
 backend/
-  routes/
-    auth.py - Auth (anonymous, register, login, upgrade, privacy, export, delete)
-    cv.py - Analyse CV + 3 appels LLM paralleles
-    emerging.py - CRUD competences emergentes
-    observatoire.py - Observatoire predictif + endpoint personnalise
-    evolution.py - Indice d'evolution enrichi avec CV
-    jobs.py - Job Matching avancé + Formations + RH
-    passport.py, coffre.py, etc.
-  job_matching.py - Algorithme de scoring pondéré (5 niveaux, critères bloquants, vigilances, points forts)
-  models.py - Profile enrichi + CandidateSearchProfile/CandidateSearchCriterion
+  routes/ auth.py, cv.py, jobs.py, passport.py, observatoire.py, evolution.py, explorer.py, etc.
+  job_matching.py - Algorithme de scoring avec RQTH/EQTH (contexte, jamais discriminant)
+  models.py, server.py, db.py, helpers.py
 ```
 
 ## What's Implemented
 - Audit CV 10 regles + score /100
 - Optimisation ATS avec offre d'emploi cible
-- 4 modeles CV (Classique, Competences, Transversal, Nouvelle Generation) avec SF/SE
-- Telechargement Word + PDF
-- Section strategie 3 canaux (ATS, Reseau, Approche directe)
+- 4 modeles CV avec telechargement Word/PDF
 - Passeport Profil Dynamique 7 dimensions
-- Performance: analyse ~30s, optimisation ~15s
-- Detection competences emergentes (4 phases completes)
-- Endpoints: GET/POST emerging/competences, validate, observatory
-- **Anonymat & Pseudonymat** : systeme complet 3 niveaux
-- **Auth pseudo** : inscription, connexion, upgrade, changement mdp
-- **Inscriptions par role** : Entreprise (SIRET+referent+charte), Partenaire (structure+type+charte)
-- **Verification SIRET** : API Recherche d'Entreprises (data.gouv.fr)
-- **Charte Ethique ALT&ACT** : 10 principes, signature obligatoire
-- **Confidentialite** : parametres de visibilite, export, suppression compte
-- **Correlation CV x Observatoire/Evolution/Formations/Emergentes** : endpoints personnalises
-- **Integration matrice ISCO INSEE** : 5853 metiers importes, recherche enrichie
-- **Bouton Rechercher** dans Explorateur
-- **Job Matching avancé** : algorithme de scoring pondéré à 5 niveaux avec critères bloquants
-  - Filtres: métier, secteur, contrat, temps de travail, mobilité, télétravail, aménagement, restrictions RQTH
-  - Scoring transparent: score global, blocages (rouge), vigilances (orange), points forts (vert)
-  - Sauvegarde des préférences utilisateur en DB
-  - Offres générées par GPT-5.2 puis scorées par l'algorithme
-  - Endpoints: POST /api/jobs/matching/search, GET/PUT /api/jobs/matching/preferences
+- Detection competences emergentes (4 phases)
+- Anonymat & Pseudonymat complet 3 niveaux
+- Verification SIRET, Charte Ethique ALT&ACT, Confidentialite
+- Correlation CV x Observatoire/Evolution/Formations/Emergentes
+- Integration matrice ISCO INSEE (5853 metiers)
+- **Job Matching avancé avec RQTH/EQTH** :
+  - RQTH/EQTH = contexte uniquement (jamais discriminant, jamais bloquant)
+  - 8 restrictions fonctionnelles : port_charges, station_debout_prolongee, travail_nuit, env_calme, horaires_stables, accessibilite, deplacements_frequents, cadence_elevee
+  - Score d'inclusion employeur (0-100) : entreprise_inclusive, partenaire_cap_emploi, experience_handicap, referent_handicap, obligation_emploi, poste_adapte
+  - Compatibilite metier + handicap (critere combine)
+  - Ciblage employeurs inclusifs + Accessibilite metier handicap
+  - Structure offre enrichie : exigences_metier (nested) + employeur (nested)
+  - Sauvegarde preferences, recherche scoree, affichage transparent
+  - 35 tests backend + frontend 100% passes (iteration_28)
 
 ## Backlog
-- P0: Candidature via annonce sélectionnée (postuler directement)
-- P1: Integration communautaire Ubuntoo (contribution participative)
-- P2: Coffre-fort numerique pour preuves de competences
-- P3: Certification identite via FranceConnect (architecture prete)
-- P4: Integration CCSP, diagnostic fonctionnel, auto-evaluation
+- P0: Candidature via annonce selectionnee (postuler directement)
+- P1: Integration communautaire Ubuntoo
+- P2: Coffre-fort numerique pour preuves
+- P3: FranceConnect, CCSP, Auto-evaluations
 - P4: Ateliers Codeveloppement, micro-titres/badges
