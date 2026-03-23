@@ -1,8 +1,9 @@
 """
 Algorithme de Job Matching RE'ACTIF PRO
-Basé sur le système de pondération à 5 niveaux avec critères bloquants
+Intègre RQTH/EQTH comme contexte (jamais discriminant).
+Le score repose sur : restrictions fonctionnelles, aménagement, accessibilité,
+inclusion employeur, compatibilité métier <-> contraintes réelles.
 """
-import re
 
 # Pondération par priorité (1-5)
 WEIGHTS = {1: 1, 2: 3, 3: 5, 4: 7, 5: 10}
@@ -12,6 +13,7 @@ METIER_PROXIMITY = {
     "assistant administratif": ["agent administratif", "secrétaire administratif"],
     "agent administratif": ["assistant administratif", "employé administratif"],
     "secrétaire": ["assistant administratif", "secrétaire administratif"],
+    "secrétaire administratif": ["assistant administratif", "agent administratif"],
     "employé libre service": ["mise en rayon", "agent de rayon"],
     "téléconseiller": ["conseiller clientèle", "chargé de relation client"],
     "conseiller en insertion professionnelle": ["chargé d'accompagnement", "conseiller emploi", "chargé de mission insertion", "conseiller en évolution professionnelle"],
@@ -44,6 +46,10 @@ SECTOR_GROUPS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Outils génériques
+# ---------------------------------------------------------------------------
+
 def normalize(value):
     if value is None:
         return ""
@@ -57,6 +63,14 @@ def normalize_array(value):
         return []
     return [normalize(value)]
 
+
+def get_weight(priority):
+    return WEIGHTS.get(priority, 0)
+
+
+# ---------------------------------------------------------------------------
+# Comparateurs
+# ---------------------------------------------------------------------------
 
 def compare_metier(candidate_values, job_value):
     candidates = normalize_array(candidate_values)
@@ -154,20 +168,26 @@ def compare_amenagement(candidate_value, job_allows):
         return 1 if allows else 0.5
     if c in ("nécessaire", "necessaire"):
         return 1 if allows else 0
+    if c in ("a_evaluer", "à évaluer avec l'employeur", "a évaluer"):
+        return 1 if allows else 0.5
     return 1
 
 
 def compare_restrictions(candidate_restrictions, job_conditions):
+    """Évalue la compatibilité entre restrictions fonctionnelles du candidat et exigences du poste."""
     if not candidate_restrictions:
         return 1
     checks = []
+
     if candidate_restrictions.get("port_charges_impossible"):
         checks.append(0 if job_conditions.get("port_charges") else 1)
+
+    if candidate_restrictions.get("station_debout_prolongee_limitee"):
+        checks.append(0 if job_conditions.get("station_debout_prolongee") else 1)
+
     if candidate_restrictions.get("travail_nuit_impossible"):
         checks.append(0 if job_conditions.get("travail_nuit") else 1)
-    if candidate_restrictions.get("accessibilite_necessaire"):
-        acc = job_conditions.get("accessibilite_locaux")
-        checks.append(1 if acc is True else (0 if acc is False else 0.5))
+
     if candidate_restrictions.get("environnement_calme_recherche"):
         env = normalize(job_conditions.get("environnement", ""))
         if env == "calme":
@@ -176,13 +196,90 @@ def compare_restrictions(candidate_restrictions, job_conditions):
             checks.append(0.5)
         else:
             checks.append(0.5)
+
     if candidate_restrictions.get("horaires_stables_recherches"):
         checks.append(0 if job_conditions.get("horaires_decales") else 1)
+
+    if candidate_restrictions.get("accessibilite_necessaire"):
+        acc = job_conditions.get("accessibilite_locaux")
+        if acc is True:
+            checks.append(1)
+        elif acc is False:
+            checks.append(0)
+        else:
+            checks.append(0.5)
+
+    if candidate_restrictions.get("deplacements_frequents_difficiles"):
+        checks.append(0 if job_conditions.get("deplacements_frequents") else 1)
+
+    if candidate_restrictions.get("cadence_elevee_difficile"):
+        checks.append(0 if job_conditions.get("cadence_elevee") else 1)
+
     return min(checks) if checks else 1
 
 
-def evaluate_criterion(label, priority, compatibility, blocking=False, reason_blocked="", warning_partial="", success_matched=""):
-    weight = WEIGHTS.get(priority, 0)
+# ---------------------------------------------------------------------------
+# Score d'inclusion employeur
+# ---------------------------------------------------------------------------
+
+def calculate_inclusion_score(employeur=None, accessibilite_locaux=False, amenagement_possible=False):
+    """Score 0-100 du niveau d'inclusion de l'employeur."""
+    if employeur is None:
+        employeur = {}
+    score = 0
+    if amenagement_possible:
+        score += 25
+    if accessibilite_locaux:
+        score += 20
+    if employeur.get("entreprise_inclusive"):
+        score += 15
+    if employeur.get("partenaire_cap_emploi"):
+        score += 10
+    if employeur.get("experience_recrutement_handicap"):
+        score += 10
+    if employeur.get("referent_handicap"):
+        score += 10
+    if employeur.get("obligation_emploi_respectee"):
+        score += 5
+    if employeur.get("poste_adapte"):
+        score += 5
+    return min(score, 100)
+
+
+# ---------------------------------------------------------------------------
+# Compatibilité métier + handicap (combiné)
+# ---------------------------------------------------------------------------
+
+def compare_metier_handicap(candidate_profile, job_offer):
+    """Combine : correspondance métier, compatibilité fonctionnelle, aménagement."""
+    metier_score = compare_metier(
+        candidate_profile.get("metier", {}).get("value", []),
+        job_offer.get("metier", "")
+    )
+
+    exigences = job_offer.get("exigences_metier", {})
+    exigences["accessibilite_locaux"] = job_offer.get("accessibilite_locaux", None)
+
+    restrictions_score = compare_restrictions(
+        candidate_profile.get("restrictions_fonctionnelles", {}).get("value", {}),
+        exigences
+    )
+
+    amenagement_score = compare_amenagement(
+        candidate_profile.get("amenagement_poste", {}).get("value", "aucun"),
+        job_offer.get("amenagement_possible", False)
+    )
+
+    return min(metier_score, restrictions_score, amenagement_score)
+
+
+# ---------------------------------------------------------------------------
+# Évaluation d'un critère
+# ---------------------------------------------------------------------------
+
+def evaluate_criterion(label, priority, compatibility, blocking=False,
+                       reason_blocked="", warning_partial="", success_matched=""):
+    weight = get_weight(priority)
     is_blocking = blocking and compatibility == 0
     return {
         "label": label,
@@ -197,14 +294,25 @@ def evaluate_criterion(label, priority, compatibility, blocking=False, reason_bl
     }
 
 
+# ---------------------------------------------------------------------------
+# Calcul principal avec RQTH / EQTH
+# ---------------------------------------------------------------------------
+
 def calculate_job_score(candidate_profile, job_offer):
     """
     Calcule le score de matching entre un profil candidat et une offre d'emploi.
-    candidate_profile: dict avec clés comme metier, secteur, contrat, etc.
-                       Chaque clé a {value, priority}
-    job_offer: dict avec les champs de l'offre
+
+    candidate_profile: dict avec clés :
+      metier, secteur, contrat, temps_travail, trajet_max_minutes, teletravail,
+      amenagement_poste, restrictions_fonctionnelles, rqth_eqth,
+      ciblage_employeurs_inclusifs, accessibilite_metier_handicap
+      Chaque clé a {value, priority} sauf rqth_eqth qui a {status, disclosure, priority}
+
+    job_offer: dict avec champs de l'offre + exigences_metier + employeur
     """
     evaluations = []
+
+    # --- Critères classiques ---
 
     # Métier
     if candidate_profile.get("metier"):
@@ -276,37 +384,89 @@ def calculate_job_score(candidate_profile, job_offer):
             success_matched="Le télétravail correspond au besoin."
         ))
 
-    # Aménagement
-    if candidate_profile.get("amenagement_poste"):
+    # --- Critères RQTH / EQTH (contexte, jamais discriminant) ---
+
+    # Compatibilité métier + handicap (critère combiné)
+    has_restrictions = candidate_profile.get("restrictions_fonctionnelles")
+    has_amenagement = candidate_profile.get("amenagement_poste")
+    if has_restrictions or has_amenagement:
+        compat = compare_metier_handicap(candidate_profile, job_offer)
+        evaluations.append(evaluate_criterion(
+            "Compatibilité métier / handicap", 5, compat,
+            blocking=True,
+            reason_blocked="Le poste n'est pas compatible avec le métier visé et/ou les contraintes fonctionnelles.",
+            warning_partial="Le poste semble proche mais nécessite une vérification complémentaire.",
+            success_matched="Le métier et les conditions du poste semblent compatibles."
+        ))
+
+    # Restrictions fonctionnelles (détail)
+    if has_restrictions:
+        c = candidate_profile["restrictions_fonctionnelles"]
+        exigences = job_offer.get("exigences_metier", {})
+        exigences_full = {**exigences}
+        exigences_full["accessibilite_locaux"] = job_offer.get("accessibilite_locaux", None)
+        compat = compare_restrictions(c.get("value", {}), exigences_full)
+        evaluations.append(evaluate_criterion(
+            "Restrictions fonctionnelles", c.get("priority", 4), compat,
+            blocking=c.get("priority", 4) >= 5,
+            reason_blocked="Certaines exigences du poste sont incompatibles avec les restrictions fonctionnelles.",
+            warning_partial="Certaines conditions du poste ne sont pas totalement précisées.",
+            success_matched="Les restrictions fonctionnelles semblent compatibles."
+        ))
+
+    # Aménagement de poste
+    if has_amenagement:
         c = candidate_profile["amenagement_poste"]
         compat = compare_amenagement(c.get("value"), job_offer.get("amenagement_possible", False))
         evaluations.append(evaluate_criterion(
             "Aménagement de poste", c.get("priority", 3), compat,
             blocking=c.get("priority", 3) >= 5,
-            reason_blocked="L'aménagement nécessaire n'est pas possible.",
-            warning_partial="L'aménagement souhaité n'est pas garanti.",
-            success_matched="L'aménagement semble possible."
+            reason_blocked="L'aménagement nécessaire n'est pas possible sur ce poste.",
+            warning_partial="L'aménagement n'est pas totalement garanti.",
+            success_matched="L'aménagement paraît possible."
         ))
 
-    # Restrictions RQTH
-    if candidate_profile.get("restrictions_fonctionnelles"):
-        c = candidate_profile["restrictions_fonctionnelles"]
-        compat = compare_restrictions(c.get("value", {}), {
-            "port_charges": job_offer.get("port_charges", False),
-            "travail_nuit": job_offer.get("travail_nuit", False),
-            "accessibilite_locaux": job_offer.get("accessibilite_locaux"),
-            "environnement": job_offer.get("environnement", ""),
-            "horaires_decales": job_offer.get("horaires_decales", False),
-        })
+    # Ciblage employeurs inclusifs
+    if candidate_profile.get("ciblage_employeurs_inclusifs", {}).get("value"):
+        c = candidate_profile["ciblage_employeurs_inclusifs"]
+        inclusion = calculate_inclusion_score(
+            job_offer.get("employeur", {}),
+            job_offer.get("accessibilite_locaux", False),
+            job_offer.get("amenagement_possible", False)
+        )
+        if inclusion >= 70:
+            compat = 1
+        elif inclusion >= 40:
+            compat = 0.5
+        else:
+            compat = 0
         evaluations.append(evaluate_criterion(
-            "Restrictions fonctionnelles", c.get("priority", 4), compat,
-            blocking=c.get("priority", 4) >= 5,
-            reason_blocked="Le poste n'est pas compatible avec certaines restrictions.",
-            warning_partial="Certaines conditions nécessitent vérification.",
-            success_matched="Les restrictions sont compatibles avec le poste."
+            "Niveau d'inclusion employeur", c.get("priority", 3), compat,
+            blocking=False,
+            warning_partial="L'employeur semble partiellement inclusif.",
+            success_matched="L'employeur présente un bon niveau d'inclusion."
         ))
 
-    # Calcul du score final
+    # Accessibilité métier handicap
+    if candidate_profile.get("accessibilite_metier_handicap", {}).get("value"):
+        c = candidate_profile["accessibilite_metier_handicap"]
+        acc_locaux = job_offer.get("accessibilite_locaux", False)
+        amenag = job_offer.get("amenagement_possible", False)
+        if acc_locaux and amenag:
+            compat = 1
+        elif acc_locaux or amenag:
+            compat = 0.5
+        else:
+            compat = 0
+        evaluations.append(evaluate_criterion(
+            "Accessibilité du poste", c.get("priority", 4), compat,
+            blocking=c.get("priority", 4) >= 5,
+            reason_blocked="Le poste ne présente pas de garanties suffisantes d'accessibilité.",
+            warning_partial="L'accessibilité ou l'adaptation reste à confirmer.",
+            success_matched="Le poste semble accessible ou adaptable."
+        ))
+
+    # --- Calcul du score final ---
     score_max = sum(e["weight"] for e in evaluations)
     score_obtained = sum(e["score"] for e in evaluations)
     final_score = round((score_obtained / score_max) * 100) if score_max > 0 else 0
@@ -326,9 +486,25 @@ def calculate_job_score(candidate_profile, job_offer):
     else:
         statut = "Faible compatibilité"
 
+    # Score d'inclusion (toujours calculé pour affichage)
+    score_inclusion = calculate_inclusion_score(
+        job_offer.get("employeur", {}),
+        job_offer.get("accessibilite_locaux", False),
+        job_offer.get("amenagement_possible", False)
+    )
+
+    # Contexte RQTH/EQTH (informatif, jamais discriminant)
+    rqth_eqth = candidate_profile.get("rqth_eqth", {})
+    contexte_handicap = {
+        "status": rqth_eqth.get("status", "non_renseigne"),
+        "disclosure": rqth_eqth.get("disclosure", "non_renseigne"),
+    }
+
     return {
         "statut": statut,
         "score": final_score,
+        "score_inclusion": score_inclusion,
+        "contexte_handicap": contexte_handicap,
         "score_detail": {"obtenu": round(score_obtained, 1), "maximum": score_max},
         "blocages": blocages,
         "vigilances": vigilances,

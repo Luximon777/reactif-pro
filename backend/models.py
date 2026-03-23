@@ -116,6 +116,13 @@ class CandidateSearchCriterion(BaseModel):
     priority: int = 3
 
 
+class RqthEqthInfo(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    status: str = "ne_souhaite_pas_repondre"
+    disclosure: str = "non"
+    priority: int = 1
+
+
 class CandidateSearchProfile(BaseModel):
     model_config = ConfigDict(extra="ignore")
     metier: Optional[CandidateSearchCriterion] = None
@@ -126,6 +133,9 @@ class CandidateSearchProfile(BaseModel):
     teletravail: Optional[CandidateSearchCriterion] = None
     amenagement_poste: Optional[CandidateSearchCriterion] = None
     restrictions_fonctionnelles: Optional[CandidateSearchCriterion] = None
+    rqth_eqth: Optional[RqthEqthInfo] = None
+    ciblage_employeurs_inclusifs: Optional[CandidateSearchCriterion] = None
+    accessibilite_metier_handicap: Optional[CandidateSearchCriterion] = None
 
 
 class CoffreDocument(BaseModel):

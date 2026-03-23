@@ -102,6 +102,7 @@ Règles:
 - Si des critères de recherche sont fournis, génère des offres qui y correspondent ET des offres proches/alternatives
 - Varie les types de contrats (CDI, CDD, missions)
 - Varie les niveaux de compatibilité
+- Varie les niveaux d'inclusion employeur (certains très inclusifs, d'autres non)
 
 Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
 {
@@ -115,11 +116,24 @@ Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
   "trajet_estime_minutes": 30,
   "teletravail": true ou false,
   "amenagement_possible": true ou false,
-  "port_charges": false,
-  "travail_nuit": false,
-  "horaires_decales": false,
-  "accessibilite_locaux": true,
-  "environnement": "calme ou standard",
+  "accessibilite_locaux": true ou false,
+  "exigences_metier": {
+    "port_charges": false,
+    "station_debout_prolongee": false,
+    "travail_nuit": false,
+    "environnement": "calme|standard|bruyant",
+    "horaires_decales": false,
+    "deplacements_frequents": false,
+    "cadence_elevee": false
+  },
+  "employeur": {
+    "entreprise_inclusive": true ou false,
+    "partenaire_cap_emploi": true ou false,
+    "experience_recrutement_handicap": true ou false,
+    "referent_handicap": true ou false,
+    "obligation_emploi_respectee": true ou false,
+    "poste_adapte": true ou false
+  },
   "description": "Description courte (2-3 phrases)",
   "competences_requises": ["comp1", "comp2", "comp3", "comp4", "comp5"],
   "competences_matchees": ["comp du profil qui matche"],
@@ -146,6 +160,32 @@ Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
     return []
 
 
+def _build_job_data(offer):
+    """Map an AI-generated offer to the structured format expected by calculate_job_score."""
+    exigences = offer.get("exigences_metier", {})
+    return {
+        "metier": offer.get("metier", offer.get("titre", "")),
+        "secteur": offer.get("secteur", ""),
+        "contrat": offer.get("type_contrat", ""),
+        "temps_travail": offer.get("temps_travail", ""),
+        "trajet_estime_minutes": offer.get("trajet_estime_minutes", 30),
+        "teletravail": offer.get("teletravail", False),
+        "amenagement_possible": offer.get("amenagement_possible", False),
+        "accessibilite_locaux": offer.get("accessibilite_locaux", True),
+        "exigences_metier": {
+            "port_charges": exigences.get("port_charges", offer.get("port_charges", False)),
+            "station_debout_prolongee": exigences.get("station_debout_prolongee", False),
+            "travail_nuit": exigences.get("travail_nuit", offer.get("travail_nuit", False)),
+            "environnement": exigences.get("environnement", offer.get("environnement", "")),
+            "horaires_decales": exigences.get("horaires_decales", offer.get("horaires_decales", False)),
+            "deplacements_frequents": exigences.get("deplacements_frequents", False),
+            "cadence_elevee": exigences.get("cadence_elevee", False),
+        },
+        "employeur": offer.get("employeur", {}),
+    }
+
+
+
 @router.get("/jobs/matching")
 async def get_job_matching(token: str):
     """Generate AI-powered job matching based on the user's CV analysis and optimized CV."""
@@ -166,27 +206,19 @@ async def get_job_matching(token: str):
 
     # If user has filters, score each offer with the algorithm
     matches = []
-    if filters and any(filters.get(k) for k in ["metier", "secteur", "contrat", "temps_travail", "trajet_max_minutes", "teletravail", "amenagement_poste", "restrictions_fonctionnelles"]):
+    all_filter_keys = ["metier", "secteur", "contrat", "temps_travail", "trajet_max_minutes", "teletravail",
+                       "amenagement_poste", "restrictions_fonctionnelles", "ciblage_employeurs_inclusifs", "accessibilite_metier_handicap"]
+    if filters and any(filters.get(k) for k in all_filter_keys):
         candidate_profile = {}
-        for key in ["metier", "secteur", "contrat", "temps_travail", "trajet_max_minutes", "teletravail", "amenagement_poste", "restrictions_fonctionnelles"]:
+        for key in all_filter_keys:
             if filters.get(key) and filters[key].get("value"):
                 candidate_profile[key] = filters[key]
+        # Include rqth_eqth context if present
+        if filters.get("rqth_eqth"):
+            candidate_profile["rqth_eqth"] = filters["rqth_eqth"]
 
         for offer in ai_offers:
-            job_data = {
-                "metier": offer.get("metier", offer.get("titre", "")),
-                "secteur": offer.get("secteur", ""),
-                "contrat": offer.get("type_contrat", ""),
-                "temps_travail": offer.get("temps_travail", ""),
-                "trajet_estime_minutes": offer.get("trajet_estime_minutes", 30),
-                "teletravail": offer.get("teletravail", False),
-                "amenagement_possible": offer.get("amenagement_possible", False),
-                "port_charges": offer.get("port_charges", False),
-                "travail_nuit": offer.get("travail_nuit", False),
-                "accessibilite_locaux": offer.get("accessibilite_locaux", True),
-                "horaires_decales": offer.get("horaires_decales", False),
-                "environnement": offer.get("environnement", ""),
-            }
+            job_data = _build_job_data(offer)
             scoring = calculate_job_score(candidate_profile, job_data)
             offer["scoring"] = scoring
             offer["matching_score"] = scoring["score"]
@@ -243,20 +275,7 @@ async def search_job_matching(token: str, search_profile: CandidateSearchProfile
     # Score each offer
     matches = []
     for offer in ai_offers:
-        job_data = {
-            "metier": offer.get("metier", offer.get("titre", "")),
-            "secteur": offer.get("secteur", ""),
-            "contrat": offer.get("type_contrat", ""),
-            "temps_travail": offer.get("temps_travail", ""),
-            "trajet_estime_minutes": offer.get("trajet_estime_minutes", 30),
-            "teletravail": offer.get("teletravail", False),
-            "amenagement_possible": offer.get("amenagement_possible", False),
-            "port_charges": offer.get("port_charges", False),
-            "travail_nuit": offer.get("travail_nuit", False),
-            "accessibilite_locaux": offer.get("accessibilite_locaux", True),
-            "horaires_decales": offer.get("horaires_decales", False),
-            "environnement": offer.get("environnement", ""),
-        }
+        job_data = _build_job_data(offer)
         scoring = calculate_job_score(filters, job_data)
         offer["scoring"] = scoring
         offer["matching_score"] = scoring["score"]

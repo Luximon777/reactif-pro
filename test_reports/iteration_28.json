@@ -1,0 +1,127 @@
+{
+  "summary": "Tested RQTH/EQTH scoring integration in Job Matching. All 35 backend tests passed (100%). Frontend UI verified: RQTH section with 5 status buttons, disclosure options, 8 restriction checkboxes, ciblage_employeurs_inclusifs, accessibilite_metier_handicap checkboxes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DialogContent", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent} - minor accessibility issue (pre-existing)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rqth_eqth_scoring.py",
+    "/app/test_reports/pytest/pytest_rqth_eqth_scoring.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "compare_restrictions handles all 8 restriction types correctly (VERIFIED)",
+    "calculate_inclusion_score returns 0-100 based on employer attributes (VERIFIED)",
+    "compare_metier_handicap combines metier+restrictions+amenagement scores (VERIFIED)",
+    "calculate_job_score returns score, score_inclusion, contexte_handicap (VERIFIED)",
+    "RQTH status is contextual only - never causes blocking (VERIFIED)",
+    "POST /api/jobs/matching/search accepts rqth_eqth, ciblage_employeurs_inclusifs, accessibilite_metier_handicap (VERIFIED)",
+    "PUT /api/jobs/matching/preferences saves new RQTH fields (VERIFIED)",
+    "Frontend filter panel shows RQTH section with violet-colored status buttons (VERIFIED)",
+    "Frontend shows disclosure options when RQTH/EQTH selected (VERIFIED)",
+    "Frontend has all 8 restriction checkboxes with data-testid attributes (VERIFIED)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rqth_eqth_scoring.py"
+  ],
+  "success_rate": {
+    "backend": "100% (35/35 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  "test_credentials": "test_rqth3_c6so6m / testpass123 (created via UI)",
+  "seed_data_creation": "No seed data needed - tests create their own test accounts",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "RQTH/EQTH scoring integration fully tested. Backend: job_matching.py functions (calculate_job_score, compare_restrictions, calculate_inclusion_score, compare_metier_handicap) all working. API endpoints accept new fields (rqth_eqth, ciblage_employeurs_inclusifs, accessibilite_metier_handicap, restrictions_fonctionnelles with 8 types). Frontend: JobMatchingSection.jsx has complete filter panel with RQTH section (data-testid='filter-rqth-*'), disclosure options (data-testid='filter-disclosure-*'), 8 restriction checkboxes (data-testid='filter-restriction-*'), ciblage checkbox (data-testid='filter-ciblage-inclusif'), accessibilite checkbox (data-testid='filter-accessibilite-handicap').",
+  "features_tested": {
+    "backend_scoring_functions": [
+      "compare_restrictions - port_charges_impossible (PASSED)",
+      "compare_restrictions - station_debout_prolongee_limitee (PASSED)",
+      "compare_restrictions - travail_nuit_impossible (PASSED)",
+      "compare_restrictions - environnement_calme_recherche (PASSED)",
+      "compare_restrictions - horaires_stables_recherches (PASSED)",
+      "compare_restrictions - accessibilite_necessaire (PASSED)",
+      "compare_restrictions - deplacements_frequents_difficiles (PASSED)",
+      "compare_restrictions - cadence_elevee_difficile (PASSED)",
+      "compare_restrictions - multiple restrictions return min score (PASSED)",
+      "calculate_inclusion_score - amenagement_possible adds 25 (PASSED)",
+      "calculate_inclusion_score - accessibilite_locaux adds 20 (PASSED)",
+      "calculate_inclusion_score - entreprise_inclusive adds 15 (PASSED)",
+      "calculate_inclusion_score - partenaire_cap_emploi adds 10 (PASSED)",
+      "calculate_inclusion_score - experience_recrutement_handicap adds 10 (PASSED)",
+      "calculate_inclusion_score - referent_handicap adds 10 (PASSED)",
+      "calculate_inclusion_score - obligation_emploi_respectee adds 5 (PASSED)",
+      "calculate_inclusion_score - poste_adapte adds 5 (PASSED)",
+      "calculate_inclusion_score - max score capped at 100 (PASSED)",
+      "compare_metier_handicap - combines all scores (PASSED)",
+      "calculate_job_score - returns score_inclusion and contexte_handicap (PASSED)",
+      "calculate_job_score - RQTH status never blocking (PASSED)",
+      "calculate_job_score - ciblage_employeurs_inclusifs criterion (PASSED)",
+      "calculate_job_score - accessibilite_metier_handicap criterion (PASSED)"
+    ],
+    "backend_apis": [
+      "POST /api/jobs/matching/search accepts rqth_eqth (PASSED)",
+      "POST /api/jobs/matching/search accepts ciblage_employeurs_inclusifs (PASSED)",
+      "POST /api/jobs/matching/search accepts accessibilite_metier_handicap (PASSED)",
+      "POST /api/jobs/matching/search accepts all 8 restriction types (PASSED)",
+      "PUT /api/jobs/matching/preferences saves rqth_eqth (PASSED)",
+      "PUT /api/jobs/matching/preferences saves ciblage_employeurs_inclusifs (PASSED)",
+      "PUT /api/jobs/matching/preferences saves accessibilite_metier_handicap (PASSED)"
+    ],
+    "frontend_elements": [
+      "Filter panel (data-testid='filter-panel') (VERIFIED)",
+      "RQTH section header 'Situation de handicap (contexte)' (VERIFIED)",
+      "RQTH button - rqth (data-testid='filter-rqth-rqth') (VERIFIED)",
+      "RQTH button - eqth (data-testid='filter-rqth-eqth') (VERIFIED)",
+      "RQTH button - en_cours (data-testid='filter-rqth-en_cours') (VERIFIED)",
+      "RQTH button - aucun (data-testid='filter-rqth-aucun') (VERIFIED)",
+      "RQTH button - ne_souhaite_pas_repondre (data-testid='filter-rqth-ne_souhaite_pas_repondre') (VERIFIED)",
+      "Disclosure option - non (data-testid='filter-disclosure-non') (VERIFIED)",
+      "Disclosure option - oui (data-testid='filter-disclosure-oui') (VERIFIED)",
+      "Disclosure option - a_discuter (data-testid='filter-disclosure-a_discuter') (VERIFIED)",
+      "Restriction - port_charges_impossible (VERIFIED)",
+      "Restriction - station_debout_prolongee_limitee (VERIFIED)",
+      "Restriction - travail_nuit_impossible (VERIFIED)",
+      "Restriction - environnement_calme_recherche (VERIFIED)",
+      "Restriction - horaires_stables_recherches (VERIFIED)",
+      "Restriction - accessibilite_necessaire (VERIFIED)",
+      "Restriction - deplacements_frequents_difficiles (VERIFIED)",
+      "Restriction - cadence_elevee_difficile (VERIFIED)",
+      "Ciblage employeurs inclusifs checkbox (VERIFIED)",
+      "Accessibilité métier handicap checkbox (VERIFIED)",
+      "Search button (data-testid='search-btn') (VERIFIED)",
+      "Reset button (data-testid='reset-filters-btn') (VERIFIED)"
+    ]
+  },
+  "data_testid_verified": [
+    "filter-panel",
+    "toggle-filters-btn",
+    "filter-rqth-rqth",
+    "filter-rqth-eqth",
+    "filter-rqth-en_cours",
+    "filter-rqth-aucun",
+    "filter-rqth-ne_souhaite_pas_repondre",
+    "filter-disclosure-non",
+    "filter-disclosure-oui",
+    "filter-disclosure-a_discuter",
+    "filter-restriction-port_charges_impossible",
+    "filter-restriction-station_debout_prolongee_limitee",
+    "filter-restriction-travail_nuit_impossible",
+    "filter-restriction-environnement_calme_recherche",
+    "filter-restriction-horaires_stables_recherches",
+    "filter-restriction-accessibilite_necessaire",
+    "filter-restriction-deplacements_frequents_difficiles",
+    "filter-restriction-cadence_elevee_difficile",
+    "filter-ciblage-inclusif",
+    "filter-accessibilite-handicap",
+    "search-btn",
+    "reset-filters-btn"
+  ]
+}
