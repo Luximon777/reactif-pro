@@ -203,6 +203,13 @@ const PassportView = ({ token }) => {
     setLoadingPasserelles(false);
   };
 
+  // Auto-load passerelles when tab is opened and none exist
+  useEffect(() => {
+    if (activeTab === "passerelles" && passport && passport.competences?.length > 0 && (!passport.passerelles || passport.passerelles.length === 0) && !loadingPasserelles) {
+      handleLoadPasserelles();
+    }
+  }, [activeTab, passport?.competences?.length]);
+
   const handleOpenEvaluation = (comp) => {
     setEvaluatingComp(comp);
     setEvalComponents(comp.components || { connaissance: 0, cognition: 0, conation: 0, affection: 0, sensori_moteur: 0 });
@@ -499,15 +506,29 @@ const PassportView = ({ token }) => {
             </div>
             <Button onClick={handleLoadPasserelles} disabled={loadingPasserelles} data-testid="load-passerelles-btn">
               {loadingPasserelles ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Brain className="w-4 h-4 mr-2" />}
-              {loadingPasserelles ? "Analyse IA..." : "Analyser mon profil"}
+              {loadingPasserelles ? "Analyse IA en cours..." : passerelles.length > 0 ? "Actualiser l'analyse" : "Analyser mon profil"}
             </Button>
           </div>
+
+          {loadingPasserelles && passerelles.length === 0 && (
+            <div className="flex items-center gap-3 p-6 bg-blue-50 rounded-xl border border-blue-100">
+              <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+              <div>
+                <span className="text-sm font-medium text-blue-700">L'IA analyse votre profil et votre CV...</span>
+                <p className="text-xs text-blue-500 mt-0.5">Identification des passerelles professionnelles en cours</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
             {passerelles.map((p, idx) => (
               <PasserelleCard key={idx} passerelle={p} />
             ))}
           </div>
-          {passerelles.length === 0 && !loadingPasserelles && (
+          {passerelles.length === 0 && !loadingPasserelles && competences.length === 0 && (
+            <EmptyState text="Analysez votre CV dans l'onglet 'Tableau de bord' pour générer automatiquement les passerelles professionnelles" />
+          )}
+          {passerelles.length === 0 && !loadingPasserelles && competences.length > 0 && (
             <EmptyState text="Cliquez sur 'Analyser mon profil' pour découvrir vos passerelles professionnelles" />
           )}
         </TabsContent>

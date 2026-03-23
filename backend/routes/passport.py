@@ -87,9 +87,11 @@ async def generate_passerelles_with_ai(competences: List[dict], sectors: List[st
             ct = result.get("competences_transversales", [])
             offres = result.get("offres_emploi_suggerees", [])
             if ct:
-                cv_context += f"\nCompétences transversales du CV: {', '.join(ct[:10])}"
+                ct_strs = [str(c) if not isinstance(c, str) else c for c in ct[:10]]
+                cv_context += f"\nCompétences transversales du CV: {', '.join(ct_strs)}"
             if offres:
-                cv_context += f"\nMétiers suggérés par l'analyse CV: {', '.join(offres[:5])}"
+                offres_strs = [o.get("titre", str(o)) if isinstance(o, dict) else str(o) for o in offres[:5]]
+                cv_context += f"\nMétiers suggérés par l'analyse CV: {', '.join(offres_strs)}"
 
         # Enrich with passport context (professional summary, career project, experiences)
         profile_context = ""
@@ -102,7 +104,7 @@ async def generate_passerelles_with_ai(competences: List[dict], sectors: List[st
                 profile_context += f"\nProjet professionnel: {career[:300]}"
             exps = passport.get("experiences", [])
             if exps:
-                exp_titles = [f"{e.get('title','')} ({e.get('company','')})" for e in exps[:5] if e.get('title')]
+                exp_titles = [f"{e.get('title','')} ({e.get('organization', e.get('company',''))})" for e in exps[:5] if e.get('title')]
                 if exp_titles:
                     profile_context += f"\nExpériences récentes: {', '.join(exp_titles)}"
 
