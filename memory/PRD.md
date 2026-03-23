@@ -36,19 +36,31 @@ backend/
 - Verification SIRET, Charte Ethique ALT&ACT, Confidentialite
 - Correlation CV x Observatoire/Evolution/Formations/Emergentes
 - Integration matrice ISCO INSEE (5853 metiers)
-- **Job Matching avancé avec RQTH/EQTH** :
+- **Job Matching avance avec RQTH/EQTH** :
   - RQTH/EQTH = contexte uniquement (jamais discriminant, jamais bloquant)
-  - 8 restrictions fonctionnelles : port_charges, station_debout_prolongee, travail_nuit, env_calme, horaires_stables, accessibilite, deplacements_frequents, cadence_elevee
-  - Score d'inclusion employeur (0-100) : entreprise_inclusive, partenaire_cap_emploi, experience_handicap, referent_handicap, obligation_emploi, poste_adapte
+  - 8 restrictions fonctionnelles
+  - Score d'inclusion employeur (0-100)
   - Compatibilite metier + handicap (critere combine)
   - Ciblage employeurs inclusifs + Accessibilite metier handicap
-  - Structure offre enrichie : exigences_metier (nested) + employeur (nested)
   - Sauvegarde preferences, recherche scoree, affichage transparent
-  - 35 tests backend + frontend 100% passes (iteration_28)
+- **Fix crash React P0** (23/03/2026): Correction du mapping offres_emploi_suggerees (objets FR vs strings) dans GET /api/jobs et JobCard
+- **Bouton Postuler P1** (23/03/2026): Endpoint POST /api/jobs/apply + GET /api/jobs/applications + UI bouton dans JobMatchingSection
+- **Fix route ordering** (23/03/2026): /jobs/apply et /jobs/applications avant /jobs/{job_id}
 
 ## Backlog
-- P0: Candidature via annonce selectionnee (postuler directement)
 - P1: Integration communautaire Ubuntoo
 - P2: Coffre-fort numerique pour preuves
 - P3: FranceConnect, CCSP, Auto-evaluations
 - P4: Ateliers Codeveloppement, micro-titres/badges
+
+## Key API Endpoints
+- POST /api/auth/register, POST /api/auth/login
+- GET /api/jobs, GET /api/jobs/matching, POST /api/jobs/matching/search
+- POST /api/jobs/apply, GET /api/jobs/applications
+- GET /api/evolution/user-profile, GET /api/observatoire/personalized
+- GET /api/profile, GET /api/learning
+
+## Tech Stack
+- Frontend: React, Tailwind CSS, Shadcn/UI
+- Backend: FastAPI, Python, GPT-5.2 via Emergent LLM Key
+- Database: MongoDB (Motor async)
