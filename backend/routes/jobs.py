@@ -119,6 +119,7 @@ Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
   "travail_nuit": false,
   "horaires_decales": false,
   "accessibilite_locaux": true,
+  "environnement": "calme ou standard",
   "description": "Description courte (2-3 phrases)",
   "competences_requises": ["comp1", "comp2", "comp3", "comp4", "comp5"],
   "competences_matchees": ["comp du profil qui matche"],
@@ -184,6 +185,7 @@ async def get_job_matching(token: str):
                 "travail_nuit": offer.get("travail_nuit", False),
                 "accessibilite_locaux": offer.get("accessibilite_locaux", True),
                 "horaires_decales": offer.get("horaires_decales", False),
+                "environnement": offer.get("environnement", ""),
             }
             scoring = calculate_job_score(candidate_profile, job_data)
             offer["scoring"] = scoring
@@ -253,6 +255,7 @@ async def search_job_matching(token: str, search_profile: CandidateSearchProfile
             "travail_nuit": offer.get("travail_nuit", False),
             "accessibilite_locaux": offer.get("accessibilite_locaux", True),
             "horaires_decales": offer.get("horaires_decales", False),
+            "environnement": offer.get("environnement", ""),
         }
         scoring = calculate_job_score(filters, job_data)
         offer["scoring"] = scoring

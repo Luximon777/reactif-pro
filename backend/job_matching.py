@@ -168,6 +168,14 @@ def compare_restrictions(candidate_restrictions, job_conditions):
     if candidate_restrictions.get("accessibilite_necessaire"):
         acc = job_conditions.get("accessibilite_locaux")
         checks.append(1 if acc is True else (0 if acc is False else 0.5))
+    if candidate_restrictions.get("environnement_calme_recherche"):
+        env = normalize(job_conditions.get("environnement", ""))
+        if env == "calme":
+            checks.append(1)
+        elif not env:
+            checks.append(0.5)
+        else:
+            checks.append(0.5)
     if candidate_restrictions.get("horaires_stables_recherches"):
         checks.append(0 if job_conditions.get("horaires_decales") else 1)
     return min(checks) if checks else 1
@@ -287,6 +295,7 @@ def calculate_job_score(candidate_profile, job_offer):
             "port_charges": job_offer.get("port_charges", False),
             "travail_nuit": job_offer.get("travail_nuit", False),
             "accessibilite_locaux": job_offer.get("accessibilite_locaux"),
+            "environnement": job_offer.get("environnement", ""),
             "horaires_decales": job_offer.get("horaires_decales", False),
         })
         evaluations.append(evaluate_criterion(

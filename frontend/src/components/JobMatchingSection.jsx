@@ -83,6 +83,7 @@ const DEFAULT_FILTERS = {
     port_charges_impossible: false,
     travail_nuit_impossible: false,
     accessibilite_necessaire: false,
+    environnement_calme_recherche: false,
     horaires_stables_recherches: false,
     priority: 4,
   },
@@ -450,6 +451,7 @@ const JobMatchingSection = ({ token }) => {
                   { key: "port_charges_impossible", label: "Port de charges impossible" },
                   { key: "travail_nuit_impossible", label: "Travail de nuit impossible" },
                   { key: "accessibilite_necessaire", label: "Accessibilité nécessaire" },
+                  { key: "environnement_calme_recherche", label: "Environnement calme recherché" },
                   { key: "horaires_stables_recherches", label: "Horaires stables recherchés" },
                 ].map((item) => (
                   <label
