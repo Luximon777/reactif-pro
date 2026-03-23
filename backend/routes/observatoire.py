@@ -210,7 +210,8 @@ async def get_personalized_observatoire(token: str):
             "message": "Analysez votre CV pour obtenir des recommandations personnalisées",
             "user_skills_count": 0,
             "matches": [], "skill_gaps": [], "declining_alerts": [],
-            "sector_relevance": [], "emerging_from_cv": []
+            "sector_relevance": [], "emerging_from_cv": [],
+            "summary": {"total_skills_analyzed": 0, "skills_in_observatory": 0, "skills_declining": 0, "gaps_to_fill": 0, "sectors_relevant": 0, "cv_emerging_detected": 0}
         }
 
     # Cross-reference: user skills vs global emerging skills
@@ -219,7 +220,6 @@ async def get_personalized_observatoire(token: str):
     for skill in global_skills:
         skill_name_lower = skill.get("skill_name", "").lower()
         all_emerging_names.add(skill_name_lower)
-        # Check if any user skill matches or is contained in emerging skill
         for us in user_skill_names:
             if us in skill_name_lower or skill_name_lower in us or _fuzzy_match(us, skill_name_lower):
                 matches.append({
@@ -250,7 +250,6 @@ async def get_personalized_observatoire(token: str):
         skill_name_lower = skill.get("skill_name", "").lower()
         has_skill = any(us in skill_name_lower or skill_name_lower in us for us in user_skill_names)
         if not has_skill:
-            # Check sector relevance
             skill_sectors = set(s.lower() for s in skill.get("related_sectors", []))
             user_sectors_lower = set(s.lower() for s in user_sectors)
             sector_match = bool(skill_sectors & user_sectors_lower) if user_sectors_lower else True
@@ -298,11 +297,54 @@ async def get_personalized_observatoire(token: str):
             "trend": ec.get("tendance")
         })
 
+    # If DB data is too sparse, enrich with AI analysis
+    db_data_sufficient = len(matches) >= 3 and len(skill_gaps) >= 3 and len(sector_relevance) >= 2
+    user_title = ""
+    if cv_optimized and cv_optimized.get("models"):
+        for model_data in cv_optimized["models"].values():
+            if isinstance(model_data, dict):
+                user_title = model_data.get("titre", "")
+                break
+    if not user_title and cv_result:
+        user_title = cv_result.get("titre_profil_suggere", "")
+
+    if not db_data_sufficient and EMERGENT_LLM_KEY and user_skill_names:
+        ai_data = await _generate_observatoire_ai(
+            user_title, list(user_skill_names), list(user_sectors),
+            EMERGENT_LLM_KEY, token_id
+        )
+        if ai_data:
+            # Merge AI data with what we already found in DB
+            ai_matches = ai_data.get("matches", [])
+            ai_gaps = ai_data.get("skill_gaps", [])
+            ai_declining = ai_data.get("declining_alerts", [])
+            ai_sectors = ai_data.get("sector_relevance", [])
+
+            existing_match_names = {m.get("observatory_skill", "").lower() for m in matches}
+            for am in ai_matches:
+                if am.get("observatory_skill", "").lower() not in existing_match_names:
+                    matches.append(am)
+
+            existing_gap_names = {g.get("skill_name", "").lower() for g in skill_gaps}
+            for ag in ai_gaps:
+                if ag.get("skill_name", "").lower() not in existing_gap_names:
+                    skill_gaps.append(ag)
+
+            existing_decline_skills = {d.get("skill", "").lower() for d in declining_alerts}
+            for ad in ai_declining:
+                if ad.get("skill", "").lower() not in existing_decline_skills:
+                    declining_alerts.append(ad)
+
+            existing_sector_names = {s.get("sector", "").lower() for s in sector_relevance}
+            for asec in ai_sectors:
+                if asec.get("sector", "").lower() not in existing_sector_names:
+                    sector_relevance.append(asec)
+
     return {
         "has_cv": True,
         "user_skills_count": len(user_skill_names),
         "matches": sorted(matches, key=lambda x: x.get("emergence_score", 0), reverse=True),
-        "skill_gaps": sorted(skill_gaps, key=lambda x: (x["priority"] == "haute", x.get("emergence_score", 0)), reverse=True)[:10],
+        "skill_gaps": sorted(skill_gaps, key=lambda x: (x.get("priority") == "haute", x.get("emergence_score", 0)), reverse=True)[:10],
         "declining_alerts": declining_alerts,
         "sector_relevance": sorted(sector_relevance, key=lambda x: len(x.get("your_emerging_skills", [])), reverse=True),
         "emerging_from_cv": sorted(emerging_from_cv, key=lambda x: x.get("score", 0), reverse=True),
@@ -310,11 +352,93 @@ async def get_personalized_observatoire(token: str):
             "total_skills_analyzed": len(user_skill_names),
             "skills_in_observatory": len(matches),
             "skills_declining": len(declining_alerts),
-            "gaps_to_fill": len([g for g in skill_gaps if g["priority"] == "haute"]),
+            "gaps_to_fill": len([g for g in skill_gaps if g.get("priority") == "haute"]),
             "sectors_relevant": len(sector_relevance),
             "cv_emerging_detected": len(emerging_from_cv)
         }
     }
+
+
+async def _generate_observatoire_ai(user_title, user_skills, user_sectors, api_key, token_id):
+    """Generate personalized observatory analysis via AI when DB data is sparse."""
+    import json as _json
+
+    skills_str = ", ".join(user_skills[:25])
+    sectors_str = ", ".join(user_sectors[:5]) if user_sectors else "non précisé"
+    context = f"Titre du profil: {user_title}\nCompétences du candidat: {skills_str}\nSecteurs: {sectors_str}"
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"obs-{token_id[:8]}",
+            system_message="""Tu es un expert en prospective des compétences et du marché du travail en France (2025-2026).
+Analyse les compétences du candidat et génère un rapport d'observatoire PERSONNALISÉ.
+
+Réponds UNIQUEMENT en JSON valide:
+{
+  "matches": [
+    {
+      "user_skill": "compétence du candidat qui est émergente",
+      "observatory_skill": "nom normalisé de la compétence émergente",
+      "status": "emergente|en_croissance|etablie",
+      "emergence_score": 0.85,
+      "growth_rate": 0.25,
+      "related_sectors": ["Secteur1", "Secteur2"],
+      "related_jobs": ["Métier1", "Métier2"]
+    }
+  ],
+  "skill_gaps": [
+    {
+      "skill_name": "Compétence manquante mais importante",
+      "emergence_score": 0.8,
+      "growth_rate": 0.3,
+      "status": "emergente",
+      "related_sectors": ["Secteur"],
+      "sector_relevant": true,
+      "priority": "haute|moyenne|basse"
+    }
+  ],
+  "declining_alerts": [
+    {
+      "skill": "Compétence du candidat en déclin",
+      "sector": "Secteur concerné",
+      "transformation_index": 0.7
+    }
+  ],
+  "sector_relevance": [
+    {
+      "sector": "Nom du secteur",
+      "transformation_index": 0.75,
+      "hiring_trend": "croissance|stable|recul",
+      "your_emerging_skills": ["skill1 du candidat qui est émergente dans ce secteur"],
+      "your_stable_skills": ["skill stable"],
+      "your_declining_skills": ["skill en déclin"],
+      "skill_gap_alert": true
+    }
+  ]
+}
+
+Règles:
+- Identifie parmi les compétences du candidat celles qui sont émergentes/en croissance sur le marché (matches)
+- Identifie 5-8 compétences manquantes prioritaires pour son profil (skill_gaps)
+- Signale les compétences du candidat qui sont en déclin ou obsolètes (declining_alerts)
+- Analyse 3-5 secteurs pertinents pour ce profil avec leur tendance
+- Sois réaliste et basé sur les tendances réelles du marché français
+- Les emergence_score sont entre 0 et 1 (0.8+ = très émergent)
+- Les growth_rate sont entre 0 et 1 (0.3+ = forte croissance)"""
+        ).with_model("openai", "gpt-5.2")
+
+        response = await chat.send_message(UserMessage(text=context))
+        raw = response.strip() if isinstance(response, str) else response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+
+        return _json.loads(raw.strip())
+    except Exception as e:
+        logging.error(f"Observatoire AI analysis error: {e}")
+        return None
 
 
 def _fuzzy_match(a: str, b: str) -> bool:
