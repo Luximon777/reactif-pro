@@ -1,5 +1,14 @@
 # Re'Actif Pro - Changelog
 
+## 2026-03-23 - Intégration matrice ISCO INSEE (5853 métiers)
+- Import de la matrice officielle de codification ISCO de l'INSEE (5853 libellés, 425 codes ISCO uniques)
+- Recherche enrichie: interroge la base ISCO en plus du référentiel existant, avec normalisation INSEE (accents, mots-vides)
+- Suggestions affichent le code ISCO (badge bleu) et le groupe professionnel
+- Fiches métiers enrichies avec code ISCO, libellé féminin, groupe ISCO
+- Nouveaux endpoints: POST /import, GET /stats, GET /lookup (ISCO)
+- Bouton "Rechercher" ajouté à côté du champ de saisie
+- Tests: 100% backend (14/14), 100% frontend - iteration_24.json
+
 - **Correlation CV x Émergentes (Passeport)** : Nouvel endpoint `GET /api/emerging/market-correlation` qui croise les competences emergentes detectees par l'IA avec les tendances du marche (emerging_skills, sector_trends). Affiche: banniere d'alignement marche (% alignement, nombre sur le marche, forte demande, secteurs porteurs), badges de position marche sur chaque carte, info de croissance et score marche.
 - Tests: 100% backend (9/9), 100% frontend - iteration_23.json
 

@@ -82,6 +82,9 @@ backend/
 
 - **Correlation CV x Emergentes** : endpoint market-correlation + badges marche sur cartes de competences emergentes
 
+- **Intégration matrice ISCO INSEE** : 5853 métiers importés, recherche enrichie avec normalisation INSEE, code ISCO sur fiches
+- **Bouton Rechercher** ajouté à l'Explorateur des Métiers
+
 ## Backlog
 - P1: Integration communautaire Ubuntoo (contribution participative)
 - P2: Coffre-fort numerique pour preuves de competences
