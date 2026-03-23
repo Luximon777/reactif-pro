@@ -423,38 +423,96 @@ const ObservatoireView = ({ token }) => {
           {personalizedData && <PersonalizedObservatoireCard data={personalizedData} />}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Emerging Skills */}
+            {/* Top Emerging Skills - Personalized when available */}
             <Card className="card-base">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-blue-600" />
-                  Top Compétences Émergentes
+                  {personalizedData?.matches?.length > 0 ? "Vos Compétences Émergentes" : "Top Compétences Émergentes"}
                 </CardTitle>
-                <CardDescription>Les compétences qui transforment le marché du travail</CardDescription>
+                <CardDescription>
+                  {personalizedData?.matches?.length > 0
+                    ? "Compétences de votre profil identifiées comme émergentes sur le marché"
+                    : "Les compétences qui transforment le marché du travail"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {emerging_skills.slice(0, 5).map((skill, idx) => (
-                    <EmergingSkillCard key={idx} skill={skill} rank={idx + 1} />
-                  ))}
+                  {personalizedData?.matches?.length > 0
+                    ? personalizedData.matches.slice(0, 6).map((m, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-bold text-emerald-700">{idx + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-slate-900 truncate">{m.observatory_skill}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge className={`text-[10px] ${m.status === "emergente" ? "bg-blue-100 text-blue-700" : m.status === "en_croissance" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                                {m.status === "emergente" ? "Émergente" : m.status === "en_croissance" ? "En croissance" : "Établie"}
+                              </Badge>
+                              <span className="text-[10px] text-emerald-600">+{Math.round((m.growth_rate || 0) * 100)}%</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xl font-bold text-emerald-700">{Math.round((m.emergence_score || 0) * 100)}</span>
+                            <p className="text-[10px] text-slate-400">score</p>
+                          </div>
+                        </div>
+                      ))
+                    : emerging_skills.slice(0, 5).map((skill, idx) => (
+                        <EmergingSkillCard key={idx} skill={skill} rank={idx + 1} />
+                      ))
+                  }
                 </div>
               </CardContent>
             </Card>
 
-            {/* Sectors in Transformation */}
+            {/* Sectors - Personalized when available */}
             <Card className="card-base">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-violet-600" />
-                  Secteurs en Transformation
+                  {personalizedData?.sector_relevance?.length > 0 ? "Secteurs de votre Profil" : "Secteurs en Transformation"}
                 </CardTitle>
-                <CardDescription>Dynamiques sectorielles et besoins en compétences</CardDescription>
+                <CardDescription>
+                  {personalizedData?.sector_relevance?.length > 0
+                    ? "Dynamiques des secteurs pertinents pour votre profil"
+                    : "Dynamiques sectorielles et besoins en compétences"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {sector_trends.map((trend, idx) => (
-                    <SectorTrendCard key={idx} trend={trend} />
-                  ))}
+                  {personalizedData?.sector_relevance?.length > 0
+                    ? personalizedData.sector_relevance.slice(0, 5).map((s, idx) => (
+                        <div key={idx} className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50/50 transition-colors">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-sm text-slate-900">{s.sector}</h4>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`text-[10px] ${s.hiring_trend === "croissance" ? "bg-emerald-100 text-emerald-700" : s.hiring_trend === "recul" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>
+                                {s.hiring_trend === "croissance" ? "En croissance" : s.hiring_trend === "recul" ? "En recul" : "Stable"}
+                              </Badge>
+                              {s.skill_gap_alert && <Badge className="bg-amber-100 text-amber-700 text-[10px]"><AlertTriangle className="w-3 h-3 mr-0.5" />Alerte</Badge>}
+                            </div>
+                          </div>
+                          <div className="mb-2">
+                            <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                              <span>Indice de transformation</span>
+                              <span>{Math.round((s.transformation_index || 0) * 100)}%</span>
+                            </div>
+                            <Progress value={(s.transformation_index || 0) * 100} className="h-1.5" />
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {(s.your_emerging_skills || []).slice(0, 3).map((sk, j) => (
+                              <Badge key={`e-${j}`} className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200">{sk}</Badge>
+                            ))}
+                            {(s.your_declining_skills || []).slice(0, 2).map((sk, j) => (
+                              <Badge key={`d-${j}`} className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200">{sk}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    : sector_trends.map((trend, idx) => (
+                        <SectorTrendCard key={idx} trend={trend} />
+                      ))
+                  }
                 </div>
               </CardContent>
             </Card>
@@ -494,29 +552,138 @@ const ObservatoireView = ({ token }) => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-[#1e3a5f]" />
-                Cartographie des Compétences Émergentes
+                {personalizedData?.matches?.length > 0 ? "Compétences Émergentes de votre Profil" : "Cartographie des Compétences Émergentes"}
               </CardTitle>
               <CardDescription>
-                Compétences nouvellement identifiées par l'intelligence collective
+                {personalizedData?.matches?.length > 0
+                  ? "Vos compétences identifiées comme émergentes ou en croissance sur le marché"
+                  : "Compétences nouvellement identifiées par l'intelligence collective"}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {emerging_skills.map((skill, idx) => (
-                  <EmergingSkillDetailCard key={idx} skill={skill} />
-                ))}
-              </div>
+              {personalizedData?.matches?.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {personalizedData.matches.map((m, idx) => (
+                    <div key={idx} className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge className={`text-[10px] ${m.status === "emergente" ? "bg-blue-100 text-blue-700" : m.status === "en_croissance" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                          {m.status === "emergente" ? "Émergente" : m.status === "en_croissance" ? "En croissance" : "Établie"}
+                        </Badge>
+                        <span className="text-lg font-bold text-emerald-700">{Math.round((m.emergence_score || 0) * 100)}</span>
+                      </div>
+                      <h4 className="font-semibold text-sm text-slate-900 mb-1">{m.observatory_skill}</h4>
+                      <p className="text-[10px] text-slate-500 mb-2">Croissance : +{Math.round((m.growth_rate || 0) * 100)}%</p>
+                      {m.related_sectors?.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {m.related_sectors.slice(0, 3).map((s, j) => (
+                            <Badge key={j} variant="outline" className="text-[10px]">{s}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {emerging_skills.map((skill, idx) => (
+                    <EmergingSkillDetailCard key={idx} skill={skill} />
+                  ))}
+                </div>
+              )}
+
+              {/* Skill Gaps section */}
+              {personalizedData?.skill_gaps?.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-slate-200">
+                  <h3 className="font-semibold text-sm text-amber-700 flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-4 h-4" />
+                    Compétences à acquérir pour votre profil
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {personalizedData.skill_gaps.filter(g => g.priority === "haute").slice(0, 8).map((g, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">{g.skill_name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Badge className="text-[10px] bg-amber-100 text-amber-700">Priorité haute</Badge>
+                            <span className="text-[10px] text-amber-600">+{Math.round((g.growth_rate || 0) * 100)}%</span>
+                          </div>
+                        </div>
+                        <span className="text-lg font-bold text-amber-700 ml-2">{Math.round((g.emergence_score || 0) * 100)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Sectors Tab */}
         <TabsContent value="sectors" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {sector_trends.map((trend, idx) => (
-              <SectorDetailCard key={idx} trend={trend} />
-            ))}
-          </div>
+          {personalizedData?.sector_relevance?.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {personalizedData.sector_relevance.map((s, idx) => (
+                <Card key={idx} className="card-base">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{s.sector}</CardTitle>
+                      <div className="flex gap-2">
+                        <Badge className={`text-xs ${s.hiring_trend === "croissance" ? "bg-emerald-100 text-emerald-700" : s.hiring_trend === "recul" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>
+                          {s.hiring_trend === "croissance" ? "En croissance" : s.hiring_trend === "recul" ? "En recul" : "Stable"}
+                        </Badge>
+                        {s.skill_gap_alert && <Badge className="bg-amber-100 text-amber-700 text-xs"><AlertTriangle className="w-3 h-3 mr-0.5" />Alerte</Badge>}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <span>Indice de transformation</span>
+                        <span className="font-semibold">{Math.round((s.transformation_index || 0) * 100)}%</span>
+                      </div>
+                      <Progress value={(s.transformation_index || 0) * 100} className="h-2" />
+                    </div>
+                    {(s.your_emerging_skills || []).length > 0 && (
+                      <div className="mb-2">
+                        <p className="text-[10px] font-medium text-emerald-700 mb-1">Vos compétences émergentes dans ce secteur :</p>
+                        <div className="flex flex-wrap gap-1">
+                          {s.your_emerging_skills.map((sk, j) => (
+                            <Badge key={j} className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200">{sk}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(s.your_stable_skills || []).length > 0 && (
+                      <div className="mb-2">
+                        <p className="text-[10px] font-medium text-slate-500 mb-1">Compétences stables :</p>
+                        <div className="flex flex-wrap gap-1">
+                          {s.your_stable_skills.map((sk, j) => (
+                            <Badge key={j} variant="outline" className="text-[10px]">{sk}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(s.your_declining_skills || []).length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-medium text-rose-600 mb-1">Compétences en déclin :</p>
+                        <div className="flex flex-wrap gap-1">
+                          {s.your_declining_skills.map((sk, j) => (
+                            <Badge key={j} className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200">{sk}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {sector_trends.map((trend, idx) => (
+                <SectorDetailCard key={idx} trend={trend} />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* Ubuntoo Intelligence Tab */}
