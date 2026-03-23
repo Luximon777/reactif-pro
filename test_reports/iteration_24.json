@@ -1,0 +1,121 @@
+{
+  "summary": "Completed comprehensive testing of ISCO INSEE coding matrix integration. All 14 backend API tests passed (100%). Frontend UI tests verified ISCO search suggestions with code badges, fiche headers with ISCO codes and groupe labels, and Rechercher button functionality.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DialogContent", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent} - minor accessibility issue (pre-existing)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_isco_integration.py",
+    "/app/test_reports/pytest/pytest_isco_integration.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_isco_integration.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all UI flows working)"
+  },
+  "test_credentials": "test_isco_ui_test / testpass123 (created via API)",
+  "seed_data_creation": "ISCO matrix already imported (5853 entries, 425 unique codes)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "ISCO INSEE coding matrix integration fully tested. Backend endpoints: POST /api/referentiel/isco/import (idempotent), GET /api/referentiel/isco/stats, GET /api/referentiel/isco/lookup?metier=, GET /api/referentiel/explorer/search?q= (enriched with ISCO), GET /api/referentiel/explorer/stats (includes isco_metiers/isco_codes), POST /api/referentiel/explorer/generate (enriches with ISCO code). Frontend: ExplorateurView shows ISCO code badges in search suggestions (data-testid='suggestion-{i}'), fiche header shows ISCO badge (data-testid='isco-code-badge') with code and groupe label, feminine form displayed. Auth uses localStorage keys with 'reactif_' prefix.",
+  "features_tested": {
+    "backend_apis": [
+      "POST /api/referentiel/isco/import - returns 'déjà importée' with count >5000 (PASSED)",
+      "GET /api/referentiel/isco/stats - returns imported=true, total=5853, codes_uniques=425, groupes breakdown (PASSED)",
+      "GET /api/referentiel/isco/lookup?metier=Infirmier - returns found=true with code_isco (PASSED)",
+      "GET /api/referentiel/isco/lookup?metier=Conseiller en insertion professionnelle - returns code 2423 (PASSED)",
+      "GET /api/referentiel/isco/lookup?metier=Cariste - returns found=true (PASSED)",
+      "GET /api/referentiel/isco/lookup?metier=XYZ123 - returns found=false (PASSED)",
+      "GET /api/referentiel/explorer/search?q=infirmier - returns ISCO results with code_isco and groupe_isco (PASSED)",
+      "GET /api/referentiel/explorer/search?q=cariste - returns ISCO cariste variants (PASSED)",
+      "GET /api/referentiel/explorer/search?q=soudeur - returns ISCO results (PASSED)",
+      "GET /api/referentiel/explorer/stats - returns isco_metiers=5853, isco_codes=425 (PASSED)",
+      "POST /api/referentiel/explorer/generate - returns code_isco and isco_info in cached/generated fiches (PASSED)",
+      "ISCO normalization with accents (PASSED)",
+      "ISCO case-insensitive lookup (PASSED)"
+    ],
+    "frontend_flows": [
+      "Explorateur view loads with stats showing 5853 Métiers ISCO and 425 Codes ISCO (PASSED)",
+      "Search input (data-testid='explorer-search-input') found and functional (PASSED)",
+      "Rechercher button (data-testid='explorer-search-btn') visible and functional (PASSED)",
+      "Search suggestions dropdown (data-testid='search-suggestions') appears with ISCO results (PASSED)",
+      "ISCO code badges (blue pills with 4-digit codes like 3221, 2221) shown in suggestions (PASSED)",
+      "Groupe labels ('Professions intermédiaires', etc.) shown in suggestions (PASSED)",
+      "Métier fiche loads with ISCO badge in header (data-testid='isco-code-badge') (PASSED)",
+      "Fiche header shows ISCO code (e.g., 'ISCO 3221') and groupe label (PASSED)",
+      "Feminine form displayed in fiche header (e.g., 'Forme féminine : Aide infirmière') (PASSED)",
+      "Cariste fiche shows ISCO 8344 with correct groupe (PASSED)"
+    ]
+  },
+  "validation_details": {
+    "isco_import": {
+      "total_metiers": 5853,
+      "codes_isco_uniques": 425,
+      "status": "déjà importée (idempotent)"
+    },
+    "isco_stats": {
+      "imported": true,
+      "total": 5853,
+      "codes_uniques": 425,
+      "groupes": "10 major groups (0-9)"
+    },
+    "isco_lookup_examples": {
+      "Infirmier": "found=true, code varies by specialty",
+      "Conseiller en insertion professionnelle": "code_isco=2423",
+      "Cariste": "found=true, code_isco=8344"
+    },
+    "search_enrichment": {
+      "source": "isco",
+      "fields_added": ["code_isco", "groupe_isco", "name_f"]
+    },
+    "fiche_enrichment": {
+      "fields_added": ["code_isco", "isco_info"],
+      "isco_info_structure": {
+        "code": "4-digit ISCO code",
+        "libelle_m": "masculine job title",
+        "libelle_f": "feminine job title",
+        "groupe": "ISCO major group label"
+      }
+    }
+  },
+  "api_response_structure": {
+    "/api/referentiel/isco/import": {
+      "message": "string",
+      "count": "number (if already imported)",
+      "total_metiers": "number (if newly imported)",
+      "codes_isco_uniques": "number (if newly imported)"
+    },
+    "/api/referentiel/isco/stats": {
+      "imported": "boolean",
+      "total": "number",
+      "codes_uniques": "number",
+      "groupes": "array of {code, label, count}"
+    },
+    "/api/referentiel/isco/lookup": {
+      "found": "boolean",
+      "code_isco": "string (4 digits)",
+      "libelle_m": "string",
+      "libelle_f": "string",
+      "groupe": "string",
+      "partial": "boolean (optional)"
+    },
+    "/api/referentiel/explorer/search": {
+      "metiers": "array with source='isco', code_isco, groupe_isco, name_f fields for ISCO results"
+    },
+    "/api/referentiel/explorer/stats": {
+      "isco_metiers": "number",
+      "isco_codes": "number"
+    }
+  }
+}
