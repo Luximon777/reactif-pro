@@ -2,23 +2,16 @@ from fastapi import APIRouter, HTTPException
 from typing import Optional
 import logging
 from datetime import datetime, timezone
-from models import JobOffer, Beneficiary, CreateJobRequest
+from models import JobOffer, Beneficiary, CreateJobRequest, CandidateSearchProfile
 from db import db
 from helpers import get_current_token, calculate_match_with_ai
+from job_matching import calculate_job_score
 
 router = APIRouter()
 
 
-@router.get("/jobs/matching")
-async def get_job_matching(token: str):
-    """Generate AI-powered job matching based on the user's CV analysis and optimized CV."""
-    from db import EMERGENT_LLM_KEY
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
-    import json as _json
-
-    token_doc = await get_current_token(token)
-    token_id = token_doc["id"]
-
+async def _gather_user_context(token_id: str):
+    """Gather CV, optimized CV, passport data for a user."""
     cv_job = await db.cv_jobs.find_one(
         {"token_id": token_id, "status": "completed"}, {"_id": 0},
         sort=[("created_at", -1)]
@@ -26,19 +19,15 @@ async def get_job_matching(token: str):
     cv_optimized = await db.cv_models.find_one({"token_id": token_id}, {"_id": 0})
     passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
 
-    if not cv_job:
-        return {"has_data": False, "matches": [], "message": "Analysez votre CV pour obtenir des offres d'emploi personnalisées"}
-
-    cv_result = cv_job.get("result", {})
-    existing_suggestions = cv_result.get("offres_emploi_suggerees", [])
-
-    # Collect user skills from all sources
     user_skills = set()
-    for t in cv_result.get("competences_transversales", []):
-        if t:
-            user_skills.add(t)
-
     user_title = ""
+    career_project = ""
+
+    if cv_job and cv_job.get("result"):
+        for t in cv_job["result"].get("competences_transversales", []):
+            if t:
+                user_skills.add(t)
+
     if cv_optimized and cv_optimized.get("models"):
         for model_data in cv_optimized["models"].values():
             if isinstance(model_data, dict):
@@ -52,7 +41,6 @@ async def get_job_matching(token: str):
                         user_skills.add(str(name))
                 break
 
-    career_project = ""
     if passport:
         career_project = passport.get("career_project", "")
         for c in passport.get("competences", []):
@@ -60,92 +48,159 @@ async def get_job_matching(token: str):
             if name:
                 user_skills.add(name)
 
-    # Enrich existing suggestions with matching scores
-    matches = []
-    if existing_suggestions:
-        user_skills_lower = {s.lower() for s in user_skills}
-        for sug in existing_suggestions:
-            required = sug.get("competences_requises", [])
-            matched_skills = []
-            for req in required:
-                req_lower = req.lower()
-                for us in user_skills_lower:
-                    if us in req_lower or req_lower in us:
-                        matched_skills.append(req)
-                        break
-            match_pct = round((len(matched_skills) / max(len(required), 1)) * 100)
-            matches.append({
-                "titre": sug.get("titre", ""),
-                "secteur": sug.get("secteur", ""),
-                "type_contrat": sug.get("type_contrat", "CDI"),
-                "description": sug.get("description_courte", ""),
-                "competences_requises": required,
-                "competences_matchees": matched_skills,
-                "matching_score": match_pct,
-                "source": "cv_analysis"
-            })
+    return cv_job, cv_optimized, passport, user_skills, user_title, career_project
 
-    # Generate additional matches via AI
-    if EMERGENT_LLM_KEY and user_skills:
-        try:
-            skills_str = ", ".join(list(user_skills)[:20])
-            context = f"Titre du profil: {user_title}\nCompétences: {skills_str}"
-            if career_project:
-                context += f"\nProjet professionnel: {career_project[:200]}"
 
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=f"jobmatch-{token_id[:8]}",
-                system_message="""Tu es un expert en recrutement et matching emploi en France.
-Analyse le profil et génère 5 offres d'emploi RÉALISTES et CONCRÈTES qui correspondent au profil.
+async def _generate_ai_offers(token_id: str, user_skills: set, user_title: str, career_project: str, filters: dict = None):
+    """Generate AI-powered job offers, optionally guided by user filters."""
+    from db import EMERGENT_LLM_KEY
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+
+    if not EMERGENT_LLM_KEY or not user_skills:
+        return []
+
+    skills_str = ", ".join(list(user_skills)[:20])
+    context = f"Titre du profil: {user_title}\nCompétences: {skills_str}"
+    if career_project:
+        context += f"\nProjet professionnel: {career_project[:200]}"
+
+    # Add filter context to guide AI generation
+    filter_context = ""
+    if filters:
+        if filters.get("metier") and filters["metier"].get("value"):
+            val = filters["metier"]["value"]
+            if isinstance(val, list):
+                filter_context += f"\nMétier(s) visé(s): {', '.join(val)}"
+            else:
+                filter_context += f"\nMétier visé: {val}"
+        if filters.get("secteur") and filters["secteur"].get("value"):
+            val = filters["secteur"]["value"]
+            if isinstance(val, list):
+                filter_context += f"\nSecteur(s) préféré(s): {', '.join(val)}"
+            else:
+                filter_context += f"\nSecteur préféré: {val}"
+        if filters.get("contrat") and filters["contrat"].get("value"):
+            val = filters["contrat"]["value"]
+            if isinstance(val, list):
+                filter_context += f"\nType(s) de contrat: {', '.join(val)}"
+            else:
+                filter_context += f"\nType de contrat: {val}"
+
+    if filter_context:
+        context += f"\n\nCritères de recherche du candidat:{filter_context}"
+
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"jobmatch-{token_id[:8]}",
+            system_message="""Tu es un expert en recrutement et matching emploi en France.
+Analyse le profil et génère 8 offres d'emploi RÉALISTES et CONCRÈTES qui correspondent au profil.
 
 Règles:
 - Les offres doivent être RÉALISTES (types d'offres qu'on trouve sur Indeed, Pôle Emploi, APEC)
-- Calcule un taux de matching (0-100%) basé sur l'adéquation compétences/poste
+- Si des critères de recherche sont fournis, génère des offres qui y correspondent ET des offres proches/alternatives
 - Varie les types de contrats (CDI, CDD, missions)
-- Varie les niveaux (des offres très compatibles à 90%+ et des offres atteignables à 60-70%)
+- Varie les niveaux de compatibilité
 
-Réponds UNIQUEMENT en JSON valide: un array de 5 objets:
+Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
 {
   "titre": "Intitulé exact du poste",
-  "entreprise_type": "Type d'entreprise",
+  "entreprise_type": "Type d'entreprise (PME, Grand groupe, Association, etc.)",
   "secteur": "Secteur d'activité",
-  "type_contrat": "CDI|CDD|Mission|Freelance",
-  "localisation": "Région ou ville type",
-  "description": "Description courte du poste (2-3 phrases)",
+  "metier": "Intitulé du métier normalisé",
+  "type_contrat": "CDI|CDD|Mission|Freelance|Alternance",
+  "temps_travail": "temps plein|temps partiel",
+  "localisation": "Ville ou région",
+  "trajet_estime_minutes": 30,
+  "teletravail": true ou false,
+  "amenagement_possible": true ou false,
+  "port_charges": false,
+  "travail_nuit": false,
+  "horaires_decales": false,
+  "accessibilite_locaux": true,
+  "description": "Description courte (2-3 phrases)",
   "competences_requises": ["comp1", "comp2", "comp3", "comp4", "comp5"],
   "competences_matchees": ["comp du profil qui matche"],
-  "matching_score": 85,
   "salaire_indicatif": "fourchette salariale",
-  "pourquoi_ce_match": "Explication courte du matching"
+  "pourquoi_ce_match": "Explication courte du matching",
+  "url_offre": ""
 }"""
-            ).with_model("openai", "gpt-5.2")
+        ).with_model("openai", "gpt-5.2")
 
-            response = await chat.send_message(UserMessage(text=context))
-            raw = response.strip() if isinstance(response, str) else response.text.strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-                if raw.endswith("```"):
-                    raw = raw[:-3]
+        response = await chat.send_message(UserMessage(text=context))
+        raw = response.strip() if isinstance(response, str) else response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
 
-            ai_matches = _json.loads(raw.strip())
-            if isinstance(ai_matches, list):
-                for m in ai_matches:
-                    m["source"] = "ai_generated"
-                matches.extend(ai_matches)
-            elif isinstance(ai_matches, dict):
-                arr = ai_matches.get("matches", ai_matches.get("offres", []))
-                for m in arr:
-                    m["source"] = "ai_generated"
-                matches.extend(arr)
-        except Exception as e:
-            logging.error(f"Job matching AI error: {e}")
+        ai_matches = _json.loads(raw.strip())
+        if isinstance(ai_matches, list):
+            return ai_matches
+        elif isinstance(ai_matches, dict):
+            return ai_matches.get("matches", ai_matches.get("offres", []))
+    except Exception as e:
+        logging.error(f"Job matching AI error: {e}")
+    return []
+
+
+@router.get("/jobs/matching")
+async def get_job_matching(token: str):
+    """Generate AI-powered job matching based on the user's CV analysis and optimized CV."""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    cv_job, cv_optimized, passport, user_skills, user_title, career_project = await _gather_user_context(token_id)
+
+    if not cv_job:
+        return {"has_data": False, "matches": [], "message": "Analysez votre CV pour obtenir des offres d'emploi personnalisées"}
+
+    # Load saved preferences if any
+    prefs = await db.job_search_preferences.find_one({"token_id": token_id}, {"_id": 0})
+    filters = prefs.get("filters", {}) if prefs else {}
+
+    # Generate AI offers
+    ai_offers = await _generate_ai_offers(token_id, user_skills, user_title, career_project, filters)
+
+    # If user has filters, score each offer with the algorithm
+    matches = []
+    if filters and any(filters.get(k) for k in ["metier", "secteur", "contrat", "temps_travail", "trajet_max_minutes", "teletravail", "amenagement_poste", "restrictions_fonctionnelles"]):
+        candidate_profile = {}
+        for key in ["metier", "secteur", "contrat", "temps_travail", "trajet_max_minutes", "teletravail", "amenagement_poste", "restrictions_fonctionnelles"]:
+            if filters.get(key) and filters[key].get("value"):
+                candidate_profile[key] = filters[key]
+
+        for offer in ai_offers:
+            job_data = {
+                "metier": offer.get("metier", offer.get("titre", "")),
+                "secteur": offer.get("secteur", ""),
+                "contrat": offer.get("type_contrat", ""),
+                "temps_travail": offer.get("temps_travail", ""),
+                "trajet_estime_minutes": offer.get("trajet_estime_minutes", 30),
+                "teletravail": offer.get("teletravail", False),
+                "amenagement_possible": offer.get("amenagement_possible", False),
+                "port_charges": offer.get("port_charges", False),
+                "travail_nuit": offer.get("travail_nuit", False),
+                "accessibilite_locaux": offer.get("accessibilite_locaux", True),
+                "horaires_decales": offer.get("horaires_decales", False),
+            }
+            scoring = calculate_job_score(candidate_profile, job_data)
+            offer["scoring"] = scoring
+            offer["matching_score"] = scoring["score"]
+            offer["source"] = "ai_scored"
+        matches = ai_offers
+    else:
+        for offer in ai_offers:
+            offer["source"] = "ai_generated"
+        matches = ai_offers
 
     matches.sort(key=lambda x: x.get("matching_score", 0), reverse=True)
 
     return {
         "has_data": True,
-        "matches": matches[:8],
+        "matches": matches[:10],
+        "has_filters": bool(filters),
         "profile_summary": {
             "titre": user_title,
             "skills_count": len(user_skills),
@@ -153,6 +208,99 @@ Réponds UNIQUEMENT en JSON valide: un array de 5 objets:
             "has_career_project": bool(career_project)
         }
     }
+
+
+@router.post("/jobs/matching/search")
+async def search_job_matching(token: str, search_profile: CandidateSearchProfile):
+    """Search job matches with advanced scoring based on candidate criteria."""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    cv_job, cv_optimized, passport, user_skills, user_title, career_project = await _gather_user_context(token_id)
+
+    if not cv_job:
+        return {"has_data": False, "matches": [], "message": "Analysez votre CV pour obtenir des offres d'emploi personnalisées"}
+
+    # Build filters dict from search profile
+    filters = {}
+    profile_dict = search_profile.model_dump(exclude_none=True)
+    for key, criterion in profile_dict.items():
+        if criterion and criterion.get("value"):
+            filters[key] = criterion
+
+    # Save preferences
+    await db.job_search_preferences.update_one(
+        {"token_id": token_id},
+        {"$set": {"token_id": token_id, "filters": filters, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+
+    # Generate AI offers guided by filters
+    ai_offers = await _generate_ai_offers(token_id, user_skills, user_title, career_project, filters)
+
+    # Score each offer
+    matches = []
+    for offer in ai_offers:
+        job_data = {
+            "metier": offer.get("metier", offer.get("titre", "")),
+            "secteur": offer.get("secteur", ""),
+            "contrat": offer.get("type_contrat", ""),
+            "temps_travail": offer.get("temps_travail", ""),
+            "trajet_estime_minutes": offer.get("trajet_estime_minutes", 30),
+            "teletravail": offer.get("teletravail", False),
+            "amenagement_possible": offer.get("amenagement_possible", False),
+            "port_charges": offer.get("port_charges", False),
+            "travail_nuit": offer.get("travail_nuit", False),
+            "accessibilite_locaux": offer.get("accessibilite_locaux", True),
+            "horaires_decales": offer.get("horaires_decales", False),
+        }
+        scoring = calculate_job_score(filters, job_data)
+        offer["scoring"] = scoring
+        offer["matching_score"] = scoring["score"]
+        offer["source"] = "ai_scored"
+        matches.append(offer)
+
+    matches.sort(key=lambda x: x.get("matching_score", 0), reverse=True)
+
+    return {
+        "has_data": True,
+        "matches": matches[:10],
+        "has_filters": True,
+        "filters_applied": filters,
+        "profile_summary": {
+            "titre": user_title,
+            "skills_count": len(user_skills),
+            "has_optimized_cv": bool(cv_optimized),
+            "has_career_project": bool(career_project)
+        }
+    }
+
+
+@router.get("/jobs/matching/preferences")
+async def get_matching_preferences(token: str):
+    """Get saved job matching preferences."""
+    token_doc = await get_current_token(token)
+    prefs = await db.job_search_preferences.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not prefs:
+        return {"has_preferences": False, "filters": {}}
+    return {"has_preferences": True, "filters": prefs.get("filters", {})}
+
+
+@router.put("/jobs/matching/preferences")
+async def save_matching_preferences(token: str, search_profile: CandidateSearchProfile):
+    """Save job matching preferences without triggering search."""
+    token_doc = await get_current_token(token)
+    filters = {}
+    profile_dict = search_profile.model_dump(exclude_none=True)
+    for key, criterion in profile_dict.items():
+        if criterion and criterion.get("value"):
+            filters[key] = criterion
+    await db.job_search_preferences.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"token_id": token_doc["id"], "filters": filters, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"message": "Préférences sauvegardées", "filters": filters}
 
 
 

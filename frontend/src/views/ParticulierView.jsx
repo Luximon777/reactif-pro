@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
+import JobMatchingSection from "@/components/JobMatchingSection";
 
 const ParticulierView = ({ token, section }) => {
   const navigate = useNavigate();
@@ -101,7 +102,7 @@ const ParticulierView = ({ token, section }) => {
     { title: "Compétences Valorisées", value: displayProfile.skills?.length?.toString() || "0", icon: Zap, color: "violet", subtitle: "Dans votre coffre-fort" }
   ];
 
-  if (section === "jobs") return <JobsSection jobs={jobs} token={token} />;
+  if (section === "jobs") return <JobMatchingSection token={token} />;
   if (section === "learning") return <LearningSection modules={learningModules} updateProgress={updateLearningProgress} token={token} />;
 
   return (
@@ -270,28 +271,47 @@ const ParticulierView = ({ token, section }) => {
   );
 };
 
-const JobCard = ({ job }) => {
-  const matchColor = job.match_score >= 80 ? "text-green-600 bg-green-50" : job.match_score >= 60 ? "text-blue-600 bg-blue-50" : "text-amber-600 bg-amber-50";
-  return (
-    <Card className="card-interactive group" data-testid={`job-card-${job.id}`}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className={`px-2 py-1 rounded-lg text-sm font-semibold ${matchColor}`}>{job.match_score}% match</div>
-          <Badge variant="outline" className="text-xs">{job.contract_type}</Badge>
+const JobCard = ({ job }) => (
+  <Card className="card-interactive group" data-testid={`job-card-${job.id || 'preview'}`}>
+    <CardContent className="p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+            {job.title}
+          </h3>
+          <p className="text-sm text-slate-500 truncate">{job.company}</p>
         </div>
-        <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{job.title}</h3>
-        <p className="text-sm text-slate-600 mb-3">{job.company}</p>
-        <div className="space-y-1 text-xs text-slate-500">
-          <div className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</div>
-          {job.salary_range && <div className="flex items-center gap-1"><Euro className="w-3 h-3" />{job.salary_range}</div>}
+        {job.match_score !== undefined && (
+          <div className={`px-2 py-1 rounded-lg text-xs font-bold ${
+            job.match_score >= 80 ? 'bg-emerald-100 text-emerald-700' :
+            job.match_score >= 60 ? 'bg-blue-100 text-blue-700' :
+            'bg-slate-100 text-slate-600'
+          }`}>
+            {job.match_score}%
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+        {job.location && (
+          <span className="flex items-center gap-1">
+            <MapPin className="w-3 h-3" />
+            {job.location}
+          </span>
+        )}
+        {job.contract_type && (
+          <Badge variant="outline" className="text-[10px]">{job.contract_type}</Badge>
+        )}
+      </div>
+      {job.required_skills?.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {job.required_skills.slice(0, 3).map((skill, i) => (
+            <Badge key={i} className="text-[10px] bg-slate-100 text-slate-600">{skill}</Badge>
+          ))}
         </div>
-        <div className="flex flex-wrap gap-1 mt-3">
-          {job.required_skills?.slice(0, 3).map((skill, idx) => <Badge key={idx} variant="secondary" className="text-xs">{skill}</Badge>)}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+      )}
+    </CardContent>
+  </Card>
+);
 
 const LearningCard = ({ module, onUpdateProgress }) => (
   <Card className={`card-interactive group overflow-hidden ${module.relevance === "haute" ? "ring-2 ring-amber-300" : ""}`} data-testid={`learning-card-${module.id}`}>
@@ -341,133 +361,6 @@ const LearningCard = ({ module, onUpdateProgress }) => (
     </CardContent>
   </Card>
 );
-
-const JobsSection = ({ jobs, token }) => {
-  const [matching, setMatching] = useState(null);
-  const [loadingMatch, setLoadingMatch] = useState(false);
-
-  useEffect(() => {
-    const loadMatching = async () => {
-      setLoadingMatch(true);
-      try {
-        const res = await axios.get(`${API}/jobs/matching?token=${token}`);
-        setMatching(res.data);
-      } catch (e) { console.error("Job matching error:", e); }
-      setLoadingMatch(false);
-    };
-    if (token) loadMatching();
-  }, [token]);
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return { bg: "bg-emerald-100", text: "text-emerald-700", ring: "ring-emerald-200", bar: "bg-emerald-500" };
-    if (score >= 60) return { bg: "bg-blue-100", text: "text-blue-700", ring: "ring-blue-200", bar: "bg-blue-500" };
-    if (score >= 40) return { bg: "bg-amber-100", text: "text-amber-700", ring: "ring-amber-200", bar: "bg-amber-500" };
-    return { bg: "bg-slate-100", text: "text-slate-600", ring: "ring-slate-200", bar: "bg-slate-400" };
-  };
-
-  return (
-    <div className="space-y-6 animate-fade-in" data-testid="jobs-section">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Job Matching</h1>
-        <p className="text-slate-600 mt-1">Offres d'emploi sélectionnées par l'IA selon votre profil et votre CV</p>
-      </div>
-
-      {loadingMatch && (
-        <div className="flex items-center gap-3 p-6 bg-blue-50 rounded-xl border border-blue-100">
-          <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
-          <span className="text-sm text-blue-700">Analyse de votre profil et recherche d'offres compatibles...</span>
-        </div>
-      )}
-
-      {!loadingMatch && matching && !matching.has_data && (
-        <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
-          <CardContent className="p-6 text-center">
-            <Target className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h3 className="font-semibold text-slate-700">Analysez votre CV pour activer le Job Matching</h3>
-            <p className="text-sm text-slate-500 mt-1">L'IA sélectionnera des offres d'emploi pertinentes selon votre profil</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {!loadingMatch && matching?.has_data && matching.profile_summary && (
-        <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8f] border-0" data-testid="matching-profile-banner">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Target className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-white">{matching.profile_summary.titre || "Profil analysé"}</h4>
-                  <p className="text-[11px] text-blue-100">{matching.profile_summary.skills_count} compétences analysées</p>
-                </div>
-              </div>
-              <div className="flex gap-2 sm:ml-auto">
-                {matching.profile_summary.has_optimized_cv && <Badge className="bg-white/15 text-white text-[10px]">CV optimisé</Badge>}
-                {matching.profile_summary.has_career_project && <Badge className="bg-white/15 text-white text-[10px]">Projet pro défini</Badge>}
-                <Badge className="bg-emerald-400/20 text-emerald-200 text-[10px]">{matching.matches?.length || 0} offres trouvées</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!loadingMatch && matching?.matches?.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {matching.matches.map((match, idx) => {
-            const sc = getScoreColor(match.matching_score);
-            return (
-              <Card key={idx} className={`card-interactive group ${match.matching_score >= 80 ? "ring-2 " + sc.ring : ""}`} data-testid={`job-match-card-${idx}`}>
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{match.titre}</h3>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {match.entreprise_type && <span className="text-xs text-slate-500">{match.entreprise_type}</span>}
-                        <Badge variant="outline" className="text-[10px]">{match.type_contrat}</Badge>
-                        <span className="text-xs text-slate-400">{match.secteur}</span>
-                      </div>
-                    </div>
-                    <div className={`flex flex-col items-center ml-3 px-3 py-2 rounded-xl ${sc.bg}`} data-testid="matching-score">
-                      <span className={`text-2xl font-bold ${sc.text}`}>{match.matching_score}%</span>
-                      <span className={`text-[10px] ${sc.text}`}>match</span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-600 mb-3">{match.description}</p>
-
-                  {/* Matching bar */}
-                  <div className="mb-3">
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div className={`h-full rounded-full ${sc.bar} transition-all duration-500`} style={{ width: `${match.matching_score}%` }} />
-                    </div>
-                  </div>
-
-                  {match.pourquoi_ce_match && (
-                    <div className="p-2 bg-blue-50 rounded-lg mb-3 border border-blue-100">
-                      <p className="text-[11px] text-blue-700"><Sparkles className="w-3 h-3 inline mr-1" />{match.pourquoi_ce_match}</p>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {(match.competences_matchees || []).slice(0, 4).map((c, i) => (
-                      <Badge key={i} className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">{c}</Badge>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2">
-                    {match.localisation && <span>{match.localisation}</span>}
-                    {match.salaire_indicatif && <span className="font-medium text-slate-600">{match.salaire_indicatif}</span>}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
 
 const LearningSection = ({ modules, updateProgress, token }) => {
   const [recommendations, setRecommendations] = useState([]);

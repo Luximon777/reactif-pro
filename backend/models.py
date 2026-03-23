@@ -110,6 +110,24 @@ class Beneficiary(BaseModel):
     partner_id: str
 
 
+class CandidateSearchCriterion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    value: Any = None
+    priority: int = 3
+
+
+class CandidateSearchProfile(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    metier: Optional[CandidateSearchCriterion] = None
+    secteur: Optional[CandidateSearchCriterion] = None
+    contrat: Optional[CandidateSearchCriterion] = None
+    temps_travail: Optional[CandidateSearchCriterion] = None
+    trajet_max_minutes: Optional[CandidateSearchCriterion] = None
+    teletravail: Optional[CandidateSearchCriterion] = None
+    amenagement_poste: Optional[CandidateSearchCriterion] = None
+    restrictions_fonctionnelles: Optional[CandidateSearchCriterion] = None
+
+
 class CoffreDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

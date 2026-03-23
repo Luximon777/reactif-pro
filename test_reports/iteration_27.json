@@ -1,0 +1,92 @@
+{
+  "summary": "Tested Advanced Job Matching feature with filters and scoring. Fixed critical frontend bug (JobCard not defined). All 18 backend tests passed (100%). Frontend UI verified: filter panel with all required fields, priority selectors, search button, RQTH restrictions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DialogContent", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent} - minor accessibility issue (pre-existing)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_job_matching_advanced.py",
+    "/app/test_reports/pytest/pytest_job_matching_advanced.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIXED: JobCard component was missing in ParticulierView.jsx - added component definition",
+    "GET /api/jobs/matching/preferences - returns has_preferences=false for new user (VERIFIED)",
+    "PUT /api/jobs/matching/preferences - saves filter criteria with priorities (VERIFIED)",
+    "GET /api/jobs/matching/preferences - returns saved prefs after PUT (VERIFIED)",
+    "POST /api/jobs/matching/search - returns has_data=false without CV (VERIFIED)",
+    "GET /api/jobs/matching - backward compatible, loads saved prefs (VERIFIED)",
+    "calculate_job_score function - correct scoring with blocages, vigilances, points_forts (VERIFIED)",
+    "Priority 5 = blocking criterion when compatibility = 0 (VERIFIED)",
+    "RQTH restrictions create blocking when incompatible (VERIFIED)",
+    "Frontend filter panel has all required fields: métier, secteur, contrat, temps travail, trajet, télétravail, aménagement, restrictions RQTH (VERIFIED)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_job_matching_advanced.py",
+    "/app/frontend/src/views/ParticulierView.jsx"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 tests passed)",
+    "frontend": "100% (all UI flows working after fix)"
+  },
+  "test_credentials": "test_jm_wg31xw / testpass123 (created via UI)",
+  "seed_data_creation": "No seed data needed - tests create their own test accounts",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Job Matching advanced feature fully tested. Backend endpoints: GET/PUT /api/jobs/matching/preferences for saving filter criteria with priorities, POST /api/jobs/matching/search for searching with scoring (requires CV), GET /api/jobs/matching backward compatible. Scoring algorithm (job_matching.py) tested: calculate_job_score returns score, statut, blocages, vigilances, points_forts, evaluations. Priority 5 = blocking. Frontend JobMatchingSection component has filter panel with all fields (data-testid='filter-panel'), search button (data-testid='search-btn'), results grid (data-testid='results-grid'). Fixed missing JobCard component in ParticulierView.jsx.",
+  "features_tested": {
+    "backend_apis": [
+      "GET /api/jobs/matching/preferences - empty for new user (PASSED)",
+      "PUT /api/jobs/matching/preferences - saves filters with priorities (PASSED)",
+      "GET /api/jobs/matching/preferences - returns saved prefs (PASSED)",
+      "POST /api/jobs/matching/search - returns has_data=false without CV (PASSED)",
+      "POST /api/jobs/matching/search - invalid token rejection (PASSED)",
+      "GET /api/jobs/matching - backward compatible (PASSED)"
+    ],
+    "scoring_algorithm": [
+      "Perfect match returns 100% score (PASSED)",
+      "Priority 5 with 0 compatibility creates blocking (PASSED)",
+      "RQTH restrictions create blocking when incompatible (PASSED)",
+      "Partial matches create vigilances (PASSED)",
+      "score_detail structure correct (PASSED)",
+      "evaluations array structure correct (PASSED)",
+      "Empty candidate profile handled (PASSED)",
+      "Empty job offer handled (PASSED)",
+      "Métier family matching gives partial score (PASSED)",
+      "Sector group matching gives partial score (PASSED)"
+    ],
+    "frontend_flows": [
+      "User registration via Espace Personnel (PASSED)",
+      "Navigation to Matching tab (PASSED)",
+      "Job Matching page loads at /dashboard/jobs (PASSED)",
+      "Filter button opens/closes panel (PASSED)",
+      "Filter panel has all required fields (PASSED)",
+      "Priority selectors visible (PASSED)",
+      "Search button visible (PASSED)",
+      "Message shown for users without CV (PASSED)"
+    ]
+  },
+  "bug_fixed": {
+    "issue": "ReferenceError: JobCard is not defined",
+    "file": "/app/frontend/src/views/ParticulierView.jsx",
+    "fix": "Added missing JobCard component definition",
+    "impact": "Dashboard was crashing on load for new users"
+  },
+  "data_testid_verified": [
+    "jobs-section - main container for Job Matching page",
+    "toggle-filters-btn - button to open/close filter panel",
+    "filter-panel - filter criteria panel",
+    "filter-metier - métier input field",
+    "filter-secteur - secteur input field",
+    "filter-trajet - trajet max minutes input",
+    "search-btn - search with scoring button",
+    "reset-filters-btn - reset filters button"
+  ]
+}
