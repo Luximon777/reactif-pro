@@ -621,16 +621,19 @@ const JobMatchingSection = ({ token }) => {
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
-                      {match.url_offre ? (
-                        <a href={match.url_offre} target="_blank" rel="noopener noreferrer"
-                          className="font-semibold text-slate-900 hover:text-blue-600 transition-colors flex items-center gap-1.5 group/link"
-                          data-testid={`job-title-link-${idx}`}>
-                          {match.titre}
-                          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-blue-500 transition-colors shrink-0" />
-                        </a>
-                      ) : (
-                        <h3 className="font-semibold text-slate-900">{match.titre}</h3>
-                      )}
+                      {(() => {
+                        const searchQuery = [match.titre, match.localisation || match.secteur, "offre emploi"]
+                          .filter(Boolean).join(" ");
+                        const searchUrl = match.url_offre || `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+                        return (
+                          <a href={searchUrl} target="_blank" rel="noopener noreferrer"
+                            className="font-semibold text-slate-900 hover:text-blue-600 underline-offset-2 hover:underline transition-colors flex items-center gap-1.5 group/link"
+                            data-testid={`job-title-link-${idx}`}>
+                            {match.titre}
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-blue-500 transition-colors shrink-0" />
+                          </a>
+                        );
+                      })()}
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {match.entreprise_type && <span className="text-xs text-slate-500">{match.entreprise_type}</span>}
                         <Badge variant="outline" className="text-[10px]">{match.type_contrat}</Badge>
