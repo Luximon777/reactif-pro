@@ -508,31 +508,42 @@ async def get_learning_modules(token: str):
         {"token_id": token_id}, {"_id": 0}
     ).to_list(20)
 
-    # Regenerate if no personalized modules or emerging skills changed
+    # Regenerate if no personalized modules or emerging skills changed or profile has data but no personalized modules
     stored_emerging = set()
     for m in personalized:
         for es in m.get("emerging_match", []):
             stored_emerging.add(es.lower())
     current_emerging = set(e.lower() for e in emerging_skills)
 
-    if emerging_skills and EMERGENT_LLM_KEY and (not personalized or current_emerging != stored_emerging):
+    has_profile = bool(user_skills) or bool(cv_skills) or bool(professional_summary)
+    needs_generation = (not personalized and has_profile) or (emerging_skills and current_emerging != stored_emerging)
+
+    if needs_generation and EMERGENT_LLM_KEY:
         try:
             from emergentintegrations.llm.chat import LlmChat, UserMessage
             import json as _json
+
+            emerging_instruction = ""
+            if emerging_skills:
+                emerging_instruction = f"\nCOMPÉTENCES ÉMERGENTES À CIBLER EN PRIORITÉ: {', '.join(emerging_skills)}"
+            else:
+                emerging_instruction = "\nAucune compétence émergente détectée. Propose des formations adaptées au profil et au projet professionnel."
 
             context = f"""Profil:
 - Compétences actuelles: {', '.join(user_skills[:15])}
 - Compétences transversales CV: {', '.join(cv_skills[:10])}
 - Résumé: {professional_summary[:200]}
 - Projet: {career_project[:200]}
+{emerging_instruction}"""
 
-COMPÉTENCES ÉMERGENTES À CIBLER EN PRIORITÉ: {', '.join(emerging_skills)}"""
+            system_msg = """Tu es un expert en ingénierie de formation en France.
+Génère 8 modules de formation CONCRETS et PERTINENTS adaptés au profil."""
+            if emerging_skills:
+                system_msg += " Les 4 premiers DOIVENT cibler directement les compétences émergentes listées."
+            else:
+                system_msg += " Adapte chaque formation au profil, aux compétences et au projet professionnel de la personne."
 
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=f"learning-modules-{token_id[:8]}-{hash(tuple(emerging_skills)) % 10000}",
-                system_message="""Tu es un expert en ingénierie de formation en France.
-Génère 8 modules de formation CONCRETS et PERTINENTS. Les 4 premiers DOIVENT cibler directement les compétences émergentes listées.
+            system_msg += """
 
 Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
 {
@@ -542,10 +553,15 @@ Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
   "level": "Debutant|Intermediaire|Avance",
   "category": "catégorie courte",
   "skills_developed": ["comp1", "comp2", "comp3"],
-  "emerging_match": ["nom exact de la compétence émergente ciblée, ou vide si non applicable"],
+  "emerging_match": ["nom exact de la compétence émergente ciblée, ou array vide si non applicable"],
   "provider": "organisme suggéré",
   "cpf_eligible": true/false
 }"""
+
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"learning-modules-{token_id[:8]}-{hash(tuple(user_skills[:5] + emerging_skills)) % 10000}",
+                system_message=system_msg
             ).with_model("openai", "gpt-5.2")
 
             response = await chat.send_message(UserMessage(text=context))
