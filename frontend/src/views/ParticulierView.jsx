@@ -134,8 +134,8 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                 <Award className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Passer le test D'CLIC PRO</h3>
-                <p className="text-indigo-100 text-xs">Pour améliorer et crédibiliser vos profils personnalités et compétences pro</p>
+                <h3 className="text-base font-semibold text-white">Passer le test D'CLIC PRO</h3>
+                <p className="text-indigo-100 text-sm">Pour améliorer et crédibiliser vos profils personnalités et compétences pro</p>
               </div>
             </div>
             <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
