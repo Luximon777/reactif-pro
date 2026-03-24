@@ -339,7 +339,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div>
             <FileDown className="w-8 h-8 mx-auto text-slate-400 mb-2" />
             <p className="text-sm font-medium text-slate-700">Chargez votre CV (PDF, DOCX, TXT)</p>
-            <p className="text-xs text-slate-400">L'IA auditera votre CV selon 10 criteres professionnels et proposera une optimisation percutante</p>
+            <p className="text-sm text-slate-400">L'IA auditera votre CV selon 10 criteres professionnels et proposera une optimisation percutante</p>
           </div>
         )}
       </div>
@@ -362,46 +362,46 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3" data-testid="cv-analysis-result">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            <h4 className="font-semibold text-emerald-800 text-sm">Analyse terminée — {analysisResult.filename}</h4>
+            <h4 className="font-semibold text-emerald-800">Analyse terminée — {analysisResult.filename}</h4>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
             <div className="bg-white rounded-lg p-2">
               <p className="text-xl font-bold text-sky-600">{analysisResult.savoir_faire_count}</p>
-              <p className="text-[10px] text-slate-500">Savoir-faire</p>
+              <p className="text-xs text-slate-500">Savoir-faire</p>
             </div>
             <div className="bg-white rounded-lg p-2">
               <p className="text-xl font-bold text-rose-500">{analysisResult.savoir_etre_count}</p>
-              <p className="text-[10px] text-slate-500">Savoir-être</p>
+              <p className="text-xs text-slate-500">Savoir-être</p>
             </div>
             <div className="bg-white rounded-lg p-2">
               <p className="text-xl font-bold text-blue-600">{analysisResult.experiences_count}</p>
-              <p className="text-[10px] text-slate-500">Expériences</p>
+              <p className="text-xs text-slate-500">Expériences</p>
             </div>
             <div className="bg-white rounded-lg p-2">
               <p className="text-xl font-bold text-emerald-600">{analysisResult.formations_suggestions?.length || 0}</p>
-              <p className="text-[10px] text-slate-500">Formations suggérées</p>
+              <p className="text-xs text-slate-500">Formations suggérées</p>
             </div>
           </div>
           {analysisResult.competences_transversales?.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-violet-700 mb-1">Compétences transversales identifiées :</p>
-              <div className="flex flex-wrap gap-1">
+              <p className="text-sm font-medium text-violet-700 mb-1">Compétences transversales identifiées :</p>
+              <div className="flex flex-wrap gap-1.5">
                 {analysisResult.competences_transversales.map((c, i) => (
-                  <span key={i} className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{c}</span>
+                  <span key={i} className="text-sm bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded-full">{c}</span>
                 ))}
               </div>
             </div>
           )}
           {analysisResult.formations_suggestions?.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-amber-700 mb-1">Besoins de formation identifiés :</p>
-              <div className="space-y-1">
+              <p className="text-sm font-medium text-amber-700 mb-1">Besoins de formation identifiés :</p>
+              <div className="space-y-1.5">
                 {analysisResult.formations_suggestions.map((f, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg p-2">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${f.priority === "haute" ? "bg-red-100 text-red-700" : f.priority === "moyenne" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{f.priority}</span>
+                  <div key={i} className="flex items-start gap-2 bg-white rounded-lg p-2.5">
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${f.priority === "haute" ? "bg-red-100 text-red-700" : f.priority === "moyenne" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{f.priority}</span>
                     <div>
-                      <p className="font-medium text-slate-800">{f.title}</p>
-                      <p className="text-slate-500">{f.reason}</p>
+                      <p className="font-medium text-sm text-slate-800">{f.title}</p>
+                      <p className="text-sm text-slate-500">{f.reason}</p>
                     </div>
                   </div>
                 ))}
@@ -410,24 +410,24 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           )}
           {analysisResult.offres_emploi_suggerees?.length > 0 && (
             <div data-testid="cv-suggested-jobs">
-              <p className="text-xs font-medium text-blue-700 mb-1">Offres d'emploi suggérées :</p>
-              <div className="space-y-1">
+              <p className="text-sm font-medium text-blue-700 mb-1">Offres d'emploi suggérées :</p>
+              <div className="space-y-1.5">
                 {analysisResult.offres_emploi_suggerees.map((offre, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg p-2 border border-blue-100">
+                  <div key={i} className="flex items-start gap-2 bg-white rounded-lg p-2.5 border border-blue-100">
                     <Briefcase className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-slate-800">{offre.titre}</p>
+                        <p className="font-medium text-sm text-slate-800">{offre.titre}</p>
                         {offre.type_contrat && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">{offre.type_contrat}</span>
+                          <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">{offre.type_contrat}</span>
                         )}
                       </div>
-                      {offre.secteur && <p className="text-slate-500">{offre.secteur}</p>}
-                      {offre.description_courte && <p className="text-slate-400 mt-0.5">{offre.description_courte}</p>}
+                      {offre.secteur && <p className="text-sm text-slate-500">{offre.secteur}</p>}
+                      {offre.description_courte && <p className="text-sm text-slate-400 mt-0.5">{offre.description_courte}</p>}
                       {offre.competences_requises?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {offre.competences_requises.map((c, j) => (
-                            <span key={j} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">{c}</span>
+                            <span key={j} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{c}</span>
                           ))}
                         </div>
                       )}
@@ -437,7 +437,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               </div>
             </div>
           )}
-          <p className="text-xs text-emerald-600 font-medium">Passeport automatiquement complete avec les donnees extraites</p>
+          <p className="text-sm text-emerald-600 font-medium">Passeport automatiquement complete avec les donnees extraites</p>
         </div>
       )}
 
@@ -447,11 +447,11 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-[#1e3a5f]" />
-              <h4 className="font-semibold text-slate-800 text-sm">Audit CV — 10 criteres professionnels</h4>
+              <h4 className="font-semibold text-slate-800">Audit CV — 10 criteres professionnels</h4>
             </div>
             {analysisResult.score_global_cv != null && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Score global</span>
+                <span className="text-sm text-slate-500">Score global</span>
                 <span className={`text-lg font-bold ${analysisResult.score_global_cv >= 70 ? "text-emerald-600" : analysisResult.score_global_cv >= 40 ? "text-amber-600" : "text-red-600"}`} data-testid="cv-audit-score">
                   {analysisResult.score_global_cv}/100
                 </span>
@@ -466,15 +466,15 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               return (
                 <div key={i} className={`p-2.5 rounded-lg border ${statusColor} space-y-1`} data-testid={`audit-rule-${i}`}>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-slate-800">{item.regle}</p>
+                    <p className="text-sm font-semibold text-slate-800">{item.regle}</p>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-slate-500">{item.score}/10</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusBadge}`}>{statusLabel}</span>
+                      <span className="text-xs font-bold text-slate-500">{item.score}/10</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusBadge}`}>{statusLabel}</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-600">{item.diagnostic}</p>
+                  <p className="text-xs text-slate-600">{item.diagnostic}</p>
                   {item.statut !== "ok" && item.recommandation && (
-                    <p className="text-[10px] text-blue-700 font-medium">Conseil : {item.recommandation}</p>
+                    <p className="text-xs text-blue-700 font-medium">Conseil : {item.recommandation}</p>
                   )}
                 </div>
               );
@@ -488,13 +488,13 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3" data-testid="cv-centres-interet-alert">
           <Heart className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-semibold text-amber-800">
+            <p className="text-sm font-semibold text-amber-800">
               Centres d'intérêt absents de votre CV
             </p>
-            <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">
+            <p className="text-xs text-amber-700 mt-1 leading-relaxed">
               {analysisResult.suggestion_centres_interet || "Les centres d'intérêt sont un levier stratégique : ils révèlent vos compétences transversales (esprit d'équipe, créativité, rigueur...) et permettent de créer du lien en entretien. Ajoutez 2 à 4 activités concrètes avec votre niveau d'implication."}
             </p>
-            <p className="text-[10px] text-amber-600 mt-1 font-medium">
+            <p className="text-xs text-amber-600 mt-1 font-medium">
               Re'Actif Pro génèrera automatiquement des centres d'intérêt valorisés dans votre CV optimisé.
             </p>
           </div>
@@ -506,12 +506,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2" data-testid="cv-centres-interet-results">
           <div className="flex items-center gap-2">
             <Heart className="w-4 h-4 text-emerald-600" />
-            <h4 className="text-xs font-semibold text-emerald-800">Centres d'intérêt détectés et valorisés</h4>
+            <h4 className="text-sm font-semibold text-emerald-800">Centres d'intérêt détectés et valorisés</h4>
           </div>
           <div className="space-y-1.5">
             {analysisResult.centres_interet_analysis.map((ci, idx) => (
-              <div key={idx} className="text-[10px] text-emerald-700 flex items-start gap-2 bg-white/60 rounded-lg p-2 border border-emerald-100" data-testid={`ci-analysis-${idx}`}>
-                <Sparkles className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
+              <div key={idx} className="text-xs text-emerald-700 flex items-start gap-2 bg-white/60 rounded-lg p-2.5 border border-emerald-100" data-testid={`ci-analysis-${idx}`}>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
                 <div>
                   <span className="font-semibold">{ci.label}</span>
                   <span className="text-emerald-500 ml-1">({ci.credibility || ci.implication})</span>
@@ -519,7 +519,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                   {ci.competences?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {ci.competences.slice(0, 4).map((c, i) => (
-                        <span key={i} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px]">{c}</span>
+                        <span key={i} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px]">{c}</span>
                       ))}
                     </div>
                   )}
@@ -535,11 +535,11 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-3" data-testid="cv-model-suggestion">
           <BarChart3 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-semibold text-blue-800">
+            <p className="text-sm font-semibold text-blue-800">
               Modele recommande : <span className="text-blue-600">{CV_MODELS_CONFIG.find(c => c.key === analysisResult.modele_suggere)?.name || analysisResult.modele_suggere}</span>
             </p>
             {analysisResult.raison_modele && (
-              <p className="text-[10px] text-blue-600 mt-0.5">{analysisResult.raison_modele}</p>
+              <p className="text-xs text-blue-600 mt-0.5">{analysisResult.raison_modele}</p>
             )}
           </div>
         </div>
@@ -550,18 +550,18 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="space-y-3" data-testid="cv-models-section">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
-            <h4 className="text-sm font-semibold text-slate-800">Optimiser votre CV par IA</h4>
+            <h4 className="text-base font-semibold text-slate-800">Optimiser votre CV par IA</h4>
           </div>
-          <p className="text-xs text-slate-500">Re'Actif Pro IA optimise et adapte votre CV pour passer les filtres ATS des recruteurs. Selectionnez un modele et collez une offre d'emploi pour une optimisation ciblee.</p>
+          <p className="text-sm text-slate-500">Re'Actif Pro IA optimise et adapte votre CV pour passer les filtres ATS des recruteurs. Selectionnez un modele et collez une offre d'emploi pour une optimisation ciblee.</p>
 
           {/* Job offer input for ATS optimization */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2" data-testid="job-offer-input">
-            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-[#1e3a5f]" />
+            <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+              <Target className="w-4 h-4 text-[#1e3a5f]" />
               Offre d'emploi cible (optionnel — pour optimisation ATS ciblee)
             </label>
             <textarea
-              className="w-full text-xs border border-slate-200 rounded-lg p-2 resize-none focus:ring-1 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] placeholder:text-slate-400"
+              className="w-full text-sm border border-slate-200 rounded-lg p-3 resize-none focus:ring-1 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] placeholder:text-slate-400"
               rows={3}
               placeholder="Collez un lien (URL) vers l'offre ou le texte de l'offre d'emploi..."
               value={jobOfferText}
@@ -597,8 +597,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               </p>
             )}
             {jobOfferText && !/^https?:\/\/\S+$/i.test(jobOfferText.trim()) && (
-              <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> L'IA integrera les mots-cles de cette offre pour optimiser le passage ATS
+              <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> L'IA integrera les mots-cles de cette offre pour optimiser le passage ATS
               </p>
             )}
           </div>
@@ -640,10 +640,10 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold truncate">{cv.name}</p>
-                        {hasModel && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Optimise</span>}
+                        <p className="text-sm font-semibold truncate">{cv.name}</p>
+                        {hasModel && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Optimise</span>}
                       </div>
-                      <p className="text-[10px] opacity-70">{cv.desc}</p>
+                      <p className="text-xs opacity-70">{cv.desc}</p>
                     </div>
                   </div>
                   {hasModel && (
@@ -667,7 +667,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           {/* Generate button */}
           {!generatingModel && (
             <div className="flex items-center justify-between pt-1">
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-slate-500">
                 {selectedGenModels.length === 0
                   ? "Selectionnez au moins un modele"
                   : `${selectedGenModels.length} modele${selectedGenModels.length > 1 ? "s" : ""} selectionne${selectedGenModels.length > 1 ? "s" : ""}`}
@@ -694,22 +694,22 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <Shield className="w-5 h-5" />
             <h4 className="font-semibold text-sm">Strategie Re'Actif Pro — Optimisation ATS</h4>
           </div>
-          <p className="text-xs text-white/80">Votre CV est optimise par l'IA pour passer les filtres automatiques (ATS) des recruteurs : mots-cles adaptes, format simple, intitules clairs, competences explicites.</p>
+          <p className="text-sm text-white/80">Votre CV est optimise par l'IA pour passer les filtres automatiques (ATS) des recruteurs : mots-cles adaptes, format simple, intitules clairs, competences explicites.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Canal ATS</p>
-              <p className="text-xs text-white mt-1">CV optimise mots-cles</p>
-              <p className="text-[10px] text-white/60 mt-0.5">Format Word/PDF simple, intitules exacts, competences explicites</p>
+              <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Canal ATS</p>
+              <p className="text-sm text-white mt-1">CV optimise mots-cles</p>
+              <p className="text-xs text-white/60 mt-0.5">Format Word/PDF simple, intitules exacts, competences explicites</p>
             </div>
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Canal Reseau</p>
-              <p className="text-xs text-white mt-1">Recommandations et contacts</p>
-              <p className="text-[10px] text-white/60 mt-0.5">Activez votre reseau : l'ATS standardise, le reseau humanise</p>
+              <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Canal Reseau</p>
+              <p className="text-sm text-white mt-1">Recommandations et contacts</p>
+              <p className="text-xs text-white/60 mt-0.5">Activez votre reseau : l'ATS standardise, le reseau humanise</p>
             </div>
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Approche directe</p>
-              <p className="text-xs text-white mt-1">Mail, LinkedIn, appel</p>
-              <p className="text-[10px] text-white/60 mt-0.5">Demarquez-vous au-dela des filtres automatiques</p>
+              <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Approche directe</p>
+              <p className="text-sm text-white mt-1">Mail, LinkedIn, appel</p>
+              <p className="text-xs text-white/60 mt-0.5">Demarquez-vous au-dela des filtres automatiques</p>
             </div>
           </div>
         </div>

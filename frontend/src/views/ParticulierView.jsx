@@ -153,9 +153,9 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">{metric.title}</p>
+                    <p className="text-base font-medium text-slate-500 mb-1">{metric.title}</p>
                     <p className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>{metric.value}</p>
-                    <p className="text-xs text-slate-400 mt-1">{metric.subtitle}</p>
+                    <p className="text-sm text-slate-400 mt-1">{metric.subtitle}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-xl ${colorClasses[metric.color]} flex items-center justify-center`}>
                     <Icon className="w-6 h-6" />
@@ -180,7 +180,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
         <CardContent>
           <CvAnalysisSection token={token} onComplete={() => loadData(true)} />
           <div className="space-y-4 mt-6">
-            <h4 className="text-sm font-semibold text-slate-700">Compétences identifiées</h4>
+            <h4 className="text-base font-semibold text-slate-700">Compétences identifiées</h4>
             {displayProfile.skills?.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                 {displayProfile.skills.map((skill, idx) => (
@@ -212,7 +212,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">Charger mon profil D'CLIC PRO</h3>
-                <p className="text-emerald-100 text-xs">Importez votre profil, compétences et preuves pour enrichir votre passeport</p>
+                <p className="text-emerald-100 text-sm">Importez votre profil, compétences et preuves pour enrichir votre passeport</p>
               </div>
             </div>
             <Button className="bg-white text-emerald-700 hover:bg-emerald-50 shrink-0" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
