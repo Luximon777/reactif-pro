@@ -17,7 +17,7 @@ Plateforme full-stack "Re'Actif Pro" pour l'analyse de CV par IA, l'optimisation
 ## Architecture
 ```
 frontend/src/
-  pages/ Landing.jsx, Dashboard.jsx
+  pages/ Landing.jsx, Dashboard.jsx, SharedPassportPage.jsx
   views/ ParticulierView.jsx, PassportView.jsx, ObservatoireView.jsx, etc.
   components/ AuthModal.jsx, JobMatchingSection.jsx, CvAnalysis/, Passport/
 backend/
@@ -36,16 +36,16 @@ backend/
 - Verification SIRET, Charte Ethique ALT&ACT, Confidentialite
 - Correlation CV x Observatoire/Evolution/Formations/Emergentes
 - Integration matrice ISCO INSEE (5853 metiers)
-- **Job Matching avance avec RQTH/EQTH** :
-  - RQTH/EQTH = contexte uniquement (jamais discriminant, jamais bloquant)
-  - 8 restrictions fonctionnelles
-  - Score d'inclusion employeur (0-100)
-  - Compatibilite metier + handicap (critere combine)
-  - Ciblage employeurs inclusifs + Accessibilite metier handicap
-  - Sauvegarde preferences, recherche scoree, affichage transparent
-- **Fix crash React P0** (23/03/2026): Correction du mapping offres_emploi_suggerees (objets FR vs strings) dans GET /api/jobs et JobCard
-- **Bouton Postuler P1** (23/03/2026): Endpoint POST /api/jobs/apply + GET /api/jobs/applications + UI bouton dans JobMatchingSection
-- **Fix route ordering** (23/03/2026): /jobs/apply et /jobs/applications avant /jobs/{job_id}
+- Job Matching avance avec RQTH/EQTH (contexte, jamais discriminant)
+- Fix crash React P0 (23/03/2026): Mapping offres_emploi_suggerees (objets FR vs strings)
+- Bouton Postuler P1 (23/03/2026): POST /api/jobs/apply + GET /api/jobs/applications + UI
+- Fix route ordering (23/03/2026): /jobs/apply et /jobs/applications avant /jobs/{job_id}
+- **Partage anonymise Passeport** (23/03/2026):
+  - Lien unique anonymise avec expiration 30 jours
+  - Vue publique sans authentification (/passport/shared/:shareId)
+  - Generation, copie, revocation depuis PassportView
+  - Compteur de vues par lien
+  - Anonymisation verifiee (token_id, pseudo, email non exposes)
 
 ## Backlog
 - P1: Integration communautaire Ubuntoo
@@ -57,6 +57,8 @@ backend/
 - POST /api/auth/register, POST /api/auth/login
 - GET /api/jobs, GET /api/jobs/matching, POST /api/jobs/matching/search
 - POST /api/jobs/apply, GET /api/jobs/applications
+- GET /api/passport, POST /api/passport/share/create, GET /api/passport/shares
+- DELETE /api/passport/shares/{share_id}, GET /api/passport/shared/{share_id} (public)
 - GET /api/evolution/user-profile, GET /api/observatoire/personalized
 - GET /api/profile, GET /api/learning
 
