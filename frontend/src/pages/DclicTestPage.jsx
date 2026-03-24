@@ -326,29 +326,168 @@ const OfmanSection = ({ profile }) => {
 const CarteSection = ({ profile, accessCode }) => {
   const vp = profile.vertus_profile || {};
   const rp = profile.riasec_profile || {};
+  const ia = profile.integrated_analysis || {};
+  const lp = profile.life_path || {};
+  const n1 = ia.niveau_1_preuves || {};
+  const n3 = ia.niveau_3_regulation || {};
   const compass = profile.compass || {};
+  const today = new Date().toLocaleDateString("fr-FR");
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-bold text-slate-800">Carte d'Identité Professionnelle</h3>
-      <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center bg-white rounded-lg p-3 shadow-sm">
-              <p className="text-xs text-slate-400">Personnalité</p><p className="text-2xl font-bold text-indigo-800">{profile.mbti || "?"}</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-slate-800">Carte d'Identité Professionnelle</h3>
+          <p className="text-sm text-slate-500">Synthèse de votre profil — 4 dimensions</p>
+        </div>
+      </div>
+
+      {/* Main Card */}
+      <div className="bg-[#1a1a2e] rounded-2xl overflow-hidden shadow-xl text-white">
+        {/* Header */}
+        <div className="px-6 pt-5 pb-3 flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-wide">PROFIL D'CLIC PRO</h2>
+          <div className="text-right text-xs">
+            <p className="font-bold text-indigo-300">RE'ACTIF PRO</p>
+          </div>
+        </div>
+
+        {/* 4 Quadrants */}
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Identité Personnelle */}
+          <div className="px-6 py-4 border-r border-b border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-purple-400 text-lg">&#9734;</span>
+              <h4 className="text-sm font-bold text-purple-400 uppercase tracking-wider">Identité Personnelle</h4>
             </div>
-            <div className="text-center bg-white rounded-lg p-3 shadow-sm">
-              <p className="text-xs text-slate-400">Style DISC</p><p className="text-xl font-bold text-blue-800">{profile.disc || "?"} - {profile.disc_label || ""}</p>
-            </div>
-            <div className="text-center bg-white rounded-lg p-3 shadow-sm">
-              <p className="text-xs text-slate-400">Vertu dominante</p><p className="text-lg font-bold text-emerald-800">{vp.dominant_name || "?"}</p>
-            </div>
-            <div className="text-center bg-white rounded-lg p-3 shadow-sm">
-              <p className="text-xs text-slate-400">Intérêts RIASEC</p><p className="text-lg font-bold text-amber-800">{rp.major_name || "?"} / {rp.minor_name || "?"}</p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Qualités Humaines</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(vp.qualites_dominantes || []).slice(0, 4).map((q, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof q === "string" ? q : q.name || ""}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Valeurs</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(vp.valeurs_dominantes || []).slice(0, 3).map((v, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof v === "string" ? v : v.name || ""}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">Ce qui me rend unique</p>
+                <p className="text-base font-bold text-white">{vp.dominant_name || vp.vertu_dominante_name || "?"}</p>
+              </div>
             </div>
           </div>
-          {compass.summary && <p className="text-sm text-slate-600 mt-4 text-center italic">{compass.summary}</p>}
-        </CardContent>
-      </Card>
+
+          {/* Identité Professionnelle */}
+          <div className="px-6 py-4 border-b border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-amber-400 text-lg">&#9960;</span>
+              <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider">Identité Professionnelle</h4>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Savoir-être</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(vp.savoirs_etre_dominants || n1.competences_prouvees || []).slice(0, 4).map((s, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof s === "string" ? s : s.name || ""}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Compétences clés</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(vp.competences_oms || n1.forces_cles || []).slice(0, 4).map((c, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{c}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Identité Sociale */}
+          <div className="px-6 py-4 border-r border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-emerald-400 text-lg">&#9825;</span>
+              <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">Identité Sociale</h4>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Mes rôles</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(rp.traits || ["Contributeur", "Collaborateur"]).slice(0, 3).map((r, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{r}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Impact social</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(lp.work_preferences || rp.environnements_preferes || []).slice(0, 3).map((w, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{w}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Identité Profonde */}
+          <div className="px-6 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-blue-400 text-lg">&#9788;</span>
+              <h4 className="text-sm font-bold text-blue-400 uppercase tracking-wider">Identité Profonde</h4>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">Ce qui donne du sens</p>
+                <p className="text-base font-bold text-white">{lp.label || n3.moteur_interne || "Développement"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Ma mission</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(lp.strengths || []).slice(0, 3).map((s, i) => (
+                    <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-3 bg-white/5 flex items-center justify-between border-t border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              {[...Array(4)].map((_, i) => <div key={i} className="w-2.5 h-2.5 rounded-full bg-indigo-400" />)}
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-400">PROFIL</p>
+              <p className="text-sm font-bold">{profile.mbti || "?"} · {profile.disc_label || profile.disc || "?"}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-emerald-400 font-bold">Profil vérifié</p>
+            <p className="text-[10px] text-slate-400">ID {accessCode || "---"} · {today}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Synthesis */}
+      {compass.summary && (
+        <Card className="border border-slate-200">
+          <CardContent className="p-5">
+            <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <span>&#127760;</span> Synthèse Professionnelle
+            </h4>
+            <p className="text-sm text-slate-600 leading-relaxed">{compass.summary}</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
