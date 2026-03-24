@@ -9,6 +9,7 @@ import {
   User, Briefcase, GraduationCap, Target, Shield, Award,
   Sparkles, Clock, Eye, AlertCircle, Layers
 } from "lucide-react";
+import LogoReactifPro from "@/components/LogoReactifPro";
 
 const LEVEL_LABELS = {
   debutant: "Debutant",
@@ -77,6 +78,16 @@ const SharedPassportPage = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8f] text-white">
         <div className="max-w-4xl mx-auto px-4 py-8">
+          {/* Logo */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="bg-white/95 rounded-xl px-4 py-2.5 shadow-lg" data-testid="shared-logo">
+              <LogoReactifPro size="sm" />
+            </div>
+            <Badge className="bg-white/15 text-blue-200 text-xs border border-white/20">
+              Region Grand Est
+            </Badge>
+          </div>
+          {/* Title */}
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <Shield className="w-6 h-6" />
@@ -252,9 +263,10 @@ const SharedPassportPage = () => {
         )}
 
         {/* Footer */}
-        <div className="text-center py-6 border-t border-slate-200">
+        <div className="flex flex-col items-center gap-3 py-6 border-t border-slate-200">
+          <LogoReactifPro size="sm" />
           <p className="text-xs text-slate-400">
-            Passeport partage via <span className="font-semibold text-[#1e3a5f]">Re'Actif Pro</span> - Intelligence Professionnelle
+            Tiers de confiance numerique - Region Grand Est
           </p>
         </div>
       </div>
