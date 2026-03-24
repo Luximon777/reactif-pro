@@ -437,7 +437,7 @@ const LearningSection = ({ modules, updateProgress, token }) => {
         <div data-testid="ai-recommendations-section">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-violet-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Formations recommandées pour votre profil</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Formations recommandées pour monter en compétence</h2>
           </div>
           {loadingRecs ? (
             <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-xl border border-violet-100">
