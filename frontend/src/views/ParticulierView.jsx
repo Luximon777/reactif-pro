@@ -124,6 +124,27 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="metrics-grid">
+
+      {/* D'CLIC PRO Test Banner */}
+      <Card className="sm:col-span-2 lg:col-span-4 bg-gradient-to-r from-indigo-600 to-blue-600 border-0 shadow-md cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-test-banner" onClick={() => onOpenDclic && onOpenDclic()}>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white">Passer le test D'CLIC PRO</h3>
+                <p className="text-indigo-100 text-xs">Pour améliorer et crédibiliser vos profils personnalités et compétences pro</p>
+              </div>
+            </div>
+            <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
+              <Play className="w-4 h-4 mr-1.5" />Passer le test
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
         {metrics.map((metric, idx) => {
           const Icon = metric.icon;
           const colorClasses = { blue: "bg-blue-100 text-blue-600", emerald: "bg-emerald-100 text-emerald-600", amber: "bg-amber-100 text-amber-600", violet: "bg-violet-100 text-violet-600" };
