@@ -126,7 +126,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="metrics-grid">
 
       {/* D'CLIC PRO Test Banner */}
-      <Card className="sm:col-span-2 lg:col-span-4 bg-gradient-to-r from-indigo-600 to-blue-600 border-0 shadow-md cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-test-banner" onClick={() => onOpenDclic && onOpenDclic()}>
+      <Card className="sm:col-span-2 lg:col-span-4 bg-gradient-to-r from-indigo-600 to-blue-600 border-0 shadow-md cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-test-banner" onClick={() => window.open('https://luximon777.github.io/declic-pro/', '_blank')}>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -138,7 +138,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                 <p className="text-indigo-100 text-sm">Pour améliorer et crédibiliser vos profils personnalités et compétences pro</p>
               </div>
             </div>
-            <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
+            <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); window.open('https://luximon777.github.io/declic-pro/', '_blank'); }}>
               <Play className="w-4 h-4 mr-1.5" />Passer le test
             </Button>
           </div>
