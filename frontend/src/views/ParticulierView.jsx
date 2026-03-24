@@ -430,6 +430,10 @@ const LearningSection = ({ modules, updateProgress, token }) => {
       <div>
         <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Parcours de Formation</h1>
         <p className="text-slate-600 mt-1">Développez vos compétences et sécurisez votre trajectoire professionnelle</p>
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-start gap-2" data-testid="ai-disclaimer">
+          <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-blue-700">Ces suggestions de formations sont générées par intelligence artificielle à partir de l'analyse de votre profil. Nous vous invitons à vérifier les informations (contenus, tarifs, disponibilités) directement auprès des organismes avant de vous engager.</p>
+        </div>
       </div>
 
       {/* AI Recommendations */}
