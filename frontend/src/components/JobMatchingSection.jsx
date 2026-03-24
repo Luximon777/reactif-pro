@@ -614,7 +614,7 @@ const JobMatchingSection = ({ token }) => {
 
             return (
               <Card key={idx} className={`group transition-all duration-200 ${
-                scoring?.statut === "Incompatible" ? "opacity-60 border-red-200"
+                scoring?.statut === "Incompatible" ? "border-red-200 bg-slate-50/50"
                   : match.matching_score >= 80 ? "ring-2 " + sc.ring : ""
               }`} data-testid={`job-match-card-${idx}`}>
                 <CardContent className="p-5">
