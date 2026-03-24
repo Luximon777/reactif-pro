@@ -381,21 +381,16 @@ const LearningCard = ({ module, onUpdateProgress }) => {
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{module.duration}</span>
         <Badge variant="outline">{module.level}</Badge>
       </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-600">Progression</span>
-          <span className="font-medium text-slate-900">{module.progress}%</span>
-        </div>
-        <Progress value={module.progress} className="h-2" />
-      </div>
-      {module.progress < 100 && (
-        <Button variant="outline" size="sm" className={`w-full mt-3 ${hasEmerging ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-300" : "group-hover:bg-blue-50 group-hover:text-blue-600"}`} onClick={() => onUpdateProgress(module.id, Math.min(100, module.progress + 25))}>
-          <Play className="w-3 h-3 mr-1" />{module.progress === 0 ? "Commencer" : "Continuer"}
-        </Button>
-      )}
-      {module.progress === 100 && (
-        <Badge className="w-full mt-3 justify-center badge-success"><Award className="w-3 h-3 mr-1" />Terminé</Badge>
-      )}
+      {(() => {
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(module.title + (module.provider ? " " + module.provider : "") + " formation")}`;
+        return (
+          <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="block w-full mt-3">
+            <Button variant="outline" size="sm" className={`w-full ${hasEmerging ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-300" : "hover:bg-blue-50 hover:text-blue-600"}`} data-testid={`learning-start-btn-${module.id}`}>
+              <ExternalLink className="w-3 h-3 mr-1" />Acceder a la formation
+            </Button>
+          </a>
+        );
+      })()}
     </CardContent>
   </Card>
   );
