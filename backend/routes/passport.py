@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 import uuid
 import logging
 import json
+import secrets
 from datetime import datetime, timezone
 from models import Passport, PassportCompetence, PassportExperience, AddCompetenceRequest, AddExperienceRequest, UpdatePassportProfileRequest, SharePassportRequest, EvaluateCompetenceRequest
 from db import db, EMERGENT_LLM_KEY
@@ -383,4 +384,120 @@ async def get_passport_archeologie(token: str):
         "savoir_faire_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category")} for c in savoir_faire],
         "savoir_etre_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category")} for c in savoir_etre],
         "non_classees_list": [{"id": c.get("id"), "name": c.get("name")} for c in non_classees],
+    }
+
+
+
+@router.post("/passport/share/create")
+async def create_share_link(token: str):
+    """Generate a unique anonymized share link for the passport with 30-day expiration."""
+    from datetime import timedelta
+    token_doc = await get_current_token(token)
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouve")
+
+    share_id = secrets.token_urlsafe(16)
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+
+    share_doc = {
+        "id": share_id,
+        "token_id": token_doc["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": expires_at,
+        "views": 0,
+        "active": True,
+    }
+    await db.passport_shares.insert_one(share_doc)
+    return {"share_id": share_id, "expires_at": expires_at}
+
+
+@router.get("/passport/shares")
+async def list_share_links(token: str):
+    """List all active share links for the user's passport."""
+    token_doc = await get_current_token(token)
+    shares = await db.passport_shares.find(
+        {"token_id": token_doc["id"], "active": True},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    return shares
+
+
+@router.delete("/passport/shares/{share_id}")
+async def revoke_share_link(share_id: str, token: str):
+    """Revoke (deactivate) a share link."""
+    token_doc = await get_current_token(token)
+    result = await db.passport_shares.update_one(
+        {"id": share_id, "token_id": token_doc["id"]},
+        {"$set": {"active": False}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Lien de partage non trouve")
+    return {"message": "Lien revoque"}
+
+
+@router.get("/passport/shared/{share_id}")
+async def view_shared_passport(share_id: str):
+    """Public endpoint: view an anonymized passport via share link. No auth required."""
+    share = await db.passport_shares.find_one(
+        {"id": share_id, "active": True},
+        {"_id": 0}
+    )
+    if not share:
+        raise HTTPException(status_code=404, detail="Lien de partage invalide ou expire")
+
+    if share.get("expires_at"):
+        expires = datetime.fromisoformat(share["expires_at"])
+        if datetime.now(timezone.utc) > expires:
+            await db.passport_shares.update_one({"id": share_id}, {"$set": {"active": False}})
+            raise HTTPException(status_code=410, detail="Ce lien de partage a expire")
+
+    passport = await db.passports.find_one(
+        {"token_id": share["token_id"]},
+        {"_id": 0}
+    )
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouve")
+
+    await db.passport_shares.update_one({"id": share_id}, {"$inc": {"views": 1}})
+
+    # Return anonymized data: no token_id, no personal identifiers
+    return {
+        "professional_summary": passport.get("professional_summary", ""),
+        "career_project": passport.get("career_project", ""),
+        "target_sectors": passport.get("target_sectors", []),
+        "motivations": passport.get("motivations", ""),
+        "compatible_environments": passport.get("compatible_environments", ""),
+        "competences": [
+            {
+                "name": c.get("name"),
+                "category": c.get("category"),
+                "nature": c.get("nature"),
+                "level": c.get("level"),
+                "experience_years": c.get("experience_years", 0),
+                "is_emerging": c.get("is_emerging", False),
+                "source": c.get("source"),
+                "components": c.get("components", {}),
+                "ccsp_pole": c.get("ccsp_pole", ""),
+            }
+            for c in passport.get("competences", [])
+        ],
+        "experiences": [
+            {
+                "title": e.get("title"),
+                "organization": e.get("organization"),
+                "description": e.get("description"),
+                "skills_used": e.get("skills_used", []),
+                "experience_type": e.get("experience_type"),
+                "start_date": e.get("start_date"),
+                "end_date": e.get("end_date"),
+                "is_current": e.get("is_current", False),
+            }
+            for e in passport.get("experiences", [])
+        ],
+        "completeness_score": passport.get("completeness_score", 0),
+        "share_info": {
+            "expires_at": share.get("expires_at"),
+            "views": share.get("views", 0) + 1,
+        },
     }

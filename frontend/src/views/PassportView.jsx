@@ -31,7 +31,7 @@ import {
   User, Briefcase, GraduationCap, Sparkles, Target, Plus, RefreshCw,
   Shield, FolderLock, Brain, MessageCircle, Compass, TrendingUp,
   ChevronRight, Star, Award, BookOpen, Share2, Trash2, Zap, Edit3,
-  Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot
+  Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot, Link2, Copy, X
 } from "lucide-react";
 import EmergingCompetenceCard from "@/components/Passport/EmergingCompetenceCard";
 import EmergingTab from "@/components/Passport/EmergingTab";
@@ -65,6 +65,9 @@ const PassportView = ({ token }) => {
   const [loadingArcheologie, setLoadingArcheologie] = useState(false);
   const [emergingFromApi, setEmergingFromApi] = useState([]);
   const [loadingEmerging, setLoadingEmerging] = useState(false);
+  const [shareLinks, setShareLinks] = useState([]);
+  const [sharingOpen, setSharingOpen] = useState(false);
+  const [creatingShare, setCreatingShare] = useState(false);
 
   const loadPassport = useCallback(async () => {
     try {
@@ -88,6 +91,36 @@ const PassportView = ({ token }) => {
   }, [token]);
 
   useEffect(() => { loadPassport(); loadEmerging(); }, [loadPassport, loadEmerging]);
+
+  const loadShareLinks = async () => {
+    try {
+      const res = await axios.get(`${API}/passport/shares?token=${token}`);
+      setShareLinks(res.data);
+    } catch (e) { console.error("Share links error:", e); }
+  };
+
+  const handleCreateShare = async () => {
+    setCreatingShare(true);
+    try {
+      await axios.post(`${API}/passport/share/create?token=${token}`);
+      toast.success("Lien de partage cree !");
+      await loadShareLinks();
+    } catch (e) { toast.error("Erreur lors de la creation du lien"); }
+    setCreatingShare(false);
+  };
+
+  const handleRevokeShare = async (shareId) => {
+    try {
+      await axios.delete(`${API}/passport/shares/${shareId}?token=${token}`);
+      toast.success("Lien revoque");
+      setShareLinks((prev) => prev.filter((s) => s.id !== shareId));
+    } catch (e) { toast.error("Erreur lors de la revocation"); }
+  };
+
+  const copyShareLink = (shareId) => {
+    const url = `${window.location.origin}/passport/shared/${shareId}`;
+    navigator.clipboard.writeText(url).then(() => toast.success("Lien copie !")).catch(() => toast.error("Impossible de copier"));
+  };
 
   const loadDiagnostic = async () => {
     setLoadingDiagnostic(true);
@@ -253,6 +286,51 @@ const PassportView = ({ token }) => {
           <p className="text-slate-500 mt-1">Votre identité professionnelle numérique évolutive</p>
         </div>
         <div className="flex items-center gap-2">
+          <Dialog open={sharingOpen} onOpenChange={(open) => { setSharingOpen(open); if (open) loadShareLinks(); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="passport-share-btn">
+                <Share2 className="w-4 h-4 mr-2" />Partager
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px]" data-testid="share-dialog">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-[#1e3a5f]" />Partager mon Passeport
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Generez un lien anonymise pour partager votre passeport avec un recruteur. Le lien expire apres 30 jours et peut etre revoque a tout moment.
+                </p>
+                <Button onClick={handleCreateShare} disabled={creatingShare} className="w-full bg-[#1e3a5f] hover:bg-[#2d4a6f]" data-testid="create-share-link-btn">
+                  {creatingShare ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Generer un nouveau lien
+                </Button>
+                {shareLinks.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    <p className="text-xs font-medium text-slate-500">Liens actifs :</p>
+                    {shareLinks.map((link) => (
+                      <div key={link.id} className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200" data-testid={`share-link-${link.id}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-mono text-slate-700 truncate">{window.location.origin}/passport/shared/{link.id}</p>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                            <span>{link.views || 0} vue(s)</span>
+                            <span>Expire le {new Date(link.expires_at).toLocaleDateString("fr-FR")}</span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => copyShareLink(link.id)} data-testid={`copy-link-${link.id}`}>
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleRevokeShare(link.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`revoke-link-${link.id}`}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" onClick={handleRefresh} disabled={refreshing} data-testid="passport-refresh-btn">
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Actualiser
