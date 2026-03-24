@@ -809,7 +809,7 @@ const JobMatchingSection = ({ token }) => {
                         ) : (
                           <FileEdit className="w-4 h-4 mr-2" />
                         )}
-                        {isApplied ? "Candidature en preparation" : isApplying ? "Enregistrement..." : "Preparer votre candidature"}
+                        {isApplied ? "Candidature en préparation" : isApplying ? "Enregistrement..." : "Préparer votre candidature"}
                       </Button>
                     );
                   })()}

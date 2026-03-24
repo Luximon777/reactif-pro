@@ -223,7 +223,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">Charger mon profil D'CLIC PRO</h3>
-                <p className="text-emerald-100 text-xs">Importez votre profil, competences et preuves pour enrichir votre passeport</p>
+                <p className="text-emerald-100 text-xs">Importez votre profil, compétences et preuves pour enrichir votre passeport</p>
               </div>
             </div>
             <Button className="bg-white text-emerald-700 hover:bg-emerald-50 shrink-0" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
@@ -353,7 +353,7 @@ const LearningCard = ({ module, onUpdateProgress }) => {
     {hasEmerging && (
       <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 flex items-center gap-2" data-testid={`module-emerging-banner-${module.id}`}>
         <Zap className="w-4 h-4 text-white" />
-        <span className="text-xs font-semibold text-white">Competence emergente detectee</span>
+        <span className="text-xs font-semibold text-white">Compétence émergente détectée</span>
       </div>
     )}
     {module.image_url && (
@@ -406,7 +406,7 @@ const LearningCard = ({ module, onUpdateProgress }) => {
         return (
           <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="block w-full mt-3">
             <Button variant="outline" size="sm" className={`w-full ${hasEmerging ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-300" : "hover:bg-blue-50 hover:text-blue-600"}`} data-testid={`learning-start-btn-${module.id}`}>
-              <ExternalLink className="w-3 h-3 mr-1" />Acceder a la formation
+              <ExternalLink className="w-3 h-3 mr-1" />Accéder à la formation
             </Button>
           </a>
         );

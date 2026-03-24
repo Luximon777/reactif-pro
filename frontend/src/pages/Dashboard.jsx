@@ -199,7 +199,7 @@ const Dashboard = () => {
               )}
 
               {/* Ubuntoo Link */}
-              <a href="https://job-matching-ai.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer"
+              <a href="https://passport-skills.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer"
                 className="hidden sm:flex" data-testid="ubuntoo-link">
                 <Button variant="outline" size="sm" className="border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 gap-1.5 text-xs">
                   <img src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
@@ -273,17 +273,17 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-slate-700">Resume professionnel</label>
+                      <label className="text-xs font-medium text-slate-700">Résumé professionnel</label>
                       <Textarea placeholder="Votre parcours en quelques lignes..." value={dclicForm.summary} onChange={e => setDclicForm(p => ({...p, summary: e.target.value}))} className="h-16" data-testid="dclic-summary" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-slate-700">Mobilite</label>
+                        <label className="text-xs font-medium text-slate-700">Mobilité</label>
                         <select className="w-full border rounded-md px-3 py-2 text-sm" value={dclicForm.mobility} onChange={e => setDclicForm(p => ({...p, mobility: e.target.value}))} data-testid="dclic-mobility">
                           <option value="commune">Commune</option>
-                          <option value="departement">Departement</option>
+                          <option value="departement">Département</option>
                           <option value="region">Region</option>
-                          <option value="france">France entiere</option>
+                          <option value="france">France entière</option>
                           <option value="international">International</option>
                         </select>
                       </div>
@@ -303,7 +303,7 @@ const Dashboard = () => {
                     <div>
                       <label className="text-xs font-medium text-slate-700">Modes de travail</label>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {["Presentiel","Teletravail","Hybride"].map(wm => (
+                        {["Présentiel","Télétravail","Hybride"].map(wm => (
                           <Badge key={wm} variant={dclicForm.work_modes.includes(wm) ? "default" : "outline"} className={`cursor-pointer text-[10px] select-none ${dclicForm.work_modes.includes(wm) ? "bg-[#1e3a5f]" : ""}`}
                             onPointerDown={e => e.stopPropagation()}
                             onClick={() => setDclicForm(p => ({...p, work_modes: p.work_modes.includes(wm) ? p.work_modes.filter(x => x !== wm) : [...p.work_modes, wm]}))}>
@@ -315,7 +315,7 @@ const Dashboard = () => {
 
                     {/* Skills */}
                     <div>
-                      <label className="text-xs font-semibold text-slate-700">Competences</label>
+                      <label className="text-xs font-semibold text-slate-700">Compétences</label>
                       {dclicForm.skills.map((sk, i) => (
                         <div key={i} className="flex gap-2 mt-1 items-center">
                           <Input placeholder="Nom" className="flex-1 text-xs" value={sk.name} onChange={e => { const s=[...dclicForm.skills]; s[i].name=e.target.value; setDclicForm(p=>({...p,skills:s})); }} />
@@ -334,7 +334,7 @@ const Dashboard = () => {
 
                     {/* Experiences */}
                     <div>
-                      <label className="text-xs font-semibold text-slate-700">Experiences</label>
+                      <label className="text-xs font-semibold text-slate-700">Expériences</label>
                       {dclicForm.experiences.map((exp, i) => (
                         <div key={i} className="border rounded-lg p-2 mt-1 space-y-1">
                           <div className="grid grid-cols-2 gap-2">
@@ -354,7 +354,7 @@ const Dashboard = () => {
                         <div key={i} className="flex gap-2 mt-1 items-center">
                           <Input placeholder="Titre" className="flex-1 text-xs" value={ev.title} onChange={e => { const v=[...dclicForm.evidences]; v[i].title=e.target.value; setDclicForm(p=>({...p,evidences:v})); }} />
                           <select className="border rounded px-2 py-1.5 text-xs w-28" value={ev.kind} onChange={e => { const v=[...dclicForm.evidences]; v[i].kind=e.target.value; setDclicForm(p=>({...p,evidences:v})); }}>
-                            <option value="diplome">Diplome</option>
+                            <option value="diplome">Diplôme</option>
                             <option value="certificat">Certificat</option>
                             <option value="attestation">Attestation</option>
                             <option value="portfolio">Portfolio</option>
@@ -445,7 +445,7 @@ const Dashboard = () => {
                 );
               })}
               <a
-                href="https://job-matching-ai.preview.emergentagent.com/"
+                href="https://passport-skills.preview.emergentagent.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"

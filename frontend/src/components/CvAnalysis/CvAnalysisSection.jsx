@@ -14,8 +14,8 @@ import CvPreview from "./CvPreview";
 
 const CV_MODELS_CONFIG = [
   { key: "classique", name: "CV Classique", desc: "Chronologique, sobre et professionnel", color: "bg-blue-50 border-blue-200 text-blue-700", icon: FileText },
-  { key: "competences", name: "CV Competences", desc: "Axe sur les savoir-faire et savoir-etre", color: "bg-emerald-50 border-emerald-200 text-emerald-700", icon: Zap },
-  { key: "transversale", name: "CV Transversal", desc: "Competences transferables et transversales", color: "bg-violet-50 border-violet-200 text-violet-700", icon: Target },
+  { key: "competences", name: "CV Compétences", desc: "Axé sur les savoir-faire et savoir-être", color: "bg-emerald-50 border-emerald-200 text-emerald-700", icon: Zap },
+  { key: "transversale", name: "CV Transversal", desc: "Compétences transférables et transversales", color: "bg-violet-50 border-violet-200 text-violet-700", icon: Target },
   { key: "nouvelle_generation", name: "CV Nouvelle Generation", desc: "Profil dynamique : intentions, preuves, potentiel, valeurs", color: "bg-amber-50 border-amber-200 text-amber-700", icon: Star },
 ];
 
@@ -200,7 +200,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       if (result.modele_suggere && !selectedGenModels.includes(result.modele_suggere)) {
         setSelectedGenModels([result.modele_suggere]);
       }
-      toast.success(`CV audite : score ${result.score_global_cv || 0}/100 — ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-etre detectes`);
+      toast.success(`CV audité : score ${result.score_global_cv || 0}/100 — ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
       if (onComplete) onComplete();
     } catch (err) {
       let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV.";
@@ -489,13 +489,13 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <Heart className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-amber-800">
-              Centres d'interet absents de votre CV
+              Centres d'intérêt absents de votre CV
             </p>
             <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">
-              {analysisResult.suggestion_centres_interet || "Les centres d'interet sont un levier strategique : ils revelent vos competences transversales (esprit d'equipe, creativite, rigueur...) et permettent de creer du lien en entretien. Ajoutez 2 a 4 activites concretes avec votre niveau d'implication."}
+              {analysisResult.suggestion_centres_interet || "Les centres d'intérêt sont un levier stratégique : ils révèlent vos compétences transversales (esprit d'équipe, créativité, rigueur...) et permettent de créer du lien en entretien. Ajoutez 2 à 4 activités concrètes avec votre niveau d'implication."}
             </p>
             <p className="text-[10px] text-amber-600 mt-1 font-medium">
-              Re'Actif Pro generera automatiquement des centres d'interet valorises dans votre CV optimise.
+              Re'Actif Pro génèrera automatiquement des centres d'intérêt valorisés dans votre CV optimisé.
             </p>
           </div>
         </div>
@@ -506,7 +506,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2" data-testid="cv-centres-interet-results">
           <div className="flex items-center gap-2">
             <Heart className="w-4 h-4 text-emerald-600" />
-            <h4 className="text-xs font-semibold text-emerald-800">Centres d'interet detectes et valorises</h4>
+            <h4 className="text-xs font-semibold text-emerald-800">Centres d'intérêt détectés et valorisés</h4>
           </div>
           <div className="space-y-1.5">
             {analysisResult.centres_interet_analysis.map((ci, idx) => (

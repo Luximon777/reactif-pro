@@ -12,15 +12,15 @@ import {
 import LogoReactifPro from "@/components/LogoReactifPro";
 
 const LEVEL_LABELS = {
-  debutant: "Debutant",
-  intermediaire: "Intermediaire",
-  avance: "Avance",
+  debutant: "Débutant",
+  intermediaire: "Intermédiaire",
+  avance: "Avancé",
   expert: "Expert",
 };
 
 const NATURE_LABELS = {
   savoir_faire: "Savoir-faire",
-  savoir_etre: "Savoir-etre",
+  savoir_etre: "Savoir-être",
 };
 
 const SharedPassportPage = () => {
@@ -94,7 +94,7 @@ const SharedPassportPage = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold" style={{ fontFamily: "Outfit, sans-serif" }}>
-                Passeport de Competences
+                Passeport de Compétences
               </h1>
               <p className="text-blue-200 text-sm">Partage anonymise via Re'Actif Pro</p>
             </div>
@@ -124,7 +124,7 @@ const SharedPassportPage = () => {
           <Card data-testid="shared-summary">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="w-5 h-5 text-[#1e3a5f]" />Resume Professionnel
+                <User className="w-5 h-5 text-[#1e3a5f]" />Résumé Professionnel
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -170,9 +170,9 @@ const SharedPassportPage = () => {
           <Card data-testid="shared-competences">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="w-5 h-5 text-[#1e3a5f]" />Competences ({comps.length})
+                <Sparkles className="w-5 h-5 text-[#1e3a5f]" />Compétences ({comps.length})
               </CardTitle>
-              <CardDescription>Repertoire des competences identifiees et evaluees</CardDescription>
+              <CardDescription>Répertoire des compétences identifiées et évaluées</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
