@@ -23,7 +23,7 @@ class GenerateModelRequest(BaseModel):
     job_offer: str = ""
 
 
-async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None, savoir_faire: list = None, savoir_etre: list = None, job_offer: str = "") -> dict:
+async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list = None, savoir_faire: list = None, savoir_etre: list = None, job_offer: str = "", centres_interet_data: dict = None) -> dict:
     """Generate an optimized CV using GPT-5.2 (faster + reliable JSON)"""
     import re as _re
 
@@ -31,7 +31,7 @@ async def _generate_optimized_cv(cv_text: str, model_type: str, audit_data: list
         "classique": "CV chronologique classique : identite, titre, accroche, competences, experiences chronologiques, formation.",
         "competences": "CV axe competences : competences cles regroupees par domaine en premier, puis experiences.",
         "transversale": "CV transversal : competences transferables et transversales mises en valeur.",
-        "nouvelle_generation": "CV nouvelle generation : identite anonymisable, intentions pro, competences avec preuves, experiences en situations (Contexte/Actions/Resultats), potentiel d'evolution, valeurs.",
+        "nouvelle_generation": "CV nouvelle generation : identite anonymisable, intentions pro, competences avec preuves, experiences en situations (Contexte/Actions/Resultats), potentiel d'evolution, valeurs, centres d'interet valorises.",
     }
     desc = model_descriptions.get(model_type, model_descriptions["classique"])
 
@@ -62,15 +62,26 @@ INSTRUCTIONS OBLIGATOIRES:
 - Adapter l'accroche/profil pour répondre directement aux exigences de l'offre
 - Reformuler les expériences pour mettre en avant la pertinence avec le poste cible"""
 
+    # Centres d'interet enrichment
+    ci_context = ""
+    if centres_interet_data:
+        reformulations = centres_interet_data.get("cv_reformulations", [])
+        if reformulations:
+            ci_context = f"""\nCENTRES D'INTERET ANALYSES ET VALORISES (OBLIGATOIRE - integrer dans la section centres_interet):
+{chr(10).join('- ' + r for r in reformulations)}
+INSTRUCTIONS: La section "centres_interet" du CV DOIT contenir ces reformulations professionnelles au lieu de simples mots. Chaque centre d'interet doit montrer les competences transversales qu'il revele."""
+        elif not centres_interet_data.get("has_centres_interet", True):
+            ci_context = """\nCENTRES D'INTERET: Le CV original ne contient PAS de centres d'interet. Genere une section centres_interet avec 3 suggestions pertinentes basees sur le profil du candidat. Chaque suggestion doit etre une phrase valorisante montrant des competences transversales."""
+
     for attempt in range(2):
         try:
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"cv-opt-{uuid.uuid4()}",
-                system_message=f"""Optimise ce CV pour passer les filtres ATS. Type: {desc}{audit_context}{sf_context}{se_context}{ats_context}
+                system_message=f"""Optimise ce CV pour passer les filtres ATS. Type: {desc}{audit_context}{sf_context}{se_context}{ats_context}{ci_context}
 IMPORTANT: GARDE les vraies infos du candidat (nom, contact, entreprises, postes, dates, diplomes). Ameliore formulation, verbes d'action et chiffres. Ne change PAS les faits. INTEGRE les savoir-faire et savoir-etre. Format ATS: intitules clairs, competences explicites, dates structurees, pas de design graphique.
 JSON uniquement:
-{{"nom":"","titre":"","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"","competences_cles":[],"savoir_faire":[{{"name":"","level":"debutant|intermediaire|avance|expert","category":"technique|transversale|transferable"}}],"savoir_etre":[{{"name":"","level":"intermediaire"}}],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":[]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":[]}}"""
+{{"nom":"","titre":"","contact":{{"email":"","telephone":"","adresse":"","linkedin":""}},"profil":"","competences_cles":[],"savoir_faire":[{{"name":"","level":"debutant|intermediaire|avance|expert","category":"technique|transversale|transferable"}}],"savoir_etre":[{{"name":"","level":"intermediaire"}}],"experiences":[{{"poste":"","entreprise":"","periode":"","missions":[]}}],"formations":[{{"diplome":"","etablissement":"","annee":""}}],"competences_techniques":{{}},"langues":[{{"langue":"","niveau":""}}],"centres_interet":["reformulation professionnelle valorisante pour chaque centre d'interet"]}}"""
             ).with_model("openai", "gpt-5.2")
             response = await chat.send_message(UserMessage(text=f"CV original a optimiser:\n\n{cv_text[:4000]}"))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
@@ -256,11 +267,18 @@ def _build_docx(cv_data: dict, model_type: str) -> bytes:
         for l in langues:
             doc.add_paragraph(f"{l.get('langue', '')} — {l.get('niveau', '')}")
 
-    # Interests
+    # Interests (enriched reformulations)
     centres = cv_data.get("centres_interet", [])
     if centres:
         add_heading_styled("CENTRES D'INTÉRÊT", level=2)
-        doc.add_paragraph(" • ".join(centres))
+        for ci in centres:
+            ci_text = ci if isinstance(ci, str) else str(ci)
+            p = doc.add_paragraph()
+            run = p.add_run("• ")
+            run.bold = True
+            run.font.color.rgb = NAVY
+            run = p.add_run(ci_text)
+            run.font.size = Pt(10)
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -383,11 +401,13 @@ def _build_pdf(cv_data: dict, model_type: str) -> bytes:
         for l in langues:
             elements.append(Paragraph(f"{l.get('langue', '')} &mdash; {l.get('niveau', '')}", s_body))
 
-    # Interests
+    # Interests (enriched reformulations)
     centres = cv_data.get("centres_interet", [])
     if centres:
         elements.append(Paragraph("CENTRES D'INT&Eacute;R&Ecirc;T", s_heading))
-        elements.append(Paragraph(" &bull; ".join(centres), s_body))
+        for ci in centres:
+            ci_text = ci if isinstance(ci, str) else str(ci)
+            elements.append(Paragraph(f"&bull; {ci_text}", s_body))
 
     doc.build(elements)
     buf.seek(0)
@@ -451,7 +471,20 @@ Detecte 3 a 8 competences emergentes. Ne liste PAS les competences classiques/st
             user_msg=f"Detecte les competences emergentes dans ce CV:\n{cv_excerpt}"
         )
 
-        audit_result, skills_result, emerging_result = await asyncio.gather(audit_task, skills_task, emerging_task)
+        # 4th PARALLEL CALL: Centres d'intérêt detection
+        centres_task = _llm_call_with_retry(
+            system_msg="""Expert RH. Detecte si le CV contient une rubrique "Centres d'interet" / "Loisirs" / "Hobbies" / "Activites extra-professionnelles".
+Si oui, extrais chaque centre d'interet avec son niveau d'implication estime.
+Si non, indique clairement que la rubrique est absente.
+
+JSON uniquement:
+{"has_centres_interet": true/false, "centres_interet_raw": [{"label": "nom du centre d'interet", "implication": "occasionnel|regulier|intensif", "detail": "contexte mentionne dans le CV"}], "suggestion_si_absent": "conseil personnalise pour ajouter cette rubrique"}
+
+Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et concret pour inciter le candidat a les ajouter.""",
+            user_msg=f"Analyse les centres d'interet dans ce CV:\n{cv_excerpt}"
+        )
+
+        audit_result, skills_result, emerging_result, centres_result = await asyncio.gather(audit_task, skills_task, emerging_task, centres_task)
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Mise a jour du passeport..."}})
 
@@ -531,6 +564,40 @@ Detecte 3 a 8 competences emergentes. Ne liste PAS les competences classiques/st
 
         emerging_count = len(emerging_comps)
 
+        # Analyze centres d'interet
+        from centres_interet import analyze_multiple
+        has_centres = centres_result.get("has_centres_interet", False)
+        centres_raw = centres_result.get("centres_interet_raw", [])
+        centres_analysis = analyze_multiple(centres_raw) if centres_raw else {"analyses": [], "competences_transversales": [], "valeurs_dominantes": [], "cv_reformulations": []}
+
+        # Enrich passport with competences from centres d'interet
+        if centres_analysis["competences_transversales"]:
+            for comp_name in centres_analysis["competences_transversales"]:
+                if comp_name.lower() not in existing_names:
+                    new_competences.append(PassportCompetence(
+                        name=comp_name, nature="savoir_etre", category="transversale",
+                        level="intermediaire", source="centres_interet"
+                    ).model_dump())
+                    existing_names.add(comp_name.lower())
+            await db.passports.update_one({"token_id": token_id}, {"$set": {"competences": new_competences}})
+
+        # Store centres d'interet analysis
+        await db.centres_interet.update_one(
+            {"token_id": token_id},
+            {"$set": {
+                "token_id": token_id,
+                "has_centres_interet": has_centres,
+                "centres_raw": centres_raw,
+                "analyses": centres_analysis.get("analyses", []),
+                "competences_transversales": centres_analysis.get("competences_transversales", []),
+                "valeurs_dominantes": centres_analysis.get("valeurs_dominantes", []),
+                "cv_reformulations": centres_analysis.get("cv_reformulations", []),
+                "suggestion_si_absent": centres_result.get("suggestion_si_absent", ""),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True
+        )
+
         result = {
             "message": "CV analyse avec succes", "filename": filename,
             "savoir_faire_count": len(skills_result.get("savoir_faire", [])),
@@ -544,6 +611,10 @@ Detecte 3 a 8 competences emergentes. Ne liste PAS les competences classiques/st
             "modele_suggere": audit_result.get("modele_suggere", "classique"),
             "raison_modele": audit_result.get("raison_modele", ""),
             "emerging_count": emerging_count,
+            "has_centres_interet": has_centres,
+            "centres_interet_analysis": centres_analysis.get("analyses", []),
+            "centres_interet_reformulations": centres_analysis.get("cv_reformulations", []),
+            "suggestion_centres_interet": centres_result.get("suggestion_si_absent", "") if not has_centres else "",
         }
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Termine"}})
         logging.info(f"CV analysis job {job_id} completed successfully")
@@ -630,6 +701,9 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
 
     job_offer_text = request.job_offer.strip() if request.job_offer else ""
 
+    # Fetch centres d'interet analysis
+    ci_data = await db.centres_interet.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
     job_id = str(uuid.uuid4())
     await db.cv_gen_jobs.insert_one({"job_id": job_id, "token_id": token_doc["id"], "model_types": selected, "status": "started", "progress": 0, "total": len(selected), "created_at": datetime.now(timezone.utc).isoformat()})
 
@@ -637,7 +711,7 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
         try:
             for i, model_type in enumerate(selected):
                 await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "generating", "progress": i, "current_model": model_type}})
-                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data, savoir_faire, savoir_etre, job_offer_text)
+                cv_data = await _generate_optimized_cv(cv_text_doc["text"], model_type, audit_data, savoir_faire, savoir_etre, job_offer_text, ci_data)
                 # Build DOCX + PDF
                 docx_bytes = _build_docx(cv_data, model_type)
                 docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")

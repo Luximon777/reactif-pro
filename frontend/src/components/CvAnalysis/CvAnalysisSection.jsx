@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Target, Briefcase, Clock, Star, Sparkles, Zap, Award,
   CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3,
-  Link as LinkIcon, RefreshCw
+  Link as LinkIcon, RefreshCw, Heart
 } from "lucide-react";
 import { toast } from "sonner";
 import CvPreview from "./CvPreview";
@@ -479,6 +479,53 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Centres d'interet alert */}
+      {analysisResult && !analysisResult.has_centres_interet && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3" data-testid="cv-centres-interet-alert">
+          <Heart className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-amber-800">
+              Centres d'interet absents de votre CV
+            </p>
+            <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">
+              {analysisResult.suggestion_centres_interet || "Les centres d'interet sont un levier strategique : ils revelent vos competences transversales (esprit d'equipe, creativite, rigueur...) et permettent de creer du lien en entretien. Ajoutez 2 a 4 activites concretes avec votre niveau d'implication."}
+            </p>
+            <p className="text-[10px] text-amber-600 mt-1 font-medium">
+              Re'Actif Pro generera automatiquement des centres d'interet valorises dans votre CV optimise.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Centres d'interet analysis results */}
+      {analysisResult?.centres_interet_analysis?.length > 0 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2" data-testid="cv-centres-interet-results">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-emerald-600" />
+            <h4 className="text-xs font-semibold text-emerald-800">Centres d'interet detectes et valorises</h4>
+          </div>
+          <div className="space-y-1.5">
+            {analysisResult.centres_interet_analysis.map((ci, idx) => (
+              <div key={idx} className="text-[10px] text-emerald-700 flex items-start gap-2 bg-white/60 rounded-lg p-2 border border-emerald-100" data-testid={`ci-analysis-${idx}`}>
+                <Sparkles className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold">{ci.label}</span>
+                  <span className="text-emerald-500 ml-1">({ci.credibility || ci.implication})</span>
+                  <p className="text-emerald-600 mt-0.5">{ci.cv_reformulation}</p>
+                  {ci.competences?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {ci.competences.slice(0, 4).map((c, i) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px]">{c}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
