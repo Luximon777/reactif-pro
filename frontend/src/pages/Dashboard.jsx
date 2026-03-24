@@ -291,7 +291,8 @@ const Dashboard = () => {
                         <label className="text-xs font-medium text-slate-700">Types de contrat</label>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {["CDI","CDD","Interim","Freelance","Alternance","Stage"].map(ct => (
-                            <Badge key={ct} variant={dclicForm.contract_types.includes(ct) ? "default" : "outline"} className={`cursor-pointer text-[10px] ${dclicForm.contract_types.includes(ct) ? "bg-[#1e3a5f]" : ""}`}
+                            <Badge key={ct} variant={dclicForm.contract_types.includes(ct) ? "default" : "outline"} className={`cursor-pointer text-[10px] select-none ${dclicForm.contract_types.includes(ct) ? "bg-[#1e3a5f]" : ""}`}
+                              onPointerDown={e => e.stopPropagation()}
                               onClick={() => setDclicForm(p => ({...p, contract_types: p.contract_types.includes(ct) ? p.contract_types.filter(x => x !== ct) : [...p.contract_types, ct]}))}>
                               {ct}
                             </Badge>
@@ -303,7 +304,8 @@ const Dashboard = () => {
                       <label className="text-xs font-medium text-slate-700">Modes de travail</label>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {["Presentiel","Teletravail","Hybride"].map(wm => (
-                          <Badge key={wm} variant={dclicForm.work_modes.includes(wm) ? "default" : "outline"} className={`cursor-pointer text-[10px] ${dclicForm.work_modes.includes(wm) ? "bg-[#1e3a5f]" : ""}`}
+                          <Badge key={wm} variant={dclicForm.work_modes.includes(wm) ? "default" : "outline"} className={`cursor-pointer text-[10px] select-none ${dclicForm.work_modes.includes(wm) ? "bg-[#1e3a5f]" : ""}`}
+                            onPointerDown={e => e.stopPropagation()}
                             onClick={() => setDclicForm(p => ({...p, work_modes: p.work_modes.includes(wm) ? p.work_modes.filter(x => x !== wm) : [...p.work_modes, wm]}))}>
                             {wm}
                           </Badge>
