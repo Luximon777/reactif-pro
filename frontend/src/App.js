@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import SharedPassportPage from "@/pages/SharedPassportPage";
+import DclicTestPage from "@/pages/DclicTestPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 export const API = `${BACKEND_URL}/api`;
@@ -226,6 +227,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/passport/shared/:shareId" element={<SharedPassportPage />} />
+            <Route path="/test-dclic" element={<DclicTestPage />} />
             <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -27,13 +27,13 @@ import {
   Gauge,
   Shield,
   Layers,
-  Upload
+  Upload,
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 // Dashboard Views
 import ParticulierView from "@/views/ParticulierView";
@@ -88,26 +88,40 @@ const Dashboard = () => {
 
   const [dclicOpen, setDclicOpen] = useState(false);
   const [dclicImporting, setDclicImporting] = useState(false);
-  const [dclicForm, setDclicForm] = useState({
-    target_job: "", summary: "", city: "", mobility: "departement",
-    contract_types: [], work_modes: [],
-    skills: [{ name: "", category: "technique", declared_level: 3, status: "declaree" }],
-    experiences: [{ title: "", organization: "", description: "", start_date: "", end_date: "" }],
-    evidences: [{ title: "", kind: "diplome", source: "" }],
-  });
+  const [dclicCode, setDclicCode] = useState("");
+  const [dclicPreview, setDclicPreview] = useState(null);
+
+  const handleDclicRetrieve = async () => {
+    if (!dclicCode.trim()) return;
+    setDclicImporting(true);
+    setDclicPreview(null);
+    try {
+      const res = await axios.post(`${API}/dclic/retrieve`, { access_code: dclicCode.trim() });
+      setDclicPreview(res.data.profile);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Code introuvable");
+    }
+    setDclicImporting(false);
+  };
 
   const handleDclicImport = async () => {
+    if (!dclicPreview) return;
     setDclicImporting(true);
     try {
       const payload = {
-        ...dclicForm,
-        skills: dclicForm.skills.filter(s => s.name.trim()),
-        experiences: dclicForm.experiences.filter(e => e.title.trim()),
-        evidences: dclicForm.evidences.filter(e => e.title.trim()),
+        target_job: "", city: "", summary: "",
+        mobility: "departement", contract_types: [], work_modes: [],
+        skills: dclicPreview.competences_fortes?.map(c => ({ name: c, category: "comportementale", declared_level: 4, status: "declaree" })) || [],
+        experiences: [],
+        evidences: [{ title: "Test D'CLIC PRO", kind: "attestation", source: `Code: ${dclicCode.trim()}` }],
+        dclic_profile: dclicPreview,
       };
       const res = await axios.post(`${API}/profile/import-dclic?token=${token}`, payload);
-      toast.success(`${res.data.message} - Score: ${res.data.profile_completion}%`);
+      toast.success(`Profil D'CLIC PRO importé ! Score: ${res.data.profile_completion}%`);
+      await axios.post(`${API}/dclic/claim?access_code=${encodeURIComponent(dclicCode.trim())}&user_id=${profileId}`);
       setDclicOpen(false);
+      setDclicCode("");
+      setDclicPreview(null);
       setRefreshKey(prev => prev + 1);
     } catch (e) {
       toast.error("Erreur lors de l'import");
@@ -207,7 +221,7 @@ const Dashboard = () => {
               </a>
 
               {/* Logout */}
-              <Dialog open={dclicOpen} onOpenChange={setDclicOpen}>
+              <Dialog open={dclicOpen} onOpenChange={(o) => { setDclicOpen(o); if (!o) { setDclicPreview(null); setDclicCode(""); } }}>
                 {role === "particulier" && (
                   <DialogTrigger asChild>
                     <Button variant="outline" className="text-[#1e3a5f] border-[#1e3a5f]/30 hover:bg-[#1e3a5f]/5 text-xs" data-testid="dclic-import-btn">
@@ -217,123 +231,71 @@ const Dashboard = () => {
                     </Button>
                   </DialogTrigger>
                 )}
-                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto" data-testid="dclic-dialog">
+                <DialogContent className="sm:max-w-[500px]" data-testid="dclic-dialog">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-[#1e3a5f]">
                       <Upload className="w-5 h-5" />Charger mon profil D'CLIC PRO
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 text-sm">
-                    <p className="text-xs text-slate-500">Renseignez vos informations pour enrichir votre profil Re'Actif Pro.</p>
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-500">Saisissez le code d'accès généré à la fin de votre test D'CLIC PRO pour importer votre profil personnalité et compétences.</p>
 
-                    {/* Identity */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-slate-700">Poste cible</label>
-                        <Input placeholder="Ex: Developpeur Web" value={dclicForm.target_job} onChange={e => setDclicForm(p => ({...p, target_job: e.target.value}))} data-testid="dclic-target-job" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-700">Ville</label>
-                        <Input placeholder="Ex: Strasbourg" value={dclicForm.city} onChange={e => setDclicForm(p => ({...p, city: e.target.value}))} data-testid="dclic-city" />
-                      </div>
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="XXXX-XXXX" 
+                        className="text-center text-lg font-mono tracking-widest uppercase" 
+                        value={dclicCode} 
+                        onChange={e => setDclicCode(e.target.value.toUpperCase())} 
+                        maxLength={9} 
+                        data-testid="dclic-code-input" 
+                      />
+                      <Button onClick={handleDclicRetrieve} disabled={dclicImporting || dclicCode.length < 9} data-testid="dclic-retrieve-btn">
+                        {dclicImporting && !dclicPreview ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Vérifier"}
+                      </Button>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-700">Résumé professionnel</label>
-                      <Textarea placeholder="Votre parcours en quelques lignes..." value={dclicForm.summary} onChange={e => setDclicForm(p => ({...p, summary: e.target.value}))} className="h-16" data-testid="dclic-summary" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-slate-700">Mobilité</label>
-                        <select className="w-full border rounded-md px-3 py-2 text-sm" value={dclicForm.mobility} onChange={e => setDclicForm(p => ({...p, mobility: e.target.value}))} data-testid="dclic-mobility">
-                          <option value="commune">Commune</option>
-                          <option value="departement">Département</option>
-                          <option value="region">Region</option>
-                          <option value="france">France entière</option>
-                          <option value="international">International</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-700">Types de contrat</label>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {["CDI","CDD","Interim","Freelance","Alternance","Stage"].map(ct => (
-                            <Badge key={ct} variant={dclicForm.contract_types.includes(ct) ? "default" : "outline"} className={`cursor-pointer text-[10px] select-none ${dclicForm.contract_types.includes(ct) ? "bg-[#1e3a5f]" : ""}`}
-                              onPointerDown={e => e.stopPropagation()}
-                              onClick={() => setDclicForm(p => ({...p, contract_types: p.contract_types.includes(ct) ? p.contract_types.filter(x => x !== ct) : [...p.contract_types, ct]}))}>
-                              {ct}
-                            </Badge>
-                          ))}
+
+                    {dclicPreview && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-3" data-testid="dclic-preview">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                          <span className="font-semibold text-emerald-800">Profil trouvé !</span>
                         </div>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-700">Modes de travail</label>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {["Présentiel","Télétravail","Hybride"].map(wm => (
-                          <Badge key={wm} variant={dclicForm.work_modes.includes(wm) ? "default" : "outline"} className={`cursor-pointer text-[10px] select-none ${dclicForm.work_modes.includes(wm) ? "bg-[#1e3a5f]" : ""}`}
-                            onPointerDown={e => e.stopPropagation()}
-                            onClick={() => setDclicForm(p => ({...p, work_modes: p.work_modes.includes(wm) ? p.work_modes.filter(x => x !== wm) : [...p.work_modes, wm]}))}>
-                            {wm}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Skills */}
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700">Compétences</label>
-                      {dclicForm.skills.map((sk, i) => (
-                        <div key={i} className="flex gap-2 mt-1 items-center">
-                          <Input placeholder="Nom" className="flex-1 text-xs" value={sk.name} onChange={e => { const s=[...dclicForm.skills]; s[i].name=e.target.value; setDclicForm(p=>({...p,skills:s})); }} />
-                          <select className="border rounded px-2 py-1.5 text-xs w-28" value={sk.category} onChange={e => { const s=[...dclicForm.skills]; s[i].category=e.target.value; setDclicForm(p=>({...p,skills:s})); }}>
-                            <option value="technique">Technique</option>
-                            <option value="transversale">Transversale</option>
-                            <option value="comportementale">Comportementale</option>
-                          </select>
-                          <select className="border rounded px-2 py-1.5 text-xs w-16" value={sk.declared_level} onChange={e => { const s=[...dclicForm.skills]; s[i].declared_level=parseInt(e.target.value); setDclicForm(p=>({...p,skills:s})); }}>
-                            {[1,2,3,4,5].map(l => <option key={l} value={l}>{l}/5</option>)}
-                          </select>
-                        </div>
-                      ))}
-                      <Button variant="ghost" size="sm" className="mt-1 text-xs text-[#1e3a5f]" onClick={() => setDclicForm(p => ({...p, skills: [...p.skills, {name:"",category:"technique",declared_level:3,status:"declaree"}]}))}>+ Ajouter</Button>
-                    </div>
-
-                    {/* Experiences */}
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700">Expériences</label>
-                      {dclicForm.experiences.map((exp, i) => (
-                        <div key={i} className="border rounded-lg p-2 mt-1 space-y-1">
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input placeholder="Poste" className="text-xs" value={exp.title} onChange={e => { const x=[...dclicForm.experiences]; x[i].title=e.target.value; setDclicForm(p=>({...p,experiences:x})); }} />
-                            <Input placeholder="Entreprise" className="text-xs" value={exp.organization} onChange={e => { const x=[...dclicForm.experiences]; x[i].organization=e.target.value; setDclicForm(p=>({...p,experiences:x})); }} />
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">MBTI</p>
+                            <p className="font-bold text-violet-700">{dclicPreview.mbti}</p>
                           </div>
-                          <Input placeholder="Description" className="text-xs" value={exp.description} onChange={e => { const x=[...dclicForm.experiences]; x[i].description=e.target.value; setDclicForm(p=>({...p,experiences:x})); }} />
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">DISC</p>
+                            <p className="font-bold text-blue-700">{dclicPreview.disc_dominant_name}</p>
+                          </div>
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">Vertu</p>
+                            <p className="font-bold text-emerald-700">{dclicPreview.vertu_dominante_name}</p>
+                          </div>
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">RIASEC</p>
+                            <p className="font-bold text-amber-700">{dclicPreview.riasec_major_name}</p>
+                          </div>
                         </div>
-                      ))}
-                      <Button variant="ghost" size="sm" className="mt-1 text-xs text-[#1e3a5f]" onClick={() => setDclicForm(p => ({...p, experiences: [...p.experiences, {title:"",organization:"",description:"",start_date:"",end_date:""}]}))}>+ Ajouter</Button>
-                    </div>
+                        {dclicPreview.competences_fortes?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-600 mb-1">Compétences :</p>
+                            <div className="flex flex-wrap gap-1">
+                              {dclicPreview.competences_fortes.map((c, i) => (
+                                <Badge key={i} className="bg-indigo-100 text-indigo-700 text-xs">{c}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <Button className="w-full bg-[#1e3a5f] hover:bg-[#2d4a6f]" onClick={handleDclicImport} disabled={dclicImporting} data-testid="dclic-submit-btn">
+                          {dclicImporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                          {dclicImporting ? "Import en cours..." : "Importer dans mon profil Re'Actif Pro"}
+                        </Button>
+                      </div>
+                    )}
 
-                    {/* Evidences */}
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700">Preuves / Certifications</label>
-                      {dclicForm.evidences.map((ev, i) => (
-                        <div key={i} className="flex gap-2 mt-1 items-center">
-                          <Input placeholder="Titre" className="flex-1 text-xs" value={ev.title} onChange={e => { const v=[...dclicForm.evidences]; v[i].title=e.target.value; setDclicForm(p=>({...p,evidences:v})); }} />
-                          <select className="border rounded px-2 py-1.5 text-xs w-28" value={ev.kind} onChange={e => { const v=[...dclicForm.evidences]; v[i].kind=e.target.value; setDclicForm(p=>({...p,evidences:v})); }}>
-                            <option value="diplome">Diplôme</option>
-                            <option value="certificat">Certificat</option>
-                            <option value="attestation">Attestation</option>
-                            <option value="portfolio">Portfolio</option>
-                            <option value="recommandation">Recommandation</option>
-                          </select>
-                        </div>
-                      ))}
-                      <Button variant="ghost" size="sm" className="mt-1 text-xs text-[#1e3a5f]" onClick={() => setDclicForm(p => ({...p, evidences: [...p.evidences, {title:"",kind:"attestation",source:""}]}))}>+ Ajouter</Button>
-                    </div>
-
-                    <Button className="w-full bg-[#1e3a5f] hover:bg-[#2d4a6f]" onClick={handleDclicImport} disabled={dclicImporting} data-testid="dclic-submit-btn">
-                      {dclicImporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                      {dclicImporting ? "Import en cours..." : "Importer mon profil"}
-                    </Button>
+                    <p className="text-xs text-slate-400 text-center">Pas encore de code ? <a href="/test-dclic" className="text-indigo-600 underline font-medium">Passez le test D'CLIC PRO</a></p>
                   </div>
                 </DialogContent>
               </Dialog>
