@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import {
   User, Target, TrendingUp, BookOpen, Briefcase, MapPin, Clock, Euro,
   Star, ChevronRight, Plus, Sparkles, Zap, Award, CheckCircle2, AlertCircle,
-  Play, FolderLock, FileDown, FileText, LayoutList, Layers, Shield, BarChart3
+  Play, FolderLock, FileDown, FileText, LayoutList, Layers, Shield, BarChart3,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -339,7 +340,15 @@ const LearningCard = ({ module, onUpdateProgress }) => (
           </Badge>
         )}
       </div>
-      <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{module.title}</h3>
+      <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
+        <a href={`https://www.google.com/search?q=${encodeURIComponent(module.title + " formation")}`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 hover:underline underline-offset-2"
+          data-testid={`learning-title-link-${module.id}`}>
+          {module.title}
+          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+        </a>
+      </h3>
       <p className="text-xs text-slate-500 mb-3 line-clamp-2">{module.description}</p>
       {module.gaps_addressed?.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
@@ -431,7 +440,15 @@ const LearningSection = ({ modules, updateProgress, token }) => {
                         <Badge className={`text-[10px] border ${pConf.color}`}>{pConf.label}</Badge>
                         <Badge className={`text-[10px] ${tConf.color}`}>{tConf.label}</Badge>
                       </div>
-                      <h3 className="font-semibold text-slate-900 text-sm mb-1 group-hover:text-violet-600 transition-colors">{rec.title}</h3>
+                      <h3 className="font-semibold text-slate-900 text-sm mb-1 group-hover:text-violet-600 transition-colors">
+                        <a href={`https://www.google.com/search?q=${encodeURIComponent(rec.title + (rec.provider ? " " + rec.provider : "") + " formation")}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 hover:underline underline-offset-2"
+                          data-testid={`rec-title-link-${idx}`}>
+                          {rec.title}
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                        </a>
+                      </h3>
                       <p className="text-xs text-slate-500 mb-2">{rec.provider} {rec.duration && <span>- {rec.duration}</span>}</p>
                       <p className="text-xs text-slate-600 mb-3 line-clamp-2">{rec.description}</p>
                       {rec.relevance_reason && (
