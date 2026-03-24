@@ -100,6 +100,7 @@ JSON uniquement:
 
 def _build_docx(cv_data: dict, model_type: str) -> bytes:
     """Build a professionally formatted DOCX from structured CV data"""
+    import os
     from docx import Document
     from docx.shared import Pt, Inches, Cm, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -109,9 +110,20 @@ def _build_docx(cv_data: dict, model_type: str) -> bytes:
     # Page margins
     for section in doc.sections:
         section.top_margin = Cm(1.5)
-        section.bottom_margin = Cm(1.5)
+        section.bottom_margin = Cm(2.0)
         section.left_margin = Cm(2)
         section.right_margin = Cm(2)
+
+    # Add logo to footer (bottom-right)
+    logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "logo-reactif-pro.png")
+    if os.path.exists(logo_path):
+        for section in doc.sections:
+            footer = section.footer
+            footer.is_linked_to_previous = False
+            fp = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+            fp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            run = fp.add_run()
+            run.add_picture(logo_path, width=Cm(3.5))
 
     style = doc.styles['Normal']
     font = style.font
@@ -288,15 +300,31 @@ def _build_docx(cv_data: dict, model_type: str) -> bytes:
 
 def _build_pdf(cv_data: dict, model_type: str) -> bytes:
     """Build a professionally formatted PDF from structured CV data"""
+    import os
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import cm, mm
     from reportlab.lib.colors import HexColor
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.utils import ImageReader
+
+    logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "logo-reactif-pro.png")
+
+    def _add_footer_logo(canvas, doc_template):
+        """Draw logo at bottom-right of every page"""
+        if os.path.exists(logo_path):
+            canvas.saveState()
+            page_w, page_h = A4
+            logo_w = 2.8 * cm
+            logo_h = logo_w * (152 / 506)  # maintain aspect ratio
+            x = page_w - 2 * cm - logo_w
+            y = 0.5 * cm
+            canvas.drawImage(logo_path, x, y, width=logo_w, height=logo_h, preserveAspectRatio=True, mask='auto')
+            canvas.restoreState()
 
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5*cm, bottomMargin=2.0*cm, leftMargin=2*cm, rightMargin=2*cm)
 
     NAVY = "#1e3a5f"
     DARK = "#1e293b"
@@ -409,7 +437,7 @@ def _build_pdf(cv_data: dict, model_type: str) -> bytes:
             ci_text = ci if isinstance(ci, str) else str(ci)
             elements.append(Paragraph(f"&bull; {ci_text}", s_body))
 
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_add_footer_logo, onLaterPages=_add_footer_logo)
     buf.seek(0)
     return buf.getvalue()
 
