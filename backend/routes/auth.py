@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException
 from models import (
     AnonymousToken, Profile, CreateTokenRequest, UpdateProfileRequest,
     RegisterRequest, LoginRequest, UpgradeAccountRequest, ChangePasswordRequest,
-    ConsentRecord, RegisterEntrepriseRequest, RegisterPartenaireRequest
+    ConsentRecord, RegisterEntrepriseRequest, RegisterPartenaireRequest,
+    Evidence, DclicProImport
 )
 from db import db
 from helpers import get_current_token
@@ -380,9 +381,11 @@ def _calc_profile_completion(profile: dict) -> int:
         ]
     else:
         fields = [
-            ("pseudo", 20), ("display_name", 10), ("bio", 10),
-            ("skills", 20), ("sectors", 15), ("experience_years", 10),
-            ("visibility_level", 5), ("email_recovery", 10)
+            ("pseudo", 10), ("display_name", 5), ("bio", 5),
+            ("skills", 10), ("sectors", 10), ("experience_years", 5),
+            ("visibility_level", 3), ("email_recovery", 5),
+            ("target_job", 12), ("city", 5), ("mobility", 5),
+            ("contract_types", 10), ("work_modes", 5), ("summary", 10),
         ]
 
     for field, weight in fields:
@@ -583,3 +586,135 @@ async def get_profile_completion(token: str):
     completion = _calc_profile_completion(profile)
     await db.profiles.update_one({"id": profile["id"]}, {"$set": {"profile_completion": completion}})
     return {"profile_completion": completion, "role": profile.get("role")}
+
+
+# ===== EVIDENCE / PREUVES =====
+
+@router.get("/profile/evidences")
+async def get_evidences(token: str):
+    token_doc = await get_current_token(token)
+    evidences = await db.evidences.find({"token_id": token_doc["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return evidences
+
+
+@router.post("/profile/evidences")
+async def add_evidence(token: str, title: str, kind: str = "attestation", source: str = "", description: str = "", linked_skill_names: list = [], obtained_date: str = ""):
+    token_doc = await get_current_token(token)
+    evidence = Evidence(
+        token_id=token_doc["id"],
+        title=title,
+        kind=kind,
+        source=source,
+        description=description,
+        linked_skill_names=linked_skill_names,
+        obtained_date=obtained_date,
+    )
+    await db.evidences.insert_one(evidence.model_dump())
+    return evidence.model_dump()
+
+
+@router.delete("/profile/evidences/{evidence_id}")
+async def delete_evidence(evidence_id: str, token: str):
+    token_doc = await get_current_token(token)
+    result = await db.evidences.delete_one({"id": evidence_id, "token_id": token_doc["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Preuve non trouvée")
+    return {"message": "Preuve supprimée"}
+
+
+# ===== IMPORT D'CLIC PRO =====
+
+@router.post("/profile/import-dclic")
+async def import_dclic_pro(token: str, data: DclicProImport):
+    """Import profile data from D'CLIC PRO format into Re'Actif Pro"""
+    import uuid as _uuid
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    profile_update = {}
+    if data.target_job:
+        profile_update["target_job"] = data.target_job
+    if data.summary:
+        profile_update["summary"] = data.summary
+    if data.city:
+        profile_update["city"] = data.city
+    if data.mobility:
+        profile_update["mobility"] = data.mobility
+    if data.contract_types:
+        profile_update["contract_types"] = data.contract_types
+    if data.work_modes:
+        profile_update["work_modes"] = data.work_modes
+
+    # Map skills with status and levels
+    if data.skills:
+        mapped_skills = []
+        for s in data.skills:
+            mapped_skills.append({
+                "id": s.get("id", str(_uuid.uuid4())),
+                "name": s.get("name", ""),
+                "category": s.get("category", "transversale"),
+                "declared_level": s.get("declared_level", 3),
+                "validated_level": s.get("validated_level", 0),
+                "status": s.get("status", "declaree"),
+            })
+        profile_update["skills"] = mapped_skills
+
+    if data.experiences:
+        profile_update["experience_years"] = len(data.experiences)
+
+    if profile_update:
+        await db.profiles.update_one({"token_id": token_id}, {"$set": profile_update})
+
+    # Import experiences into passport
+    if data.experiences:
+        passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+        if passport:
+            existing_exps = passport.get("experiences", [])
+            for exp in data.experiences:
+                existing_exps.append({
+                    "title": exp.get("title", ""),
+                    "organization": exp.get("organization", ""),
+                    "description": exp.get("description", ""),
+                    "achievements": exp.get("achievements", []),
+                    "skills_used": exp.get("skills_used", []),
+                    "start_date": exp.get("start_date", ""),
+                    "end_date": exp.get("end_date", ""),
+                    "is_current": exp.get("is_current", False),
+                    "experience_type": exp.get("experience_type", "professional"),
+                })
+            update_fields = {"experiences": existing_exps}
+            if data.target_job:
+                update_fields["career_project"] = data.target_job
+            if data.summary:
+                update_fields["professional_summary"] = data.summary
+            await db.passports.update_one({"token_id": token_id}, {"$set": update_fields})
+
+    # Import evidences
+    imported_evidences = 0
+    if data.evidences:
+        for ev in data.evidences:
+            evidence = Evidence(
+                token_id=token_id,
+                title=ev.get("title", ""),
+                kind=ev.get("kind", "attestation"),
+                source=ev.get("source", "D'CLIC PRO"),
+                description=ev.get("description", ""),
+                linked_skill_names=ev.get("linked_skill_names", []),
+                obtained_date=ev.get("obtained_date", ""),
+            )
+            await db.evidences.insert_one(evidence.model_dump())
+            imported_evidences += 1
+
+    # Recalculate completion
+    profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+    completion = _calc_profile_completion(profile) if profile else 0
+    await db.profiles.update_one({"token_id": token_id}, {"$set": {"profile_completion": completion}})
+
+    return {
+        "message": "Profil D'CLIC PRO importé avec succès",
+        "fields_updated": list(profile_update.keys()),
+        "experiences_imported": len(data.experiences),
+        "skills_imported": len(data.skills),
+        "evidences_imported": imported_evidences,
+        "profile_completion": completion,
+    }

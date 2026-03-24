@@ -66,6 +66,13 @@ class Profile(BaseModel):
     config_signalement_besoins: bool = False
     # Profile completion
     profile_completion: int = 0
+    # CV Nouvelle Generation fields
+    target_job: Optional[str] = None
+    city: Optional[str] = None
+    mobility: Optional[str] = None
+    contract_types: List[str] = []
+    work_modes: List[str] = []
+    summary: Optional[str] = None
 
 
 class JobOffer(BaseModel):
@@ -359,6 +366,12 @@ class UpdateProfileRequest(BaseModel):
     skills: Optional[List[Dict[str, Any]]] = None
     experience_years: Optional[int] = None
     sectors: Optional[List[str]] = None
+    target_job: Optional[str] = None
+    city: Optional[str] = None
+    mobility: Optional[str] = None
+    contract_types: Optional[List[str]] = None
+    work_modes: Optional[List[str]] = None
+    summary: Optional[str] = None
 
 
 class CreateJobRequest(BaseModel):
@@ -545,3 +558,30 @@ class JobApplication(BaseModel):
     motivation: str = ""
     status: str = "submitted"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class Evidence(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token_id: str
+    title: str
+    kind: str = "attestation"  # diplome, certificat, attestation, portfolio, recommandation
+    source: str = ""
+    description: str = ""
+    linked_skill_ids: List[str] = []
+    linked_skill_names: List[str] = []
+    obtained_date: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class DclicProImport(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    target_job: Optional[str] = None
+    summary: Optional[str] = None
+    city: Optional[str] = None
+    mobility: Optional[str] = None
+    contract_types: List[str] = []
+    work_modes: List[str] = []
+    experiences: List[Dict[str, Any]] = []
+    skills: List[Dict[str, Any]] = []
+    evidences: List[Dict[str, Any]] = []
