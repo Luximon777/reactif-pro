@@ -323,34 +323,45 @@ const JobCard = ({ job }) => {
   );
 };
 
-const LearningCard = ({ module, onUpdateProgress }) => (
-  <Card className={`card-interactive group overflow-hidden ${module.relevance === "haute" ? "ring-2 ring-amber-300" : ""}`} data-testid={`learning-card-${module.id}`}>
+const LearningCard = ({ module, onUpdateProgress }) => {
+  const hasEmerging = module.emerging_match?.length > 0;
+  return (
+  <Card className={`card-interactive group overflow-hidden ${
+    hasEmerging ? "ring-2 ring-amber-400 border-amber-300 bg-amber-50/30"
+    : module.relevance === "haute" ? "ring-2 ring-blue-200" : ""
+  }`} data-testid={`learning-card-${module.id}`}>
+    {hasEmerging && (
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 flex items-center gap-2" data-testid={`module-emerging-banner-${module.id}`}>
+        <Zap className="w-4 h-4 text-white" />
+        <span className="text-xs font-semibold text-white">Competence emergente detectee</span>
+      </div>
+    )}
     {module.image_url && (
       <div className="h-32 overflow-hidden">
         <img src={module.image_url} alt={module.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
       </div>
     )}
     <CardContent className="p-5">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
         <Badge variant="secondary" className="text-xs">{module.category}</Badge>
-        {module.relevance === "haute" && (
-          <Badge className="bg-amber-100 text-amber-700 text-[10px]" data-testid="relevance-badge-high">
-            <Target className="w-3 h-3 mr-0.5" />
-            Recommandé pour vous
-          </Badge>
+        {module.provider && (
+          <span className="text-[10px] text-slate-400">{module.provider}</span>
+        )}
+        {module.cpf_eligible && (
+          <Badge className="bg-emerald-50 text-emerald-600 text-[10px]">CPF</Badge>
         )}
       </div>
-      {module.emerging_match?.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2" data-testid={`module-emerging-${module.id}`}>
+      {hasEmerging && (
+        <div className="flex flex-wrap gap-1 mb-2">
           {module.emerging_match.map((em, i) => (
-            <Badge key={i} className="text-[10px] bg-amber-50 text-amber-700 border border-amber-300">
+            <Badge key={i} className="text-[10px] bg-amber-100 text-amber-800 border border-amber-400 font-semibold">
               <Zap className="w-3 h-3 mr-0.5" />{em}
             </Badge>
           ))}
         </div>
       )}
       <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
-        <a href={`https://www.google.com/search?q=${encodeURIComponent(module.title + " formation")}`}
+        <a href={`https://www.google.com/search?q=${encodeURIComponent(module.title + (module.provider ? " " + module.provider : "") + " formation")}`}
           target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 hover:underline underline-offset-2"
           data-testid={`learning-title-link-${module.id}`}>
@@ -359,10 +370,10 @@ const LearningCard = ({ module, onUpdateProgress }) => (
         </a>
       </h3>
       <p className="text-xs text-slate-500 mb-3 line-clamp-2">{module.description}</p>
-      {module.gaps_addressed?.length > 0 && (
+      {module.skills_developed?.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
-          {module.gaps_addressed.map((gap, i) => (
-            <Badge key={i} className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200">Comble : {gap}</Badge>
+          {module.skills_developed.slice(0, 4).map((s, i) => (
+            <Badge key={i} variant="outline" className="text-[10px]">{s}</Badge>
           ))}
         </div>
       )}
@@ -378,7 +389,7 @@ const LearningCard = ({ module, onUpdateProgress }) => (
         <Progress value={module.progress} className="h-2" />
       </div>
       {module.progress < 100 && (
-        <Button variant="outline" size="sm" className="w-full mt-3 group-hover:bg-blue-50 group-hover:text-blue-600" onClick={() => onUpdateProgress(module.id, Math.min(100, module.progress + 25))}>
+        <Button variant="outline" size="sm" className={`w-full mt-3 ${hasEmerging ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-300" : "group-hover:bg-blue-50 group-hover:text-blue-600"}`} onClick={() => onUpdateProgress(module.id, Math.min(100, module.progress + 25))}>
           <Play className="w-3 h-3 mr-1" />{module.progress === 0 ? "Commencer" : "Continuer"}
         </Button>
       )}
@@ -387,7 +398,8 @@ const LearningCard = ({ module, onUpdateProgress }) => (
       )}
     </CardContent>
   </Card>
-);
+  );
+};
 
 const LearningSection = ({ modules, updateProgress, token }) => {
   const [recommendations, setRecommendations] = useState([]);

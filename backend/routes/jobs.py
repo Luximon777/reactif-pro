@@ -465,25 +465,27 @@ async def get_job_match(token: str, job_id: str):
 
 @router.get("/learning")
 async def get_learning_modules(token: str):
+    from db import EMERGENT_LLM_KEY
+
     token_doc = await get_current_token(token)
     token_id = token_doc["id"]
-    modules = await db.learning_modules.find({}, {"_id": 0}).to_list(50)
-    progress_docs = await db.learning_progress.find({"token_id": token_id}, {"_id": 0}).to_list(100)
-    progress_map = {p["module_id"]: p["progress"] for p in progress_docs}
 
-    # Collect user skills, emerging competences, and gaps from CV + passport
-    user_skills_lower = set()
-    emerging_skills_lower = set()
-    skill_gaps = set()
+    # Collect emerging competences from passport + CV
+    emerging_skills = []
+    user_skills = []
+    career_project = ""
+    professional_summary = ""
 
     passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
     if passport:
         for c in passport.get("competences", []):
-            name = c.get("name", "").strip().lower()
+            name = c.get("name", "").strip()
             if name:
-                user_skills_lower.add(name)
+                user_skills.append(name)
                 if c.get("is_emerging"):
-                    emerging_skills_lower.add(name)
+                    emerging_skills.append(name)
+        career_project = passport.get("career_project", "")
+        professional_summary = passport.get("professional_summary", "")
 
     cv_job = await db.cv_jobs.find_one(
         {"token_id": token_id, "status": "completed"},
@@ -491,75 +493,125 @@ async def get_learning_modules(token: str):
         sort=[("created_at", -1)]
     )
     cv_result = cv_job.get("result", {}) if cv_job else {}
-    for t in cv_result.get("competences_transversales", []):
-        if t:
-            user_skills_lower.add(t.lower())
-
-    # Also extract emerging competences from CV analysis
     for comp in cv_result.get("competences_emergentes", []):
         if isinstance(comp, dict):
-            name = comp.get("nom", comp.get("name", "")).strip().lower()
+            name = comp.get("nom", comp.get("name", "")).strip()
         else:
-            name = str(comp).strip().lower()
-        if name:
-            emerging_skills_lower.add(name)
+            name = str(comp).strip()
+        if name and name not in emerging_skills:
+            emerging_skills.append(name)
 
-    # Get recommended skills from job evolution indices (skills user should acquire)
-    user_sectors = set()
-    if passport:
-        for s in passport.get("target_sectors", []):
-            if s:
-                user_sectors.add(s)
-    for sector in user_sectors:
-        jobs = await db.job_evolution_indices.find({"sector": {"$regex": sector, "$options": "i"}}, {"_id": 0, "recommended_skills": 1}).to_list(10)
-        for j in jobs:
-            for rs in j.get("recommended_skills", []):
-                if rs.lower() not in user_skills_lower:
-                    skill_gaps.add(rs.lower())
+    cv_skills = cv_result.get("competences_transversales", [])
 
-    for module in modules:
-        module["progress"] = progress_map.get(module["id"], 0)
-        module_skills = set(s.lower() for s in module.get("skills_developed", []))
-        module_title_lower = module.get("title", "").lower()
+    # Check if we already have personalized modules for this user
+    personalized = await db.learning_modules_personalized.find(
+        {"token_id": token_id}, {"_id": 0}
+    ).to_list(20)
 
-        # Check match with emerging competences (highest priority)
-        emerging_match = set()
-        for em in emerging_skills_lower:
-            if em in module_skills or any(em in ms for ms in module_skills) or any(ms in em for ms in module_skills) or em in module_title_lower:
-                emerging_match.add(em)
+    # Regenerate if no personalized modules or emerging skills changed
+    stored_emerging = set()
+    for m in personalized:
+        for es in m.get("emerging_match", []):
+            stored_emerging.add(es.lower())
+    current_emerging = set(e.lower() for e in emerging_skills)
 
-        gaps_addressed = module_skills & skill_gaps
-        skills_already_have = module_skills & user_skills_lower
+    if emerging_skills and EMERGENT_LLM_KEY and (not personalized or current_emerging != stored_emerging):
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            import json as _json
 
-        if emerging_match:
-            module["relevance"] = "haute"
-            module["relevance_score"] = min(100, 70 + len(emerging_match) * 15)
-            module["gaps_addressed"] = list(gaps_addressed) if gaps_addressed else []
-            module["emerging_match"] = list(emerging_match)
-        elif gaps_addressed:
-            module["relevance"] = "haute"
-            module["relevance_score"] = min(100, len(gaps_addressed) * 35 + 30)
-            module["gaps_addressed"] = list(gaps_addressed)
-            module["emerging_match"] = []
-        elif skills_already_have:
-            module["relevance"] = "moyenne"
-            module["relevance_score"] = 40
-            module["gaps_addressed"] = []
-            module["emerging_match"] = []
+            context = f"""Profil:
+- Compétences actuelles: {', '.join(user_skills[:15])}
+- Compétences transversales CV: {', '.join(cv_skills[:10])}
+- Résumé: {professional_summary[:200]}
+- Projet: {career_project[:200]}
+
+COMPÉTENCES ÉMERGENTES À CIBLER EN PRIORITÉ: {', '.join(emerging_skills)}"""
+
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"learning-modules-{token_id[:8]}-{hash(tuple(emerging_skills)) % 10000}",
+                system_message="""Tu es un expert en ingénierie de formation en France.
+Génère 8 modules de formation CONCRETS et PERTINENTS. Les 4 premiers DOIVENT cibler directement les compétences émergentes listées.
+
+Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
+{
+  "title": "Titre concret de la formation",
+  "description": "Description en 2 phrases max",
+  "duration": "durée (ex: 12 heures, 3 jours)",
+  "level": "Debutant|Intermediaire|Avance",
+  "category": "catégorie courte",
+  "skills_developed": ["comp1", "comp2", "comp3"],
+  "emerging_match": ["nom exact de la compétence émergente ciblée, ou vide si non applicable"],
+  "provider": "organisme suggéré",
+  "cpf_eligible": true/false
+}"""
+            ).with_model("openai", "gpt-5.2")
+
+            response = await chat.send_message(UserMessage(text=context))
+            raw = response.strip() if isinstance(response, str) else response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+
+            modules_data = _json.loads(raw.strip())
+            if not isinstance(modules_data, list):
+                modules_data = modules_data.get("modules", modules_data.get("formations", []))
+
+            # Store personalized modules
+            await db.learning_modules_personalized.delete_many({"token_id": token_id})
+            for i, m in enumerate(modules_data[:8]):
+                m["id"] = f"ai-module-{token_id[:8]}-{i}"
+                m["token_id"] = token_id
+                m["source"] = "ai_personalized"
+            if modules_data:
+                await db.learning_modules_personalized.insert_many([m for m in modules_data[:8]])
+            personalized = modules_data[:8]
+        except Exception as e:
+            logging.error(f"Learning modules AI generation error: {e}")
+
+    # Load progress
+    progress_docs = await db.learning_progress.find({"token_id": token_id}, {"_id": 0}).to_list(100)
+    progress_map = {p["module_id"]: p["progress"] for p in progress_docs}
+
+    # Also load static modules as fallback
+    static_modules = await db.learning_modules.find({}, {"_id": 0}).to_list(50)
+
+    # Merge: personalized first, then static
+    all_modules = []
+    for m in personalized:
+        m.pop("_id", None)
+        m.pop("token_id", None)
+        m["progress"] = progress_map.get(m.get("id", ""), 0)
+        m["source"] = "ai_personalized"
+        em = m.get("emerging_match", [])
+        if isinstance(em, list) and em:
+            m["relevance"] = "haute"
+            m["relevance_score"] = 90
         else:
-            module["relevance"] = "basse"
-            module["relevance_score"] = 10
-            module["gaps_addressed"] = []
-            module["emerging_match"] = []
+            m["relevance"] = "moyenne"
+            m["relevance_score"] = 50
+            m["emerging_match"] = []
+        all_modules.append(m)
 
-    # Sort: emerging match first, then in-progress, then by relevance
-    modules.sort(key=lambda m: (
+    for m in static_modules:
+        m["progress"] = progress_map.get(m.get("id", ""), 0)
+        m["source"] = "static"
+        m["emerging_match"] = []
+        m["relevance"] = "basse"
+        m["relevance_score"] = 10
+        all_modules.append(m)
+
+    # Sort: emerging match first, then AI personalized, then by relevance
+    all_modules.sort(key=lambda m: (
         -len(m.get("emerging_match", [])),
+        -(m.get("source") == "ai_personalized"),
         -(m.get("progress", 0) > 0 and m.get("progress", 0) < 100),
         -m.get("relevance_score", 0)
     ))
 
-    return modules
+    return all_modules
 
 
 @router.post("/learning/{module_id}/progress")
