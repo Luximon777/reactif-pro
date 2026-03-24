@@ -471,8 +471,9 @@ async def get_learning_modules(token: str):
     progress_docs = await db.learning_progress.find({"token_id": token_id}, {"_id": 0}).to_list(100)
     progress_map = {p["module_id"]: p["progress"] for p in progress_docs}
 
-    # Collect user skills and gaps from CV + passport
+    # Collect user skills, emerging competences, and gaps from CV + passport
     user_skills_lower = set()
+    emerging_skills_lower = set()
     skill_gaps = set()
 
     passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
@@ -481,6 +482,8 @@ async def get_learning_modules(token: str):
             name = c.get("name", "").strip().lower()
             if name:
                 user_skills_lower.add(name)
+                if c.get("is_emerging"):
+                    emerging_skills_lower.add(name)
 
     cv_job = await db.cv_jobs.find_one(
         {"token_id": token_id, "status": "completed"},
@@ -491,6 +494,15 @@ async def get_learning_modules(token: str):
     for t in cv_result.get("competences_transversales", []):
         if t:
             user_skills_lower.add(t.lower())
+
+    # Also extract emerging competences from CV analysis
+    for comp in cv_result.get("competences_emergentes", []):
+        if isinstance(comp, dict):
+            name = comp.get("nom", comp.get("name", "")).strip().lower()
+        else:
+            name = str(comp).strip().lower()
+        if name:
+            emerging_skills_lower.add(name)
 
     # Get recommended skills from job evolution indices (skills user should acquire)
     user_sectors = set()
@@ -507,25 +519,42 @@ async def get_learning_modules(token: str):
 
     for module in modules:
         module["progress"] = progress_map.get(module["id"], 0)
-        # Calculate relevance score based on skill gaps
         module_skills = set(s.lower() for s in module.get("skills_developed", []))
+        module_title_lower = module.get("title", "").lower()
+
+        # Check match with emerging competences (highest priority)
+        emerging_match = set()
+        for em in emerging_skills_lower:
+            if em in module_skills or any(em in ms for ms in module_skills) or any(ms in em for ms in module_skills) or em in module_title_lower:
+                emerging_match.add(em)
+
         gaps_addressed = module_skills & skill_gaps
         skills_already_have = module_skills & user_skills_lower
-        if gaps_addressed:
+
+        if emerging_match:
+            module["relevance"] = "haute"
+            module["relevance_score"] = min(100, 70 + len(emerging_match) * 15)
+            module["gaps_addressed"] = list(gaps_addressed) if gaps_addressed else []
+            module["emerging_match"] = list(emerging_match)
+        elif gaps_addressed:
             module["relevance"] = "haute"
             module["relevance_score"] = min(100, len(gaps_addressed) * 35 + 30)
             module["gaps_addressed"] = list(gaps_addressed)
+            module["emerging_match"] = []
         elif skills_already_have:
             module["relevance"] = "moyenne"
             module["relevance_score"] = 40
             module["gaps_addressed"] = []
+            module["emerging_match"] = []
         else:
             module["relevance"] = "basse"
             module["relevance_score"] = 10
             module["gaps_addressed"] = []
+            module["emerging_match"] = []
 
-    # Sort: in-progress first, then by relevance, then alphabetical
+    # Sort: emerging match first, then in-progress, then by relevance
     modules.sort(key=lambda m: (
+        -len(m.get("emerging_match", [])),
         -(m.get("progress", 0) > 0 and m.get("progress", 0) < 100),
         -m.get("relevance_score", 0)
     ))
@@ -566,12 +595,18 @@ async def get_personalized_training_recommendations(token: str):
 
     # Build context
     competences = []
+    emerging_competences = []
     career_project = ""
     professional_summary = ""
     experiences = []
 
     if passport:
-        competences = [c.get("name", "") for c in passport.get("competences", [])[:15]]
+        for c in passport.get("competences", []):
+            name = c.get("name", "")
+            if name:
+                competences.append(name)
+                if c.get("is_emerging"):
+                    emerging_competences.append(name)
         career_project = passport.get("career_project", "")
         professional_summary = passport.get("professional_summary", "")
         experiences = [f"{e.get('title','')} - {e.get('company','')}" for e in passport.get("experiences", [])[:5]]
@@ -580,13 +615,25 @@ async def get_personalized_training_recommendations(token: str):
     if cv_job and cv_job.get("result"):
         result = cv_job["result"]
         cv_skills = result.get("competences_transversales", [])
+        for comp in result.get("competences_emergentes", []):
+            if isinstance(comp, dict):
+                name = comp.get("nom", comp.get("name", ""))
+            else:
+                name = str(comp)
+            if name and name not in emerging_competences:
+                emerging_competences.append(name)
 
     context = f"""Profil de la personne:
 - Compétences: {', '.join(competences[:15])}
 - Compétences transversales CV: {', '.join(cv_skills[:10])}
 - Résumé professionnel: {professional_summary[:200]}
 - Projet professionnel: {career_project[:200]}
-- Expériences: {', '.join(experiences[:5])}"""
+- Expériences: {', '.join(experiences[:5])}
+
+COMPÉTENCES ÉMERGENTES DÉTECTÉES (PRIORITÉ ABSOLUE):
+{', '.join(emerging_competences) if emerging_competences else 'Aucune détectée'}
+
+INSTRUCTION PRIORITAIRE: Les 3 premières formations recommandées DOIVENT cibler les compétences émergentes listées ci-dessus. Ces compétences sont en développement et nécessitent un renforcement prioritaire par la formation. Pour chaque formation liée à une compétence émergente, ajoute le champ "emerging_skills" avec la liste des compétences émergentes concernées."""
 
     if not EMERGENT_LLM_KEY:
         return {"has_data": False, "recommendations": [], "message": "Service IA indisponible"}
@@ -615,7 +662,8 @@ Réponds UNIQUEMENT en JSON valide: un array de 6 objets avec:
   "skills_developed": ["compétence1", "compétence2", "compétence3"],
   "relevance_reason": "Pourquoi cette formation est pertinente pour ce profil",
   "cpf_eligible": true/false,
-  "priority": "haute|moyenne|basse"
+  "priority": "haute|moyenne|basse",
+  "emerging_skills": ["compétence émergente ciblée si applicable, sinon array vide"]
 }"""
         ).with_model("openai", "gpt-5.2")
 

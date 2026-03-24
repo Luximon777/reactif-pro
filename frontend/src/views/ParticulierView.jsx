@@ -340,6 +340,15 @@ const LearningCard = ({ module, onUpdateProgress }) => (
           </Badge>
         )}
       </div>
+      {module.emerging_match?.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2" data-testid={`module-emerging-${module.id}`}>
+          {module.emerging_match.map((em, i) => (
+            <Badge key={i} className="text-[10px] bg-amber-50 text-amber-700 border border-amber-300">
+              <Zap className="w-3 h-3 mr-0.5" />{em}
+            </Badge>
+          ))}
+        </div>
+      )}
       <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
         <a href={`https://www.google.com/search?q=${encodeURIComponent(module.title + " formation")}`}
           target="_blank" rel="noopener noreferrer"
@@ -440,6 +449,15 @@ const LearningSection = ({ modules, updateProgress, token }) => {
                         <Badge className={`text-[10px] border ${pConf.color}`}>{pConf.label}</Badge>
                         <Badge className={`text-[10px] ${tConf.color}`}>{tConf.label}</Badge>
                       </div>
+                      {rec.emerging_skills?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2" data-testid={`rec-emerging-${idx}`}>
+                          {rec.emerging_skills.map((es, i) => (
+                            <Badge key={i} className="text-[10px] bg-amber-50 text-amber-700 border border-amber-300">
+                              <Zap className="w-3 h-3 mr-0.5" />{es}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       <h3 className="font-semibold text-slate-900 text-sm mb-1 group-hover:text-violet-600 transition-colors">
                         <a href={`https://www.google.com/search?q=${encodeURIComponent(rec.title + (rec.provider ? " " + rec.provider : "") + " formation")}`}
                           target="_blank" rel="noopener noreferrer"
