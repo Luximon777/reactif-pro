@@ -10,14 +10,14 @@ import {
   User, Target, TrendingUp, BookOpen, Briefcase, MapPin, Clock, Euro,
   Star, ChevronRight, Plus, Sparkles, Zap, Award, CheckCircle2, AlertCircle,
   Play, FolderLock, FileDown, FileText, LayoutList, Layers, Shield, BarChart3,
-  ExternalLink
+  ExternalLink, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
 
-const ParticulierView = ({ token, section }) => {
+const ParticulierView = ({ token, section, onOpenDclic }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -212,6 +212,26 @@ const ParticulierView = ({ token, section }) => {
           </Card>
         </div>
       </div>
+
+      {/* D'CLIC PRO Import Banner */}
+      <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0 cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-banner" onClick={() => onOpenDclic && onOpenDclic()}>
+        <CardContent className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">Charger mon profil D'CLIC PRO</h3>
+                <p className="text-emerald-100 text-xs">Importez votre profil, competences et preuves pour enrichir votre passeport</p>
+              </div>
+            </div>
+            <Button className="bg-white text-emerald-700 hover:bg-emerald-50 shrink-0" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
+              <Upload className="w-4 h-4 mr-2" />Charger mon profil
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Coffre-Fort Banner */}
       <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d4a6f] border-0" data-testid="coffre-fort-banner">

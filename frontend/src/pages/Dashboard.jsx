@@ -469,7 +469,7 @@ const Dashboard = () => {
       <main className="pt-28 pb-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
-            <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
+            <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} onOpenDclic={() => setDclicOpen(true)} />} />
             <Route path="/passeport" element={<PassportView token={token} key={`passport-${refreshKey}`} />} />
             <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
             <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
@@ -486,16 +486,16 @@ const Dashboard = () => {
   );
 };
 
-const DashboardHome = ({ role, token, refreshKey }) => {
+const DashboardHome = ({ role, token, refreshKey, onOpenDclic }) => {
   switch (role) {
     case "particulier":
-      return <ParticulierView token={token} key={`particulier-${refreshKey}`} />;
+      return <ParticulierView token={token} onOpenDclic={onOpenDclic} key={`particulier-${refreshKey}`} />;
     case "entreprise":
       return <EntrepriseView token={token} key={`entreprise-${refreshKey}`} />;
     case "partenaire":
       return <PartenaireView token={token} key={`partenaire-${refreshKey}`} />;
     default:
-      return <ParticulierView token={token} key={`default-${refreshKey}`} />;
+      return <ParticulierView token={token} onOpenDclic={onOpenDclic} key={`default-${refreshKey}`} />;
   }
 };
 
