@@ -16,7 +16,7 @@ import {
 import {
   Target, Sparkles, ChevronDown, ChevronUp, Search,
   AlertTriangle, ShieldAlert, CheckCircle2, Star, MapPin,
-  Filter, RotateCcw, Heart, Shield, Accessibility, Send
+  Filter, RotateCcw, Heart, Shield, Accessibility, Send, ExternalLink, FileEdit
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -621,7 +621,16 @@ const JobMatchingSection = ({ token }) => {
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{match.titre}</h3>
+                      {match.url_offre ? (
+                        <a href={match.url_offre} target="_blank" rel="noopener noreferrer"
+                          className="font-semibold text-slate-900 hover:text-blue-600 transition-colors flex items-center gap-1.5 group/link"
+                          data-testid={`job-title-link-${idx}`}>
+                          {match.titre}
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-blue-500 transition-colors shrink-0" />
+                        </a>
+                      ) : (
+                        <h3 className="font-semibold text-slate-900">{match.titre}</h3>
+                      )}
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {match.entreprise_type && <span className="text-xs text-slate-500">{match.entreprise_type}</span>}
                         <Badge variant="outline" className="text-[10px]">{match.type_contrat}</Badge>
@@ -795,9 +804,9 @@ const JobMatchingSection = ({ token }) => {
                         ) : isApplied ? (
                           <CheckCircle2 className="w-4 h-4 mr-2" />
                         ) : (
-                          <Send className="w-4 h-4 mr-2" />
+                          <FileEdit className="w-4 h-4 mr-2" />
                         )}
-                        {isApplied ? "Candidature envoyée" : isApplying ? "Envoi en cours..." : "Postuler"}
+                        {isApplied ? "Candidature en preparation" : isApplying ? "Enregistrement..." : "Preparer votre candidature"}
                       </Button>
                     );
                   })()}
