@@ -194,14 +194,14 @@ VISUAL_QUESTIONS = [
                 "id": "v1a",
                 "value": "E",
                 "label": "Retrouver des amis",
-                "image": "/q1-groupe.png",
+                "image": "https://images.pexels.com/photos/5414003/pexels-photo-5414003.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Groupe d'amis qui discutent"
             },
             {
                 "id": "v1b",
                 "value": "I",
                 "label": "Un moment seul(e)",
-                "image": "/q1-seul.png",
+                "image": "https://images.pexels.com/photos/3771836/pexels-photo-3771836.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne seule en réflexion"
             }
         ]
@@ -240,14 +240,14 @@ VISUAL_QUESTIONS = [
                 "id": "v3a",
                 "value": "S",
                 "label": "Des étapes concrètes",
-                "image": "/q3-etape.png",
+                "image": "https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Main écrivant une checklist"
             },
             {
                 "id": "v3b",
                 "value": "N",
                 "label": "Une vision globale",
-                "image": "/q3-vision.png",
+                "image": "https://images.pexels.com/photos/7369/startup-photos.jpg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Mind map avec idées et solutions"
             }
         ]
@@ -301,14 +301,14 @@ VISUAL_QUESTIONS = [
                 "id": "v5a",
                 "value": "T",
                 "label": "J'analyse les données",
-                "image": "/q5-analyse.png",
+                "image": "https://images.pexels.com/photos/669615/pexels-photo-669615.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Analyse de données"
             },
             {
                 "id": "v5b",
                 "value": "F",
                 "label": "J'écoute mon cœur",
-                "image": "/q5-coeur.png",
+                "image": "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne mains sur le coeur"
             }
         ]
@@ -347,14 +347,14 @@ VISUAL_QUESTIONS = [
                 "id": "v7a",
                 "value": "J",
                 "label": "Un planning précis",
-                "image": "/q7-planning.png",
+                "image": "https://images.pexels.com/photos/3243090/pexels-photo-3243090.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Calendrier et planning"
             },
             {
                 "id": "v7b",
                 "value": "P",
                 "label": "De la flexibilité",
-                "image": "/q7-flexibilite.png",
+                "image": "https://images.pexels.com/photos/3184325/pexels-photo-3184325.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne flexible avec post-its"
             }
         ]
@@ -431,28 +431,28 @@ VISUAL_QUESTIONS = [
                 "id": "v10a",
                 "value": "D",
                 "label": "J'accélère pour rattraper",
-                "image": "/q10-accelere.png",
+                "image": "https://images.pexels.com/photos/3756165/pexels-photo-3756165.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Action rapide"
             },
             {
                 "id": "v10b",
                 "value": "I",
                 "label": "Je cherche une alternative créative",
-                "image": "/q10-creative.png",
+                "image": "https://images.pexels.com/photos/3094218/pexels-photo-3094218.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Créativité"
             },
             {
                 "id": "v10c",
                 "value": "S",
                 "label": "Je reste calme et patient",
-                "image": "/q10-calme.png",
+                "image": "https://images.pexels.com/photos/3560044/pexels-photo-3560044.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Calme et patience"
             },
             {
                 "id": "v10d",
                 "value": "C",
                 "label": "J'analyse ce qui n'a pas marché",
-                "image": "/q10-analyse.png",
+                "image": "https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Analyse détaillée"
             }
         ]
