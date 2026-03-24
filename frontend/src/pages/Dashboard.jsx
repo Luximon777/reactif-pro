@@ -8,7 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
@@ -19,7 +18,6 @@ import {
   Briefcase,
   BookOpen,
   LogOut,
-  ChevronDown,
   Sparkles,
   Menu,
   X,
@@ -207,39 +205,6 @@ const Dashboard = () => {
                   <span className="hidden lg:inline">Ubuntoo</span>
                 </Button>
               </a>
-
-              {/* Role Switcher */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className={`${getRoleColor(role)} border`} data-testid="role-switcher">
-                    <RoleIcon className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">{getRoleLabel(role)}</span>
-                    <ChevronDown className="w-4 h-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => handleSwitchRole("particulier")} data-testid="switch-particulier">
-                    <Users className="w-4 h-4 mr-2 text-[#1e3a5f]" />
-                    Espace Personnel
-                    {role === "particulier" && <Badge className="ml-auto bg-blue-100 text-[#1e3a5f]">Actif</Badge>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSwitchRole("entreprise")} data-testid="switch-entreprise">
-                    <Building2 className="w-4 h-4 mr-2 text-emerald-600" />
-                    Espace Employeurs
-                    {role === "entreprise" && <Badge className="ml-auto bg-emerald-100 text-emerald-700">Actif</Badge>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSwitchRole("partenaire")} data-testid="switch-partenaire">
-                    <Handshake className="w-4 h-4 mr-2 text-violet-600" />
-                    Espace Partenaires
-                    {role === "partenaire" && <Badge className="ml-auto bg-violet-100 text-violet-700">Actif</Badge>}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSeedDatabase} disabled={isSeeding} data-testid="seed-data-btn">
-                    <Settings className="w-4 h-4 mr-2" />
-                    {isSeeding ? "Chargement..." : "Recharger données démo"}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
 
               {/* Logout */}
               <Dialog open={dclicOpen} onOpenChange={setDclicOpen}>

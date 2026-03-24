@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import {
   User, Target, TrendingUp, BookOpen, Briefcase, MapPin, Clock, Euro,
-  Star, ChevronRight, Plus, Sparkles, Zap, Award, CheckCircle2, AlertCircle,
+  Star, ChevronRight, Plus, Sparkles, Zap, Award, AlertCircle,
   Play, FolderLock, FileDown, FileText, LayoutList, Layers, Shield, BarChart3,
   ExternalLink, Upload
 } from "lucide-react";
@@ -146,72 +146,40 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
         })}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 card-base" data-testid="skills-section">
-          <CardHeader>
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#1e3a5f]" />Mes CV
-              </CardTitle>
-              <CardDescription>Re'Actif Pro IA audite, optimise et adapte votre CV pour passer les filtres ATS</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CvAnalysisSection token={token} onComplete={() => loadData(true)} />
-            <div className="space-y-4 mt-6">
-              <h4 className="text-sm font-semibold text-slate-700">Compétences identifiées</h4>
-              {displayProfile.skills?.length > 0 ? (
-                displayProfile.skills.map((skill, idx) => (
-                  <div key={idx} className="space-y-2" data-testid={`skill-${idx}`}>
+      {/* Main Content - CV Section Full Width */}
+      <Card className="card-base" data-testid="skills-section">
+        <CardHeader>
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="w-5 h-5 text-[#1e3a5f]" />Mes CV
+            </CardTitle>
+            <CardDescription className="text-sm">Re'Actif Pro IA audite, optimise et adapte votre CV pour passer les filtres ATS</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <CvAnalysisSection token={token} onComplete={() => loadData(true)} />
+          <div className="space-y-4 mt-6">
+            <h4 className="text-sm font-semibold text-slate-700">Compétences identifiées</h4>
+            {displayProfile.skills?.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                {displayProfile.skills.map((skill, idx) => (
+                  <div key={idx} className="space-y-1.5" data-testid={`skill-${idx}`}>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-slate-700">{skill.name}</span>
                       <span className="text-sm text-slate-500">{skill.level}%</span>
                     </div>
                     <Progress value={skill.level} className="h-2" />
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-slate-400 text-sm">
-                  <p>Chargez un CV pour identifier vos compétences automatiquement</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="card-base" data-testid="strengths-section">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />Compétences Transversales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {(displayProfile.strengths || ["Adaptabilité", "Travail d'équipe"]).map((strength, idx) => (
-                  <Badge key={idx} className="badge-success">{strength}</Badge>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-base" data-testid="gaps-section">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <AlertCircle className="w-5 h-5 text-amber-600" />Besoins en Formation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {(displayProfile.gaps || ["Gestion de projet", "Langues"]).map((gap, idx) => (
-                  <Badge key={idx} className="badge-warning">{gap}</Badge>
-                ))}
+            ) : (
+              <div className="text-center py-4 text-slate-400 text-sm">
+                <p>Chargez un CV pour identifier vos compétences automatiquement</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* D'CLIC PRO Import Banner */}
       <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0 cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-banner" onClick={() => onOpenDclic && onOpenDclic()}>
