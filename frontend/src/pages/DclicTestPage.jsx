@@ -1,13 +1,141 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle, Copy, Check, Home, ChevronRight, Calendar, GraduationCap, BookOpen, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Copy, Check, Home, ChevronRight, Calendar, GraduationCap, BookOpen, Sparkles, Info, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
+
+// ============================================================================
+// TOOLTIP COMPONENT (survol pour définitions)
+// ============================================================================
+const HoverTooltip = ({ children, content }) => (
+  <span className="relative group inline-flex items-center gap-1 cursor-help">
+    {children}
+    <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#818cf8] transition-colors" />
+    <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 md:w-96 p-3 bg-[#0f1d32] border border-white/20 rounded-lg text-xs text-slate-300 leading-relaxed shadow-xl z-50 pointer-events-none">
+      {content}
+    </span>
+  </span>
+);
+
+// Definitions for key terms
+const DEFINITIONS = {
+  archeologie: "L'Archéologie des Compétences est une approche originale qui identifie vos talents enfouis à travers 3 dimensions : Cognition (comment vous pensez), Conation (ce qui vous met en mouvement) et Affection (ce qui vous touche). Contrairement à un simple listing de compétences, cette méthode révèle les ressources profondes qui fondent votre identité professionnelle.",
+  boussole: "La Boussole de Fonctionnement cartographie vos préférences cognitives sur 4 axes fondamentaux (MBTI). Elle révèle comment vous percevez le monde, prenez vos décisions et organisez votre vie.",
+  mbti: (type) => `Le profil ${type} est un type de personnalité MBTI (Myers-Briggs Type Indicator). Il décrit vos préférences naturelles dans 4 dimensions : Énergie (E/I), Perception (S/N), Décision (T/F) et Organisation (J/P).`,
+  disc: "Le modèle DISC identifie 4 styles comportementaux : Dominance (D - rouge), Influence (I - jaune), Stabilité (S - vert) et Conformité (C - bleu). Chaque personne possède un mélange unique de ces styles.",
+  riasec: "Le modèle RIASEC (ou modèle de Holland) identifie 6 types d'intérêts professionnels : Réaliste, Investigateur, Artistique, Social, Entreprenant et Conventionnel. Votre profil révèle les environnements de travail qui vous correspondent le mieux.",
+  vertus: "Le modèle des Vertus de Seligman & Peterson identifie 6 vertus fondamentales : Sagesse, Courage, Humanité, Justice, Tempérance et Transcendance. Chaque vertu regroupe des forces de caractère qui sont universellement valorisées.",
+  ofman: "Le Cadran d'Ofman est un modèle créé par Daniel Ofman (années 1990) qui relie 4 éléments : votre Qualité fondamentale (force naturelle), le Piège (excès de cette qualité), le Challenge (ce que vous devez développer) et l'Allergie (ce qui vous irrite chez les autres). Il montre que chaque force a une faiblesse symétrique.",
+  integrated: "L'Analyse Intégrée examine votre profil sur 3 niveaux : Niveau 1 (compétences prouvées), Niveau 2 (style de travail et environnement) et Niveau 3 (régulation, moteur interne et signaux de stress). Elle offre une vision complète et nuancée.",
+  cross: "L'Analyse Croisée met en relation vos différents profils (DISC, Ennéagramme, MBTI) pour identifier les synergies naturelles et les tensions potentielles entre vos différentes facettes.",
+};
+
+// ============================================================================
+// PROFIL COMPORTEMENTAL - Radar Charts (Tripartite, DISC, Archéologie)
+// ============================================================================
+const ProfilComportemental = ({ profile }) => {
+  const vp = profile.vertus_profile || {};
+  const rp = profile.riasec_profile || {};
+  const compass = profile.compass || {};
+  const disc = profile.disc_scores || {};
+
+  // Tripartite data (Cognition, Conation, Affection)
+  const tripartiteData = [
+    { axis: "Cognition", value: vp.vertus_scores?.sagesse || 50 },
+    { axis: "Conation", value: vp.vertus_scores?.courage || 50 },
+    { axis: "Affection", value: vp.vertus_scores?.humanite || 50 },
+  ];
+
+  // DISC data
+  const discData = [
+    { axis: "D", value: disc.D || 40 },
+    { axis: "I", value: disc.I || 40 },
+    { axis: "S", value: disc.S || 40 },
+    { axis: "C", value: disc.C || 40 },
+  ];
+
+  // Archéologie data (5 axes from RIASEC + Vertus)
+  const scores = rp.scores || {};
+  const archData = [
+    { axis: "R", value: scores.R || 30 },
+    { axis: "I", value: scores.I || 30 },
+    { axis: "A", value: scores.A || 30 },
+    { axis: "S", value: scores.S || 30 },
+    { axis: "E", value: scores.E || 30 },
+    { axis: "C", value: scores.C || 30 },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          Profil Comportemental
+        </h3>
+        <p className="text-sm text-slate-400">
+          <HoverTooltip content={DEFINITIONS.archeologie}>Tripartite</HoverTooltip> x{" "}
+          <HoverTooltip content={DEFINITIONS.disc}>DISC</HoverTooltip> x{" "}
+          <HoverTooltip content={DEFINITIONS.archeologie}>Archéologie des Compétences</HoverTooltip>
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Tripartite */}
+        <div className="bg-[#152a45] border border-white/10 rounded-xl p-4">
+          <p className="text-sm font-semibold text-white text-center mb-2">Tripartite</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <RadarChart data={tripartiteData} cx="50%" cy="50%" outerRadius="70%">
+              <PolarGrid stroke="rgba(255,255,255,0.1)" />
+              <PolarAngleAxis dataKey="axis" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+              <Radar dataKey="value" stroke="#c084fc" fill="#c084fc" fillOpacity={0.3} strokeWidth={2} />
+              <Radar dataKey="value" stroke="#ec4899" fill="#ec4899" fillOpacity={0.15} strokeWidth={1} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        {/* DISC */}
+        <div className="bg-[#152a45] border border-white/10 rounded-xl p-4">
+          <p className="text-sm font-semibold text-white text-center mb-2">DISC</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <RadarChart data={discData} cx="50%" cy="50%" outerRadius="70%">
+              <PolarGrid stroke="rgba(255,255,255,0.1)" />
+              <PolarAngleAxis dataKey="axis" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+              <Radar dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.25} strokeWidth={2} />
+              <Radar dataKey="value" stroke="#eab308" fill="#eab308" fillOpacity={0.1} strokeWidth={1} />
+            </RadarChart>
+          </ResponsiveContainer>
+          <div className="flex justify-center gap-2 mt-2">
+            {[
+              { letter: "D", label: "Dominance", color: "border-red-500 text-red-400" },
+              { letter: "I", label: "Influence", color: "border-amber-500 text-amber-400" },
+              { letter: "S", label: "Stabilité", color: "border-emerald-500 text-emerald-400" },
+              { letter: "C", label: "Conformité", color: "border-cyan-500 text-cyan-400" },
+            ].map(d => (
+              <span key={d.letter} className={`text-[10px] px-2 py-0.5 rounded-full border ${d.color}`}>
+                <strong>{d.letter}</strong> {d.label}
+              </span>
+            ))}
+          </div>
+        </div>
+        {/* Archéologie */}
+        <div className="bg-[#152a45] border border-white/10 rounded-xl p-4">
+          <p className="text-sm font-semibold text-white text-center mb-2">Archéologie</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <RadarChart data={archData} cx="50%" cy="50%" outerRadius="70%">
+              <PolarGrid stroke="rgba(255,255,255,0.1)" />
+              <PolarAngleAxis dataKey="axis" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+              <Radar dataKey="value" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.25} strokeWidth={2} />
+              <Radar dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={1} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ============================================================================
 // D'CLIC PRO LOGO SVG (from original project)
@@ -62,15 +190,16 @@ const DclicProLogo = ({ size = 120, animated = true }) => (
 // RESULTS SECTIONS
 // ============================================================================
 const SECTIONS = [
-  { id: "archeologie", label: "Archéologie des Compétences", icon: "1" },
-  { id: "boussole", label: "Boussole de Fonctionnement", icon: "2" },
-  { id: "integrated", label: "Analyse Intégrée", icon: "3" },
-  { id: "riasec", label: "Profil RIASEC", icon: "4" },
-  { id: "vertus", label: "Profil de Vertus", icon: "5" },
-  { id: "pistes", label: "Pistes d'Action", icon: "6" },
-  { id: "cross", label: "Analyse Croisée", icon: "7" },
-  { id: "ofman", label: "Cadran d'Ofman", icon: "8" },
-  { id: "carte", label: "Carte d'Identité Pro", icon: "9" },
+  { id: "comportemental", label: "Profil Comportemental", icon: "1" },
+  { id: "archeologie", label: "Archéologie des Compétences", icon: "2" },
+  { id: "boussole", label: "Boussole de Fonctionnement", icon: "3" },
+  { id: "integrated", label: "Analyse Intégrée", icon: "4" },
+  { id: "riasec", label: "Profil RIASEC", icon: "5" },
+  { id: "vertus", label: "Profil de Vertus", icon: "6" },
+  { id: "pistes", label: "Pistes d'Action", icon: "7" },
+  { id: "cross", label: "Analyse Croisée", icon: "8" },
+  { id: "ofman", label: "Cadran d'Ofman", icon: "9" },
+  { id: "carte", label: "Carte d'Identité Pro", icon: "10" },
 ];
 
 const Bar = ({ label, value, max = 100, color = "bg-[#4f6df5]" }) => (
@@ -101,7 +230,9 @@ const ArcheologieSection = ({ profile }) => {
   const vertuData = profile.vertu_data || {};
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Archéologie des Compétences</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.archeologie}>Archéologie des Compétences</HoverTooltip>
+      </h3>
       <p className="text-sm text-slate-400">Vos compétences profondes à travers 3 dimensions fondamentales.</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {[
@@ -135,10 +266,12 @@ const BoussoleSection = ({ profile }) => {
   const axes = compass.axes || [];
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Boussole de Fonctionnement</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.boussole}>Boussole de Fonctionnement</HoverTooltip>
+      </h3>
       <p className="text-sm text-slate-400">Vos préférences cognitives sur 4 axes fondamentaux.</p>
       <div className="bg-[#4f6df5]/10 rounded-lg p-3 border border-[#4f6df5]/30">
-        <p className="text-sm font-semibold text-[#818cf8]">Profil global : {profile.mbti || "?"}</p>
+        <p className="text-sm font-semibold text-[#818cf8]">Profil global : <HoverTooltip content={DEFINITIONS.mbti(profile.mbti || "?")}>{profile.mbti || "?"}</HoverTooltip></p>
         {compass.summary && <p className="text-xs text-[#a5b4fc] mt-1">{compass.summary}</p>}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{axes.map((axis, i) => <CompassAxis key={i} axis={axis} />)}</div>
@@ -153,7 +286,9 @@ const IntegratedSection = ({ profile }) => {
   const n3 = ia.niveau_3_regulation || {};
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Analyse Intégrée (3 niveaux)</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.integrated}>Analyse Intégrée (3 niveaux)</HoverTooltip>
+      </h3>
       <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4">
         <h4 className="font-semibold text-blue-300 mb-2">Niveau 1 - Compétences prouvées</h4>
         {n1.competences_prouvees?.length > 0 && <div className="flex flex-wrap gap-1.5 mb-2">{n1.competences_prouvees.map((c, i) => <Badge key={i} className="bg-blue-500/20 text-blue-300 text-xs border-0">{c}</Badge>)}</div>}
@@ -183,7 +318,9 @@ const RiasecSection = ({ profile }) => {
   const maxScore = Math.max(...Object.values(scores), 1);
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Profil RIASEC</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.riasec}>Profil RIASEC</HoverTooltip>
+      </h3>
       <div className="bg-[#4f6df5]/10 rounded-lg p-3 border border-[#4f6df5]/30">
         <p className="text-lg font-bold text-[#818cf8]">{rp.major_name || rp.major || "?"} / {rp.minor_name || rp.minor || "?"}</p>
         {rp.major_description && <p className="text-sm text-[#a5b4fc] mt-1">{rp.major_description}</p>}
@@ -203,7 +340,9 @@ const VertusSection = ({ profile }) => {
   const maxScore = Math.max(...Object.values(scores), 1);
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Profil de Vertus</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.vertus}>Profil de Vertus</HoverTooltip>
+      </h3>
       <p className="text-sm text-slate-400">Seligman & Peterson - Les 6 vertus fondamentales</p>
       <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-400/30">
         <p className="text-sm font-semibold text-emerald-300">Vertu dominante : {vp.dominant_name || vp.vertu_dominante_name || labels[vp.dominant] || "?"}</p>
@@ -235,7 +374,9 @@ const CrossSection = ({ profile }) => {
   if (!ca.has_cross_analysis) return <p className="text-sm text-slate-500">Renseignez votre date de naissance pour accéder à l'analyse croisée.</p>;
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Analyse Croisée</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.cross}>Analyse Croisée</HoverTooltip>
+      </h3>
       <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4"><h4 className="text-sm font-semibold text-blue-300 mb-1">Synergie - Style de travail</h4><p className="text-sm text-blue-200">{ca.synergy_disc}</p></div>
       <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4"><h4 className="text-sm font-semibold text-emerald-300 mb-1">Synergie - Moteur intérieur</h4><p className="text-sm text-emerald-200">{ca.synergy_ennea}</p></div>
       {ca.tension && <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4"><h4 className="text-sm font-semibold text-amber-300 mb-1">Tension à transformer</h4><p className="text-sm text-amber-200">{ca.tension}</p></div>}
@@ -248,7 +389,9 @@ const OfmanSection = ({ profile }) => {
   const zones = profile.ofman_quadrant || [];
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Cadran d'Ofman - Zones de vigilance</h3>
+      <h3 className="text-lg font-bold text-white">
+        <HoverTooltip content={DEFINITIONS.ofman}>Cadran d'Ofman - Zones de vigilance</HoverTooltip>
+      </h3>
       <p className="text-sm text-slate-400">Vos qualités peuvent devenir des pièges si elles sont poussées à l'extrême.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {zones.map((z, i) => (
@@ -348,7 +491,7 @@ const DclicTestPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
-  const [activeSection, setActiveSection] = useState("archeologie");
+  const [activeSection, setActiveSection] = useState("comportemental");
   const [step, setStep] = useState("intro");
   const [birthDate, setBirthDate] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
@@ -502,6 +645,7 @@ const DclicTestPage = () => {
     const p = result.profile || {};
     const renderSection = () => {
       switch (activeSection) {
+        case "comportemental": return <ProfilComportemental profile={p} />;
         case "archeologie": return <ArcheologieSection profile={p} />;
         case "boussole": return <BoussoleSection profile={p} />;
         case "integrated": return <IntegratedSection profile={p} />;
