@@ -601,6 +601,7 @@ const DclicTestPage = () => {
   const [step, setStep] = useState("intro");
   const [birthDate, setBirthDate] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
+  const [reportValidated, setReportValidated] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/dclic/questionnaire`)
@@ -782,13 +783,18 @@ const DclicTestPage = () => {
                 <p className="text-sm text-slate-400">Votre profil de personnalité et compétences professionnelles</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <div className="bg-[#152a45] border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2" data-testid="dclic-code-display">
                 <span className="text-xs text-[#818cf8]">Code :</span>
                 <span className="font-mono font-bold text-white text-lg" data-testid="dclic-code">{result.access_code}</span>
                 <button onClick={copyCode} className="text-[#818cf8] hover:text-white transition-colors">{codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
               </div>
-              <button className="bg-[#4f6df5] hover:bg-[#6366f1] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Home className="w-4 h-4" />Dashboard</button>
+              {!reportValidated ? (
+                <button className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5" onClick={() => setReportValidated(true)} data-testid="validate-report-btn"><CheckCircle className="w-4 h-4" />Valider le rapport</button>
+              ) : (
+                <button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-[#4f6df5]/20" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Sparkles className="w-4 h-4" />Générer dans votre espace personnel</button>
+              )}
+              <button className="border border-white/20 text-white/60 hover:text-white hover:border-white/40 font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 text-sm" onClick={() => { setResult(null); setAnswers({}); setRankingSelections({}); setCurrentIdx(0); setStep("intro"); setReportValidated(false); }} data-testid="redo-test-btn"><ArrowLeft className="w-4 h-4" />Refaire le test</button>
             </div>
           </div>
 
