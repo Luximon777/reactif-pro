@@ -4,10 +4,11 @@ import { API } from "@/App";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   Target, Briefcase, Clock, Star, Sparkles, Zap, Award,
   CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3,
-  Link as LinkIcon, RefreshCw, Heart
+  Link as LinkIcon, RefreshCw, Heart, Plus, Trash2, Send, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import CvPreview from "./CvPreview";
@@ -34,6 +35,9 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [genProgress, setGenProgress] = useState(null);
   const [jobOfferText, setJobOfferText] = useState("");
   const [scrapingOffer, setScrapingOffer] = useState(false);
+  const [ciEntries, setCiEntries] = useState([{ theme: "", description: "" }]);
+  const [ciSaving, setCiSaving] = useState(false);
+  const [ciAnalyses, setCiAnalyses] = useState(null);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -66,15 +70,22 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   useEffect(() => {
     const loadPrevious = async () => {
       try {
-        const [analysisRes, modelsRes] = await Promise.all([
+        const [analysisRes, modelsRes, ciRes] = await Promise.all([
           axios.get(`${API}/cv/latest-analysis?token=${token}`),
-          axios.get(`${API}/cv/models?token=${token}`)
+          axios.get(`${API}/cv/models?token=${token}`),
+          axios.get(`${API}/cv/centres-interet?token=${token}`)
         ]);
         if (analysisRes.data.has_analysis) {
           setAnalysisResult(analysisRes.data.result);
         }
         if (modelsRes.data.models && Object.keys(modelsRes.data.models).length > 0) {
           setCvModels(modelsRes.data);
+        }
+        if (ciRes.data.analyses?.length > 0) {
+          setCiAnalyses(ciRes.data);
+          if (ciRes.data.centres?.length > 0) {
+            setCiEntries(ciRes.data.centres.map(c => ({ theme: c.theme || c.label || "", description: c.description || c.detail || "" })));
+          }
         }
       } catch (err) {
         console.error("Error loading previous analysis:", err);
@@ -483,50 +494,124 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         </div>
       )}
 
-      {/* Centres d'interet alert */}
-      {analysisResult && !analysisResult.has_centres_interet && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3" data-testid="cv-centres-interet-alert">
-          <Heart className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">
-              Centres d'intérêt absents de votre CV
-            </p>
-            <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-              {analysisResult.suggestion_centres_interet || "Les centres d'intérêt sont un levier stratégique : ils révèlent vos compétences transversales (esprit d'équipe, créativité, rigueur...) et permettent de créer du lien en entretien. Ajoutez 2 à 4 activités concrètes avec votre niveau d'implication."}
-            </p>
-            <p className="text-xs text-amber-600 mt-1 font-medium">
-              Re'Actif Pro génèrera automatiquement des centres d'intérêt valorisés dans votre CV optimisé.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Centres d'interet analysis results */}
-      {analysisResult?.centres_interet_analysis?.length > 0 && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2" data-testid="cv-centres-interet-results">
+      {/* Centres d'interet - Formulaire interactif */}
+      {analysisResult && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4" data-testid="cv-centres-interet-section">
           <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-emerald-600" />
-            <h4 className="text-sm font-semibold text-emerald-800">Centres d'intérêt détectés et valorisés</h4>
+            <Heart className="w-5 h-5 text-rose-500" />
+            <h4 className="text-sm font-semibold text-slate-800">Mes centres d'intérêt et passions</h4>
           </div>
-          <div className="space-y-1.5">
-            {analysisResult.centres_interet_analysis.map((ci, idx) => (
-              <div key={idx} className="text-xs text-emerald-700 flex items-start gap-2 bg-white/60 rounded-lg p-2.5 border border-emerald-100" data-testid={`ci-analysis-${idx}`}>
-                <Sparkles className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                <div>
-                  <span className="font-semibold">{ci.label}</span>
-                  <span className="text-emerald-500 ml-1">({ci.credibility || ci.implication})</span>
-                  <p className="text-emerald-600 mt-0.5">{ci.cv_reformulation}</p>
-                  {ci.competences?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {ci.competences.slice(0, 4).map((c, i) => (
-                        <span key={i} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px]">{c}</span>
+          <p className="text-xs text-slate-500">
+            Vos passions révèlent des qualités précieuses (persévérance, créativité, esprit d'équipe...) qui seront valorisées dans votre CV généré par l'IA.
+          </p>
+
+          {ciEntries.map((entry, idx) => (
+            <div key={idx} className="border border-slate-100 rounded-lg p-3 space-y-2 bg-slate-50/50" data-testid={`ci-entry-${idx}`}>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Thème ou passion (ex: Course à pied, Cuisine, Bénévolat...)"
+                  value={entry.theme}
+                  onChange={e => {
+                    const next = [...ciEntries];
+                    next[idx].theme = e.target.value;
+                    setCiEntries(next);
+                  }}
+                  className="text-sm flex-1"
+                  data-testid={`ci-theme-${idx}`}
+                />
+                {ciEntries.length > 1 && (
+                  <button
+                    onClick={() => setCiEntries(ciEntries.filter((_, i) => i !== idx))}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                    data-testid={`ci-remove-${idx}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <textarea
+                placeholder="Décrivez votre activité : fréquence, niveau d'implication, ce que ça vous apporte... (ex: Marathon de Paris 2024, entraînement 4x/semaine, membre d'un club de running)"
+                value={entry.description}
+                onChange={e => {
+                  const next = [...ciEntries];
+                  next[idx].description = e.target.value;
+                  setCiEntries(next);
+                }}
+                rows={2}
+                className="w-full text-xs border border-slate-200 rounded-md p-2 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-300 bg-white"
+                data-testid={`ci-desc-${idx}`}
+              />
+            </div>
+          ))}
+
+          <div className="flex items-center justify-between">
+            {ciEntries.length < 5 && (
+              <button
+                onClick={() => setCiEntries([...ciEntries, { theme: "", description: "" }])}
+                className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                data-testid="ci-add-btn"
+              >
+                <Plus className="w-3.5 h-3.5" /> Ajouter un centre d'intérêt
+              </button>
+            )}
+            <Button
+              size="sm"
+              disabled={ciSaving || !ciEntries.some(e => e.theme.trim())}
+              onClick={async () => {
+                const valid = ciEntries.filter(e => e.theme.trim());
+                if (!valid.length) return;
+                setCiSaving(true);
+                try {
+                  const res = await axios.post(`${API}/cv/centres-interet?token=${token}`, { centres: valid });
+                  setCiAnalyses(res.data);
+                  toast.success("Centres d'intérêt analysés ! Les qualités identifiées seront intégrées dans vos CV.");
+                } catch (e) {
+                  toast.error(e.response?.data?.detail || "Erreur lors de l'analyse");
+                }
+                setCiSaving(false);
+              }}
+              className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-xs"
+              data-testid="ci-save-btn"
+            >
+              {ciSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
+              Analyser mes passions
+            </Button>
+          </div>
+
+          {/* Résultats de l'analyse */}
+          {ciAnalyses?.analyses?.length > 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-2" data-testid="ci-results">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <h5 className="text-xs font-semibold text-emerald-800">Qualités et savoir-être identifiés</h5>
+              </div>
+              {ciAnalyses.analyses.map((a, i) => (
+                <div key={i} className="bg-white/60 rounded-lg p-2.5 border border-emerald-100 space-y-1" data-testid={`ci-result-${i}`}>
+                  <p className="text-xs font-semibold text-emerald-800">{a.label}</p>
+                  {a.qualites?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {a.qualites.map((q, j) => (
+                        <span key={j} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-medium">{q}</span>
                       ))}
                     </div>
                   )}
+                  {a.cv_reformulation && (
+                    <p className="text-[11px] text-emerald-600 italic">→ {a.cv_reformulation}</p>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+              {ciAnalyses.competences_transversales?.length > 0 && (
+                <div className="pt-2 border-t border-emerald-200">
+                  <p className="text-[10px] font-semibold text-emerald-700 mb-1">Savoir-être dominants pour votre CV :</p>
+                  <div className="flex flex-wrap gap-1">
+                    {ciAnalyses.competences_transversales.map((c, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-emerald-200 text-emerald-800 rounded-full text-[10px] font-semibold">{c}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

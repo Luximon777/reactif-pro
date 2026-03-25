@@ -846,3 +846,107 @@ async def get_cv_models(token: str):
     if not cv_data:
         return {"models": {}, "analyzed_at": None, "original_filename": None}
     return {"models": cv_data.get("models", {}), "analyzed_at": cv_data.get("analyzed_at"), "original_filename": cv_data.get("original_filename")}
+
+
+
+class CentreInteretInput(BaseModel):
+    theme: str
+    description: str
+
+
+class CentresInteretPayload(BaseModel):
+    centres: List[CentreInteretInput]
+
+
+@router.post("/cv/centres-interet")
+async def save_centres_interet(token: str, payload: CentresInteretPayload):
+    """Save user-provided centres d'intérêt and analyze them for qualities/savoir-être"""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    centres_raw = [{"label": c.theme, "implication": "regulier", "detail": c.description} for c in payload.centres if c.theme.strip()]
+
+    if not centres_raw:
+        raise HTTPException(status_code=400, detail="Ajoutez au moins un centre d'intérêt")
+
+    # Analyze via LLM to extract qualities and savoir-être
+    centres_text = "\n".join([f"- {c['label']}: {c['detail']}" for c in centres_raw])
+
+    try:
+        analysis = await _llm_call_with_retry(
+            system_msg="""Expert RH en analyse de personnalité. À partir des centres d'intérêt décrits par le candidat, identifie les qualités humaines et savoir-être professionnels que ces activités révèlent.
+
+Pour chaque centre d'intérêt, fournis:
+- label: le nom de l'activité (repris tel quel)
+- qualites: liste de 2-3 qualités/savoir-être révélés (ex: persévérance, esprit d'équipe, créativité, rigueur, leadership, empathie...)
+- cv_reformulation: une phrase valorisante pour un CV qui met en avant les compétences transversales
+- credibility: "forte" si la description est détaillée, "moyenne" sinon
+
+Fournis aussi un résumé global:
+- competences_transversales: les 3-5 savoir-être dominants identifiés dans l'ensemble
+- valeurs_dominantes: les 2-3 valeurs personnelles qui ressortent
+
+JSON uniquement:
+{"analyses":[{"label":"","qualites":[],"cv_reformulation":"","credibility":""}],"competences_transversales":[],"valeurs_dominantes":[]}""",
+            user_msg=f"Analyse ces centres d'intérêt:\n{centres_text}"
+        )
+    except Exception as e:
+        logging.error(f"LLM analysis failed for centres d'intérêt: {e}")
+        analysis = {"analyses": [], "competences_transversales": [], "valeurs_dominantes": []}
+
+    # Build cv_reformulations list for CV generation
+    cv_reformulations = [a.get("cv_reformulation", "") for a in analysis.get("analyses", []) if a.get("cv_reformulation")]
+
+    # Save to DB
+    await db.centres_interet.update_one(
+        {"token_id": token_id},
+        {"$set": {
+            "token_id": token_id,
+            "has_centres_interet": True,
+            "centres_raw": centres_raw,
+            "user_input": [c.model_dump() for c in payload.centres],
+            "analyses": analysis.get("analyses", []),
+            "competences_transversales": analysis.get("competences_transversales", []),
+            "valeurs_dominantes": analysis.get("valeurs_dominantes", []),
+            "cv_reformulations": cv_reformulations,
+            "source": "user_input",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True
+    )
+
+    # Enrich passport with new savoir-être
+    passport = await db.passports.find_one({"token_id": token_id})
+    if passport:
+        existing = {c.get("name", "").lower() for c in passport.get("competences", [])}
+        new_comps = list(passport.get("competences", []))
+        for comp_name in analysis.get("competences_transversales", []):
+            if comp_name.lower() not in existing:
+                new_comps.append(PassportCompetence(
+                    name=comp_name, nature="savoir_etre", category="transversale",
+                    level="intermediaire", source="centres_interet"
+                ).model_dump())
+                existing.add(comp_name.lower())
+        await db.passports.update_one({"token_id": token_id}, {"$set": {"competences": new_comps}})
+
+    return {
+        "message": "Centres d'intérêt enregistrés et analysés",
+        "analyses": analysis.get("analyses", []),
+        "competences_transversales": analysis.get("competences_transversales", []),
+        "valeurs_dominantes": analysis.get("valeurs_dominantes", []),
+    }
+
+
+@router.get("/cv/centres-interet")
+async def get_centres_interet(token: str):
+    """Get saved centres d'intérêt for a user"""
+    token_doc = await get_current_token(token)
+    ci = await db.centres_interet.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not ci:
+        return {"centres": [], "analyses": [], "competences_transversales": [], "valeurs_dominantes": []}
+    return {
+        "centres": ci.get("user_input", ci.get("centres_raw", [])),
+        "analyses": ci.get("analyses", []),
+        "competences_transversales": ci.get("competences_transversales", []),
+        "valeurs_dominantes": ci.get("valeurs_dominantes", []),
+    }
