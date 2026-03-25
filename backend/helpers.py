@@ -18,8 +18,9 @@ async def get_current_token(token: str) -> dict:
     return token_doc
 
 
-async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 1) -> dict:
+async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 2) -> dict:
     import re
+    import asyncio as _asyncio
     last_error = None
     for attempt in range(max_retries + 1):
         try:
@@ -44,6 +45,8 @@ async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int 
         except Exception as e:
             last_error = str(e)
             logging.warning(f"CV analysis LLM error attempt {attempt+1}: {e}")
+            if attempt < max_retries:
+                await _asyncio.sleep(2 * (attempt + 1))
     raise Exception(f"Erreur IA après {max_retries+1} tentatives: {last_error}")
 
 

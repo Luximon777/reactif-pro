@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { API } from "@/App";
 import { ArrowLeft, ArrowRight, CheckCircle, Copy, Check, Home, ChevronRight, Calendar, GraduationCap, BookOpen, Sparkles, Info, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,8 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-
-const API = process.env.REACT_APP_BACKEND_URL + "/api";
 
 // ============================================================================
 // TOOLTIP COMPONENT (survol pour définitions)
@@ -602,15 +601,26 @@ const DclicTestPage = () => {
   const [birthDate, setBirthDate] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
   const [reportValidated, setReportValidated] = useState(false);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [questionsError, setQuestionsError] = useState("");
 
   useEffect(() => {
-    fetch(`${API}/dclic/questionnaire`)
-      .then(r => {
+    const loadQuestions = async () => {
+      setQuestionsLoading(true);
+      setQuestionsError("");
+      try {
+        const r = await fetch(`${API}/dclic/questionnaire`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(d => setQuestions(d.questions || []))
-      .catch(e => console.error("Erreur chargement questionnaire:", e));
+        const d = await r.json();
+        setQuestions(d.questions || []);
+      } catch (e) {
+        console.error("Erreur chargement questionnaire:", e);
+        setQuestionsError("Impossible de charger le questionnaire.");
+      } finally {
+        setQuestionsLoading(false);
+      }
+    };
+    loadQuestions();
   }, []);
 
   const q = questions[currentIdx];
@@ -833,11 +843,51 @@ const DclicTestPage = () => {
   }
 
   // ===================== QUESTIONNAIRE =====================
-  if (step !== "questionnaire" || !q) return (
+  if (step !== "questionnaire") return (
     <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 border-3 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin" />
         <p className="text-slate-400 text-lg">Chargement...</p>
+      </div>
+    </div>
+  );
+
+  if (questionsLoading) return (
+    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 border-3 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin" />
+        <p className="text-slate-400 text-lg">Chargement du questionnaire...</p>
+      </div>
+    </div>
+  );
+
+  if (questionsError) return (
+    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
+      <div className="text-center space-y-4">
+        <AlertTriangle className="w-10 h-10 text-red-400 mx-auto" />
+        <p className="text-red-300 text-lg">{questionsError}</p>
+        <button
+          className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold"
+          onClick={() => window.location.reload()}
+          data-testid="retry-questionnaire-btn"
+        >
+          Réessayer
+        </button>
+      </div>
+    </div>
+  );
+
+  if (!q) return (
+    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
+      <div className="text-center space-y-4">
+        <p className="text-slate-300 text-lg">Aucune question n'a été chargée.</p>
+        <button
+          className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold"
+          onClick={() => setStep("intro")}
+          data-testid="back-to-intro-btn"
+        >
+          Revenir à l'accueil
+        </button>
       </div>
     </div>
   );

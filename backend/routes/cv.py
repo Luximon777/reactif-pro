@@ -512,7 +512,18 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
             user_msg=f"Analyse les centres d'interet dans ce CV:\n{cv_excerpt}"
         )
 
-        audit_result, skills_result, emerging_result, centres_result = await asyncio.gather(audit_task, skills_task, emerging_task, centres_task)
+        results = await asyncio.gather(audit_task, skills_task, emerging_task, centres_task, return_exceptions=True)
+        
+        # Handle partial failures gracefully
+        audit_result = results[0] if not isinstance(results[0], Exception) else {"audit_cv": [], "score_global_cv": 0, "modele_suggere": "classique", "raison_modele": ""}
+        skills_result = results[1] if not isinstance(results[1], Exception) else {"savoir_faire": [], "savoir_etre": [], "experiences": [], "competences_transversales": [], "offres_emploi_suggerees": [], "profile": {}}
+        emerging_result = results[2] if not isinstance(results[2], Exception) else {"competences_emergentes": []}
+        centres_result = results[3] if not isinstance(results[3], Exception) else {"has_centres_interet": False, "centres_interet_raw": []}
+        
+        # Log any partial failures
+        for i, (name, res) in enumerate(zip(["audit", "skills", "emerging", "centres"], results)):
+            if isinstance(res, Exception):
+                logging.warning(f"CV analysis partial failure ({name}) for job {job_id}: {res}")
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Mise a jour du passeport..."}})
 
