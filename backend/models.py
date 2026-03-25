@@ -585,3 +585,4 @@ class DclicProImport(BaseModel):
     experiences: List[Dict[str, Any]] = []
     skills: List[Dict[str, Any]] = []
     evidences: List[Dict[str, Any]] = []
+    dclic_profile: Optional[Dict[str, Any]] = None
