@@ -139,7 +139,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
               </div>
             </div>
             <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); window.open('/test-dclic', '_blank', 'noopener,noreferrer'); }}>
-              <Play className="w-4 h-4 mr-1.5" />Passes le test et Boost ton profil !
+              <Play className="w-4 h-4 mr-1.5" />Passer le test
             </Button>
           </div>
         </CardContent>
