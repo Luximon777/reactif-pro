@@ -62,15 +62,15 @@ const DclicProLogo = ({ size = 120, animated = true }) => (
 // RESULTS SECTIONS
 // ============================================================================
 const SECTIONS = [
-  { id: "archeologie", label: "Archeologie des Competences", icon: "1" },
+  { id: "archeologie", label: "Archéologie des Compétences", icon: "1" },
   { id: "boussole", label: "Boussole de Fonctionnement", icon: "2" },
-  { id: "integrated", label: "Analyse Integree", icon: "3" },
+  { id: "integrated", label: "Analyse Intégrée", icon: "3" },
   { id: "riasec", label: "Profil RIASEC", icon: "4" },
   { id: "vertus", label: "Profil de Vertus", icon: "5" },
   { id: "pistes", label: "Pistes d'Action", icon: "6" },
-  { id: "cross", label: "Analyse Croisee", icon: "7" },
+  { id: "cross", label: "Analyse Croisée", icon: "7" },
   { id: "ofman", label: "Cadran d'Ofman", icon: "8" },
-  { id: "carte", label: "Carte d'Identite Pro", icon: "9" },
+  { id: "carte", label: "Carte d'Identité Pro", icon: "9" },
 ];
 
 const Bar = ({ label, value, max = 100, color = "bg-[#4f6df5]" }) => (
@@ -101,8 +101,8 @@ const ArcheologieSection = ({ profile }) => {
   const vertuData = profile.vertu_data || {};
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Archeologie des Competences</h3>
-      <p className="text-sm text-slate-400">Vos competences profondes a travers 3 dimensions fondamentales.</p>
+      <h3 className="text-lg font-bold text-white">Archéologie des Compétences</h3>
+      <p className="text-sm text-slate-400">Vos compétences profondes à travers 3 dimensions fondamentales.</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {[
           { title: "Cognition", desc: "Comment vous pensez et apprenez", color: "border-blue-400/30 bg-blue-500/10", items: vp.qualites_dominantes || [] },
@@ -122,7 +122,7 @@ const ArcheologieSection = ({ profile }) => {
       </div>
       {(vp.competences_oms || []).length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-slate-300 mb-2">Competences cles OMS</h4>
+          <h4 className="text-sm font-semibold text-slate-300 mb-2">Compétences clés OMS</h4>
           <div className="flex flex-wrap gap-1.5">{vp.competences_oms.map((c, i) => <Badge key={i} className="bg-[#4f6df5]/20 text-[#818cf8] text-xs border-0">{c}</Badge>)}</div>
         </div>
       )}
@@ -136,7 +136,7 @@ const BoussoleSection = ({ profile }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-white">Boussole de Fonctionnement</h3>
-      <p className="text-sm text-slate-400">Vos preferences cognitives sur 4 axes fondamentaux.</p>
+      <p className="text-sm text-slate-400">Vos préférences cognitives sur 4 axes fondamentaux.</p>
       <div className="bg-[#4f6df5]/10 rounded-lg p-3 border border-[#4f6df5]/30">
         <p className="text-sm font-semibold text-[#818cf8]">Profil global : {profile.mbti || "?"}</p>
         {compass.summary && <p className="text-xs text-[#a5b4fc] mt-1">{compass.summary}</p>}
@@ -153,11 +153,11 @@ const IntegratedSection = ({ profile }) => {
   const n3 = ia.niveau_3_regulation || {};
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Analyse Integree (3 niveaux)</h3>
+      <h3 className="text-lg font-bold text-white">Analyse Intégrée (3 niveaux)</h3>
       <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4">
-        <h4 className="font-semibold text-blue-300 mb-2">Niveau 1 - Competences prouvees</h4>
+        <h4 className="font-semibold text-blue-300 mb-2">Niveau 1 - Compétences prouvées</h4>
         {n1.competences_prouvees?.length > 0 && <div className="flex flex-wrap gap-1.5 mb-2">{n1.competences_prouvees.map((c, i) => <Badge key={i} className="bg-blue-500/20 text-blue-300 text-xs border-0">{c}</Badge>)}</div>}
-        {n1.forces_cles?.length > 0 && <div><p className="text-xs font-medium text-slate-400 mb-1">Forces cles :</p><div className="flex flex-wrap gap-1">{n1.forces_cles.map((f, i) => <Badge key={i} variant="outline" className="text-xs border-blue-400/30 text-blue-300">{f}</Badge>)}</div></div>}
+        {n1.forces_cles?.length > 0 && <div><p className="text-xs font-medium text-slate-400 mb-1">Forces clés :</p><div className="flex flex-wrap gap-1">{n1.forces_cles.map((f, i) => <Badge key={i} variant="outline" className="text-xs border-blue-400/30 text-blue-300">{f}</Badge>)}</div></div>}
       </div>
       <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4">
         <h4 className="font-semibold text-emerald-300 mb-2">Niveau 2 - Style de travail</h4>
@@ -165,7 +165,7 @@ const IntegratedSection = ({ profile }) => {
         {n2.environnement_favorable?.length > 0 && <div className="flex flex-wrap gap-1.5">{n2.environnement_favorable.map((e, i) => <Badge key={i} className="bg-emerald-500/20 text-emerald-300 text-xs border-0">{e}</Badge>)}</div>}
       </div>
       <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4">
-        <h4 className="font-semibold text-amber-300 mb-2">Niveau 3 - Regulation</h4>
+        <h4 className="font-semibold text-amber-300 mb-2">Niveau 3 - Régulation</h4>
         {n3.moteur_interne && <p className="text-sm text-amber-200"><strong>Moteur interne :</strong> {n3.moteur_interne}</p>}
         {n3.leviers_croissance?.length > 0 && <div className="mt-2"><p className="text-xs font-medium text-slate-400 mb-1">Leviers de croissance :</p><div className="flex flex-wrap gap-1">{n3.leviers_croissance.map((l, i) => <Badge key={i} variant="outline" className="text-xs border-amber-400/30 text-amber-300">{l}</Badge>)}</div></div>}
         {n3.signaux_stress?.length > 0 && <div className="mt-2"><p className="text-xs font-medium text-red-400 mb-1">Signaux de stress :</p><div className="flex flex-wrap gap-1">{n3.signaux_stress.map((s, i) => <Badge key={i} className="bg-red-500/10 text-red-400 text-xs border-0">{s}</Badge>)}</div></div>}
@@ -178,7 +178,7 @@ const IntegratedSection = ({ profile }) => {
 const RiasecSection = ({ profile }) => {
   const rp = profile.riasec_profile || {};
   const scores = rp.scores || {};
-  const labels = { R: "Realiste", I: "Investigateur", A: "Artistique", S: "Social", E: "Entreprenant", C: "Conventionnel" };
+  const labels = { R: "Réaliste", I: "Investigateur", A: "Artistique", S: "Social", E: "Entreprenant", C: "Conventionnel" };
   const colors = { R: "bg-orange-500", I: "bg-blue-500", A: "bg-purple-500", S: "bg-emerald-500", E: "bg-red-500", C: "bg-slate-500" };
   const maxScore = Math.max(...Object.values(scores), 1);
   return (
@@ -190,7 +190,7 @@ const RiasecSection = ({ profile }) => {
       </div>
       <div className="space-y-2">{Object.entries(scores).sort((a, b) => b[1] - a[1]).map(([key, val]) => <Bar key={key} label={`${key} - ${labels[key] || key}`} value={Math.round((val / maxScore) * 100)} color={colors[key] || "bg-[#4f6df5]"} />)}</div>
       {rp.traits?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Traits dominants</p><div className="flex flex-wrap gap-1.5">{rp.traits.map((t, i) => <Badge key={i} className="bg-violet-500/20 text-violet-300 text-xs border-0">{t}</Badge>)}</div></div>}
-      {rp.environnements_preferes?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Environnements preferes</p><div className="flex flex-wrap gap-1.5">{rp.environnements_preferes.map((e, i) => <Badge key={i} variant="outline" className="text-xs border-white/20 text-slate-300">{e}</Badge>)}</div></div>}
+      {rp.environnements_preferes?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Environnements préférés</p><div className="flex flex-wrap gap-1.5">{rp.environnements_preferes.map((e, i) => <Badge key={i} variant="outline" className="text-xs border-white/20 text-slate-300">{e}</Badge>)}</div></div>}
     </div>
   );
 };
@@ -209,7 +209,7 @@ const VertusSection = ({ profile }) => {
         <p className="text-sm font-semibold text-emerald-300">Vertu dominante : {vp.dominant_name || vp.vertu_dominante_name || labels[vp.dominant] || "?"}</p>
       </div>
       <div className="space-y-2">{Object.entries(scores).sort((a, b) => b[1] - a[1]).map(([key, val]) => <Bar key={key} label={labels[key] || key} value={Math.round((val / maxScore) * 100)} color={colors[key] || "bg-[#4f6df5]"} />)}</div>
-      {vp.qualites_dominantes?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Qualites humaines associees</p><div className="flex flex-wrap gap-1.5">{vp.qualites_dominantes.map((q, i) => <Badge key={i} className="bg-emerald-500/20 text-emerald-300 text-xs border-0">{typeof q === "string" ? q : q.name || ""}</Badge>)}</div></div>}
+      {vp.qualites_dominantes?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Qualités humaines associées</p><div className="flex flex-wrap gap-1.5">{vp.qualites_dominantes.map((q, i) => <Badge key={i} className="bg-emerald-500/20 text-emerald-300 text-xs border-0">{typeof q === "string" ? q : q.name || ""}</Badge>)}</div></div>}
     </div>
   );
 };
@@ -219,7 +219,7 @@ const PistesSection = ({ profile }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-white">Pistes d'Action</h3>
-      <div className="bg-violet-500/10 rounded-lg p-3 border border-violet-400/30"><p className="text-sm font-semibold text-violet-300">{lp.label || "Developpement personnel"}</p></div>
+      <div className="bg-violet-500/10 rounded-lg p-3 border border-violet-400/30"><p className="text-sm font-semibold text-violet-300">{lp.label || "Développement personnel"}</p></div>
       {lp.strengths?.length > 0 && <div><p className="text-sm font-semibold text-emerald-300 mb-1">Forces naturelles</p><div className="flex flex-wrap gap-1.5">{lp.strengths.map((s, i) => <Badge key={i} className="bg-emerald-500/20 text-emerald-300 text-xs border-0">{s}</Badge>)}</div></div>}
       {lp.watchouts?.length > 0 && <div><p className="text-sm font-semibold text-amber-300 mb-1">Points de vigilance</p><div className="flex flex-wrap gap-1.5">{lp.watchouts.map((w, i) => <Badge key={i} className="bg-amber-500/20 text-amber-300 text-xs border-0">{w}</Badge>)}</div></div>}
       {lp.micro_actions?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-2">Pistes pour progresser</p><div className="space-y-2">{lp.micro_actions.map((ma, i) => (
@@ -232,13 +232,13 @@ const PistesSection = ({ profile }) => {
 
 const CrossSection = ({ profile }) => {
   const ca = profile.cross_analysis || {};
-  if (!ca.has_cross_analysis) return <p className="text-sm text-slate-500">Renseignez votre date de naissance pour acceder a l'analyse croisee.</p>;
+  if (!ca.has_cross_analysis) return <p className="text-sm text-slate-500">Renseignez votre date de naissance pour accéder à l'analyse croisée.</p>;
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">Analyse Croisee</h3>
+      <h3 className="text-lg font-bold text-white">Analyse Croisée</h3>
       <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4"><h4 className="text-sm font-semibold text-blue-300 mb-1">Synergie - Style de travail</h4><p className="text-sm text-blue-200">{ca.synergy_disc}</p></div>
-      <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4"><h4 className="text-sm font-semibold text-emerald-300 mb-1">Synergie - Moteur interieur</h4><p className="text-sm text-emerald-200">{ca.synergy_ennea}</p></div>
-      {ca.tension && <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4"><h4 className="text-sm font-semibold text-amber-300 mb-1">Tension a transformer</h4><p className="text-sm text-amber-200">{ca.tension}</p></div>}
+      <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4"><h4 className="text-sm font-semibold text-emerald-300 mb-1">Synergie - Moteur intérieur</h4><p className="text-sm text-emerald-200">{ca.synergy_ennea}</p></div>
+      {ca.tension && <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4"><h4 className="text-sm font-semibold text-amber-300 mb-1">Tension à transformer</h4><p className="text-sm text-amber-200">{ca.tension}</p></div>}
       {ca.integration_insight && <p className="text-sm text-violet-300 italic bg-violet-500/5 p-3 rounded-lg">{ca.integration_insight}</p>}
     </div>
   );
@@ -249,7 +249,7 @@ const OfmanSection = ({ profile }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-white">Cadran d'Ofman - Zones de vigilance</h3>
-      <p className="text-sm text-slate-400">Vos qualites peuvent devenir des pieges si elles sont poussees a l'extreme.</p>
+      <p className="text-sm text-slate-400">Vos qualités peuvent devenir des pièges si elles sont poussées à l'extrême.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {zones.map((z, i) => (
           <div key={i} className="bg-[#152a45] border border-white/10 rounded-xl p-4 space-y-2">
@@ -258,8 +258,8 @@ const OfmanSection = ({ profile }) => {
               <span className="text-[10px] text-slate-500">{z.source}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-red-500/10 rounded p-2"><p className="font-semibold text-red-400">Piege</p><p className="text-red-300">{z.piege}</p></div>
-              <div className="bg-blue-500/10 rounded p-2"><p className="font-semibold text-blue-400">Defi</p><p className="text-blue-300">{z.defi}</p></div>
+              <div className="bg-red-500/10 rounded p-2"><p className="font-semibold text-red-400">Pièges</p><p className="text-red-300">{z.piege}</p></div>
+              <div className="bg-blue-500/10 rounded p-2"><p className="font-semibold text-blue-400">Défi</p><p className="text-blue-300">{z.defi}</p></div>
             </div>
             <div className="bg-amber-500/10 rounded p-2 text-xs"><p className="font-semibold text-amber-400">Allergie</p><p className="text-amber-300">{z.allergie}</p></div>
             {z.recommandation && <p className="text-xs text-slate-400 italic">{z.recommandation}</p>}
@@ -281,7 +281,7 @@ const CarteSection = ({ profile, accessCode }) => {
   const today = new Date().toLocaleDateString("fr-FR");
   return (
     <div className="space-y-6">
-      <div><h3 className="text-lg font-bold text-white">Carte d'Identite Professionnelle</h3><p className="text-sm text-slate-400">Synthese de votre profil - 4 dimensions</p></div>
+      <div><h3 className="text-lg font-bold text-white">Carte d'Identité Professionnelle</h3><p className="text-sm text-slate-400">Synthèse de votre profil - 4 dimensions</p></div>
       <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl overflow-hidden shadow-xl text-white">
         <div className="px-6 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-wide">PROFIL D'CLIC PRO</h2>
@@ -289,31 +289,31 @@ const CarteSection = ({ profile, accessCode }) => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2">
           <div className="px-6 py-4 border-r border-b border-white/10">
-            <h4 className="text-sm font-bold text-purple-400 uppercase tracking-wider mb-3">Identite Personnelle</h4>
+            <h4 className="text-sm font-bold text-purple-400 uppercase tracking-wider mb-3">Identité Personnelle</h4>
             <div className="space-y-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Qualites Humaines</p><div className="flex flex-wrap gap-1.5">{(vp.qualites_dominantes || []).slice(0, 4).map((q, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof q === "string" ? q : q.name || ""}</span>)}</div></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Qualités Humaines</p><div className="flex flex-wrap gap-1.5">{(vp.qualites_dominantes || []).slice(0, 4).map((q, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof q === "string" ? q : q.name || ""}</span>)}</div></div>
               <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Valeurs</p><div className="flex flex-wrap gap-1.5">{(vp.valeurs_dominantes || []).slice(0, 3).map((v, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof v === "string" ? v : v.name || ""}</span>)}</div></div>
               <div><p className="text-[10px] uppercase tracking-wider text-slate-400">Ce qui me rend unique</p><p className="text-base font-bold text-white">{vp.dominant_name || vp.vertu_dominante_name || "?"}</p></div>
             </div>
           </div>
           <div className="px-6 py-4 border-b border-white/10">
-            <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3">Identite Professionnelle</h4>
+            <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3">Identité Professionnelle</h4>
             <div className="space-y-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Savoir-etre</p><div className="flex flex-wrap gap-1.5">{(vp.savoirs_etre_dominants || n1.competences_prouvees || []).slice(0, 4).map((s, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof s === "string" ? s : s.name || ""}</span>)}</div></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Competences cles</p><div className="flex flex-wrap gap-1.5">{(vp.competences_oms || n1.forces_cles || []).slice(0, 4).map((c, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{c}</span>)}</div></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Savoir-être</p><div className="flex flex-wrap gap-1.5">{(vp.savoirs_etre_dominants || n1.competences_prouvees || []).slice(0, 4).map((s, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{typeof s === "string" ? s : s.name || ""}</span>)}</div></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Compétences clés</p><div className="flex flex-wrap gap-1.5">{(vp.competences_oms || n1.forces_cles || []).slice(0, 4).map((c, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{c}</span>)}</div></div>
             </div>
           </div>
           <div className="px-6 py-4 border-r border-white/10">
-            <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3">Identite Sociale</h4>
+            <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3">Identité Sociale</h4>
             <div className="space-y-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Mes roles</p><div className="flex flex-wrap gap-1.5">{(rp.traits || ["Contributeur", "Collaborateur"]).slice(0, 3).map((r, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{r}</span>)}</div></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Mes rôles</p><div className="flex flex-wrap gap-1.5">{(rp.traits || ["Contributeur", "Collaborateur"]).slice(0, 3).map((r, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{r}</span>)}</div></div>
               <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Impact social</p><div className="flex flex-wrap gap-1.5">{(lp.work_preferences || rp.environnements_preferes || []).slice(0, 3).map((w, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{w}</span>)}</div></div>
             </div>
           </div>
           <div className="px-6 py-4">
-            <h4 className="text-sm font-bold text-blue-400 uppercase tracking-wider mb-3">Identite Profonde</h4>
+            <h4 className="text-sm font-bold text-blue-400 uppercase tracking-wider mb-3">Identité Profonde</h4>
             <div className="space-y-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-slate-400">Ce qui donne du sens</p><p className="text-base font-bold text-white">{lp.label || n3.moteur_interne || "Developpement"}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-slate-400">Ce qui donne du sens</p><p className="text-base font-bold text-white">{lp.label || n3.moteur_interne || "Développement"}</p></div>
               <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Ma mission</p><div className="flex flex-wrap gap-1.5">{(lp.strengths || []).slice(0, 3).map((s, i) => <span key={i} className="text-xs bg-white/10 rounded-full px-2.5 py-0.5 text-slate-200">{s}</span>)}</div></div>
             </div>
           </div>
@@ -323,12 +323,12 @@ const CarteSection = ({ profile, accessCode }) => {
             <div className="flex gap-1">{[...Array(4)].map((_, i) => <div key={i} className="w-2.5 h-2.5 rounded-full bg-indigo-400" />)}</div>
             <div><p className="text-[10px] text-slate-400">PROFIL</p><p className="text-sm font-bold">{profile.mbti || "?"} - {profile.disc_label || profile.disc || "?"}</p></div>
           </div>
-          <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold">Profil verifie</p><p className="text-[10px] text-slate-400">ID {accessCode || "---"} - {today}</p></div>
+          <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold">Profil vérifié</p><p className="text-[10px] text-slate-400">ID {accessCode || "---"} - {today}</p></div>
         </div>
       </div>
       {compass.summary && (
         <div className="bg-[#152a45] border border-white/10 rounded-xl p-5">
-          <h4 className="text-sm font-bold text-white mb-2">Synthese Professionnelle</h4>
+          <h4 className="text-sm font-bold text-white mb-2">Synthèse Professionnelle</h4>
           <p className="text-sm text-slate-300 leading-relaxed">{compass.summary}</p>
         </div>
       )}
@@ -402,7 +402,7 @@ const DclicTestPage = () => {
   const copyCode = () => { if (result?.access_code) { navigator.clipboard.writeText(result.access_code); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 3000); } };
 
   const getCategoryLabel = (cat) => {
-    const labels = { energie: "Energie", perception: "Perception", decision: "Decision", structure: "Organisation", disc: "Style DISC", ennea: "Motivations", riasec: "Interets RIASEC", vertus: "Vertus", valeurs: "Valeurs" };
+    const labels = { energie: "Énergie", perception: "Perception", decision: "Décision", structure: "Organisation", disc: "Style DISC", ennea: "Motivations", riasec: "Intérêts RIASEC", vertus: "Vertus", valeurs: "Valeurs" };
     return labels[cat] || cat;
   };
 
@@ -421,8 +421,8 @@ const DclicTestPage = () => {
           </h1>
           <p className="text-sm text-slate-400 font-medium tracking-[3px] uppercase mt-2">L'APPLY RE'ACTIF PRO</p>
         </div>
-        <p className="text-white/60 text-base">Decouvrez votre profil de personnalite et competences professionnelles en repondant a {questions.length || "~26"} questions visuelles.</p>
-        <p className="text-sm text-slate-500">Duree estimee : 5-10 minutes</p>
+        <p className="text-white/60 text-base">Découvrez votre profil de personnalité et compétences professionnelles en répondant à {questions.length || "~26"} questions visuelles.</p>
+        <p className="text-sm text-slate-500">Durée estimée : 5-10 minutes</p>
         <button
           className="w-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white font-semibold py-4 px-8 rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#4f6df5]/25"
           onClick={() => setStep("birthdate")} data-testid="start-test-btn"
@@ -439,9 +439,9 @@ const DclicTestPage = () => {
     <div className="min-h-screen bg-[#1e3a5f] relative overflow-hidden flex items-center justify-center p-4" data-testid="dclic-birthdate">
       <div className="absolute inset-0 pointer-events-none"><div className="absolute top-[30%] left-[20%] w-[400px] h-[400px] rounded-full bg-[#4f6df5]/10 blur-[100px]" /></div>
       <div className="relative z-10 max-w-lg w-full bg-[#152a45] rounded-2xl border border-white/10 p-8 space-y-6 shadow-2xl">
-        <div className="flex items-center gap-2 text-slate-400 text-sm"><Calendar className="w-4 h-4" />Etape 1/2</div>
+        <div className="flex items-center gap-2 text-slate-400 text-sm"><Calendar className="w-4 h-4" />Étape 1/2</div>
         <h2 className="text-xl font-bold text-white">Quelle est votre date de naissance ?</h2>
-        <p className="text-sm text-slate-400">Optionnel - permet une analyse croisee plus approfondie.</p>
+        <p className="text-sm text-slate-400">Optionnel - permet une analyse croisée plus approfondie.</p>
         <input
           type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)}
           className="w-full h-14 text-lg text-center bg-white/10 border-2 border-white/20 rounded-xl text-white focus:border-[#4f6df5] focus:outline-none transition-all [color-scheme:dark]"
@@ -460,11 +460,11 @@ const DclicTestPage = () => {
     <div className="min-h-screen bg-[#1e3a5f] relative overflow-hidden flex items-center justify-center p-4" data-testid="dclic-education">
       <div className="absolute inset-0 pointer-events-none"><div className="absolute bottom-[30%] right-[20%] w-[400px] h-[400px] rounded-full bg-[#6c5ce7]/10 blur-[100px]" /></div>
       <div className="relative z-10 max-w-lg w-full bg-[#152a45] rounded-2xl border border-white/10 p-8 space-y-6 shadow-2xl">
-        <div className="flex items-center gap-2 text-slate-400 text-sm"><GraduationCap className="w-4 h-4" />Etape 2/2</div>
-        <h2 className="text-xl font-bold text-white">Quel est votre niveau d'etudes ?</h2>
+        <div className="flex items-center gap-2 text-slate-400 text-sm"><GraduationCap className="w-4 h-4" />Étape 2/2</div>
+        <h2 className="text-xl font-bold text-white">Quel est votre niveau d'études ?</h2>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { value: "cap", label: "Sans diplome / CAP / BEP" },
+            { value: "cap", label: "Sans diplôme / CAP / BEP" },
             { value: "bac", label: "Bac / Bac Pro" },
             { value: "bac2", label: "Bac+2 (BTS, DUT)" },
             { value: "bac3", label: "Bac+3 (Licence)" },
@@ -480,7 +480,7 @@ const DclicTestPage = () => {
         </div>
         <div className="flex gap-3">
           <button className="flex-1 py-3 px-6 rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-all" onClick={() => setStep("birthdate")}>Retour</button>
-          <button className="flex-1 py-3 px-6 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold transition-all flex items-center justify-center gap-1" onClick={() => setStep("questionnaire")} data-testid="start-questions-btn">Demarrer <ArrowRight className="w-4 h-4" /></button>
+          <button className="flex-1 py-3 px-6 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold transition-all flex items-center justify-center gap-1" onClick={() => setStep("questionnaire")} data-testid="start-questions-btn">Démarrer <ArrowRight className="w-4 h-4" /></button>
         </div>
       </div>
     </div>
@@ -492,7 +492,7 @@ const DclicTestPage = () => {
       <div className="text-center space-y-6">
         <div className="w-16 h-16 border-4 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin mx-auto" />
         <h2 className="text-xl font-bold text-white">Analyse de votre profil en cours...</h2>
-        <p className="text-sm text-slate-400 max-w-sm">Notre IA analyse vos reponses et genere votre rapport personnalise. Cette operation peut prendre quelques secondes.</p>
+        <p className="text-sm text-slate-400 max-w-sm">Notre IA analyse vos réponses et génère votre rapport personnalisé. Cette opération peut prendre quelques secondes.</p>
       </div>
     </div>
   );
@@ -522,8 +522,8 @@ const DclicTestPage = () => {
             <div className="flex items-center gap-3">
               <DclicProLogo size={50} animated={false} />
               <div>
-                <h1 className="text-2xl font-bold text-white">Resultats D'CLIC PRO</h1>
-                <p className="text-sm text-slate-400">Votre profil de personnalite et competences professionnelles</p>
+                <h1 className="text-2xl font-bold text-white">Résultats D'CLIC PRO</h1>
+                <p className="text-sm text-slate-400">Votre profil de personnalité et compétences professionnelles</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
