@@ -459,6 +459,35 @@ def _fuzzy_match(a: str, b: str) -> bool:
 
 
 
+async def _detect_emerging_for_profile(user_skills_text: str, job_title: str, api_key: str):
+    """Use AI to detect emerging skills relevant to the user's actual sector/profile"""
+    import re
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"emerging-{uuid.uuid4()}",
+        system_message="""Expert en prospective des compétences et emploi. À partir des compétences et du métier d'un candidat, identifie les compétences émergentes ou en croissance dans SON secteur spécifique.
+
+Ne propose PAS de compétences IT génériques si le profil n'est pas dans l'informatique.
+Propose des compétences émergentes réellement pertinentes pour le secteur du candidat.
+
+JSON uniquement:
+{"emerging_skills":[{"name":"Nom de la compétence","score":70,"category":"technique|soft_skill|hybride","sectors":["Secteur1"]}]}
+Maximum 8 compétences."""
+    ).with_model("openai", "gpt-5.2")
+
+    prompt = f"Métier/poste visé: {job_title or 'non précisé'}\nCompétences actuelles: {user_skills_text}"
+    response = await chat.send_message(UserMessage(text=prompt))
+    raw = response.strip() if isinstance(response, str) else response.text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"): raw = raw[:-3]
+        raw = raw.strip()
+    raw = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw)
+    return json.loads(raw)
+
+
+
+
 @router.get("/emerging/observatory")
 async def get_cv_detected_emerging(token: str):
     """Cross-reference user CV skills with emerging market trends"""
@@ -553,21 +582,32 @@ async def get_cv_detected_emerging(token: str):
                 })
                 break
 
-    # Also add emerging skills NOT in user's profile as opportunities
-    if len(top_emerging) < 5:
-        for key, entry in sorted(emerging_map.items(), key=lambda x: x[1]["score_emergence"], reverse=True):
-            if entry["name"].lower() not in seen_names:
-                seen_names.add(entry["name"].lower())
-                top_emerging.append({
-                    "name": entry["name"],
-                    "score_emergence": entry["score_emergence"],
-                    "category": entry.get("category", "technique"),
-                    "level": "a_developper",
-                    "match_type": "opportunite",
-                    "sectors": entry["sectors"],
-                })
-            if len(top_emerging) >= 12:
-                break
+    # Also add emerging skills NOT in user's profile as opportunities — ONLY from matching sectors
+    # Do NOT pad with irrelevant skills from unrelated sectors
+
+    # If very few matches, use AI to detect emerging skills relevant to the user's actual profile
+    if len(top_emerging) < 3 and EMERGENT_LLM_KEY and user_skills:
+        profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+        user_context = ", ".join(list(user_skills)[:15])
+        job_title = profile.get("target_job", "") if profile else ""
+
+        try:
+            result = await asyncio.wait_for(_detect_emerging_for_profile(user_context, job_title, EMERGENT_LLM_KEY), timeout=25)
+            if result:
+                for skill in result.get("emerging_skills", []):
+                    name = skill.get("name", "")
+                    if name and name.lower() not in seen_names:
+                        seen_names.add(name.lower())
+                        top_emerging.append({
+                            "name": name,
+                            "score_emergence": skill.get("score", 60),
+                            "category": skill.get("category", "technique"),
+                            "level": "emergente",
+                            "match_type": "ia_detected",
+                            "sectors": skill.get("sectors", []),
+                        })
+        except Exception as e:
+            logging.warning(f"AI emerging detection failed: {e}")
 
     # Sort by score
     top_emerging.sort(key=lambda x: x["score_emergence"], reverse=True)

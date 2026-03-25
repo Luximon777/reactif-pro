@@ -793,7 +793,13 @@ const ObservatoireView = ({ token }) => {
 
         {/* CV-Detected Emerging Competences Tab */}
         <TabsContent value="cv_detected" className="space-y-4">
-          <CvDetectedTab data={cvDetectedData} />
+          <CvDetectedTab data={cvDetectedData} token={token} onRefresh={async () => {
+            setCvDetectedData("loading");
+            try {
+              const res = await axios.get(`${API}/emerging/observatory?token=${token}`, { timeout: 45000 });
+              setCvDetectedData(res.data);
+            } catch { setCvDetectedData(null); }
+          }} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1700,11 +1706,25 @@ const UbuntooInsightCard = ({ insight }) => {
   );
 };
 
-const CvDetectedTab = ({ data }) => {
+const CvDetectedTab = ({ data, token, onRefresh }) => {
+  if (data === "loading") return (
+    <div className="flex items-center justify-center py-12 gap-3">
+      <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+      <p className="text-sm text-slate-500">Analyse IA en cours pour votre secteur...</p>
+    </div>
+  );
+
   if (!data) return (
-    <div className="text-center py-12 text-slate-400">
+    <div className="text-center py-12 space-y-4">
       <Target className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-      <p className="text-sm">Analysez un CV pour voir les compétences émergentes détectées</p>
+      <p className="text-sm text-slate-400">Cliquez ci-dessous pour détecter les compétences émergentes dans votre profil</p>
+      <Button
+        onClick={onRefresh}
+        className="bg-violet-600 hover:bg-violet-700 text-white"
+        data-testid="detect-emerging-btn"
+      >
+        <Sparkles className="w-4 h-4 mr-2" />Lancer la détection IA
+      </Button>
     </div>
   );
 
@@ -1716,9 +1736,9 @@ const CvDetectedTab = ({ data }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-violet-600" />
-            Compétences émergentes détectées par analyse CV
+            Compétences émergentes détectées
           </CardTitle>
-          <CardDescription>Compétences rares ou en croissance identifiées automatiquement dans les CV analysés</CardDescription>
+          <CardDescription>Compétences en croissance identifiées dans votre profil et votre secteur</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Stats */}
