@@ -183,15 +183,18 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
             <h4 className="text-base font-semibold text-slate-700">Compétences identifiées</h4>
             {displayProfile.skills?.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                {displayProfile.skills.map((skill, idx) => (
-                  <div key={idx} className="space-y-1.5" data-testid={`skill-${idx}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-700">{skill.name}</span>
-                      <span className="text-sm text-slate-500">{skill.level}%</span>
+                {displayProfile.skills.map((skill, idx) => {
+                  const pct = skill.level != null ? skill.level : (skill.declared_level != null ? skill.declared_level * 20 : 0);
+                  return (
+                    <div key={idx} className="space-y-1.5" data-testid={`skill-${idx}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700">{skill.name}</span>
+                        <span className="text-sm text-slate-500">{pct}%</span>
+                      </div>
+                      <Progress value={pct} className="h-2" />
                     </div>
-                    <Progress value={skill.level} className="h-2" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-4 text-slate-400 text-sm">
