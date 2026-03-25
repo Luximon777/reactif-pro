@@ -1,64 +1,70 @@
 # Re'Actif Pro - PRD
 
 ## Problème original
-Application web Ré'Actif Pro intégrant le questionnaire D'CLIC PRO pour l'accompagnement professionnel.
+Répliquer le design D'CLIC PRO, intégrer l'espace communautaire Ubuntoo, mettre en place un coffre-fort numérique.
 
 ## Architecture
-- **Frontend**: React + Tailwind CSS + Shadcn/UI
-- **Backend**: FastAPI + Python
-- **Base de données**: MongoDB
-- **Déploiement**: Emergent -> GitHub -> OVH (automatisé via GitHub Actions)
-- **VPS OVH**: 51.91.124.85, Debian 12, nginx + certbot SSL, MongoDB 7.0, données sur /data (75 Go)
+- Frontend: React + Tailwind + Shadcn/UI + Recharts
+- Backend: FastAPI + MongoDB (Motor)
+- Auth: Pseudonyme anonyme
+- LLM: OpenAI GPT-5.2 via Emergent LLM Key
+- Déploiement: Nginx, Let's Encrypt, GitHub Actions vers VPS OVH
 
-## Fonctionnalités implémentées
+## Ce qui a été implémenté
 
-### Questionnaire D'CLIC PRO (Complet)
-- 26 questions visuelles avec images uniques (64 images, 0 doublons)
-- Thème sombre (#1e3a5f) fidèle au projet original
-- Logo SVG animé, cartes glassmorphiques, boutons dégradés
-- Résultats en 10 sections avec tooltips au survol
-- Section "Profil Comportemental" avec graphiques radar (Tripartite, DISC, Archéologie)
-- Section "Archéologie des Compétences" (GSCA) avec Cognition/Conation/Affection + Valeurs Schwartz/Forces Seligman/Savoirs-être France Travail
-- Disclaimer légal sur la page de résultats
-- Boutons: "Valider le rapport" → "Générer dans votre espace personnel" + "Refaire le test"
+### Design D'CLIC PRO (DONE)
+- Thème sombre, cartes glassmorphiques, 26 questions
+- Graphiques radar Recharts (Tripartite, DISC, Archéologie)
+- Tooltips de définitions, images contextuelles
+- Boutons de validation du rapport
 
-### Import D'CLIC PRO dans profil (Complet - 25 Mar 2026)
-- Bouton mis en valeur (dégradé + animation pulse)
-- Import enrichi: stocke MBTI, DISC, RIASEC, Vertus, compétences, vigilances
-- Modale de saisie du code d'accès avec prévisualisation
+### Import D'CLIC → Dashboard (DONE - fixé 25/03/2026)
+- Retrieve par code d'accès (MBTI, DISC, RIASEC, Vertus)
+- Sauvegarde complète dans le profil utilisateur
+- Barre de progression animée
+- Claim du code
 
-### Dashboard & Profils (Complet)
-- Menu nettoyé, police augmentée
-- Logo Re'Actif Pro intégré aux CV (PDF/DOCX)
+### Bugs corrigés (25/03/2026)
+- `DclicTestPage.jsx`: Import API partagé depuis `@/App` (évite `undefined/api/...` en prod)
+- `Dashboard.jsx`: `profileId` manquant dans la déstructuration `useAuth()` → crash à l'import
+- `models.py`: `dclic_profile` manquant dans `DclicProImport` → `AttributeError` backend
+- `helpers.py`: Retry LLM augmenté (3 tentatives + backoff exponentiel)
+- `cv.py`: `asyncio.gather` avec `return_exceptions=True` pour résilience
+- `ParticulierView.jsx`: Ouverture D'CLIC en nouvel onglet
 
-### Déploiement OVH (Complet - 25 Mar 2026)
-- Serveur configuré: nginx + SSL Let's Encrypt + MongoDB + FastAPI systemd
-- Pipeline GitHub Actions avec clé SSH ED25519
+### Reconstruction VPS OVH (DONE)
+- Nginx, SSL Let's Encrypt, MongoDB migré sur /data (75Go)
 
-## Backlog prioritisé
+## Backlog priorité
 
-### P1 - Génération CV depuis Carte d'Identité Pro (si pas de CV)
-- Si l'utilisateur n'a pas de CV, générer un CV basé sur la Carte d'Identité Pro
+### P0 - Déploiement GitHub Actions
+- Le secret `VPS_SSH_KEY` doit être mis à jour par l'utilisateur sur GitHub
 
 ### P1 - Espace communautaire Ubuntoo
-- Intégration de l'espace communautaire
+- À implémenter
 
 ### P2 - Coffre-fort numérique
-- Upload réel de fichiers pour les preuves
+- Upload de fichiers pour preuves de compétences
 
 ### P3 - Narratif IA personnalisé
-- Génération IA de narratif à la fin des résultats D'CLIC PRO
+- Génération IA en fin de test D'CLIC PRO
 
 ### P3 - FranceConnect / CCSP
-- Intégrer FranceConnect et diagnostic basé sur le CCSP
+- Intégration diagnostic CCSP
 
-### P4 - Codéveloppement
-- Ateliers de Codéveloppement et micro-titres/badges
+### P4 - Ateliers Codéveloppement / Micro-badges
+- Système de badges et ateliers
 
-## Endpoints API clés
-- `GET /api/dclic/questionnaire` - Liste des 26 questions
-- `POST /api/dclic/submit` - Soumission et calcul de profil
-- `GET /api/dclic/result/{access_code}` - Récupération par code
-- `POST /api/profile/import-dclic` - Import enrichi dans profil utilisateur
-- `POST /api/dclic/retrieve` - Vérifier un code et prévisualiser
-- `POST /api/dclic/claim` - Associer un résultat à un utilisateur
+## API Endpoints clés
+- POST /api/auth/register, /api/auth/login
+- POST /api/dclic/retrieve - Récupère profil par code
+- POST /api/dclic/claim - Marque code comme utilisé
+- POST /api/profile/import-dclic - Import complet dans profil
+- POST /api/cv/analyze-text - Analyse CV par texte
+- GET /api/cv/analyze/status - Polling résultat CV
+
+## DB Schema clés
+- profiles: pseudo, token_id, dclic_imported, dclic_mbti, dclic_disc, etc.
+- dclic_results: access_code, is_claimed, answers, profile
+- cv_jobs: job_id, status, step, error, result
+- passports: token_id, competences, formations

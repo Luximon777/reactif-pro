@@ -47,7 +47,7 @@ import ExplorateurView from "@/views/ExplorateurView";
 import PrivacySettingsView from "@/views/PrivacySettingsView";
 
 const Dashboard = () => {
-  const { token, role, switchRole, logout, authMode, pseudo } = useAuth();
+  const { token, role, profileId, switchRole, logout, authMode, pseudo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
