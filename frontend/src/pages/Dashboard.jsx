@@ -220,11 +220,11 @@ const Dashboard = () => {
                 </Button>
               </a>
 
-              {/* Logout */}
+              {/* D'CLIC PRO Import - Mise en valeur */}
               <Dialog open={dclicOpen} onOpenChange={(o) => { setDclicOpen(o); if (!o) { setDclicPreview(null); setDclicCode(""); } }}>
                 {role === "particulier" && (
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="text-[#1e3a5f] border-[#1e3a5f]/30 hover:bg-[#1e3a5f]/5 text-xs" data-testid="dclic-import-btn">
+                    <Button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white shadow-lg shadow-[#4f6df5]/20 animate-pulse hover:animate-none text-xs font-semibold" data-testid="dclic-import-btn">
                       <Upload className="w-4 h-4 mr-1.5" />
                       <span className="hidden md:inline">Charger mon profil D'CLIC PRO</span>
                       <span className="md:hidden">D'CLIC PRO</span>

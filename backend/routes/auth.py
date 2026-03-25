@@ -665,6 +665,23 @@ async def import_dclic_pro(token: str, data: DclicProImport):
     if profile_update:
         await db.profiles.update_one({"token_id": token_id}, {"$set": profile_update})
 
+    # Store full D'CLIC PRO profile data
+    if data.dclic_profile:
+        dclic_data = data.dclic_profile
+        dclic_enrichment = {
+            "dclic_profile": dclic_data,
+            "dclic_imported": True,
+            "dclic_mbti": dclic_data.get("mbti"),
+            "dclic_disc": dclic_data.get("disc"),
+            "dclic_disc_label": dclic_data.get("disc_dominant_name") or dclic_data.get("disc_label"),
+            "dclic_riasec_major": dclic_data.get("riasec_major_name"),
+            "dclic_riasec_minor": dclic_data.get("riasec_minor_name"),
+            "dclic_vertu_dominante": dclic_data.get("vertu_dominante_name"),
+            "dclic_competences": dclic_data.get("competences_fortes", []),
+            "dclic_vigilances": dclic_data.get("vigilances", []),
+        }
+        await db.profiles.update_one({"token_id": token_id}, {"$set": dclic_enrichment})
+
     # Import experiences into passport
     if data.experiences:
         passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
