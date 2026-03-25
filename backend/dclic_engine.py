@@ -263,14 +263,14 @@ VISUAL_QUESTIONS = [
                 "id": "v4a",
                 "value": "S1",
                 "label": "Les faits concrets et vérifiables",
-                "image": "https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3184287/pexels-photo-3184287.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Données et graphiques"
             },
             {
                 "id": "v4b",
                 "value": "N1",
                 "label": "Les idées innovantes et créatives",
-                "image": "https://images.pexels.com/photos/7369/startup-photos.jpg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3182834/pexels-photo-3182834.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Brainstorming et idées sur whiteboard"
             },
             {
@@ -520,7 +520,7 @@ VISUAL_QUESTIONS = [
                 "id": "r1b",
                 "value": "I",
                 "label": "Je cherche à comprendre pourquoi",
-                "image": "https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3182743/pexels-photo-3182743.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne qui analyse un problème technique"
             }
         ]
@@ -538,14 +538,14 @@ VISUAL_QUESTIONS = [
                 "id": "r2a",
                 "value": "A",
                 "label": "Créer (dessiner, écrire, jouer de la musique...)",
-                "image": "https://images.pexels.com/photos/3094218/pexels-photo-3094218.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne en train de peindre ou créer"
             },
             {
                 "id": "r2b",
                 "value": "S",
                 "label": "Aider ou accompagner quelqu'un",
-                "image": "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/5324970/pexels-photo-5324970.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne aidant une autre personne"
             }
         ]
@@ -570,7 +570,7 @@ VISUAL_QUESTIONS = [
                 "id": "r3b",
                 "value": "C",
                 "label": "Organiser et structurer le travail",
-                "image": "https://images.pexels.com/photos/669615/pexels-photo-669615.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/212286/pexels-photo-212286.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Bureau bien organisé avec classements"
             }
         ]
@@ -627,7 +627,7 @@ VISUAL_QUESTIONS = [
                 "id": "r5a",
                 "value": "I",
                 "label": "J'analyse les données et les faits",
-                "image": "https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/6340615/pexels-photo-6340615.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Analyse de données et graphiques"
             },
             {
@@ -767,7 +767,7 @@ VISUAL_QUESTIONS = [
                 "id": "vv1b",
                 "value": "courage",
                 "label": "La détermination et l'action pour avancer",
-                "image": "https://images.pexels.com/photos/3756165/pexels-photo-3756165.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3183132/pexels-photo-3183132.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Personne déterminée"
             }
         ]
@@ -785,7 +785,7 @@ VISUAL_QUESTIONS = [
                 "id": "vv2a",
                 "value": "humanite",
                 "label": "L'empathie et le soutien émotionnel",
-                "image": "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Soutien et empathie"
             },
             {
@@ -817,7 +817,7 @@ VISUAL_QUESTIONS = [
                 "id": "vv3b",
                 "value": "transcendance",
                 "label": "La beauté, la gratitude et le sens de la vie",
-                "image": "https://images.pexels.com/photos/3560044/pexels-photo-3560044.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Contemplation et gratitude"
             }
         ]
@@ -849,7 +849,7 @@ VISUAL_QUESTIONS = [
                 "id": "vv4c",
                 "value": "reussite",
                 "label": "Réussite - Accomplissement personnel",
-                "image": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3184298/pexels-photo-3184298.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Succès et accomplissement"
             },
             {
@@ -873,14 +873,14 @@ VISUAL_QUESTIONS = [
                 "id": "vv5a",
                 "value": "creativite",
                 "label": "Votre créativité et votre curiosité",
-                "image": "https://images.pexels.com/photos/3094218/pexels-photo-3094218.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3183186/pexels-photo-3183186.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Créativité"
             },
             {
                 "id": "vv5b",
                 "value": "generosite",
                 "label": "Votre générosité et votre écoute",
-                "image": "https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3184317/pexels-photo-3184317.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Générosité et écoute"
             }
         ]
@@ -898,21 +898,21 @@ VISUAL_QUESTIONS = [
                 "id": "vv6a",
                 "value": "initiative",
                 "label": "Prendre des initiatives et proposer des idées",
-                "image": "https://images.pexels.com/photos/3184325/pexels-photo-3184325.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Prise d'initiative"
             },
             {
                 "id": "vv6b",
                 "value": "ecoute",
                 "label": "Être à l'écoute et au service des autres",
-                "image": "https://images.pexels.com/photos/5212345/pexels-photo-5212345.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/3184328/pexels-photo-3184328.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Écoute active"
             },
             {
                 "id": "vv6c",
                 "value": "rigueur",
                 "label": "Faire preuve de rigueur et de précision",
-                "image": "https://images.pexels.com/photos/669615/pexels-photo-669615.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "image": "https://images.pexels.com/photos/355952/pexels-photo-355952.jpeg?auto=compress&cs=tinysrgb&w=600",
                 "alt": "Rigueur et précision"
             },
             {
