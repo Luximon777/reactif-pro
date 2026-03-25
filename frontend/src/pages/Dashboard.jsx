@@ -309,7 +309,7 @@ const Dashboard = () => {
                   <DialogTrigger asChild>
                     <Button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white shadow-lg shadow-[#4f6df5]/20 animate-pulse hover:animate-none text-xs font-semibold" data-testid="dclic-import-btn">
                       <Upload className="w-4 h-4 mr-1.5" />
-                      <span className="hidden md:inline">Charger mon profil D'CLIC PRO</span>
+                      <span className="hidden md:inline">Boost mon profil avec D'CLIC PRO</span>
                       <span className="md:hidden">D'CLIC PRO</span>
                     </Button>
                   </DialogTrigger>
@@ -317,7 +317,7 @@ const Dashboard = () => {
                 <DialogContent className="sm:max-w-[500px]" data-testid="dclic-dialog">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-[#1e3a5f]">
-                      <Upload className="w-5 h-5" />Charger mon profil D'CLIC PRO
+                      <Upload className="w-5 h-5" />Boost mon profil avec D'CLIC PRO
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">

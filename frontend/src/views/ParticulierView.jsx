@@ -134,12 +134,12 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                 <Award className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white">Passer le test D'CLIC PRO</h3>
+                <h3 className="text-base font-semibold text-white">Passer le test D'CLIC PRO et Boost ton profil !</h3>
                 <p className="text-indigo-100 text-sm">Pour améliorer et crédibiliser vos profils personnalités et compétences pro</p>
               </div>
             </div>
             <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); window.open('/test-dclic', '_blank', 'noopener,noreferrer'); }}>
-              <Play className="w-4 h-4 mr-1.5" />Passer le test
+              <Play className="w-4 h-4 mr-1.5" />Passer le test et Boost ton profil !
             </Button>
           </div>
         </CardContent>
@@ -211,12 +211,12 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                 <Upload className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white">Charger mon profil D'CLIC PRO</h3>
+                <h3 className="text-base font-semibold text-white">Boost mon profil avec D'CLIC PRO</h3>
                 <p className="text-emerald-100 text-sm">Importez votre profil, compétences et preuves pour enrichir votre passeport</p>
               </div>
             </div>
             <Button className="bg-white text-emerald-700 hover:bg-emerald-50 shrink-0" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
-              <Upload className="w-4 h-4 mr-2" />Charger mon profil
+              <Upload className="w-4 h-4 mr-2" />Boost mon profil
             </Button>
           </div>
         </CardContent>
