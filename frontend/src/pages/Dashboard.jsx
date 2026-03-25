@@ -90,6 +90,8 @@ const Dashboard = () => {
   const [dclicImporting, setDclicImporting] = useState(false);
   const [dclicCode, setDclicCode] = useState("");
   const [dclicPreview, setDclicPreview] = useState(null);
+  const [dclicProgress, setDclicProgress] = useState(0);
+  const [dclicProgressLabel, setDclicProgressLabel] = useState("");
 
   const handleDclicRetrieve = async () => {
     if (!dclicCode.trim()) return;
@@ -107,6 +109,24 @@ const Dashboard = () => {
   const handleDclicImport = async () => {
     if (!dclicPreview) return;
     setDclicImporting(true);
+    setDclicProgress(0);
+    setDclicProgressLabel("Analyse du profil D'CLIC PRO...");
+
+    const steps = [
+      { pct: 15, label: "Lecture du profil comportemental...", delay: 800 },
+      { pct: 30, label: "Import des compétences RIASEC...", delay: 700 },
+      { pct: 45, label: "Intégration du profil MBTI / DISC...", delay: 600 },
+      { pct: 60, label: "Chargement des vertus et valeurs...", delay: 700 },
+      { pct: 75, label: "Enrichissement de l'espace personnel...", delay: 800 },
+      { pct: 85, label: "Mise à jour du diagnostic...", delay: 600 },
+    ];
+
+    for (const step of steps) {
+      await new Promise(r => setTimeout(r, step.delay));
+      setDclicProgress(step.pct);
+      setDclicProgressLabel(step.label);
+    }
+
     try {
       const payload = {
         target_job: "", city: "", summary: "",
@@ -116,9 +136,16 @@ const Dashboard = () => {
         evidences: [{ title: "Test D'CLIC PRO", kind: "attestation", source: `Code: ${dclicCode.trim()}` }],
         dclic_profile: dclicPreview,
       };
+      setDclicProgress(90);
+      setDclicProgressLabel("Sauvegarde des données...");
       const res = await axios.post(`${API}/profile/import-dclic?token=${token}`, payload);
-      toast.success(`Profil D'CLIC PRO importé ! Score: ${res.data.profile_completion}%`);
+      setDclicProgress(95);
+      setDclicProgressLabel("Validation du rapport...");
       await axios.post(`${API}/dclic/claim?access_code=${encodeURIComponent(dclicCode.trim())}&user_id=${profileId}`);
+      setDclicProgress(100);
+      setDclicProgressLabel("Import terminé !");
+      await new Promise(r => setTimeout(r, 800));
+      toast.success(`Profil D'CLIC PRO importé avec succès ! Complétion : ${res.data.profile_completion}%`);
       setDclicOpen(false);
       setDclicCode("");
       setDclicPreview(null);
@@ -127,6 +154,8 @@ const Dashboard = () => {
       toast.error("Erreur lors de l'import");
     }
     setDclicImporting(false);
+    setDclicProgress(0);
+    setDclicProgressLabel("");
   };
 
   const handleSeedDatabase = async () => {
@@ -289,9 +318,26 @@ const Dashboard = () => {
                           </div>
                         )}
                         <Button className="w-full bg-[#1e3a5f] hover:bg-[#2d4a6f]" onClick={handleDclicImport} disabled={dclicImporting} data-testid="dclic-submit-btn">
-                          {dclicImporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                          {dclicImporting ? "Import en cours..." : "Importer dans mon profil Re'Actif Pro"}
+                          {!dclicImporting && <Upload className="w-4 h-4 mr-2" />}
+                          {!dclicImporting && "Importer dans mon profil Re'Actif Pro"}
                         </Button>
+                        {dclicImporting && (
+                          <div className="mt-4 space-y-3" data-testid="dclic-progress">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-600 font-medium">{dclicProgressLabel}</span>
+                              <span className="text-indigo-600 font-bold">{dclicProgress}%</span>
+                            </div>
+                            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] rounded-full transition-all duration-500 ease-out" style={{ width: `${dclicProgress}%` }} />
+                            </div>
+                            <div className="flex justify-center">
+                              <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <div className="w-3 h-3 border-2 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin" />
+                                Veuillez patienter...
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
