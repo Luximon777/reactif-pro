@@ -306,6 +306,112 @@ async def evaluate_competence(comp_id: str, token: str, data: EvaluateCompetence
     return {"message": "Évaluation enregistrée", "competence_id": comp_id, "components": components}
 
 
+
+@router.post("/passport/diagnostic/auto-evaluate")
+async def auto_evaluate_diagnostic(token: str):
+    """Auto-evaluate all competences using AI based on existing user data (CV, D'CLIC, etc.)"""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouvé")
+
+    comps = passport.get("competences", [])
+    if not comps:
+        raise HTTPException(status_code=400, detail="Aucune compétence dans le passeport")
+
+    # Gather context from CV, D'CLIC, centres d'intérêt
+    profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+    cv_data = await db.cv_analysis.find_one({"token_id": token_id}, {"_id": 0})
+    ci_data = await db.centres_interet.find_one({"token_id": token_id}, {"_id": 0})
+
+    context_parts = []
+    if profile:
+        if profile.get("dclic_mbti"): context_parts.append(f"Profil MBTI: {profile['dclic_mbti']}")
+        if profile.get("dclic_disc"): context_parts.append(f"Profil DISC dominant: {profile.get('dclic_disc_label', '')}")
+        if profile.get("dclic_competences"): context_parts.append(f"Compétences D'CLIC: {', '.join(profile['dclic_competences'])}")
+    if cv_data and cv_data.get("result"):
+        r = cv_data["result"]
+        if r.get("savoir_faire"): context_parts.append(f"Savoir-faire CV: {', '.join(s.get('name','') for s in r['savoir_faire'][:10])}")
+        if r.get("savoir_etre"): context_parts.append(f"Savoir-être CV: {', '.join(s.get('name','') for s in r['savoir_etre'][:10])}")
+        if r.get("experiences"): context_parts.append(f"Expériences: {', '.join(e.get('poste','') for e in r['experiences'][:5])}")
+    if ci_data and ci_data.get("competences_transversales"):
+        context_parts.append(f"Qualités centres d'intérêt: {', '.join(ci_data['competences_transversales'])}")
+
+    context = "\n".join(context_parts) if context_parts else "Pas de contexte supplémentaire disponible."
+
+    comp_names = [{"id": c.get("id"), "name": c.get("name", ""), "nature": c.get("nature", ""), "category": c.get("category", "")} for c in comps]
+
+    # Batch evaluate via LLM (max 15 per call to avoid token limits)
+    all_evaluations = {}
+    for batch_start in range(0, len(comp_names), 15):
+        batch = comp_names[batch_start:batch_start + 15]
+        batch_json = json.dumps(batch, ensure_ascii=False)
+
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"diag-{uuid.uuid4()}",
+                system_message="""Expert en évaluation des compétences professionnelles selon le modèle Lamri & Lubart (2023).
+
+Pour chaque compétence, évalue sur une échelle de 1 à 5 les 5 composantes :
+- connaissance: savoirs théoriques et factuels nécessaires
+- cognition: capacité d'analyse, raisonnement, résolution de problèmes
+- conation: motivation, volonté, engagement dans cette compétence
+- affection: gestion émotionnelle, empathie liée à cette compétence
+- sensori_moteur: habiletés physiques et pratiques
+
+Attribue aussi un pôle CCSP parmi: "realisation", "interaction", "initiative"
+Et un degré CCSP parmi: "imitation", "adaptation", "transposition"
+
+Base tes évaluations sur le contexte fourni (CV, profil psychométrique, expériences).
+Si pas assez d'info pour une compétence, attribue des scores moyens (2-3).
+
+Réponds en JSON uniquement:
+{"evaluations":[{"id":"...","connaissance":3,"cognition":4,"conation":3,"affection":2,"sensori_moteur":2,"ccsp_pole":"realisation","ccsp_degree":"adaptation"}]}"""
+            ).with_model("openai", "gpt-5.2")
+
+            import re
+            response = await chat.send_message(UserMessage(text=f"Contexte du candidat:\n{context}\n\nCompétences à évaluer:\n{batch_json}"))
+            raw = response.strip() if isinstance(response, str) else response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"): raw = raw[:-3]
+                raw = raw.strip()
+            raw = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', raw)
+            result = json.loads(raw)
+
+            for ev in result.get("evaluations", []):
+                all_evaluations[ev["id"]] = ev
+        except Exception as e:
+            logging.error(f"Auto-evaluate batch error: {e}")
+
+    # Apply evaluations to competences
+    updated_count = 0
+    for comp in comps:
+        cid = comp.get("id")
+        if cid in all_evaluations:
+            ev = all_evaluations[cid]
+            comp["components"] = {
+                "connaissance": max(0, min(5, ev.get("connaissance", 2))),
+                "cognition": max(0, min(5, ev.get("cognition", 2))),
+                "conation": max(0, min(5, ev.get("conation", 2))),
+                "affection": max(0, min(5, ev.get("affection", 2))),
+                "sensori_moteur": max(0, min(5, ev.get("sensori_moteur", 2))),
+            }
+            if ev.get("ccsp_pole"): comp["ccsp_pole"] = ev["ccsp_pole"]
+            if ev.get("ccsp_degree"): comp["ccsp_degree"] = ev["ccsp_degree"]
+            updated_count += 1
+
+    await db.passports.update_one(
+        {"token_id": token_id},
+        {"$set": {"competences": comps, "last_updated": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {"message": f"{updated_count}/{len(comps)} compétences auto-évaluées par l'IA", "evaluated_count": updated_count}
+
+
+
 @router.get("/passport/diagnostic")
 async def get_ccsp_diagnostic(token: str):
     token_doc = await get_current_token(token)

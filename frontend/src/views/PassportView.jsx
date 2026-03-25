@@ -125,9 +125,13 @@ const PassportView = ({ token }) => {
   const loadDiagnostic = async () => {
     setLoadingDiagnostic(true);
     try {
+      // Auto-evaluate via AI first
+      await axios.post(`${API}/passport/diagnostic/auto-evaluate?token=${token}`);
+      // Then load the diagnostic
       const res = await axios.get(`${API}/passport/diagnostic?token=${token}`);
       setDiagnostic(res.data);
-    } catch (e) { toast.error("Erreur lors du chargement du diagnostic"); }
+      await loadPassport();
+    } catch (e) { toast.error(e.response?.data?.detail || "Erreur lors du diagnostic"); }
     setLoadingDiagnostic(false);
   };
 
