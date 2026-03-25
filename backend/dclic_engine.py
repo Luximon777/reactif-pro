@@ -810,15 +810,15 @@ VISUAL_QUESTIONS = [
                 "id": "vv3a",
                 "value": "temperance",
                 "label": "L'organisation et la maîtrise de soi",
-                "image": "https://images.pexels.com/photos/6802049/pexels-photo-6802049.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Organisation et calme"
+                "image": "https://images.unsplash.com/photo-1758273240112-c7724c9bb4a5?w=600",
+                "alt": "Femme méditant calmement chez elle"
             },
             {
                 "id": "vv3b",
                 "value": "transcendance",
                 "label": "La beauté, la gratitude et le sens de la vie",
-                "image": "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Contemplation et gratitude"
+                "image": "https://images.unsplash.com/photo-1747127789972-a4752abb13d4?w=600",
+                "alt": "Coucher de soleil sur l'océan, beauté et contemplation"
             }
         ]
     },
