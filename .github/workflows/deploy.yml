@@ -13,30 +13,31 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: 51.91.124.85
-          username: ubuntu
+          username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           command_timeout: 10m
           script: |
-            echo "=== Début du déploiement ==="
-            cd ~/reactif-pro
+            echo "=== Debut du deploiement ==="
 
-            echo "=== Pull des dernières modifications ==="
+            echo "=== Pull des dernieres modifications ==="
+            cd /data/app
             git pull origin main
 
             echo "=== Build du frontend ==="
-            cd frontend
+            cd /data/app/frontend
+            export TMPDIR=/data/tmp
             npm install --legacy-peer-deps
-            npm run build
-            cd ..
+            REACT_APP_BACKEND_URL=https://reactif.pro npm run build
+            rm -rf /data/www/html
+            mv build /data/www/html
 
-            echo "=== Installation des dépendances backend ==="
-            cd backend
+            echo "=== Installation des dependances backend ==="
+            cd /data/app/backend
             source venv/bin/activate
-            pip install -r requirements.txt --quiet
+            pip install -r requirements.txt --quiet --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
             deactivate
-            cd ..
 
-            echo "=== Redémarrage du backend ==="
-            bash -c 'cd ~/reactif-pro/backend && source venv/bin/activate && PID=$(cat /tmp/reactif.pid 2>/dev/null); [ -n "$PID" ] && kill $PID 2>/dev/null; sleep 1; nohup uvicorn server:app --host 0.0.0.0 --port 8001 >> ~/uvicorn.log 2>&1 & echo $! > /tmp/reactif.pid'
+            echo "=== Redemarrage du backend ==="
+            systemctl restart backend
 
-            echo "=== Déploiement terminé avec succès ==="
+            echo "=== Deploiement termine avec succes ==="
