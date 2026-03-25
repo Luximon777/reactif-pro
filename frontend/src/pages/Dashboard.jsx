@@ -108,6 +108,7 @@ const Dashboard = () => {
 
   const handleDclicImport = async () => {
     if (!dclicPreview) return;
+
     setDclicImporting(true);
     setDclicProgress(0);
     setDclicProgressLabel("Analyse du profil D'CLIC PRO...");
@@ -127,35 +128,88 @@ const Dashboard = () => {
       setDclicProgressLabel(step.label);
     }
 
+    const payload = {
+      target_job: "",
+      city: "",
+      summary: "",
+      mobility: "departement",
+      contract_types: [],
+      work_modes: [],
+      skills:
+        dclicPreview.competences_fortes?.map((c) => ({
+          name: c,
+          category: "comportementale",
+          declared_level: 4,
+          status: "declaree",
+        })) || [],
+      experiences: [],
+      evidences: [
+        {
+          title: "Test D'CLIC PRO",
+          kind: "attestation",
+          source: `Code: ${dclicCode.trim()}`,
+        },
+      ],
+      dclic_profile: dclicPreview,
+    };
+
     try {
-      const payload = {
-        target_job: "", city: "", summary: "",
-        mobility: "departement", contract_types: [], work_modes: [],
-        skills: dclicPreview.competences_fortes?.map(c => ({ name: c, category: "comportementale", declared_level: 4, status: "declaree" })) || [],
-        experiences: [],
-        evidences: [{ title: "Test D'CLIC PRO", kind: "attestation", source: `Code: ${dclicCode.trim()}` }],
-        dclic_profile: dclicPreview,
-      };
       setDclicProgress(90);
       setDclicProgressLabel("Sauvegarde des données...");
-      const res = await axios.post(`${API}/profile/import-dclic?token=${token}`, payload);
+
+      const importRes = await axios.post(
+        `${API}/profile/import-dclic?token=${encodeURIComponent(token)}`,
+        payload
+      );
+
       setDclicProgress(95);
-      setDclicProgressLabel("Validation du rapport...");
-      await axios.post(`${API}/dclic/claim?access_code=${encodeURIComponent(dclicCode.trim())}&user_id=${profileId}`);
+      setDclicProgressLabel("Validation du code...");
+
+      let claimError = null;
+
+      try {
+        await axios.post(
+          `${API}/dclic/claim?access_code=${encodeURIComponent(dclicCode.trim())}&user_id=${encodeURIComponent(profileId || "")}`
+        );
+      } catch (e) {
+        claimError = e?.response?.data?.detail || e.message || "Erreur de validation du code";
+        console.error("Erreur claim D'CLIC PRO:", e);
+      }
+
       setDclicProgress(100);
       setDclicProgressLabel("Import terminé !");
       await new Promise(r => setTimeout(r, 800));
-      toast.success(`Profil D'CLIC PRO importé avec succès ! Complétion : ${res.data.profile_completion}%`);
+
+      if (claimError) {
+        toast.success(
+          `Profil importé avec succès. Complétion : ${importRes.data.profile_completion}%`
+        );
+        toast.error(`Le profil a bien été importé, mais le code n'a pas pu être validé : ${claimError}`);
+      } else {
+        toast.success(
+          `Profil D'CLIC PRO importé avec succès ! Complétion : ${importRes.data.profile_completion}%`
+        );
+      }
+
       setDclicOpen(false);
       setDclicCode("");
       setDclicPreview(null);
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     } catch (e) {
-      toast.error("Erreur lors de l'import");
+      console.error("Erreur import D'CLIC PRO:", e);
+
+      const detail =
+        e?.response?.data?.detail ||
+        e?.response?.data?.message ||
+        e.message ||
+        "Erreur lors de l'import";
+
+      toast.error(detail);
+    } finally {
+      setDclicImporting(false);
+      setDclicProgress(0);
+      setDclicProgressLabel("");
     }
-    setDclicImporting(false);
-    setDclicProgress(0);
-    setDclicProgressLabel("");
   };
 
   const handleSeedDatabase = async () => {
