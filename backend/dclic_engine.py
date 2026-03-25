@@ -588,29 +588,29 @@ VISUAL_QUESTIONS = [
                 "id": "r4a",
                 "value": "R",
                 "label": "Bricoler, jardiner ou cuisiner",
-                "image": "https://images.pexels.com/photos/5691622/pexels-photo-5691622.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Personne qui bricole"
+                "image": "https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=600",
+                "alt": "Femme jardinant avec soin dans son jardin"
             },
             {
                 "id": "r4b",
                 "value": "A",
                 "label": "Décorer, photographier ou customiser",
-                "image": "https://images.pexels.com/photos/1092644/pexels-photo-1092644.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Décoration artistique"
+                "image": "https://images.unsplash.com/photo-1615262067879-3db9428c653d?w=600",
+                "alt": "Femme avec appareil photo en mode créatif"
             },
             {
                 "id": "r4c",
                 "value": "S",
                 "label": "Rendre service ou conseiller un proche",
-                "image": "https://images.pexels.com/photos/7176319/pexels-photo-7176319.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Deux personnes en discussion d'aide"
+                "image": "https://images.pexels.com/photos/6255878/pexels-photo-6255878.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Deux personnes en conversation bienveillante"
             },
             {
                 "id": "r4d",
                 "value": "E",
                 "label": "Organiser une sortie ou un événement",
-                "image": "https://images.pexels.com/photos/7551617/pexels-photo-7551617.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Organisation d'événement"
+                "image": "https://images.unsplash.com/photo-1752700064245-caa940f9b6dc?w=600",
+                "alt": "Amis réunis pour une fête en extérieur"
             }
         ]
     },
