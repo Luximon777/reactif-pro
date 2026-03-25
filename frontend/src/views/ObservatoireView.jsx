@@ -1790,27 +1790,41 @@ const CvDetectedTab = ({ data }) => {
             <div>
               <h4 className="text-sm font-semibold text-slate-700 mb-3">Top compétences émergentes (score &ge; 31)</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {top_emerging.map((comp, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-violet-100 hover:bg-violet-50/30 transition-all">
-                    <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center font-bold text-violet-700 text-sm shrink-0">
-                      {comp.score_emergence}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{comp.nom_principal}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Badge variant="outline" className="text-[10px]">{comp.categorie}</Badge>
-                        <Badge variant="outline" className="text-[10px]">{comp.niveau_emergence}</Badge>
+                {top_emerging.map((comp, i) => {
+                  const name = comp.nom_principal || comp.name || "";
+                  const cat = comp.categorie || comp.category || "";
+                  const level = comp.niveau_emergence || comp.level || comp.match_type || "";
+                  const secteurs = comp.secteurs_porteurs || comp.sectors || [];
+                  const matchColors = {
+                    "direct": "bg-emerald-100 text-emerald-700",
+                    "confirme": "bg-emerald-100 text-emerald-700",
+                    "partiel": "bg-blue-100 text-blue-700",
+                    "intermediaire": "bg-blue-100 text-blue-700",
+                    "opportunite": "bg-amber-100 text-amber-700",
+                    "a_developper": "bg-amber-100 text-amber-700",
+                  };
+                  return (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-violet-100 hover:bg-violet-50/30 transition-all" data-testid={`cv-emerging-${i}`}>
+                      <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center font-bold text-violet-700 text-sm shrink-0">
+                        {comp.score_emergence}
                       </div>
-                    </div>
-                    {comp.secteurs_porteurs?.length > 0 && (
-                      <div className="hidden md:flex flex-wrap gap-1">
-                        {comp.secteurs_porteurs.slice(0, 2).map((s, j) => (
-                          <Badge key={j} className="bg-blue-50 text-blue-600 text-[10px]">{s}</Badge>
-                        ))}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge variant="outline" className="text-[10px]">{cat}</Badge>
+                          <Badge className={`text-[10px] ${matchColors[level] || "bg-slate-100 text-slate-700"}`}>{level}</Badge>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {secteurs.length > 0 && (
+                        <div className="hidden md:flex flex-wrap gap-1">
+                          {secteurs.slice(0, 2).map((s, j) => (
+                            <Badge key={j} className="bg-blue-50 text-blue-600 text-[10px]">{s}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
