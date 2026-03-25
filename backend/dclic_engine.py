@@ -873,15 +873,15 @@ VISUAL_QUESTIONS = [
                 "id": "vv5a",
                 "value": "creativite",
                 "label": "Votre créativité et votre curiosité",
-                "image": "https://images.pexels.com/photos/3183186/pexels-photo-3183186.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Créativité"
+                "image": "https://images.unsplash.com/photo-1678559612446-2bb33661007c?w=600",
+                "alt": "Femme peignant avec créativité et curiosité"
             },
             {
                 "id": "vv5b",
                 "value": "generosite",
                 "label": "Votre générosité et votre écoute",
-                "image": "https://images.pexels.com/photos/3184317/pexels-photo-3184317.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Générosité et écoute"
+                "image": "https://images.pexels.com/photos/6134939/pexels-photo-6134939.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Deux amies en conversation chaleureuse et attentive"
             }
         ]
     },
