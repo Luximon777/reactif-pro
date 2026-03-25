@@ -785,6 +785,13 @@ const DclicTestPage = () => {
               <button className="bg-[#4f6df5] hover:bg-[#6366f1] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Home className="w-4 h-4" />Dashboard</button>
             </div>
           </div>
+
+          {/* Disclaimer */}
+          <div className="bg-[#152a45]/60 border border-amber-500/20 rounded-xl px-5 py-3 flex items-start gap-3 mb-6" data-testid="results-disclaimer">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-slate-400 font-light leading-relaxed">Cette analyse exploratoire vous offre un premier éclairage sur votre profil. Pour une évaluation approfondie et certifiée, un accompagnement personnalisé est disponible via la plateforme <strong className="text-white font-medium">RE'ACTIF PRO</strong>.</p>
+          </div>
+
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Sidebar */}
             <nav className="lg:w-64 shrink-0">
