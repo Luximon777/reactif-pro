@@ -190,8 +190,8 @@ const DclicProLogo = ({ size = 120, animated = true }) => (
 // RESULTS SECTIONS
 // ============================================================================
 const SECTIONS = [
-  { id: "comportemental", label: "Profil Comportemental", icon: "1" },
-  { id: "archeologie", label: "Archéologie des Compétences", icon: "2" },
+  { id: "archeologie", label: "Archéologie des Compétences", icon: "1" },
+  { id: "comportemental", label: "Profil Comportemental", icon: "2" },
   { id: "boussole", label: "Boussole de Fonctionnement", icon: "3" },
   { id: "integrated", label: "Analyse Intégrée", icon: "4" },
   { id: "riasec", label: "Profil RIASEC", icon: "5" },
@@ -597,7 +597,7 @@ const DclicTestPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
-  const [activeSection, setActiveSection] = useState("comportemental");
+  const [activeSection, setActiveSection] = useState("archeologie");
   const [step, setStep] = useState("intro");
   const [birthDate, setBirthDate] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
