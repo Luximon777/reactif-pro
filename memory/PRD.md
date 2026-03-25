@@ -1,55 +1,62 @@
 # Re'Actif Pro - PRD
 
-## Problem Statement
-Plateforme full-stack "Re'Actif Pro" pour l'analyse de CV par IA, l'optimisation ATS, et la gestion d'un Passeport de Competences dynamique. Integration complete du questionnaire D'CLIC PRO.
+## Problème original
+Application web Ré'Actif Pro intégrant le questionnaire D'CLIC PRO pour l'accompagnement professionnel des individus.
 
 ## Architecture
-```
-frontend/src/
-  pages/ Landing.jsx, Dashboard.jsx, SharedPassportPage.jsx, DclicTestPage.jsx
-  views/ ParticulierView.jsx, PassportView.jsx, ObservatoireView.jsx, etc.
-  components/ AuthModal.jsx, JobMatchingSection.jsx, CvAnalysis/, Passport/
-backend/
-  routes/ auth.py, cv.py, jobs.py, passport.py, dclic.py, observatoire.py, evolution.py, coffre.py, ubuntoo.py
-  dclic_engine.py (moteur complet D'CLIC PRO - 6700+ lignes)
-  job_matching.py, centres_interet.py, models.py, server.py, db.py
-  data/ logo-reactif-pro.png
-```
+- **Frontend**: React + Tailwind CSS + Shadcn/UI
+- **Backend**: FastAPI + Python
+- **Base de données**: MongoDB
+- **Déploiement**: Emergent -> GitHub -> OVH (automatisé)
 
-## What's Implemented
-- Audit CV 10 regles + score /100
-- Optimisation ATS avec offre cible + centres d'interet enrichis
-- 4 modeles CV avec logo Re'Actif Pro en footer (DOCX + PDF)
-- Passeport Profil Dynamique 7 dimensions
-- Detection competences emergentes (4 phases)
-- Anonymat & Pseudonymat 3 niveaux + verification SIRET
-- Job Matching avance RQTH/EQTH
-- Partage anonymise Passeport (lien 30j)
-- Formations priorisees par competences emergentes
-- Analyse centres d'interet (9 categories)
-- **D'CLIC PRO - Questionnaire complet (24/03/2026):**
-  - 26 questions visuelles et ranking
-  - Pre-questionnaire: date de naissance + niveau d'etudes
-  - Moteur complet: MBTI, DISC, Enneagramme, RIASEC, Vertus (Seligman/Peterson)
-  - Analyse integree 3 niveaux, Boussole de Fonctionnement, Cadran d'Ofman
-  - Analyse croisee (chemin de vie + profils), Pistes d'action, Carte d'identite pro
-  - Code d'acces XXXX-XXXX pour recuperer le profil
-  - 9 sections de resultats avec navigation laterale
-  - Import dans profil Re'Actif Pro via code d'acces
+## Fonctionnalités implémentées
 
-## Key API Endpoints
-- POST /api/auth/register, POST /api/auth/login
-- GET/PUT /api/profile, POST /api/profile/import-dclic
-- GET /api/dclic/questionnaire (26 questions)
-- POST /api/dclic/submit (profil complet + code)
-- POST /api/dclic/retrieve, POST /api/dclic/claim
-- POST /api/cv/analyze-text, POST /api/cv/generate-models
-- GET /api/cv/download/{type}, GET /api/cv/download-pdf/{type}
-- GET /api/jobs/matching, GET /api/passport
-- GET /api/learning
+### Questionnaire D'CLIC PRO (Complet)
+- 26 questions visuelles avec images uniques (64 images, 0 doublons)
+- Moteur backend `dclic_engine.py` (~6700 lignes)
+- Calcul de profil (MBTI, DISC, RIASEC, Vertus, Ennéagramme)
+- Page de résultats avec 9 sections (Archéologie, Boussole, Analyse Intégrée, RIASEC, Vertus, Pistes d'Action, Analyse Croisée, Cadran d'Ofman, Carte d'Identité Pro)
+- Système de code d'accès (XXXX-XXXX) avec import dans profil Ré'Actif Pro
 
-## Backlog
-- P1: Integration communautaire Ubuntoo
-- P2: Coffre-fort numerique pour preuves (upload fichiers)
-- P3: FranceConnect, CCSP, Auto-evaluations
-- P4: Ateliers Codeveloppement, micro-titres/badges
+### Design D'CLIC PRO (Complet - 22 Jan 2026)
+- Thème sombre (#1e3a5f) fidèle au projet original GitHub
+- Logo SVG animé D'CLIC PRO
+- Cartes glassmorphiques avec backdrop-blur
+- Boutons dégradés bleu-vert (#4f6df5 → #10b981)
+- Barre de progression dégradée
+- Navigation sidebar sombre avec 9 sections
+- 16 doublons d'images remplacés par des images Pexels uniques
+
+### Dashboard & Profils (Complet)
+- Menu nettoyé, police augmentée
+- Modale d'import de code D'CLIC PRO
+- Logo Re'Actif Pro intégré aux CV (PDF/DOCX)
+
+## Backlog prioritisé
+
+### P1 - Espace communautaire Ubuntoo
+- Intégration de l'espace communautaire
+
+### P2 - Coffre-fort numérique
+- Upload réel de fichiers pour les preuves
+
+### P3 - Narratif IA personnalisé
+- Génération IA de narratif à la fin des résultats D'CLIC PRO
+
+### P3 - FranceConnect / CCSP
+- Intégrer FranceConnect et diagnostic basé sur le CCSP
+
+### P4 - Codéveloppement
+- Ateliers de Codéveloppement et micro-titres/badges
+
+## Endpoints API clés
+- `GET /api/dclic/questionnaire` - Liste des 26 questions
+- `POST /api/dclic/submit` - Soumission et calcul de profil
+- `GET /api/dclic/result/{access_code}` - Récupération par code
+- `POST /api/profile/import-dclic` - Import dans profil utilisateur
+
+## Fichiers de référence
+- `/app/backend/dclic_engine.py` - Moteur logique D'CLIC PRO
+- `/app/backend/routes/dclic.py` - Endpoints API
+- `/app/frontend/src/pages/DclicTestPage.jsx` - UI questionnaire (thème sombre)
+- `/app/frontend/src/pages/Dashboard.jsx` - Dashboard principal
