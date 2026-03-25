@@ -17,7 +17,7 @@ const HoverTooltip = ({ children, content }) => (
   <span className="relative group inline-flex items-center gap-1 cursor-help">
     {children}
     <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#818cf8] transition-colors" />
-    <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 md:w-96 p-3 bg-[#0f1d32] border border-white/20 rounded-lg text-xs text-slate-300 leading-relaxed shadow-xl z-50 pointer-events-none">
+    <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 md:w-96 p-3 bg-[#0f1d32] border border-white/20 rounded-lg text-xs text-slate-300 leading-relaxed shadow-xl z-50 pointer-events-none font-light">
       {content}
     </span>
   </span>
