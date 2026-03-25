@@ -456,3 +456,146 @@ def _fuzzy_match(a: str, b: str) -> bool:
         return False
     common = a_words & b_words
     return len(common) >= min(len(a_words), len(b_words)) * 0.5
+
+
+
+@router.get("/emerging/observatory")
+async def get_cv_detected_emerging(token: str):
+    """Cross-reference user CV skills with emerging market trends"""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    # Get user skills from CV jobs, passport, and profile
+    cv_job = await db.cv_jobs.find_one({"token_id": token_id, "status": "completed"}, {"_id": 0}, sort=[("created_at", -1)])
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+
+    user_skills = set()
+    if cv_job and cv_job.get("result"):
+        r = cv_job["result"]
+        for sf in r.get("savoir_faire", []):
+            user_skills.add(sf.get("name", "").strip().lower())
+        for se in r.get("savoir_etre", []):
+            user_skills.add(se.get("name", "").strip().lower())
+    if passport:
+        for c in passport.get("competences", []):
+            user_skills.add(c.get("name", "").strip().lower())
+
+    user_skills.discard("")
+
+    if not user_skills:
+        return {"top_emerging": [], "by_category": [], "by_level": []}
+
+    # Get all emerging skills from multiple sources
+    sectors = await db.sector_trends.find({}, {"_id": 0}).to_list(100)
+    emerging_db = await db.emerging_skills.find({}, {"_id": 0}).to_list(100)
+    emerging_comps = await db.emerging_competences.find({"token_id": token_id}, {"_id": 0}).to_list(200)
+
+    # Build a map of all emerging/trending skills with their context
+    emerging_map = {}
+
+    # From sector_trends
+    for sector in sectors:
+        for skill_name in sector.get("emerging_skills", []):
+            key = skill_name.strip().lower()
+            if key not in emerging_map:
+                emerging_map[key] = {"name": skill_name, "sectors": [], "score_emergence": 0, "category": "technique"}
+            emerging_map[key]["sectors"].append(sector.get("sector_name", ""))
+            emerging_map[key]["score_emergence"] = max(emerging_map[key]["score_emergence"], int(sector.get("transformation_index", 0.5) * 100))
+
+    # From emerging_skills collection
+    for skill in emerging_db:
+        key = skill.get("skill_name", "").strip().lower()
+        if not key:
+            continue
+        if key not in emerging_map:
+            emerging_map[key] = {"name": skill["skill_name"], "sectors": skill.get("related_sectors", []), "score_emergence": 0, "category": "technique"}
+        emerging_map[key]["score_emergence"] = max(emerging_map[key]["score_emergence"], int(skill.get("emergence_score", 50)))
+
+    # From emerging_competences (user-specific)
+    for comp in emerging_comps:
+        key = comp.get("nom_principal", "").strip().lower()
+        if not key:
+            continue
+        if key not in emerging_map:
+            emerging_map[key] = {"name": comp["nom_principal"], "sectors": [], "score_emergence": 0, "category": comp.get("categorie", "technique")}
+        emerging_map[key]["score_emergence"] = max(emerging_map[key]["score_emergence"], int(comp.get("score_emergence", 50)))
+        emerging_map[key]["category"] = comp.get("categorie", emerging_map[key]["category"])
+
+    # Cross-reference: find matches between user skills and emerging skills
+    top_emerging = []
+    seen_names = set()
+    for user_skill in user_skills:
+        # Direct match
+        if user_skill in emerging_map:
+            entry = emerging_map[user_skill]
+            if entry["name"].lower() not in seen_names:
+                seen_names.add(entry["name"].lower())
+                top_emerging.append({
+                    "name": entry["name"],
+                    "score_emergence": entry["score_emergence"],
+                    "category": entry.get("category", "technique"),
+                    "level": "confirme",
+                    "match_type": "direct",
+                    "sectors": entry["sectors"],
+                })
+            continue
+        # Fuzzy match
+        for key, entry in emerging_map.items():
+            if _fuzzy_match(user_skill, key) and entry["name"].lower() not in seen_names:
+                seen_names.add(entry["name"].lower())
+                top_emerging.append({
+                    "name": entry["name"],
+                    "score_emergence": entry["score_emergence"],
+                    "category": entry.get("category", "technique"),
+                    "level": "intermediaire",
+                    "match_type": "partiel",
+                    "sectors": entry["sectors"],
+                })
+                break
+
+    # Also add emerging skills NOT in user's profile as opportunities
+    if len(top_emerging) < 5:
+        for key, entry in sorted(emerging_map.items(), key=lambda x: x[1]["score_emergence"], reverse=True):
+            if entry["name"].lower() not in seen_names:
+                seen_names.add(entry["name"].lower())
+                top_emerging.append({
+                    "name": entry["name"],
+                    "score_emergence": entry["score_emergence"],
+                    "category": entry.get("category", "technique"),
+                    "level": "a_developper",
+                    "match_type": "opportunite",
+                    "sectors": entry["sectors"],
+                })
+            if len(top_emerging) >= 12:
+                break
+
+    # Sort by score
+    top_emerging.sort(key=lambda x: x["score_emergence"], reverse=True)
+
+    # Group by category
+    cat_map = {}
+    for e in top_emerging:
+        cat = e.get("category", "technique")
+        if cat not in cat_map:
+            cat_map[cat] = {"categorie": cat, "count": 0, "avg_score": 0, "total_score": 0}
+        cat_map[cat]["count"] += 1
+        cat_map[cat]["total_score"] += e["score_emergence"]
+    for cat in cat_map.values():
+        cat["avg_score"] = round(cat["total_score"] / max(cat["count"], 1))
+        del cat["total_score"]
+    by_category = sorted(cat_map.values(), key=lambda x: x["count"], reverse=True)
+
+    # Group by level
+    level_map = {}
+    for e in top_emerging:
+        lvl = e.get("level", "intermediaire")
+        if lvl not in level_map:
+            level_map[lvl] = {"level": lvl, "count": 0, "avg_score": 0, "total_score": 0}
+        level_map[lvl]["count"] += 1
+        level_map[lvl]["total_score"] += e["score_emergence"]
+    for lvl in level_map.values():
+        lvl["avg_score"] = round(lvl["total_score"] / max(lvl["count"], 1))
+        del lvl["total_score"]
+    by_level = sorted(level_map.values(), key=lambda x: x["count"], reverse=True)
+
+    return {"top_emerging": top_emerging, "by_category": by_category, "by_level": by_level}
