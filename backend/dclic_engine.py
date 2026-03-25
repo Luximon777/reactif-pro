@@ -201,8 +201,8 @@ VISUAL_QUESTIONS = [
                 "id": "v1b",
                 "value": "I",
                 "label": "Un moment seul(e)",
-                "image": "https://images.pexels.com/photos/3771836/pexels-photo-3771836.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Personne seule en réflexion"
+                "image": "https://images.pexels.com/photos/2228561/pexels-photo-2228561.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne lisant tranquillement près d'une fenêtre"
             }
         ]
     },
@@ -538,15 +538,15 @@ VISUAL_QUESTIONS = [
                 "id": "r2a",
                 "value": "A",
                 "label": "Créer (dessiner, écrire, jouer de la musique...)",
-                "image": "https://images.pexels.com/photos/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Personne en train de peindre ou créer"
+                "image": "https://images.pexels.com/photos/4483093/pexels-photo-4483093.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Personne peignant des créations artistiques"
             },
             {
                 "id": "r2b",
                 "value": "S",
                 "label": "Aider ou accompagner quelqu'un",
-                "image": "https://images.pexels.com/photos/5324970/pexels-photo-5324970.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Personne aidant une autre personne"
+                "image": "https://images.pexels.com/photos/6646975/pexels-photo-6646975.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "alt": "Bénévole aidant une personne âgée"
             }
         ]
     },
