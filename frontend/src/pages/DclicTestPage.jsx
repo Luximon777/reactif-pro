@@ -227,36 +227,142 @@ const CompassAxis = ({ axis }) => {
 // Section components
 const ArcheologieSection = ({ profile }) => {
   const vp = profile.vertus_profile || {};
-  const vertuData = profile.vertu_data || {};
+  const vd = profile.vertu_data || {};
+  const cognition = vd.cognition || [];
+  const conation = vd.conation || [];
+  const affection = vd.affection || [];
+  const valeursSchwartz = vd.valeurs_schwartz || [];
+  const forces = vd.forces || [];
+  const savoirsEtre = vd.savoirs_etre || [];
+  const vertuName = vd.name || vp.dominant_name || "?";
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">
-        <HoverTooltip content={DEFINITIONS.archeologie}>Archéologie des Compétences</HoverTooltip>
-      </h3>
-      <p className="text-sm text-slate-400">Vos compétences profondes à travers 3 dimensions fondamentales.</p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {[
-          { title: "Cognition", desc: "Comment vous pensez et apprenez", color: "border-blue-400/30 bg-blue-500/10", items: vp.qualites_dominantes || [] },
-          { title: "Conation", desc: "Ce qui vous met en mouvement", color: "border-amber-400/30 bg-amber-500/10", items: vp.savoirs_etre_dominants || [] },
-          { title: "Affection", desc: "Ce qui vous touche et vous motive", color: "border-rose-400/30 bg-rose-500/10", items: vertuData.qualites_humaines || vp.qualites_dominantes || [] },
-        ].map((dim, i) => (
-          <div key={i} className={`rounded-xl p-4 border ${dim.color}`}>
-            <h4 className="font-semibold text-sm text-white">{dim.title}</h4>
-            <p className="text-xs text-slate-400 mb-2">{dim.desc}</p>
-            <div className="flex flex-wrap gap-1">
-              {dim.items.slice(0, 5).map((item, j) => (
-                <Badge key={j} variant="outline" className="text-xs border-white/20 text-slate-300">{typeof item === "string" ? item : item.name || item.label || ""}</Badge>
-              ))}
+    <div className="space-y-6">
+      {/* Title */}
+      <div>
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <HoverTooltip content={DEFINITIONS.archeologie}>Votre Identité & Compétences</HoverTooltip>
+        </h3>
+        <p className="text-sm text-slate-400 mt-1">
+          Generic Skills Component Approach{" "}
+          <HoverTooltip content="Approche générique des compétences qui catégorise les savoirs en composantes fondamentales.">x</HoverTooltip>{" "}
+          <HoverTooltip content={DEFINITIONS.archeologie}>Archéologie des Compétences</HoverTooltip>
+        </p>
+      </div>
+
+      {/* Cognition / Conation / Affection */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Cognition */}
+        <div className="rounded-xl overflow-hidden border border-purple-500/30 bg-[#152a45]">
+          <div className="bg-gradient-to-r from-[#6b21a8] to-[#9333ea] px-4 py-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+            <div>
+              <p className="font-bold text-white text-sm">Cognition</p>
+              <p className="text-[10px] text-white/70">Ce que je pense & sais</p>
             </div>
           </div>
-        ))}
-      </div>
-      {(vp.competences_oms || []).length > 0 && (
-        <div>
-          <h4 className="text-sm font-semibold text-slate-300 mb-2">Compétences clés OMS</h4>
-          <div className="flex flex-wrap gap-1.5">{vp.competences_oms.map((c, i) => <Badge key={i} className="bg-[#4f6df5]/20 text-[#818cf8] text-xs border-0">{c}</Badge>)}</div>
+          <div className="p-4 space-y-3">
+            <p className="text-xs text-slate-400">Forces cognitives qui favorisent l'acquisition et l'usage de la connaissance</p>
+            <div className="flex flex-wrap gap-1.5">
+              {cognition.map((c, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-purple-400/40 text-purple-300">{c}</span>)}
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Conation */}
+        <div className="rounded-xl overflow-hidden border border-red-500/30 bg-[#152a45]">
+          <div className="bg-gradient-to-r from-[#dc2626] via-[#f97316] to-[#ec4899] px-4 py-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /></svg>
+            <div>
+              <p className="font-bold text-white text-sm">Conation</p>
+              <p className="text-[10px] text-white/70">Ce que je fais & veux</p>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <p className="text-xs text-slate-400">Forces émotionnelles impliquant l'exercice de la volonté pour atteindre ses buts</p>
+            <div className="flex flex-wrap gap-1.5">
+              {conation.map((c, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-red-400/40 text-red-300">{c}</span>)}
+            </div>
+          </div>
+        </div>
+
+        {/* Affection */}
+        <div className="rounded-xl overflow-hidden border border-pink-500/30 bg-[#152a45]">
+          <div className="bg-gradient-to-r from-[#ec4899] to-[#f472b6] px-4 py-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+            <div>
+              <p className="font-bold text-white text-sm">Affection</p>
+              <p className="text-[10px] text-white/70">Ce que je ressens & partage</p>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <p className="text-xs text-slate-400">Forces interpersonnelles pour tendre vers les autres et leur venir en aide</p>
+            <div className="flex flex-wrap gap-1.5">
+              {affection.map((c, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-pink-400/40 text-pink-300">{c}</span>)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="border-t border-white/10" />
+
+      {/* Valeurs Universelles / Forces de Caractère / Savoirs-être Pro */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Valeurs Universelles - Schwartz */}
+        <div className="rounded-xl overflow-hidden border border-cyan-500/30 bg-[#152a45]">
+          <div className="bg-gradient-to-r from-[#06b6d4] to-[#22d3ee] px-4 py-3">
+            <p className="font-bold text-white text-sm flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" /></svg>
+              Valeurs Universelles
+            </p>
+            <p className="text-[10px] text-white/70">Schwartz</p>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-1.5">
+              {valeursSchwartz.map((v, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-cyan-400/40 text-cyan-300">{v}</span>)}
+            </div>
+          </div>
+        </div>
+
+        {/* Forces de Caractère - Seligman & Peterson */}
+        <div className="rounded-xl overflow-hidden border border-amber-500/30 bg-[#152a45]">
+          <div className="bg-gradient-to-r from-[#f59e0b] via-[#a855f7] to-[#ec4899] px-4 py-3">
+            <p className="font-bold text-white text-sm flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+              Forces de Caractère
+            </p>
+            <p className="text-[10px] text-white/70">Seligman & Peterson</p>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-1.5">
+              {forces.map((f, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-amber-400/40 text-amber-300">{f}</span>)}
+            </div>
+          </div>
+        </div>
+
+        {/* Savoirs-être Pro - France Travail */}
+        <div className="rounded-xl overflow-hidden border border-emerald-500/30 bg-[#152a45]">
+          <div className="bg-gradient-to-r from-[#10b981] to-[#34d399] px-4 py-3">
+            <p className="font-bold text-white text-sm flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              Savoirs-être Pro
+            </p>
+            <p className="text-[10px] text-white/70">France Travail</p>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-1.5">
+              {savoirsEtre.map((s, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-emerald-400/40 text-emerald-300">{s}</span>)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Vertu dominante banner */}
+      <div className="bg-gradient-to-r from-[#1e1b4b] via-[#312e81] to-[#4f46e5] rounded-xl px-6 py-4 flex items-center justify-center gap-3">
+        <svg className="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" /></svg>
+        <span className="text-white font-bold text-lg">Vertu dominante : <span className="text-amber-400">{vertuName}</span></span>
+      </div>
     </div>
   );
 };

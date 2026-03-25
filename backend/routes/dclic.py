@@ -93,6 +93,16 @@ async def submit_dclic_test(request: DclicSubmitRequest):
         "life_path": life_path,
         "cross_analysis": cross_analysis,
         "education_level": request.education_level,
+        "vertu_data": {
+            "name": vertu_data.get("name", ""),
+            "cognition": vertu_data.get("cognition", []),
+            "conation": vertu_data.get("conation", []),
+            "affection": vertu_data.get("affection", []),
+            "valeurs_schwartz": vertu_data.get("valeurs_schwartz", []),
+            "forces": vertu_data.get("forces", []),
+            "savoirs_etre": vertu_data.get("savoirs_etre", []),
+            "qualites_humaines": vertu_data.get("qualites_humaines", []),
+        },
     }
     
     doc = {
