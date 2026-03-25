@@ -256,11 +256,6 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
             Voir tout<ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jobs.slice(0, 3).map((job, idx) => <JobCard key={idx} job={job} />)}
-          </div>
-        </CardContent>
       </Card>
 
       {/* Learning Preview */}
@@ -274,11 +269,6 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
             Voir tout<ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {learningModules.slice(0, 3).map((module, idx) => <LearningCard key={idx} module={module} onUpdateProgress={updateLearningProgress} />)}
-          </div>
-        </CardContent>
       </Card>
     </div>
   );
