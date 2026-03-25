@@ -240,7 +240,7 @@ const Dashboard = () => {
               )}
 
               {/* Ubuntoo Link */}
-              <a href="https://dclic-ui-update.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer"
+              <a href="https://reactif-pro-2.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer"
                 className="hidden sm:flex" data-testid="ubuntoo-link">
                 <Button variant="outline" size="sm" className="border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 gap-1.5 text-xs">
                   <img src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
@@ -418,7 +418,7 @@ const Dashboard = () => {
                 );
               })}
               <a
-                href="https://dclic-ui-update.preview.emergentagent.com/"
+                href="https://reactif-pro-2.preview.emergentagent.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block"

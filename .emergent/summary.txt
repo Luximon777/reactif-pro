@@ -1,0 +1,17 @@
+<analysis>/data/api/cv/...CvAnalysisSection.jsxcv.py/app/frontend/src/components/CvAnalysis/CvAnalysisSection.jsx/app/backend/routes/cv.py/app/.github/workflows/deploy.ymlVPS_SSH_KEYVPS_SSH_KEYrecharts/dataimport-dclicVPS_SSH_KEY
+/app/
+├── backend/
+│   ├── routes/
+│   │   ├── auth.py       # Modifié: import complet de D'CLIC PRO
+│   │   ├── dclic.py      # Gère l'API du questionnaire
+│   │   └── cv.py         # BUG EN COURS: Erreur lors de l'upload CV
+│   ├── dclic_engine.py   # Modifié: expose les vertu_data
+├── frontend/
+│   └── src/
+│       ├── pages/
+│       │   ├── Dashboard.jsx        # Modifié: Barre de progression d'import D'CLIC
+│       │   └── DclicTestPage.jsx    # Modifié: UI Thème sombre, Recharts, Boutons de validation
+│       └── components/
+│           └── CvAnalysis/
+│               └── CvAnalysisSection.jsx # BUG EN COURS: Timeout ou erreur API
+//datarechartspackage.json/app/frontend/src/pages/DclicTestPage.jsx/app/backend/routes/auth.py/app/frontend/src/pages/Dashboard.jsx/app/.github/workflows/deploy.yml/app/frontend/src/components/CvAnalysis/CvAnalysisSection.jsxDclicTestPage.jsxPOST /api/profile/import-dclicPOST /api/cv/analyzePOST /api/cv/generate-models/app/memory/PRD.md/app/test_reports/iteration_36.json/app/test_reports/iteration_36.jsonVPS_SSH_KEY</analysis>
