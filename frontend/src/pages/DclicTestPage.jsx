@@ -603,7 +603,13 @@ const DclicTestPage = () => {
   const [educationLevel, setEducationLevel] = useState("");
 
   useEffect(() => {
-    fetch(`${API}/dclic/questionnaire`).then(r => r.json()).then(d => setQuestions(d.questions || []));
+    fetch(`${API}/dclic/questionnaire`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => setQuestions(d.questions || []))
+      .catch(e => console.error("Erreur chargement questionnaire:", e));
   }, []);
 
   const q = questions[currentIdx];
