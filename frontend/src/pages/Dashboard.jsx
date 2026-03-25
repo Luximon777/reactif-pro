@@ -28,7 +28,8 @@ import {
   Shield,
   Layers,
   Upload,
-  CheckCircle2
+  CheckCircle2,
+  CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
@@ -54,6 +55,15 @@ const Dashboard = () => {
   const [isSeeding, setIsSeeding] = useState(false);
   const [dataSeeded, setDataSeeded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [dclicImported, setDclicImported] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      axios.get(`${API}/profile?token=${token}`).then(r => {
+        setDclicImported(!!r.data?.dclic_imported);
+      }).catch(() => {});
+    }
+  }, [token, refreshKey]);
 
   useEffect(() => {
     // Seed database on first load
@@ -305,7 +315,7 @@ const Dashboard = () => {
 
               {/* D'CLIC PRO Import - Mise en valeur */}
               <Dialog open={dclicOpen} onOpenChange={(o) => { setDclicOpen(o); if (!o) { setDclicPreview(null); setDclicCode(""); } }}>
-                {role === "particulier" && (
+                {role === "particulier" && !dclicImported && (
                   <DialogTrigger asChild>
                     <Button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white shadow-lg shadow-[#4f6df5]/20 animate-pulse hover:animate-none text-xs font-semibold" data-testid="dclic-import-btn">
                       <Upload className="w-4 h-4 mr-1.5" />
@@ -313,6 +323,13 @@ const Dashboard = () => {
                       <span className="md:hidden">D'CLIC PRO</span>
                     </Button>
                   </DialogTrigger>
+                )}
+                {role === "particulier" && dclicImported && (
+                  <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-semibold cursor-default" disabled data-testid="dclic-imported-badge">
+                    <CheckCircle className="w-4 h-4 mr-1.5" />
+                    <span className="hidden md:inline">Profil boosté</span>
+                    <span className="md:hidden">Boosté</span>
+                  </Button>
                 )}
                 <DialogContent className="sm:max-w-[500px]" data-testid="dclic-dialog">
                   <DialogHeader>

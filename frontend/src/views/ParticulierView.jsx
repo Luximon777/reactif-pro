@@ -10,7 +10,7 @@ import {
   User, Target, TrendingUp, BookOpen, Briefcase, MapPin, Clock, Euro,
   Star, ChevronRight, Plus, Sparkles, Zap, Award, AlertCircle,
   Play, FolderLock, FileDown, FileText, LayoutList, Layers, Shield, BarChart3,
-  ExternalLink, Upload
+  ExternalLink, Upload, CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -206,24 +206,40 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
       </Card>
 
       {/* D'CLIC PRO Import Banner */}
-      <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0 cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-banner" onClick={() => onOpenDclic && onOpenDclic()}>
-        <CardContent className="p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      {profile?.dclic_imported ? (
+        <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0" data-testid="dclic-banner-done">
+          <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                <Upload className="w-6 h-6 text-white" />
+                <CheckCircle className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white">Boost mon profil avec D'CLIC PRO</h3>
-                <p className="text-emerald-100 text-sm">Importez votre profil, compétences et preuves pour enrichir votre passeport</p>
+                <h3 className="text-base font-semibold text-white">Profil boosté</h3>
+                <p className="text-emerald-100 text-sm">Votre profil D'CLIC PRO a été importé avec succès</p>
               </div>
             </div>
-            <Button className="bg-white text-emerald-700 hover:bg-emerald-50 shrink-0" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
-              <Upload className="w-4 h-4 mr-2" />Boost mon profil
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0 cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-banner" onClick={() => onOpenDclic && onOpenDclic()}>
+          <CardContent className="p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white">Boost mon profil avec D'CLIC PRO</h3>
+                  <p className="text-emerald-100 text-sm">Importez votre profil, compétences et preuves pour enrichir votre passeport</p>
+                </div>
+              </div>
+              <Button className="bg-white text-emerald-700 hover:bg-emerald-50 shrink-0" onClick={e => { e.stopPropagation(); onOpenDclic && onOpenDclic(); }}>
+                <Upload className="w-4 h-4 mr-2" />Boost mon profil
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Coffre-Fort Banner */}
       <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d4a6f] border-0" data-testid="coffre-fort-banner">
