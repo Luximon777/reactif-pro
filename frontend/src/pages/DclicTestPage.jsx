@@ -790,8 +790,8 @@ const DclicTestPage = () => {
           <div className="bg-[#152a45]/60 border border-amber-500/20 rounded-xl px-5 py-3 flex items-start gap-3 mb-6" data-testid="results-disclaimer">
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-sm text-slate-400 font-light leading-relaxed">L'IA reste un outil d'aide à la décision, jamais un substitut au conseiller.</p>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">Cette analyse exploratoire vous offre un premier éclairage sur votre profil. Pour une évaluation approfondie et certifiée, un accompagnement personnalisé est disponible via la plateforme <strong className="text-white font-medium">RE'ACTIF PRO</strong>.</p>
+              <p className="text-sm text-slate-400 font-light leading-relaxed">Cette restitution repose sur des méthodes d'analyse de la personnalité et des compétences. Elle a une valeur indicative et ne constitue pas une évaluation certifiée ou officielle.</p>
+              <p className="text-sm text-slate-400 font-light leading-relaxed">L'IA reste un outil d'aide à la décision, jamais un substitut au conseiller. Pour une évaluation approfondie, un accompagnement personnalisé est disponible via la plateforme <strong className="text-white font-medium">RE'ACTIF PRO</strong>.</p>
             </div>
           </div>
 
