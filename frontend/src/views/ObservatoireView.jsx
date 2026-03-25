@@ -38,7 +38,8 @@ import {
   Shield,
   ExternalLink,
   MessageCircle,
-  Link2
+  Link2,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,6 +66,7 @@ const ObservatoireView = ({ token }) => {
   const [cvDetectedData, setCvDetectedData] = useState(null);
   const [personalizedData, setPersonalizedData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPersonalized, setLoadingPersonalized] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSector, setSelectedSector] = useState(null);
   const [contributeDialogOpen, setContributeDialogOpen] = useState(false);
@@ -86,22 +88,33 @@ const ObservatoireView = ({ token }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [dashboardRes, contributionsRes, ubuntooRes, cvDetectedRes, personalizedRes] = await Promise.all([
+      const [dashboardRes, contributionsRes, ubuntooRes] = await Promise.all([
         axios.get(`${API}/observatoire/dashboard`),
         axios.get(`${API}/observatoire/contributions?token=${token}`),
         axios.get(`${API}/ubuntoo/dashboard`),
-        axios.get(`${API}/emerging/observatory?token=${token}`).catch(() => ({ data: null })),
-        axios.get(`${API}/observatoire/personalized?token=${token}`).catch(() => ({ data: null }))
       ]);
       setDashboard(dashboardRes.data);
       setContributions(contributionsRes.data);
       setUbuntooDashboard(ubuntooRes.data);
-      setCvDetectedData(cvDetectedRes.data);
-      setPersonalizedData(personalizedRes.data);
+
+      // Load cv-detected data non-blocking
+      axios.get(`${API}/emerging/observatory?token=${token}`, { timeout: 10000 })
+        .then(r => setCvDetectedData(r.data)).catch(() => {});
     } catch (error) {
       console.error("Error loading observatoire:", error);
     }
     setLoading(false);
+  };
+
+  const loadPersonalized = async () => {
+    setLoadingPersonalized(true);
+    try {
+      const res = await axios.get(`${API}/observatoire/personalized?token=${token}`, { timeout: 60000 });
+      setPersonalizedData(res.data);
+    } catch (e) {
+      console.error("Error loading personalized:", e);
+    }
+    setLoadingPersonalized(false);
   };
 
   const submitContribution = async () => {
@@ -420,7 +433,24 @@ const ObservatoireView = ({ token }) => {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           {/* Personalized Section */}
-          {personalizedData && <PersonalizedObservatoireCard data={personalizedData} />}
+          {personalizedData ? (
+            <PersonalizedObservatoireCard data={personalizedData} />
+          ) : (
+            <Card className="card-base border-dashed border-2">
+              <CardContent className="p-6 flex flex-col items-center gap-3">
+                <Sparkles className="w-8 h-8 text-indigo-400" />
+                <p className="text-sm text-slate-500 text-center">Obtenez des prédictions personnalisées basées sur votre profil</p>
+                <Button
+                  onClick={loadPersonalized}
+                  disabled={loadingPersonalized}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+                  data-testid="load-personalized-btn"
+                >
+                  {loadingPersonalized ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyse en cours...</> : "Charger les prédictions IA"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top Emerging Skills - Personalized when available */}

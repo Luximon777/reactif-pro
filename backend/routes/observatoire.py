@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Any
 import logging
 import uuid
 import json
+import asyncio
 from datetime import datetime, timezone
 from models import SkillContribution, EmergingSkill, CreateContributionRequest
 from db import db, EMERGENT_LLM_KEY
@@ -309,10 +310,16 @@ async def get_personalized_observatoire(token: str):
         user_title = cv_result.get("titre_profil_suggere", "")
 
     if not db_data_sufficient and EMERGENT_LLM_KEY and user_skill_names:
-        ai_data = await _generate_observatoire_ai(
-            user_title, list(user_skill_names), list(user_sectors),
-            EMERGENT_LLM_KEY, token_id
-        )
+        try:
+            ai_data = await asyncio.wait_for(
+                _generate_observatoire_ai(
+                    user_title, list(user_skill_names), list(user_sectors),
+                    EMERGENT_LLM_KEY, token_id
+                ), timeout=20
+            )
+        except (asyncio.TimeoutError, Exception) as e:
+            logging.warning(f"Observatoire AI skipped: {e}")
+            ai_data = None
         if ai_data:
             # Merge AI data with what we already found in DB
             ai_matches = ai_data.get("matches", [])
