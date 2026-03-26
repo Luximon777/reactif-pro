@@ -1,85 +1,113 @@
 # Re'Actif Pro - PRD
 
 ## Problème original
-Répliquer le design D'CLIC PRO, intégrer l'espace communautaire Ubuntoo, mettre en place un coffre-fort numérique.
+Répliquer le design D'CLIC PRO, intégrer l'espace communautaire Ubuntoo, mettre en place un coffre-fort numérique, et assurer le bon fonctionnement de toutes les fonctionnalités d'analyse IA.
 
 ## Architecture
 - Frontend: React + Tailwind + Shadcn/UI + Recharts
-- Backend: FastAPI + MongoDB (Motor)
-- Auth: Pseudonyme anonyme
+- Backend: FastAPI + MongoDB (Motor async)
+- Auth: Pseudonyme anonyme (JWT tokens)
 - LLM: OpenAI GPT-5.2 via Emergent LLM Key
 - Déploiement: Nginx, Let's Encrypt, GitHub Actions vers VPS OVH
 
-## Ce qui a été implémenté
+## Ce qui a été implémenté (complet et testé)
 
-### Design D'CLIC PRO (DONE)
-- Thème sombre, cartes glassmorphiques, 26 questions
+### Design D'CLIC PRO ✅
+- Thème sombre (#1e3a5f), cartes glassmorphiques, 26 questions avec images
 - Graphiques radar Recharts (Tripartite, DISC, Archéologie)
-- Tooltips de définitions, images contextuelles
-- Boutons de validation du rapport
+- Code d'accès XXXX-XXXX avec résultats DISC/MBTI/RIASEC/Vertus
 
-### Import D'CLIC → Dashboard (DONE)
-- Retrieve par code d'accès (MBTI, DISC, RIASEC, Vertus)
-- Sauvegarde complète dans le profil utilisateur
-- Barre de progression animée
-- Claim du code
+### Système d'authentification ✅
+- Register/Login/Logout/Reconnexion avec pseudonyme
+- Changement de mot de passe
+- Export de données personnelles
+- Niveaux de visibilité (Privé/Limité/Public)
 
-### Analyse CV Interactive (DONE)
+### Import D'CLIC → Dashboard ✅
+- Retrieve par code d'accès
+- Import complet dans le profil utilisateur
+
+### Analyse CV Interactive ✅
 - Upload CV (PDF, DOCX, TXT) avec analyse IA
 - Extraction centres d'intérêt via formulaire IA
-- CV optimisé multi-modèles (classique)
-- Compétences clés, savoir-faire, savoir-être
+- CV optimisé multi-modèles
 
-### Auto-évaluation CCSP (DONE)
-- Endpoint /api/passport/auto-evaluate (43 compétences IA)
-- Remplacement de l'évaluation manuelle
+### Passeport de Compétences ✅ (8 sous-onglets)
+- Profil, Compétences, Évaluation, Archéologie, Émergentes, Expériences, Passerelles, Profil Dynamique
+- Auto-évaluation CCSP IA (43 compétences)
+- Passerelles IA corrigées (priorise titre CV métier actuel)
+- Partage de passeport par lien
 
-### Observatoire des compétences (DONE)
-- Chargement asynchrone (bouton)
+### Coffre-fort Numérique ✅ (UI de base)
+- CRUD documents avec catégories
+- Recherche et filtres
+
+### Observatoire des Compétences ✅
+- Tendances sectorielles, compétences émergentes
 - Onglet "Détectées CV" avec matching contextuel
 
-### Passerelles & Job Matching (DONE - fixé 26/03/2026)
-- Fix critique: le titre du CV optimisé est maintenant la référence principale
-- Séparation compétences techniques vs transférables dans les prompts IA
-- Passerelles cohérentes avec le métier actuel du CV
+### Job Matching ✅
+- Matching IA basé sur profil CV réel
+- Filtres de recherche
 
-### Bugs corrigés (25-26/03/2026)
-- Passerelles incohérentes: proposaient des métiers basés sur compétences transférables anciennes au lieu du métier actuel du CV
-- Job Matching: même problème corrigé, priorise compétences_cles et savoir_faire technique
+### Autres ✅
+- Formations (modules IA personnalisés)
+- Explorateur de métiers (ISCO + IA)
+- Index d'évolution
+- Ubuntoo (interface communautaire de base)
+- Responsive mobile
+
+## Bugs corrigés (26/03/2026)
+- Passerelles incohérentes : proposaient "Consultant en évolution pro" pour un Concierge → Corrigé (priorise titre CV)
+- Job Matching : même problème → Corrigé (filtre savoir_faire par catégorie)
+
+## Test de régression complet (26/03/2026)
+- 40+ endpoints backend : 100% OK
+- Frontend E2E complet : 100% OK
+- D'CLIC PRO 26 questions → submit → résultats : OK
+- Auth complète : OK
+- Responsive mobile : OK
+- Rapport : /app/test_reports/iteration_38.json
 
 ## Backlog priorité
 
 ### P0 - Déploiement GitHub Actions
-- Le secret `VPS_SSH_KEY` doit être mis à jour par l'utilisateur sur GitHub
+- BLOQUÉ : L'utilisateur doit mettre à jour `VPS_SSH_KEY` dans les settings GitHub
 
 ### P1 - Espace communautaire Ubuntoo
-- À implémenter
+- Enrichir l'interface existante (forum, échanges, signaux)
 
 ### P2 - Coffre-fort numérique
-- Upload de fichiers pour preuves de compétences
+- Upload réel de fichiers (preuves, attestations, diplômes)
+- Stockage Object Storage
 
 ### P3 - Narratif IA personnalisé
 - Génération IA en fin de test D'CLIC PRO
 
-### P3 - FranceConnect / CCSP
-- Intégration diagnostic CCSP
+### P3 - FranceConnect
+- Certification d'identité
 
 ### P4 - Ateliers Codéveloppement / Micro-badges
-- Système de badges et ateliers
+- Système de badges et ateliers collaboratifs
+
+### Refactoring
+- DclicTestPage.jsx (~2000 lignes) → scinder en composants
+- ObservatoireView.jsx (~2000 lignes) → scinder en composants
 
 ## API Endpoints clés
-- POST /api/auth/register, /api/auth/login
-- POST /api/dclic/retrieve - Récupère profil par code
-- POST /api/dclic/claim - Marque code comme utilisé
-- POST /api/profile/import-dclic - Import complet dans profil
-- POST /api/cv/analyze-text - Analyse CV par texte
-- GET /api/cv/analyze/status - Polling résultat CV
-- GET /api/passport/passerelles - Passerelles IA (fixé: priorise titre CV)
-- GET /api/jobs/matching - Job matching IA (fixé: priorise métier actuel)
+- POST /api/auth/register, /api/auth/login, GET /api/auth/verify
+- POST /api/dclic/submit, /api/dclic/retrieve, /api/dclic/claim
+- POST /api/profile/import-dclic, PUT /api/profile
+- POST /api/cv/analyze-text, GET /api/cv/models
+- GET /api/passport, /api/passport/passerelles, /api/passport/diagnostic
+- GET /api/coffre/documents, POST /api/coffre/documents
+- GET /api/observatoire/dashboard, /api/observatoire/personalized
+- GET /api/jobs/matching, GET /api/learning
+- GET /api/ubuntoo/dashboard, /api/ubuntoo/signals
 
-## DB Schema clés
-- profiles: pseudo, token_id, dclic_imported, dclic_mbti, dclic_disc, etc.
-- dclic_results: access_code, is_claimed, answers, profile
-- cv_jobs: job_id, status, step, error, result
-- cv_models: token_id, models (classique avec titre, competences_cles, savoir_faire)
-- passports: token_id, competences, formations, passerelles
+## DB Collections (36 total)
+- profiles (579), tokens (579), passports (220)
+- cv_models (73), cv_jobs (125), dclic_results (54)
+- isco_metiers (5853), coffre_documents (3)
+- emerging_skills (10), sector_trends (6)
+- ubuntoo_signals (8), learning_modules_personalized (80)

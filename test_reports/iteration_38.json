@@ -1,0 +1,57 @@
+{
+  "summary": "Full regression test - Iteration 38. Complete E2E testing of Ré'Actif Pro before GitHub transfer. All features verified working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Auth Modal", "issues": ["Console warning: Missing aria-describedby for DialogContent - accessibility improvement"]}
+    ]
+  },
+  "success_rate": {
+    "backend": "100% (40+ endpoints verified)",
+    "frontend": "100% (all views and flows working)"
+  },
+  "retest_needed": false,
+  "features_tested": {
+    "landing_page": "PASSED",
+    "auth_register": "PASSED",
+    "auth_login": "PASSED",
+    "auth_logout": "PASSED",
+    "auth_reconnect": "PASSED",
+    "auth_change_password": "PASSED",
+    "dashboard_9_tabs_navigation": "PASSED",
+    "passport_8_subtabs": "PASSED",
+    "passport_passerelles_concierge_fix": "PASSED - No 'Consultant en évolution pro' shown",
+    "passport_add_competence": "PASSED",
+    "passport_add_experience": "PASSED",
+    "passport_share": "PASSED",
+    "passport_refresh": "PASSED",
+    "coffre_fort_crud": "PASSED",
+    "observatoire": "PASSED",
+    "explorateur": "PASSED",
+    "evolution": "PASSED",
+    "matching": "PASSED",
+    "formations": "PASSED",
+    "confidentialite": "PASSED",
+    "ubuntoo": "PASSED",
+    "dclic_pro_questionnaire_26q": "PASSED",
+    "dclic_pro_submit_results": "PASSED - Code HCWZ-FESZ generated",
+    "dclic_pro_retrieve": "PASSED - Full profile with DISC/MBTI/RIASEC",
+    "responsive_mobile_375px": "PASSED",
+    "export_data": "PASSED",
+    "profile_update": "PASSED"
+  },
+  "database_health": {
+    "collections": 36,
+    "profiles": 579,
+    "dclic_results": 54,
+    "passports": 220,
+    "cv_models": 73,
+    "isco_metiers": 5853,
+    "status": "HEALTHY"
+  }
+}
