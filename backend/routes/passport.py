@@ -74,55 +74,87 @@ async def aggregate_passport_from_sources(token_id: str) -> dict:
     return aggregated
 
 
-async def generate_passerelles_with_ai(competences: List[dict], sectors: List[str], cv_data: dict = None, passport: dict = None) -> List[dict]:
+async def generate_passerelles_with_ai(competences: List[dict], sectors: List[str], cv_data: dict = None, passport: dict = None, cv_model: dict = None) -> List[dict]:
     if not EMERGENT_LLM_KEY or (not competences and not cv_data):
         return []
     try:
-        skills_list = ", ".join([c.get("name", "") for c in competences[:15]])
+        # Extract CV title and core competences from optimized CV model (most reliable source)
+        cv_titre = ""
+        cv_competences_cles = []
+        cv_savoir_faire_technique = []
+        cv_savoir_faire_transferable = []
+
+        if cv_model and cv_model.get("models"):
+            for model_data in cv_model["models"].values():
+                parsed = model_data
+                if isinstance(model_data, str):
+                    try:
+                        parsed = json.loads(model_data)
+                    except Exception:
+                        continue
+                if isinstance(parsed, dict):
+                    cv_titre = parsed.get("titre", "")
+                    cv_competences_cles = parsed.get("competences_cles", [])
+                    for sf in parsed.get("savoir_faire", []):
+                        if isinstance(sf, dict):
+                            cat = sf.get("category", "")
+                            if cat in ("technique", "transversale"):
+                                cv_savoir_faire_technique.append(sf.get("name", ""))
+                            else:
+                                cv_savoir_faire_transferable.append(sf.get("name", ""))
+                    break
+
+        # Build skills list: prioritize CV core competences over passport transferables
+        if cv_competences_cles:
+            # Use CV core skills as primary
+            skills_list = ", ".join(cv_competences_cles[:10])
+            if cv_savoir_faire_technique:
+                skills_list += f"\nSavoir-faire techniques: {', '.join(cv_savoir_faire_technique[:5])}"
+            if cv_savoir_faire_transferable:
+                skills_list += f"\nCompétences transférables (issues d'expériences passées, NE PAS baser les suggestions uniquement dessus): {', '.join(cv_savoir_faire_transferable[:5])}"
+        else:
+            skills_list = ", ".join([c.get("name", "") for c in competences[:15]])
+
         sectors_str = ", ".join(sectors[:5]) if sectors else "tous secteurs"
 
-        # Enrich with CV data if available
+        # Enrich with CV raw analysis data
         cv_context = ""
         if cv_data:
             result = cv_data.get("result", {})
             ct = result.get("competences_transversales", [])
-            offres = result.get("offres_emploi_suggerees", [])
             if ct:
                 ct_strs = [str(c) if not isinstance(c, str) else c for c in ct[:10]]
                 cv_context += f"\nCompétences transversales du CV: {', '.join(ct_strs)}"
-            if offres:
-                offres_strs = [o.get("titre", str(o)) if isinstance(o, dict) else str(o) for o in offres[:5]]
-                cv_context += f"\nMétiers suggérés par l'analyse CV: {', '.join(offres_strs)}"
 
-        # Enrich with passport context (professional summary, career project, experiences)
+        # Enrich with passport context
         profile_context = ""
         if passport:
-            summary = passport.get("professional_summary", "")
-            career = passport.get("career_project", "")
-            if summary:
-                profile_context += f"\nRésumé professionnel: {summary[:300]}"
-            if career:
-                profile_context += f"\nProjet professionnel: {career[:300]}"
             exps = passport.get("experiences", [])
             if exps:
                 exp_titles = [f"{e.get('title','')} ({e.get('organization', e.get('company',''))})" for e in exps[:5] if e.get('title')]
                 if exp_titles:
                     profile_context += f"\nExpériences récentes: {', '.join(exp_titles)}"
 
-        system_msg = """Tu es un conseiller en évolution professionnelle français expert, spécialisé dans les reconversions et transitions de carrière.
-Analyse le PROFIL COMPLET de la personne (compétences, expériences, projet professionnel) et propose des passerelles professionnelles RÉALISTES et PERTINENTES.
+        # Build strong title context
+        title_instruction = ""
+        if cv_titre:
+            title_instruction = f"\n\nATTENTION - MÉTIER ACTUEL DU CV: \"{cv_titre}\"\nLes passerelles DOIVENT être des métiers proches et accessibles depuis CE métier actuel. Ne propose PAS de métiers liés aux compétences transférables anciennes si elles ne correspondent pas au métier actuel du CV."
 
-Règles:
-- Les métiers proposés doivent être DIRECTEMENT accessibles avec les compétences existantes ou avec une formation courte
-- Priorise les métiers dans les secteurs d'intérêt de la personne
-- Tiens compte du projet professionnel et de l'expérience pour proposer des métiers COHÉRENTS avec le parcours
-- Ne propose PAS de métiers trop éloignés ou irréalistes (ex: ne propose pas "Développeur" à un conseiller en insertion)
+        system_msg = f"""Tu es un conseiller en évolution professionnelle français expert, spécialisé dans les reconversions et transitions de carrière.
+Analyse le PROFIL COMPLET de la personne et propose des passerelles professionnelles RÉALISTES et PERTINENTES.
+
+RÈGLE CRITIQUE:
+- Le métier actuel indiqué sur le CV est LA référence principale pour les suggestions.
+- Les passerelles doivent être des évolutions LOGIQUES depuis le métier actuel.
+- Les compétences "transférables" issues d'anciennes expériences sont un BONUS, pas la base des suggestions.
+- NE PROPOSE PAS de métiers basés uniquement sur des compétences transférables si elles n'ont rien à voir avec le métier actuel du CV.
+- Les métiers proposés doivent être DIRECTEMENT accessibles avec les compétences existantes ou avec une formation courte.
 
 Réponds UNIQUEMENT en JSON valide: un array de max 5 objets avec les clés:
 job_name (str), compatibility_score (float 0-1), shared_skills (list str - compétences communes), skills_to_acquire (list str max 3), training_needed (str court), accessibility (str: accessible/formation_courte/formation_longue), sector (str)."""
 
         chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"passerelle-{uuid.uuid4()}", system_message=system_msg).with_model("openai", "gpt-5.2")
-        prompt = f"Compétences de la personne: {skills_list}\nSecteurs d'intérêt: {sectors_str}{cv_context}{profile_context}\n\nPropose 5 passerelles professionnelles réalistes et pertinentes pour cette personne."
+        prompt = f"Métier actuel du CV: {cv_titre or 'non renseigné'}\nCompétences clés du métier: {skills_list}\nSecteurs d'intérêt: {sectors_str}{cv_context}{profile_context}{title_instruction}\n\nPropose 5 passerelles professionnelles réalistes et pertinentes pour cette personne."
         response = await chat.send_message(UserMessage(text=prompt))
         try:
             result = json.loads(response)
@@ -253,18 +285,22 @@ async def get_passport_passerelles(token: str):
     if not passport:
         raise HTTPException(status_code=404, detail="Passeport non trouvé")
 
-    # Also get latest CV analysis for richer context
+    # Get latest CV analysis for richer context
     cv_data = await db.cv_jobs.find_one(
         {"token_id": token_doc["id"], "status": "completed"},
         {"_id": 0},
         sort=[("created_at", -1)]
     )
 
+    # Also get CV optimized model for accurate title and core competences
+    cv_model = await db.cv_models.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
     passerelles = await generate_passerelles_with_ai(
         passport.get("competences", []),
         passport.get("target_sectors", []),
         cv_data,
-        passport
+        passport,
+        cv_model
     )
     await db.passports.update_one({"token_id": token_doc["id"]}, {"$set": {"passerelles": passerelles, "last_updated": datetime.now(timezone.utc).isoformat()}})
     return {"passerelles": passerelles}

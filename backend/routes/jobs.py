@@ -24,29 +24,42 @@ async def _gather_user_context(token_id: str):
     user_title = ""
     career_project = ""
 
-    if cv_job and cv_job.get("result"):
-        for t in cv_job["result"].get("competences_transversales", []):
-            if t:
-                user_skills.add(t)
-
+    # Priority 1: Use CV optimized model title and core competences
     if cv_optimized and cv_optimized.get("models"):
         for model_data in cv_optimized["models"].values():
-            if isinstance(model_data, dict):
-                user_title = model_data.get("titre", "")
-                for ck in model_data.get("competences_cles", []):
+            parsed = model_data
+            if isinstance(parsed, str):
+                try:
+                    import json as _j
+                    parsed = _j.loads(parsed)
+                except Exception:
+                    continue
+            if isinstance(parsed, dict):
+                user_title = parsed.get("titre", "")
+                # Add core competences first (most relevant to current role)
+                for ck in parsed.get("competences_cles", []):
                     if isinstance(ck, str):
                         user_skills.add(ck)
-                for sf in model_data.get("savoir_faire", []):
-                    name = sf.get("name", "") if isinstance(sf, dict) else sf
-                    if name:
-                        user_skills.add(str(name))
+                # Add technique/transversale savoir_faire (directly relevant to role)
+                for sf in parsed.get("savoir_faire", []):
+                    if isinstance(sf, dict):
+                        cat = sf.get("category", "")
+                        if cat in ("technique", "transversale"):
+                            user_skills.add(sf.get("name", ""))
                 break
 
+    # Priority 2: Add some CV raw transversales if we don't have enough skills
+    if cv_job and cv_job.get("result"):
+        for t in cv_job["result"].get("competences_transversales", []):
+            if t and len(user_skills) < 20:
+                user_skills.add(t)
+
+    # Priority 3: Add passport competences (lowest priority to avoid transferable skill pollution)
     if passport:
         career_project = passport.get("career_project", "")
         for c in passport.get("competences", []):
             name = c.get("name", "")
-            if name:
+            if name and len(user_skills) < 25:
                 user_skills.add(name)
 
     return cv_job, cv_optimized, passport, user_skills, user_title, career_project
@@ -62,9 +75,9 @@ async def _generate_ai_offers(token_id: str, user_skills: set, user_title: str, 
         return []
 
     skills_str = ", ".join(list(user_skills)[:20])
-    context = f"Titre du profil: {user_title}\nCompétences: {skills_str}"
+    context = f"MÉTIER ACTUEL DU CV (RÉFÉRENCE PRINCIPALE): {user_title}\nCompétences du métier: {skills_str}"
     if career_project:
-        context += f"\nProjet professionnel: {career_project[:200]}"
+        context += f"\nProjet professionnel (contexte secondaire): {career_project[:200]}"
 
     # Add filter context to guide AI generation
     filter_context = ""
@@ -98,8 +111,9 @@ async def _generate_ai_offers(token_id: str, user_skills: set, user_title: str, 
             system_message="""Tu es un expert en recrutement et matching emploi en France.
 Analyse le profil et génère 8 offres d'emploi RÉALISTES et CONCRÈTES qui correspondent au profil.
 
-Règles:
-- Les offres doivent être RÉALISTES (types d'offres qu'on trouve sur Indeed, Pôle Emploi, APEC)
+RÈGLE CRITIQUE:
+- Le MÉTIER ACTUEL DU CV est la référence principale. Les offres DOIVENT correspondre à ce métier ou à des métiers proches/accessibles.
+- NE GÉNÈRE PAS d'offres basées uniquement sur des compétences transférables issues d'anciennes expériences si elles ne correspondent pas au métier actuel.
 - Si des critères de recherche sont fournis, génère des offres qui y correspondent ET des offres proches/alternatives
 - Varie les types de contrats (CDI, CDD, missions)
 - Varie les niveaux de compatibilité
