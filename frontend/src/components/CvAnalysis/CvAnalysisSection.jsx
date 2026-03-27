@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   Target, Briefcase, Clock, Star, Sparkles, Zap, Award,
   CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3,
-  Link as LinkIcon, RefreshCw, Heart, Plus, Trash2, Send, Loader2
+  Link as LinkIcon, RefreshCw, Heart, Plus, Trash2, Send, Loader2, FolderDown
 } from "lucide-react";
 import { toast } from "sonner";
 import CvPreview from "./CvPreview";
@@ -453,6 +453,45 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             </div>
           )}
           <p className="text-sm text-emerald-600 font-medium">Passeport automatiquement complete avec les donnees extraites</p>
+          {/* Boutons transfert vers coffre-fort */}
+          <div className="border-t border-emerald-200 pt-3 mt-3">
+            <p className="text-xs font-medium text-slate-500 mb-2">Transférer dans le coffre-fort :</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.post(`${API}/coffre/transfer-cv?token=${token}&cv_type=uploaded`);
+                    toast.success("CV original transféré dans le coffre-fort");
+                  } catch (e) {
+                    if (e.response?.status === 409) toast.info("Ce CV est déjà dans le coffre-fort");
+                    else toast.error(e.response?.data?.detail || "Erreur de transfert");
+                  }
+                }}
+                className="flex items-center gap-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg transition-colors border border-blue-200"
+                data-testid="transfer-cv-uploaded"
+              >
+                <FolderDown className="w-3.5 h-3.5" /> CV original
+              </button>
+              {cvModels?.models && Object.keys(cvModels.models).map(type => (
+                <button
+                  key={type}
+                  onClick={async () => {
+                    try {
+                      await axios.post(`${API}/coffre/transfer-cv?token=${token}&cv_type=${type}`);
+                      toast.success(`CV ${type} transféré dans le coffre-fort`);
+                    } catch (e) {
+                      if (e.response?.status === 409) toast.info("Ce CV est déjà dans le coffre-fort");
+                      else toast.error(e.response?.data?.detail || "Erreur de transfert");
+                    }
+                  }}
+                  className="flex items-center gap-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg transition-colors border border-emerald-200"
+                  data-testid={`transfer-cv-${type}`}
+                >
+                  <FolderDown className="w-3.5 h-3.5" /> CV {type.replace(/_/g, " ")}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

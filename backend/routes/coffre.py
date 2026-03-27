@@ -168,3 +168,86 @@ async def get_expiring_documents(token: str):
             except Exception:
                 pass
     return sorted(expiring, key=lambda x: x.get("days_until_expiry", 999))
+
+
+@router.post("/coffre/transfer-cv")
+async def transfer_cv_to_coffre(token: str, cv_type: str = "uploaded"):
+    """Transfer uploaded CV or AI-generated CV to coffre-fort.
+    cv_type: 'uploaded' for user's original CV, 'classique', 'competences', 'transversal', 'nouvelle_generation' for AI models
+    """
+    import uuid
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    if cv_type == "uploaded":
+        # Get the latest completed CV analysis
+        cv_job = await db.cv_jobs.find_one(
+            {"token_id": token_id, "status": "completed"},
+            {"_id": 0},
+            sort=[("created_at", -1)]
+        )
+        if not cv_job:
+            raise HTTPException(status_code=404, detail="Aucune analyse CV trouvée")
+
+        filename = cv_job.get("filename", "CV uploadé")
+        # Check if already transferred
+        existing = await db.coffre_documents.find_one({
+            "token_id": token_id,
+            "source_ref": f"cv_uploaded_{cv_job.get('job_id', '')}"
+        }, {"_id": 0})
+        if existing:
+            raise HTTPException(status_code=409, detail="Ce CV est déjà dans le coffre-fort")
+
+        competences = []
+        if cv_job.get("result"):
+            for sf in cv_job["result"].get("savoir_faire", []):
+                if isinstance(sf, dict):
+                    competences.append(sf.get("name", ""))
+                elif isinstance(sf, str):
+                    competences.append(sf)
+
+        doc = CoffreDocument(
+            token_id=token_id,
+            title=f"CV original — {filename}",
+            category="identite_professionnelle",
+            description=f"CV uploadé et analysé le {cv_job.get('created_at', '')[:10]}",
+            document_type="cv",
+            competences_liees=competences[:10],
+            source_ref=f"cv_uploaded_{cv_job.get('job_id', '')}",
+        )
+        await db.coffre_documents.insert_one(doc.model_dump())
+        return {"message": "CV transféré dans le coffre-fort", "document_id": doc.id}
+
+    else:
+        # AI-generated CV model
+        cv_models = await db.cv_models.find_one({"token_id": token_id}, {"_id": 0})
+        if not cv_models or not cv_models.get("models", {}).get(cv_type):
+            raise HTTPException(status_code=404, detail=f"Modèle CV '{cv_type}' non trouvé")
+
+        existing = await db.coffre_documents.find_one({
+            "token_id": token_id,
+            "source_ref": f"cv_model_{cv_type}"
+        }, {"_id": 0})
+        if existing:
+            raise HTTPException(status_code=409, detail=f"Le CV {cv_type} est déjà dans le coffre-fort")
+
+        model_labels = {
+            "classique": "CV Classique",
+            "competences": "CV par Compétences",
+            "transversal": "CV Transversal",
+            "nouvelle_generation": "CV Nouvelle Génération"
+        }
+        label = model_labels.get(cv_type, cv_type.replace("_", " ").title())
+
+        doc = CoffreDocument(
+            token_id=token_id,
+            title=f"{label} (généré par IA)",
+            category="identite_professionnelle",
+            description=f"CV optimisé généré par l'IA Re'Actif Pro",
+            document_type="cv_genere",
+            competences_liees=[],
+            source_ref=f"cv_model_{cv_type}",
+        )
+        await db.coffre_documents.insert_one(doc.model_dump())
+        return {"message": f"{label} transféré dans le coffre-fort", "document_id": doc.id}
+

@@ -100,6 +100,10 @@ async def _generate_ai_offers(token_id: str, user_skills: set, user_title: str, 
                 filter_context += f"\nType(s) de contrat: {', '.join(val)}"
             else:
                 filter_context += f"\nType de contrat: {val}"
+        if filters.get("zone_geographique") and filters["zone_geographique"].get("value"):
+            filter_context += f"\nZone géographique: {filters['zone_geographique']['value']}"
+        if filters.get("distance_km") and filters["distance_km"].get("value"):
+            filter_context += f"\nDistance maximale du domicile: {filters['distance_km']['value']} km"
 
     if filter_context:
         context += f"\n\nCritères de recherche du candidat:{filter_context}"
@@ -127,8 +131,8 @@ Réponds UNIQUEMENT en JSON valide: un array de 8 objets:
   "metier": "Intitulé du métier normalisé",
   "type_contrat": "CDI|CDD|Mission|Freelance|Alternance",
   "temps_travail": "temps plein|temps partiel",
-  "localisation": "Ville ou région",
-  "trajet_estime_minutes": 30,
+  "localisation": "Ville ou région (respecter la zone géographique demandée)",
+  "distance_domicile_km": 15,
   "teletravail": true ou false,
   "amenagement_possible": true ou false,
   "accessibilite_locaux": true ou false,

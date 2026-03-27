@@ -26,7 +26,8 @@ import {
   Clock,
   BarChart3,
   PieChart,
-  Info
+  Info,
+  RefreshCw
 } from "lucide-react";
 
 const INDEX_LEVELS = {
@@ -104,13 +105,25 @@ const EvolutionIndexView = ({ token }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e3a5f]"></div>
+        <p className="text-sm text-slate-500">Analyse de l'évolution de vos compétences...</p>
+        <p className="text-xs text-slate-400">Première analyse : quelques secondes</p>
       </div>
     );
   }
 
   const { summary = {}, distribution = {}, top_transforming_jobs = [], most_stable_jobs = [], sectors = [] } = dashboard || {};
+
+  const handleRefresh = async () => {
+    try {
+      await axios.post(`${API}/evolution-index/refresh?token=${token}`);
+      setLoading(true);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="evolution-index-view">
@@ -125,6 +138,13 @@ const EvolutionIndexView = ({ token }) => {
             Mesurez la vitesse à laquelle les compétences d'un métier ou d'un secteur évoluent
           </p>
         </div>
+        <button
+          onClick={handleRefresh}
+          className="flex items-center gap-2 text-sm text-[#1e3a5f] hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-blue-200"
+          data-testid="evolution-refresh-btn"
+        >
+          <RefreshCw className="w-4 h-4" /> Actualiser l'analyse
+        </button>
       </div>
 
       {/* Personal Exposure Alert */}

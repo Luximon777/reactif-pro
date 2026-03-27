@@ -90,6 +90,8 @@ const DEFAULT_FILTERS = {
   secteur: { value: "", priority: 3 },
   contrat: { value: [], priority: 3 },
   temps_travail: { value: "indifférent", priority: 2 },
+  zone_geographique: { value: "", priority: 4 },
+  distance_km: { value: 30, priority: 3 },
   trajet_max_minutes: { value: 60, priority: 3 },
   teletravail: { value: "non prioritaire", priority: 2 },
   amenagement_poste: { value: "aucun", priority: 2 },
@@ -177,6 +179,8 @@ const JobMatchingSection = ({ token }) => {
           secteur: saved.secteur || prev.secteur,
           contrat: saved.contrat || prev.contrat,
           temps_travail: saved.temps_travail || prev.temps_travail,
+          zone_geographique: saved.zone_geographique || prev.zone_geographique,
+          distance_km: saved.distance_km || prev.distance_km,
           trajet_max_minutes: saved.trajet_max_minutes || prev.trajet_max_minutes,
           teletravail: saved.teletravail || prev.teletravail,
           amenagement_poste: saved.amenagement_poste || prev.amenagement_poste,
@@ -228,6 +232,12 @@ const JobMatchingSection = ({ token }) => {
     }
     if (filters.trajet_max_minutes.value) {
       payload.trajet_max_minutes = { value: parseInt(filters.trajet_max_minutes.value) || 60, priority: filters.trajet_max_minutes.priority };
+    }
+    if (filters.zone_geographique.value) {
+      payload.zone_geographique = { value: filters.zone_geographique.value, priority: filters.zone_geographique.priority };
+    }
+    if (filters.distance_km.value) {
+      payload.distance_km = { value: parseInt(filters.distance_km.value) || 30, priority: filters.distance_km.priority };
     }
     if (filters.teletravail.value && filters.teletravail.value !== "non prioritaire") {
       payload.teletravail = { value: filters.teletravail.value, priority: filters.teletravail.priority };
@@ -406,6 +416,29 @@ const JobMatchingSection = ({ token }) => {
                       filters.temps_travail.value === opt ? "bg-[#1e3a5f] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</button>
                 ))}
+              </div>
+            </FilterRow>
+
+            {/* Zone géographique */}
+            <FilterRow label="Zone géographique (ville, département)" priority={filters.zone_geographique.priority} onPriorityChange={(v) => updateFilter("zone_geographique", "priority", v)}>
+              <Input
+                type="text"
+                placeholder="Ex: Paris, Lyon, Île-de-France..."
+                value={filters.zone_geographique.value}
+                onChange={(e) => updateFilter("zone_geographique", "value", e.target.value)}
+                className="h-9 text-sm"
+                data-testid="filter-zone-geo"
+              />
+            </FilterRow>
+
+            {/* Distance max */}
+            <FilterRow label="Distance maximale du domicile" priority={filters.distance_km.priority} onPriorityChange={(v) => updateFilter("distance_km", "priority", v)}>
+              <div className="flex items-center gap-3">
+                <Input type="number" min={5} max={200} value={filters.distance_km.value}
+                  onChange={(e) => updateFilter("distance_km", "value", e.target.value)} className="h-9 text-sm w-24" data-testid="filter-distance-km" />
+                <span className="text-xs text-slate-500">km</span>
+                <input type="range" min={5} max={100} value={filters.distance_km.value}
+                  onChange={(e) => updateFilter("distance_km", "value", e.target.value)} className="flex-1 accent-[#1e3a5f]" />
               </div>
             </FilterRow>
 
@@ -733,6 +766,7 @@ const JobMatchingSection = ({ token }) => {
                   {/* Meta info */}
                   <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2">
                     {match.localisation && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{match.localisation}</span>}
+                    {match.distance_domicile_km && <span className="text-blue-500 font-medium">{match.distance_domicile_km} km</span>}
                     {match.salaire_indicatif && <span className="font-medium text-slate-600">{match.salaire_indicatif}</span>}
                   </div>
 

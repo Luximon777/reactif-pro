@@ -152,7 +152,7 @@ class CoffreDocument(BaseModel):
     title: str
     category: str
     document_type: str
-    file_name: str
+    file_name: str = ""
     file_url: Optional[str] = None
     file_size: int = 0
     mime_type: str = "application/pdf"
@@ -167,6 +167,7 @@ class CoffreDocument(BaseModel):
     date_expiration: Optional[str] = None
     is_expiring_soon: bool = False
     is_sensitive: bool = False
+    source_ref: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     view_history: List[Dict[str, Any]] = []

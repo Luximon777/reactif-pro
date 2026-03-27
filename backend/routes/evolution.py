@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Optional, Dict, Any
+from datetime import datetime, timezone
 from db import db
 from helpers import get_current_token
 
@@ -149,6 +150,16 @@ async def get_user_evolution_analysis(token: str):
     # Also try to get title from raw CV
     if not user_title and cv_result:
         user_title = cv_result.get("titre_profil_suggere", "")
+    # Also try from experiences
+    if not user_title and cv_result:
+        exps = cv_result.get("experiences", [])
+        if exps and isinstance(exps[0], dict):
+            user_title = exps[0].get("title", "") or exps[0].get("poste", "")
+    # Last resort: filename
+    if not user_title and cv_job:
+        fn = cv_job.get("filename", "")
+        if fn:
+            user_title = fn.replace(".pdf", "").replace(".docx", "").replace(".txt", "").replace("_", " ")
 
     user_skills_list = list(user_skills)
     user_sectors_list = list(user_sectors)
@@ -181,9 +192,20 @@ async def get_user_evolution_analysis(token: str):
 
     # If we have a CV but no matching job indices, generate personalized analysis via AI
     if has_cv and (not relevant_jobs or len(relevant_jobs) < 2) and EMERGENT_LLM_KEY and user_skills:
-        ai_analysis = await _generate_evolution_analysis_ai(
-            user_title, user_skills_list, user_sectors_list, EMERGENT_LLM_KEY, token_id
-        )
+        # Check cache first
+        cached = await db.evolution_cache.find_one({"token_id": token_id}, {"_id": 0})
+        if cached and cached.get("ai_analysis"):
+            ai_analysis = cached["ai_analysis"]
+        else:
+            ai_analysis = await _generate_evolution_analysis_ai(
+                user_title, user_skills_list, user_sectors_list, EMERGENT_LLM_KEY, token_id
+            )
+            if ai_analysis:
+                await db.evolution_cache.update_one(
+                    {"token_id": token_id},
+                    {"$set": {"token_id": token_id, "ai_analysis": ai_analysis, "user_title": user_title, "updated_at": datetime.now(timezone.utc).isoformat()}},
+                    upsert=True
+                )
         if ai_analysis:
             return {
                 "has_cv": True,
@@ -238,6 +260,16 @@ async def get_user_evolution_analysis(token: str):
             "cv_analysis": has_cv
         }
     }
+
+
+@router.post("/evolution-index/refresh")
+async def refresh_evolution_analysis(token: str):
+    """Force refresh the cached evolution analysis."""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+    await db.evolution_cache.delete_one({"token_id": token_id})
+    return {"message": "Cache rafraîchi. Rechargez la page pour obtenir une nouvelle analyse."}
+
 
 
 async def _generate_evolution_analysis_ai(user_title, user_skills, user_sectors, api_key, token_id):
