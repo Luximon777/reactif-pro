@@ -66,7 +66,7 @@ jobs:
             echo "=== Test LLM Key ==="
             python3 /data/app/backend/test_key.py || echo "LLM TEST FAILED"
             deactivate
-            printf "[Unit]\nDescription=Reactif Pro Backend\nAfter=network.target mongod.service\n[Service]\nType=simple\nUser=root\nWorkingDirectory=/data/app/backend\nEnvironmentFile=/data/app/backend/.env\nExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000\nRestart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/backend.service
+            printf "[Unit]\nDescription=Reactif Pro Backend\nAfter=network.target mongod.service\n[Service]\nType=simple\nUser=root\nWorkingDirectory=/data/app/backend\nExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000\nRestart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/backend.service
             systemctl daemon-reload
             systemctl enable backend
             systemctl restart backend
