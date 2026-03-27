@@ -68,8 +68,12 @@ jobs:
             deactivate
             printf "[Unit]\nDescription=Reactif Pro Backend\nAfter=network.target mongod.service\n[Service]\nType=simple\nUser=root\nWorkingDirectory=/data/app/backend\nEnvironmentFile=/data/app/backend/.env\nExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000\nRestart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/backend.service
             systemctl daemon-reload
+            systemctl stop backend || true
+            pkill -9 -f "uvicorn server:app" || true
+            sleep 2
+            find /data/app/backend -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
             systemctl enable backend
-            systemctl restart backend
+            systemctl start backend
             sleep 3
             systemctl is-active backend && echo "Backend running" || echo "Backend FAILED"
             echo "=== Verify Backend Env ==="
@@ -80,6 +84,9 @@ jobs:
             echo "=== Test API post-deploy ==="
             sleep 3
             curl -s http://localhost:8000/api/ || echo "API test failed"
+            echo ""
+            echo "=== Process check ==="
+            ps aux | grep uvicorn | grep -v grep || echo "No uvicorn process!"
             echo "=== Code version check ==="
             cd /data/app && git log --oneline -1
             grep "override" /data/app/backend/db.py
