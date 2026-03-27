@@ -22,34 +22,18 @@ jobs:
 
             mkdir -p /data/tmp
 
-            # === Node.js ===
             if ! command -v node &> /dev/null; then
               curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
               apt-get install -y nodejs
             fi
             echo "Node: $(node -v)"
 
-            # === Python ===
             if ! command -v python3 &> /dev/null; then
               apt-get update && apt-get install -y python3 python3-venv python3-pip
             fi
 
-            # === MongoDB ===
-            if ! command -v mongod &> /dev/null; then
-              apt-get update
-              apt-get install -y gnupg curl
-              curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
-              echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-              apt-get update
-              apt-get install -y mongodb-org
-              systemctl daemon-reload
-              systemctl enable mongod
-              systemctl start mongod
-            else
-              systemctl is-active mongod || systemctl start mongod
-            fi
+            systemctl is-active mongod || systemctl start mongod
 
-            # === Code source ===
             echo "=== Synchronisation du code ==="
             if [ ! -d /data/app/.git ]; then
               rm -rf /data/app
@@ -63,18 +47,12 @@ jobs:
             echo "Commit: $(git log --oneline -1)"
 
             # === Frontend .env ===
-            cat > /data/app/frontend/.env << 'FEOF'
-            REACT_APP_BACKEND_URL=https://reactif.pro
-            ENABLE_HEALTH_CHECK=false
-            FEOF
-            sed -i 's/^            //' /data/app/frontend/.env
+            printf 'REACT_APP_BACKEND_URL=https://reactif.pro\nENABLE_HEALTH_CHECK=false\n' > /data/app/frontend/.env
 
-            # === Backend .env (using GitHub secret) ===
-            echo "MONGO_URL=mongodb://localhost:27017" > /data/app/backend/.env
-            echo "DB_NAME=reactif_pro" >> /data/app/backend/.env
-            echo "CORS_ORIGINS=https://reactif.pro,https://www.reactif.pro" >> /data/app/backend/.env
-            echo "EMERGENT_LLM_KEY=${{ secrets.EMERGENT_LLM_KEY }}" >> /data/app/backend/.env
-            echo "Backend .env key length: $(grep EMERGENT_LLM_KEY /data/app/backend/.env | cut -d= -f2 | wc -c)"
+            # === Backend .env ===
+            printf 'MONGO_URL=mongodb://localhost:27017\nDB_NAME=reactif_pro\nCORS_ORIGINS=https://reactif.pro,https://www.reactif.pro\nEMERGENT_LLM_KEY=%s\n' '${{ secrets.EMERGENT_LLM_KEY }}' > /data/app/backend/.env
+            echo "Backend .env contents:"
+            cat /data/app/backend/.env | sed 's/\(EMERGENT_LLM_KEY=\).\{10\}/\1**********/'
 
             # === Build frontend ===
             echo "=== Build du frontend ==="
@@ -95,13 +73,29 @@ jobs:
             echo "Frontend deploye"
 
             # === Backend ===
-            echo "=== Backend ==="
             cd /data/app/backend
             if [ ! -d venv ]; then
               python3 -m venv venv
             fi
             source venv/bin/activate
             pip install -r requirements.txt --quiet --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+            
+            # === TEST DIRECT de la cle IA ===
+            echo "=== Test LLM Key ==="
+            cd /data/app/backend
+            python3 -c "
+from dotenv import load_dotenv
+import os
+load_dotenv('.env')
+key = os.environ.get('EMERGENT_LLM_KEY', '')
+print(f'Key loaded: {key[:12]}...{key[-4:]} (len={len(key)})')
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+import asyncio
+chat = LlmChat(api_key=key, session_id='deploy-test', system_message='Say OK').with_model('openai', 'gpt-5.2')
+result = asyncio.run(chat.send_message(UserMessage(text='Say OK')))
+print(f'LLM TEST: {result[:20]}')
+" 2>&1 || echo "LLM TEST FAILED"
+            
             deactivate
 
             # === Service backend ===
@@ -109,7 +103,6 @@ jobs:
             [Unit]
             Description=Reactif Pro Backend
             After=network.target mongod.service
-
             [Service]
             Type=simple
             User=root
@@ -118,7 +111,6 @@ jobs:
             ExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
             Restart=always
             RestartSec=5
-
             [Install]
             WantedBy=multi-user.target
             SEOF
