@@ -1350,7 +1350,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href="https://reactif-pro-3.preview.emergentagent.com/"
+              href="https://reactif-pro-preview.preview.emergentagent.com/"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"
