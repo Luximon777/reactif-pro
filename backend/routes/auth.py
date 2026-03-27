@@ -656,6 +656,7 @@ async def import_dclic_pro(token: str, data: DclicProImport):
                 "declared_level": s.get("declared_level", 3),
                 "validated_level": s.get("validated_level", 0),
                 "status": s.get("status", "declaree"),
+                "source": "dclic_pro",
             })
         profile_update["skills"] = mapped_skills
 
@@ -698,6 +699,7 @@ async def import_dclic_pro(token: str, data: DclicProImport):
                     "end_date": exp.get("end_date", ""),
                     "is_current": exp.get("is_current", False),
                     "experience_type": exp.get("experience_type", "professional"),
+                    "source": "dclic_pro",
                 })
             update_fields = {"experiences": existing_exps}
             if data.target_job:

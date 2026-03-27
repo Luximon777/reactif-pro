@@ -1,6 +1,6 @@
 import {
   User, Briefcase, GraduationCap, Sparkles, Brain, MessageCircle,
-  TrendingUp, Activity, BookOpen, Zap, Hexagon, CircleDot, ArrowRight, FolderLock
+  TrendingUp, Activity, BookOpen, Zap, Hexagon, CircleDot, ArrowRight, FolderLock, Award, Flower2
 } from "lucide-react";
 
 export const SOURCE_CONFIG = {
@@ -11,6 +11,8 @@ export const SOURCE_CONFIG = {
   plateforme: { label: "RE'ACTIF PRO", color: "bg-blue-100 text-blue-700", icon: BookOpen },
   ubuntoo: { label: "Ubuntoo", color: "bg-teal-100 text-teal-700", icon: MessageCircle },
   ia_detectee: { label: "Détecté IA", color: "bg-violet-100 text-violet-700", icon: Brain },
+  dclic_pro: { label: "D'CLIC PRO", color: "bg-emerald-100 text-emerald-700", icon: Award },
+  centres_interet: { label: "Centres d'intérêt", color: "bg-pink-100 text-pink-700", icon: Flower2 },
   contribution: { label: "Contribution", color: "bg-amber-100 text-amber-700", icon: Sparkles },
 };
 

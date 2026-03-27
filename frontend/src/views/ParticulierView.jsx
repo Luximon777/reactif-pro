@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { API } from "@/App";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import JobMatchingSection from "@/components/JobMatchingSection";
 const ParticulierView = ({ token, section, onOpenDclic }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [passport, setPassport] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [learningModules, setLearningModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,14 +34,16 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [profileRes, jobsRes, learningRes] = await Promise.all([
+      const [profileRes, jobsRes, learningRes, passportRes] = await Promise.all([
         axios.get(`${API}/profile?token=${token}`),
         axios.get(`${API}/jobs?token=${token}`),
-        axios.get(`${API}/learning?token=${token}`)
+        axios.get(`${API}/learning?token=${token}`),
+        axios.get(`${API}/passport?token=${token}`).catch(() => ({ data: null })),
       ]);
       setProfile(profileRes.data);
       setJobs(jobsRes.data);
       setLearningModules(learningRes.data);
+      setPassport(passportRes.data);
     } catch (error) {
       console.error("Error loading data:", error);
       if (!silent) toast.error("Erreur lors du chargement des données");
@@ -75,6 +78,30 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
     }
   };
 
+  // Fusionner skills du profil + compétences du passeport avec la source
+  const displayProfile = profile || { name: "Utilisateur", profile_score: 45, skills: [], strengths: [], gaps: [], sectors: [] };
+
+  const allSkills = useMemo(() => {
+    const merged = [];
+    const seen = new Set();
+    for (const s of (displayProfile.skills || [])) {
+      const key = (s.name || "").toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        merged.push({ name: s.name, level: s.level ?? (s.declared_level ? s.declared_level * 20 : 50), source: s.source || "declaratif" });
+      }
+    }
+    for (const c of (passport?.competences || [])) {
+      const key = (c.name || "").toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        const lvl = c.level === "expert" ? 90 : c.level === "avance" ? 70 : c.level === "intermediaire" ? 50 : 30;
+        merged.push({ name: c.name, level: lvl, source: c.source || "ia_detectee", nature: c.nature });
+      }
+    }
+    return merged;
+  }, [displayProfile.skills, passport?.competences]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -83,24 +110,11 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
     );
   }
 
-  const displayProfile = profile || {
-    name: "Utilisateur",
-    profile_score: 45,
-    skills: [
-      { name: "Communication", level: 75 },
-      { name: "Organisation", level: 68 },
-      { name: "Excel", level: 55 }
-    ],
-    strengths: ["Adaptabilité", "Travail d'équipe", "Rigueur"],
-    gaps: ["Gestion de projet", "Langues étrangères"],
-    sectors: ["Administration", "Commerce"]
-  };
-
   const metrics = [
     { title: "Identité Professionnelle", value: `${displayProfile.profile_score || 45}%`, icon: Target, color: "blue", subtitle: "Complétude de votre profil" },
     { title: "Job Matching", value: jobs.filter(j => j.match_score >= 60).length.toString(), icon: Briefcase, color: "emerald", subtitle: "Offres compatibles" },
     { title: "Parcours Formation", value: learningModules.filter(m => m.progress > 0 && m.progress < 100).length.toString(), icon: BookOpen, color: "amber", subtitle: "Modules en cours" },
-    { title: "Compétences Valorisées", value: displayProfile.skills?.length?.toString() || "0", icon: Zap, color: "violet", subtitle: "Dans votre coffre-fort" }
+    { title: "Compétences Valorisées", value: allSkills.length.toString(), icon: Zap, color: "violet", subtitle: "Toutes sources confondues" }
   ];
 
   if (section === "jobs") return <JobMatchingSection token={token} />;
@@ -181,17 +195,37 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
           <CvAnalysisSection token={token} onComplete={() => loadData(true)} />
           <div className="space-y-4 mt-6">
             <h4 className="text-base font-semibold text-slate-700">Compétences identifiées</h4>
-            {displayProfile.skills?.length > 0 ? (
+            {/* Légende des sources */}
+            {allSkills.length > 0 && (
+              <div className="flex flex-wrap gap-3 text-xs border border-slate-200 rounded-lg p-2.5 bg-slate-50" data-testid="source-legend">
+                <span className="text-slate-500 font-medium mr-1">Sources :</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> D'CLIC PRO</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Analyse CV (IA)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block"></span> Centres d'intérêt</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span> Déclaratif</span>
+              </div>
+            )}
+            {allSkills.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                {displayProfile.skills.map((skill, idx) => {
-                  const pct = skill.level != null ? skill.level : (skill.declared_level != null ? skill.declared_level * 20 : 0);
+                {allSkills.map((skill, idx) => {
+                  const pct = skill.level || 0;
+                  const src = skill.source || "";
+                  const isDclic = src === "dclic_pro";
+                  const isIA = src === "ia_detectee";
+                  const isCentres = src === "centres_interet";
+                  const barColor = isDclic ? "[&>div]:bg-emerald-500" : isIA ? "[&>div]:bg-blue-500" : isCentres ? "[&>div]:bg-pink-500" : "";
+                  const labelColor = isDclic ? "text-emerald-700" : isIA ? "text-blue-700" : isCentres ? "text-pink-700" : "text-slate-700";
+                  const dotColor = isDclic ? "bg-emerald-500" : isIA ? "bg-blue-500" : isCentres ? "bg-pink-500" : "bg-slate-400";
                   return (
                     <div key={idx} className="space-y-1.5" data-testid={`skill-${idx}`}>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{skill.name}</span>
+                        <span className={`text-sm font-medium ${labelColor} flex items-center gap-1.5`}>
+                          <span className={`w-2 h-2 rounded-full ${dotColor} inline-block shrink-0`}></span>
+                          {skill.name}
+                        </span>
                         <span className="text-sm text-slate-500">{pct}%</span>
                       </div>
-                      <Progress value={pct} className="h-2" />
+                      <Progress value={pct} className={`h-2 ${barColor}`} />
                     </div>
                   );
                 })}
@@ -209,13 +243,21 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
       {profile?.dclic_imported ? (
         <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0" data-testid="dclic-banner-done">
           <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <CheckCircle className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="text-base font-semibold text-white">Profil boosté</h3>
-                <p className="text-emerald-100 text-sm">Votre profil D'CLIC PRO a été importé avec succès</p>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-white">Profil boosté avec D'CLIC PRO</h3>
+                <p className="text-emerald-100 text-sm mb-2">Données importées avec succès dans votre espace personnel</p>
+                <div className="flex flex-wrap gap-2">
+                  {profile.dclic_mbti && <Badge className="bg-white/20 text-white border-0 text-xs">MBTI: {profile.dclic_mbti}</Badge>}
+                  {profile.dclic_disc_label && <Badge className="bg-white/20 text-white border-0 text-xs">DISC: {profile.dclic_disc_label}</Badge>}
+                  {profile.dclic_riasec_major && <Badge className="bg-white/20 text-white border-0 text-xs">RIASEC: {profile.dclic_riasec_major}</Badge>}
+                  {profile.dclic_vertu_dominante && <Badge className="bg-white/20 text-white border-0 text-xs">Vertu: {profile.dclic_vertu_dominante}</Badge>}
+                  {profile.dclic_competences?.length > 0 && <Badge className="bg-white/20 text-white border-0 text-xs">{profile.dclic_competences.length} compétences fortes</Badge>}
+                  {profile.skills?.filter(s => s.source === "dclic_pro").length > 0 && <Badge className="bg-white/20 text-white border-0 text-xs">{profile.skills.filter(s => s.source === "dclic_pro").length} skills importés</Badge>}
+                </div>
               </div>
             </div>
           </CardContent>

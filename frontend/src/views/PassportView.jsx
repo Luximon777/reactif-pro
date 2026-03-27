@@ -749,20 +749,25 @@ const PassportView = ({ token }) => {
               <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs font-bold">7</div>
               <h4 className="font-semibold text-sm text-slate-800">Niveaux de validation</h4>
             </div>
-            <div className="ml-8 grid grid-cols-3 gap-2">
+            <div className="ml-8 grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="bg-slate-50 rounded-lg p-2 text-center">
                 <User className="w-4 h-4 mx-auto text-slate-500" />
-                <p className="text-[10px] font-medium text-slate-700 mt-1">Auto-declare</p>
+                <p className="text-[10px] font-medium text-slate-700 mt-1">Auto-déclaré</p>
                 <p className="text-[10px] text-slate-400">{competences.filter(c => c.source === "declaratif").length} comp.</p>
               </div>
               <div className="bg-violet-50 rounded-lg p-2 text-center">
                 <Brain className="w-4 h-4 mx-auto text-violet-500" />
-                <p className="text-[10px] font-medium text-violet-700 mt-1">Valide IA</p>
+                <p className="text-[10px] font-medium text-violet-700 mt-1">Détecté IA</p>
                 <p className="text-[10px] text-slate-400">{competences.filter(c => c.source === "ia_detectee").length} comp.</p>
               </div>
               <div className="bg-emerald-50 rounded-lg p-2 text-center">
-                <Shield className="w-4 h-4 mx-auto text-emerald-500" />
-                <p className="text-[10px] font-medium text-emerald-700 mt-1">Valide humain</p>
+                <Award className="w-4 h-4 mx-auto text-emerald-500" />
+                <p className="text-[10px] font-medium text-emerald-700 mt-1">D'CLIC PRO</p>
+                <p className="text-[10px] text-slate-400">{competences.filter(c => c.source === "dclic_pro").length} comp.</p>
+              </div>
+              <div className="bg-teal-50 rounded-lg p-2 text-center">
+                <Shield className="w-4 h-4 mx-auto text-teal-500" />
+                <p className="text-[10px] font-medium text-teal-700 mt-1">Validé humain</p>
                 <p className="text-[10px] text-slate-400">{competences.filter(c => ["ubuntoo", "contribution"].includes(c.source)).length} comp.</p>
               </div>
             </div>
