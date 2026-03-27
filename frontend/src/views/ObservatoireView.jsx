@@ -1350,7 +1350,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href="https://reactif-pro-preview.preview.emergentagent.com/"
+              href={`${process.env.REACT_APP_BACKEND_URL || ''}/`}
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"
