@@ -44,6 +44,20 @@ jobs:
             cd /data/app
             echo "Commit: $(git log --oneline -1)"
 
+            echo "=== Diagnostic Nginx ==="
+            echo "Config Nginx actuelle:"
+            grep -r "root " /etc/nginx/sites-enabled/ 2>/dev/null || echo "Pas de sites-enabled"
+            grep -r "root " /etc/nginx/conf.d/ 2>/dev/null || echo "Pas de conf.d"
+            grep "root " /etc/nginx/nginx.conf 2>/dev/null || echo "Pas dans nginx.conf"
+            NGINX_ROOT=$(grep -roh "root [^;]*" /etc/nginx/sites-enabled/ 2>/dev/null | head -1 | awk '{print $2}')
+            if [ -z "$NGINX_ROOT" ]; then
+              NGINX_ROOT=$(grep -roh "root [^;]*" /etc/nginx/conf.d/ 2>/dev/null | head -1 | awk '{print $2}')
+            fi
+            if [ -z "$NGINX_ROOT" ]; then
+              NGINX_ROOT="/data/www/html"
+            fi
+            echo "Document root detecte: $NGINX_ROOT"
+
             echo "=== Configuration .env ==="
             cat > /data/app/frontend/.env << 'EOF'
             REACT_APP_BACKEND_URL=https://reactif.pro
@@ -55,15 +69,19 @@ jobs:
             cd /data/app/frontend
             export TMPDIR=/data/tmp
             export NODE_OPTIONS="--max-old-space-size=4096"
-            rm -rf node_modules package-lock.json
-            npm install --legacy-peer-deps
-            npm install ajv@8 --save-dev --legacy-peer-deps
-            echo "Dependencies OK"
+            if [ ! -d node_modules ]; then
+              npm install --legacy-peer-deps
+              npm install ajv@8 --save-dev --legacy-peer-deps
+            fi
             npx craco build
             echo "Build OK"
-            rm -rf /data/www/html
-            mv build /data/www/html
-            echo "Frontend deploye"
+
+            echo "=== Deploiement vers $NGINX_ROOT ==="
+            rm -rf "$NGINX_ROOT"
+            mv build "$NGINX_ROOT"
+            echo "Fichiers deplaces vers $NGINX_ROOT"
+            echo "Contenu:"
+            ls -la "$NGINX_ROOT/" | head -10
 
             echo "=== Backend ==="
             cd /data/app/backend
@@ -78,4 +96,6 @@ jobs:
               systemctl restart backend
             fi
 
+            echo "=== Reload Nginx ==="
+            nginx -t && systemctl reload nginx
             echo "=== DEPLOIEMENT TERMINE ==="
