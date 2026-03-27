@@ -22,19 +22,17 @@ jobs:
 
             mkdir -p /data/tmp /data/www/html
 
-            echo "=== Installation de Node.js si absent ==="
             if ! command -v node &> /dev/null; then
               curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
               apt-get install -y nodejs
             fi
-            echo "Node: $(node -v) | NPM: $(npm -v)"
+            echo "Node: $(node -v)"
 
-            echo "=== Installation de Python/pip si absent ==="
             if ! command -v python3 &> /dev/null; then
               apt-get update && apt-get install -y python3 python3-venv python3-pip
             fi
 
-            echo "=== Clonage ou mise a jour du code ==="
+            echo "=== Synchronisation du code ==="
             if [ ! -d /data/app/.git ]; then
               rm -rf /data/app
               git clone https://github.com/Luximon777/reactif-pro.git /data/app
@@ -46,28 +44,28 @@ jobs:
             cd /data/app
             echo "Commit: $(git log --oneline -1)"
 
-            echo "=== Configuration frontend .env ==="
-            cat > /data/app/frontend/.env << 'ENVEOF'
+            echo "=== Configuration .env ==="
+            cat > /data/app/frontend/.env << 'EOF'
             REACT_APP_BACKEND_URL=https://reactif.pro
             ENABLE_HEALTH_CHECK=false
-            ENVEOF
+            EOF
             sed -i 's/^            //' /data/app/frontend/.env
-            echo "Frontend .env:"
-            cat /data/app/frontend/.env
 
             echo "=== Build du frontend ==="
             cd /data/app/frontend
             export TMPDIR=/data/tmp
             export NODE_OPTIONS="--max-old-space-size=4096"
+            rm -rf node_modules package-lock.json
             npm install --legacy-peer-deps
-            echo "npm install OK"
-            npx craco build || npm run build
+            npm install ajv@8 --save-dev --legacy-peer-deps
+            echo "Dependencies OK"
+            npx craco build
             echo "Build OK"
             rm -rf /data/www/html
             mv build /data/www/html
-            echo "Frontend deploye OK"
+            echo "Frontend deploye"
 
-            echo "=== Installation backend ==="
+            echo "=== Backend ==="
             cd /data/app/backend
             if [ ! -d venv ]; then
               python3 -m venv venv
@@ -75,13 +73,9 @@ jobs:
             source venv/bin/activate
             pip install -r requirements.txt --quiet --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
             deactivate
-            echo "Backend deps OK"
 
-            echo "=== Redemarrage backend ==="
             if systemctl is-active backend &> /dev/null; then
               systemctl restart backend
-            else
-              echo "Service backend non configure"
             fi
 
             echo "=== DEPLOIEMENT TERMINE ==="
