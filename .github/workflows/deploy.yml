@@ -20,49 +20,54 @@ jobs:
             set -e
             echo "=== Debut du deploiement ==="
 
-            echo "=== Preparation des dossiers ==="
             mkdir -p /data/tmp /data/www/html
 
             echo "=== Installation de Node.js si absent ==="
             if ! command -v node &> /dev/null; then
-              echo "Installation de Node.js 20..."
               curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
               apt-get install -y nodejs
             fi
-            echo "Node version: $(node -v)"
-            echo "NPM version: $(npm -v)"
+            echo "Node: $(node -v) | NPM: $(npm -v)"
 
             echo "=== Installation de Python/pip si absent ==="
             if ! command -v python3 &> /dev/null; then
-              apt-get update
-              apt-get install -y python3 python3-venv python3-pip
+              apt-get update && apt-get install -y python3 python3-venv python3-pip
             fi
-            echo "Python version: $(python3 --version)"
 
             echo "=== Clonage ou mise a jour du code ==="
             if [ ! -d /data/app/.git ]; then
-              echo "Premier deploiement: clonage du repo..."
               rm -rf /data/app
               git clone https://github.com/Luximon777/reactif-pro.git /data/app
             else
-              echo "Mise a jour du code existant..."
               cd /data/app
               git fetch origin main
               git reset --hard origin/main
             fi
             cd /data/app
-            echo "Code: $(git log --oneline -1)"
+            echo "Commit: $(git log --oneline -1)"
+
+            echo "=== Configuration frontend .env ==="
+            cat > /data/app/frontend/.env << 'ENVEOF'
+            REACT_APP_BACKEND_URL=https://reactif.pro
+            ENABLE_HEALTH_CHECK=false
+            ENVEOF
+            sed -i 's/^            //' /data/app/frontend/.env
+            echo "Frontend .env:"
+            cat /data/app/frontend/.env
 
             echo "=== Build du frontend ==="
             cd /data/app/frontend
             export TMPDIR=/data/tmp
-            npm install --legacy-peer-deps 2>&1 | tail -5
-            REACT_APP_BACKEND_URL=https://reactif.pro npm run build 2>&1 | tail -5
+            export NODE_OPTIONS="--max-old-space-size=4096"
+            npm install --legacy-peer-deps
+            echo "npm install OK"
+            npx craco build || npm run build
+            echo "Build OK"
             rm -rf /data/www/html
             mv build /data/www/html
-            echo "Frontend build OK"
+            echo "Frontend deploye OK"
 
-            echo "=== Installation des dependances backend ==="
+            echo "=== Installation backend ==="
             cd /data/app/backend
             if [ ! -d venv ]; then
               python3 -m venv venv
@@ -72,11 +77,11 @@ jobs:
             deactivate
             echo "Backend deps OK"
 
-            echo "=== Configuration et redemarrage du backend ==="
+            echo "=== Redemarrage backend ==="
             if systemctl is-active backend &> /dev/null; then
               systemctl restart backend
             else
-              echo "Service backend non configure - le frontend est deploye"
+              echo "Service backend non configure"
             fi
 
-            echo "=== Deploiement termine avec succes ==="
+            echo "=== DEPLOIEMENT TERMINE ==="
