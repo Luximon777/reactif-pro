@@ -66,15 +66,22 @@ jobs:
             echo "=== Test LLM Key ==="
             python3 /data/app/backend/test_key.py || echo "LLM TEST FAILED"
             deactivate
-            EKEY=$(grep EMERGENT_LLM_KEY /data/app/backend/.env | cut -d= -f2)
-            printf "[Unit]\nDescription=Reactif Pro Backend\nAfter=network.target mongod.service\n[Service]\nType=simple\nUser=root\nWorkingDirectory=/data/app/backend\nEnvironment=MONGO_URL=mongodb://localhost:27017\nEnvironment=DB_NAME=reactif_pro\nEnvironment=CORS_ORIGINS=https://reactif.pro,https://www.reactif.pro\nEnvironment=EMERGENT_LLM_KEY=${EKEY}\nExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000\nRestart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/backend.service
+            printf "[Unit]\nDescription=Reactif Pro Backend\nAfter=network.target mongod.service\n[Service]\nType=simple\nUser=root\nWorkingDirectory=/data/app/backend\nEnvironmentFile=/data/app/backend/.env\nExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000\nRestart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/backend.service
             systemctl daemon-reload
             systemctl enable backend
             systemctl restart backend
             sleep 3
             systemctl is-active backend && echo "Backend running" || echo "Backend FAILED"
+            echo "=== Verify Backend Env ==="
+            cat /etc/systemd/system/backend.service | head -15
+            echo "EnvironmentFile check:"
+            grep -c "EMERGENT_LLM_KEY" /data/app/backend/.env && echo "Key present in .env"
             nginx -t && systemctl reload nginx
             echo "=== Test API post-deploy ==="
             sleep 3
             curl -s http://localhost:8000/api/ || echo "API test failed"
+            echo "=== Code version check ==="
+            cd /data/app && git log --oneline -1
+            grep "override" /data/app/backend/db.py
+            grep "max_retries" /data/app/backend/helpers.py | head -1
             echo "=== DEPLOIEMENT TERMINE ==="
