@@ -44,23 +44,6 @@ jobs:
             cd /data/app
             echo "Commit: $(git log --oneline -1)"
 
-            echo "=== Diagnostic Nginx complet ==="
-            cat /etc/nginx/nginx.conf
-            echo "--- sites-enabled ---"
-            ls -la /etc/nginx/sites-enabled/ 2>/dev/null || echo "Pas de sites-enabled"
-            for f in /etc/nginx/sites-enabled/*; do
-              echo "=== $f ==="
-              cat "$f" 2>/dev/null
-            done
-            echo "--- conf.d ---"
-            for f in /etc/nginx/conf.d/*; do
-              echo "=== $f ==="
-              cat "$f" 2>/dev/null
-            done
-            echo "--- Ancien contenu ---"
-            echo "/var/www/html:" && ls /var/www/html/ 2>/dev/null | head -5 || echo "vide"
-            echo "/data/www/html:" && ls /data/www/html/ 2>/dev/null | head -5 || echo "vide"
-
             echo "=== Configuration .env ==="
             cat > /data/app/frontend/.env << 'EOF'
             REACT_APP_BACKEND_URL=https://reactif.pro
@@ -79,13 +62,13 @@ jobs:
             npx craco build
             echo "Build OK"
 
-            echo "=== Deploiement vers TOUS les dossiers possibles ==="
-            mkdir -p /var/www/html
-            rm -rf /var/www/html/*
-            cp -r build/* /var/www/html/
-            rm -rf /data/www/html
-            mv build /data/www/html
-            echo "Deploye vers /var/www/html ET /data/www/html"
+            echo "=== Deploiement vers Nginx root ==="
+            DEPLOY_DIR="/home/ubuntu/reactif-pro/frontend/build"
+            mkdir -p "$(dirname $DEPLOY_DIR)"
+            rm -rf "$DEPLOY_DIR"
+            mv build "$DEPLOY_DIR"
+            echo "Deploye vers $DEPLOY_DIR"
+            ls -la "$DEPLOY_DIR/" | head -5
 
             echo "=== Backend ==="
             cd /data/app/backend
