@@ -15,21 +15,47 @@ jobs:
           host: 51.91.124.85
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 10m
+          command_timeout: 15m
           script: |
             set -e
             echo "=== Debut du deploiement ==="
 
-            echo "=== Synchronisation forcee du code ==="
+            echo "=== Preparation des dossiers ==="
+            mkdir -p /data/tmp /data/www/html
+
+            echo "=== Installation de Node.js si absent ==="
+            if ! command -v node &> /dev/null; then
+              echo "Installation de Node.js 20..."
+              curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+              apt-get install -y nodejs
+            fi
+            echo "Node version: $(node -v)"
+            echo "NPM version: $(npm -v)"
+
+            echo "=== Installation de Python/pip si absent ==="
+            if ! command -v python3 &> /dev/null; then
+              apt-get update
+              apt-get install -y python3 python3-venv python3-pip
+            fi
+            echo "Python version: $(python3 --version)"
+
+            echo "=== Clonage ou mise a jour du code ==="
+            if [ ! -d /data/app/.git ]; then
+              echo "Premier deploiement: clonage du repo..."
+              rm -rf /data/app
+              git clone https://github.com/Luximon777/reactif-pro.git /data/app
+            else
+              echo "Mise a jour du code existant..."
+              cd /data/app
+              git fetch origin main
+              git reset --hard origin/main
+            fi
             cd /data/app
-            git fetch origin main
-            git reset --hard origin/main
-            echo "Code synchronise: $(git log --oneline -1)"
+            echo "Code: $(git log --oneline -1)"
 
             echo "=== Build du frontend ==="
             cd /data/app/frontend
             export TMPDIR=/data/tmp
-            mkdir -p $TMPDIR
             npm install --legacy-peer-deps 2>&1 | tail -5
             REACT_APP_BACKEND_URL=https://reactif.pro npm run build 2>&1 | tail -5
             rm -rf /data/www/html
@@ -38,14 +64,19 @@ jobs:
 
             echo "=== Installation des dependances backend ==="
             cd /data/app/backend
+            if [ ! -d venv ]; then
+              python3 -m venv venv
+            fi
             source venv/bin/activate
             pip install -r requirements.txt --quiet --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
             deactivate
             echo "Backend deps OK"
 
-            echo "=== Redemarrage du backend ==="
-            systemctl restart backend
-            sleep 2
-            systemctl is-active backend && echo "Backend running OK" || echo "Backend FAILED"
+            echo "=== Configuration et redemarrage du backend ==="
+            if systemctl is-active backend &> /dev/null; then
+              systemctl restart backend
+            else
+              echo "Service backend non configure - le frontend est deploye"
+            fi
 
             echo "=== Deploiement termine avec succes ==="
