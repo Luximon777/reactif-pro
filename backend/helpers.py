@@ -18,8 +18,9 @@ async def get_current_token(token: str) -> dict:
     return token_doc
 
 
-async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 2) -> dict:
+async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int = 4) -> dict:
     import re
+    import random
     import asyncio as _asyncio
     last_error = None
     for attempt in range(max_retries + 1):
@@ -42,25 +43,44 @@ async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int 
         except json.JSONDecodeError as e:
             last_error = f"Réponse IA non valide (tentative {attempt+1})"
             logging.warning(f"CV analysis JSON error attempt {attempt+1}: {e}")
+            if attempt < max_retries:
+                await _asyncio.sleep(1 + random.random())
         except Exception as e:
             last_error = str(e)
             logging.warning(f"CV analysis LLM error attempt {attempt+1}: {e}")
             if attempt < max_retries:
-                await _asyncio.sleep(2 * (attempt + 1))
+                delay = min(2 ** attempt + random.random() * 2, 15)
+                logging.info(f"Retrying in {delay:.1f}s...")
+                await _asyncio.sleep(delay)
     raise Exception(f"Erreur IA après {max_retries+1} tentatives: {last_error}")
 
 
 def _extract_text_from_bytes(content: bytes, filename: str) -> str:
     text = ""
     if filename.lower().endswith(".pdf"):
-        reader = PyPDF2.PdfReader(io.BytesIO(content))
-        for page in reader.pages:
-            text += (page.extract_text() or "") + "\n"
+        try:
+            reader = PyPDF2.PdfReader(io.BytesIO(content))
+            for page in reader.pages:
+                text += (page.extract_text() or "") + "\n"
+        except Exception as e:
+            logging.warning(f"PyPDF2 failed for {filename}: {e}, trying pdfplumber")
+            try:
+                import pdfplumber
+                with pdfplumber.open(io.BytesIO(content)) as pdf:
+                    for page in pdf.pages:
+                        text += (page.extract_text() or "") + "\n"
+            except Exception as e2:
+                logging.warning(f"pdfplumber also failed for {filename}: {e2}")
+                text = content.decode("utf-8", errors="ignore")
     elif filename.lower().endswith((".docx", ".doc")):
-        import docx
-        doc = docx.Document(io.BytesIO(content))
-        for para in doc.paragraphs:
-            text += para.text + "\n"
+        try:
+            import docx
+            doc = docx.Document(io.BytesIO(content))
+            for para in doc.paragraphs:
+                text += para.text + "\n"
+        except Exception as e:
+            logging.warning(f"python-docx failed for {filename}: {e}")
+            text = content.decode("utf-8", errors="ignore")
     else:
         text = content.decode("utf-8", errors="ignore")
     return text.strip()

@@ -215,8 +215,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
       if (onComplete) onComplete();
     } catch (err) {
       let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV.";
-      if (msg.toLowerCase().includes("budget")) {
+      if (msg.toLowerCase().includes("budget") || msg.toLowerCase().includes("key")) {
         msg = "Le crédit d'analyse IA est temporairement épuisé. Rechargez votre clé dans Profil > Universal Key.";
+      } else if (msg.toLowerCase().includes("502") || msg.toLowerCase().includes("gateway") || msg.toLowerCase().includes("timeout")) {
+        msg = "Le service IA est temporairement surchargé. Réessayez dans quelques instants.";
+      } else if (msg.toLowerCase().includes("texte") || msg.toLowerCase().includes("eof") || msg.toLowerCase().includes("zip")) {
+        msg = "Le fichier n'a pas pu être lu correctement. Essayez un autre format (PDF, DOCX ou TXT).";
       }
       setUploadError(msg);
       toast.error(msg);

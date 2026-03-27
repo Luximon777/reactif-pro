@@ -521,9 +521,15 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
         centres_result = results[3] if not isinstance(results[3], Exception) else {"has_centres_interet": False, "centres_interet_raw": []}
         
         # Log any partial failures
+        partial_failures = []
         for i, (name, res) in enumerate(zip(["audit", "skills", "emerging", "centres"], results)):
             if isinstance(res, Exception):
                 logging.warning(f"CV analysis partial failure ({name}) for job {job_id}: {res}")
+                partial_failures.append(name)
+        
+        # If ALL 4 calls failed, still try to return what we can
+        if len(partial_failures) == 4:
+            logging.error(f"ALL LLM calls failed for job {job_id}, returning minimal results")
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Mise a jour du passeport..."}})
 
@@ -563,79 +569,86 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
 
         # Store emerging competences in dedicated collection
         emerging_comps = emerging_result.get("competences_emergentes", [])
-        if emerging_comps:
-            # Clear previous detections for this token and re-insert
-            await db.emerging_competences.delete_many({"token_id": token_id, "source_type": "cv_analysis"})
-            now_iso = datetime.now(timezone.utc).isoformat()
-            emerging_docs = []
-            for ec in emerging_comps:
-                score = ec.get("score_emergence", 0)
-                if isinstance(score, str):
-                    try: score = int(score)
-                    except: score = 0
-                niveau = ec.get("niveau_emergence", "signal_faible")
-                if not niveau or niveau not in ("signal_faible", "emergente", "en_croissance", "etablie"):
-                    if score <= 30: niveau = "signal_faible"
-                    elif score <= 60: niveau = "emergente"
-                    elif score <= 80: niveau = "en_croissance"
-                    else: niveau = "etablie"
-                emerging_docs.append({
-                    "id": str(uuid.uuid4()),
-                    "token_id": token_id,
-                    "nom_principal": ec.get("nom", ""),
-                    "categorie": ec.get("categorie", "hybride"),
-                    "score_emergence": score,
-                    "niveau_emergence": niveau,
-                    "justification": ec.get("justification", ""),
-                    "indicateurs_cles": ec.get("indicateurs_cles", []),
-                    "secteurs_porteurs": ec.get("secteurs_porteurs", []),
-                    "metiers_associes": ec.get("metiers_associes", []),
-                    "tendance": ec.get("tendance", "hausse"),
-                    "source_type": "cv_analysis",
-                    "valide": False,
-                    "validation_humaine": None,
-                    "date_detection": now_iso,
-                    "date_mise_a_jour": now_iso,
-                })
-            if emerging_docs:
-                await db.emerging_competences.insert_many(emerging_docs)
-                logging.info(f"Stored {len(emerging_docs)} emerging competences for token {token_id}")
+        try:
+            if emerging_comps:
+                await db.emerging_competences.delete_many({"token_id": token_id, "source_type": "cv_analysis"})
+                now_iso = datetime.now(timezone.utc).isoformat()
+                emerging_docs = []
+                for ec in emerging_comps:
+                    score = ec.get("score_emergence", 0)
+                    if isinstance(score, str):
+                        try: score = int(score)
+                        except: score = 0
+                    niveau = ec.get("niveau_emergence", "signal_faible")
+                    if not niveau or niveau not in ("signal_faible", "emergente", "en_croissance", "etablie"):
+                        if score <= 30: niveau = "signal_faible"
+                        elif score <= 60: niveau = "emergente"
+                        elif score <= 80: niveau = "en_croissance"
+                        else: niveau = "etablie"
+                    emerging_docs.append({
+                        "id": str(uuid.uuid4()),
+                        "token_id": token_id,
+                        "nom_principal": ec.get("nom", ""),
+                        "categorie": ec.get("categorie", "hybride"),
+                        "score_emergence": score,
+                        "niveau_emergence": niveau,
+                        "justification": ec.get("justification", ""),
+                        "indicateurs_cles": ec.get("indicateurs_cles", []),
+                        "secteurs_porteurs": ec.get("secteurs_porteurs", []),
+                        "metiers_associes": ec.get("metiers_associes", []),
+                        "tendance": ec.get("tendance", "hausse"),
+                        "source_type": "cv_analysis",
+                        "valide": False,
+                        "validation_humaine": None,
+                        "date_detection": now_iso,
+                        "date_mise_a_jour": now_iso,
+                    })
+                if emerging_docs:
+                    await db.emerging_competences.insert_many(emerging_docs)
+                    logging.info(f"Stored {len(emerging_docs)} emerging competences for token {token_id}")
+        except Exception as e:
+            logging.warning(f"Failed to store emerging competences for job {job_id}: {e}")
 
         emerging_count = len(emerging_comps)
 
         # Analyze centres d'interet
-        from centres_interet import analyze_multiple
-        has_centres = centres_result.get("has_centres_interet", False)
-        centres_raw = centres_result.get("centres_interet_raw", [])
-        centres_analysis = analyze_multiple(centres_raw) if centres_raw else {"analyses": [], "competences_transversales": [], "valeurs_dominantes": [], "cv_reformulations": []}
+        try:
+            from centres_interet import analyze_multiple
+            has_centres = centres_result.get("has_centres_interet", False)
+            centres_raw = centres_result.get("centres_interet_raw", [])
+            centres_analysis = analyze_multiple(centres_raw) if centres_raw else {"analyses": [], "competences_transversales": [], "valeurs_dominantes": [], "cv_reformulations": []}
 
-        # Enrich passport with competences from centres d'interet
-        if centres_analysis["competences_transversales"]:
-            for comp_name in centres_analysis["competences_transversales"]:
-                if comp_name.lower() not in existing_names:
-                    new_competences.append(PassportCompetence(
-                        name=comp_name, nature="savoir_etre", category="transversale",
-                        level="intermediaire", source="centres_interet"
-                    ).model_dump())
-                    existing_names.add(comp_name.lower())
-            await db.passports.update_one({"token_id": token_id}, {"$set": {"competences": new_competences}})
+            # Enrich passport with competences from centres d'interet
+            if centres_analysis["competences_transversales"]:
+                for comp_name in centres_analysis["competences_transversales"]:
+                    if comp_name.lower() not in existing_names:
+                        new_competences.append(PassportCompetence(
+                            name=comp_name, nature="savoir_etre", category="transversale",
+                            level="intermediaire", source="centres_interet"
+                        ).model_dump())
+                        existing_names.add(comp_name.lower())
+                await db.passports.update_one({"token_id": token_id}, {"$set": {"competences": new_competences}})
 
-        # Store centres d'interet analysis
-        await db.centres_interet.update_one(
-            {"token_id": token_id},
-            {"$set": {
-                "token_id": token_id,
-                "has_centres_interet": has_centres,
-                "centres_raw": centres_raw,
-                "analyses": centres_analysis.get("analyses", []),
-                "competences_transversales": centres_analysis.get("competences_transversales", []),
-                "valeurs_dominantes": centres_analysis.get("valeurs_dominantes", []),
-                "cv_reformulations": centres_analysis.get("cv_reformulations", []),
-                "suggestion_si_absent": centres_result.get("suggestion_si_absent", ""),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }},
-            upsert=True
-        )
+            # Store centres d'interet analysis
+            await db.centres_interet.update_one(
+                {"token_id": token_id},
+                {"$set": {
+                    "token_id": token_id,
+                    "has_centres_interet": has_centres,
+                    "centres_raw": centres_raw,
+                    "analyses": centres_analysis.get("analyses", []),
+                    "competences_transversales": centres_analysis.get("competences_transversales", []),
+                    "valeurs_dominantes": centres_analysis.get("valeurs_dominantes", []),
+                    "cv_reformulations": centres_analysis.get("cv_reformulations", []),
+                    "suggestion_si_absent": centres_result.get("suggestion_si_absent", ""),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True
+            )
+        except Exception as e:
+            logging.warning(f"Failed to process centres d'interet for job {job_id}: {e}")
+            has_centres = False
+            centres_analysis = {"analyses": [], "competences_transversales": [], "valeurs_dominantes": [], "cv_reformulations": []}
 
         result = {
             "message": "CV analyse avec succes", "filename": filename,

@@ -10,108 +10,56 @@ Répliquer le design D'CLIC PRO, intégrer l'espace communautaire Ubuntoo, mettr
 - LLM: OpenAI GPT-5.2 via Emergent LLM Key
 - Déploiement: Nginx, Let's Encrypt, GitHub Actions vers VPS OVH
 
-## Ce qui a été implémenté (complet et testé)
+## Ce qui a été implémenté
 
 ### Design D'CLIC PRO ✅
 - Thème sombre (#1e3a5f), cartes glassmorphiques, 26 questions avec images
 - Graphiques radar Recharts (Tripartite, DISC, Archéologie)
-- Code d'accès XXXX-XXXX avec résultats DISC/MBTI/RIASEC/Vertus
 
-### Système d'authentification ✅
-- Register/Login/Logout/Reconnexion avec pseudonyme
-- Changement de mot de passe
-- Export de données personnelles
-- Niveaux de visibilité (Privé/Limité/Public)
+### Authentification ✅
+- Register/Login/Logout avec pseudonyme, changement mdp, export données
 
-### Import D'CLIC → Dashboard ✅
-- Retrieve par code d'accès
-- Import complet dans le profil utilisateur
-
-### Analyse CV Interactive ✅ (vérifié 27/03/2026)
+### Analyse CV ✅ (corrigé 27/03/2026)
 - Upload CV (PDF, DOCX, TXT) avec analyse IA
-- Audit CV 10 critères professionnels (score global /100)
-- Extraction savoir-faire, savoir-être, expériences
-- Offres d'emploi suggérées cohérentes avec le métier
-- Centres d'intérêt détectés et analysés (qualités, reformulations CV)
-- Compétences émergentes détectées (6 pour un concierge)
-- Génération 4 modèles CV optimisés (Classique, Compétences, Transversal, Nouvelle Gen)
-- Download DOCX et PDF avec logo Re'Actif Pro
-- Modèle recommandé basé sur le profil
+- Retry amélioré : 5 tentatives + backoff exponentiel
+- Extraction PDF robuste (PyPDF2 + pdfplumber fallback)
+- Résilience post-traitement (sections indépendantes)
+- Messages d'erreur frontend spécifiques (502, fichier illisible, crédit)
+- Audit 10 critères, extraction compétences, offres emploi, centres intérêt
+- Génération 4 modèles CV optimisés (DOCX + PDF)
 
-### Passeport de Compétences ✅ (8 sous-onglets)
-- Profil, Compétences, Évaluation, Archéologie, Émergentes, Expériences, Passerelles, Profil Dynamique
-- Auto-évaluation CCSP IA (43 compétences)
-- Passerelles IA corrigées (priorise titre CV métier actuel)
-- Partage de passeport par lien
+### Passeport de Compétences ✅
+- 8 sous-onglets, Auto-évaluation CCSP IA, Passerelles IA corrigées
 
 ### Coffre-fort Numérique ✅ (UI de base)
-- CRUD documents avec catégories
-- Recherche et filtres
-
 ### Observatoire des Compétences ✅
-- Tendances sectorielles, compétences émergentes
-- Onglet "Détectées CV" avec matching contextuel
-
 ### Job Matching ✅
-- Matching IA basé sur profil CV réel
-- Offres pertinentes (concierge → postes concierge/gardien, pas consultant)
-- Filtres de recherche
-
-### Autres ✅
-- Formations (modules IA personnalisés)
-- Explorateur de métiers (ISCO + IA)
-- Index d'évolution
-- Ubuntoo (interface communautaire de base)
-- Responsive mobile
+### Formations ✅
+### Explorateur de métiers ✅
+### Ubuntoo (interface de base) ✅
 
 ## Bugs corrigés
-- 26/03/2026: Passerelles incohérentes : proposaient "Consultant" pour un Concierge → Corrigé
-- 26/03/2026: Job Matching : même problème → Corrigé
+- 26/03/2026: Passerelles/Job Matching incohérents → Corrigé
+- 27/03/2026: Analyse CV erreur 502 BadGateway + EOF PDF → Corrigé (retry + pdfplumber + résilience)
 
-## Vérifications récentes
-- 27/03/2026: Traitement CV complet vérifié (backend API + frontend UI) — tout OK
+## Deployment Readiness (27/03/2026)
+- ✅ load_dotenv(override=False) corrigé
+- ✅ .gitignore nettoyé (pas de blocage .env)
+- ✅ URLs hardcodées supprimées (process.env.REACT_APP_BACKEND_URL)
+- ✅ Deployment agent: PASS
 
-## Backlog priorité
+## Backlog
 
-### P0 - Déploiement Production
-- Variable d'env EMERGENT_LLM_KEY non chargée par le backend en prod (OVH VPS)
-- Fix proposé: utiliser heredoc au lieu de printf dans deploy.yml + EnvironmentFile dans systemd
+### P0 - Production
+- Déployer corrections via Save to GitHub
+- Variable EMERGENT_LLM_KEY en production
 
-### P1 - Espace communautaire Ubuntoo
-- Enrichir l'interface existante (forum, échanges, signaux)
+### P1 - Ubuntoo
+- Enrichir l'interface communautaire
 
 ### P2 - Coffre-fort numérique
-- Upload réel de fichiers (preuves, attestations, diplômes)
-- Stockage Object Storage
+- Upload réel de fichiers
 
-### P3 - Narratif IA personnalisé
-- Génération IA en fin de test D'CLIC PRO
-
-### P3 - FranceConnect
-- Certification d'identité
-
+### P3 - Narratif IA / FranceConnect
 ### P4 - Ateliers Codéveloppement / Micro-badges
-- Système de badges et ateliers collaboratifs
-
-### Refactoring
-- DclicTestPage.jsx (~2000 lignes) → scinder en composants
-- ObservatoireView.jsx (~2000 lignes) → scinder en composants
-
-## API Endpoints clés
-- POST /api/auth/register, /api/auth/login, GET /api/auth/verify
-- POST /api/dclic/submit, /api/dclic/retrieve, /api/dclic/claim
-- POST /api/profile/import-dclic, PUT /api/profile
-- POST /api/cv/analyze-text, GET /api/cv/models, POST /api/cv/generate-models
-- GET /api/cv/download/{type}, GET /api/cv/download-pdf/{type}
-- GET /api/cv/latest-analysis, GET /api/cv/centres-interet
-- GET /api/passport, /api/passport/passerelles, /api/passport/diagnostic
-- GET /api/coffre/documents, POST /api/coffre/documents
-- GET /api/observatoire/dashboard, /api/observatoire/personalized
-- GET /api/jobs/matching, GET /api/learning
-- GET /api/ubuntoo/dashboard, /api/ubuntoo/signals
-
-## DB Collections (36 total)
-- profiles, tokens, passports, cv_models, cv_jobs, cv_texts
-- dclic_results, isco_metiers, coffre_documents
-- emerging_skills, emerging_competences, sector_trends
-- ubuntoo_signals, learning_modules_personalized, centres_interet
+### Refactoring - DclicTestPage.jsx, ObservatoireView.jsx
