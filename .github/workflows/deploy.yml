@@ -69,8 +69,9 @@ jobs:
             printf "[Unit]\nDescription=Reactif Pro Backend\nAfter=network.target mongod.service\n[Service]\nType=simple\nUser=root\nWorkingDirectory=/data/app/backend\nEnvironmentFile=/data/app/backend/.env\nExecStart=/data/app/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000\nRestart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/backend.service
             systemctl daemon-reload
             systemctl stop backend || true
-            pkill -9 -f "uvicorn server:app" || true
             sleep 2
+            fuser -k 8000/tcp 2>/dev/null || true
+            sleep 1
             find /data/app/backend -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
             systemctl enable backend
             systemctl start backend
