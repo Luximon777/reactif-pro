@@ -183,6 +183,10 @@ const ObservatoireView = ({ token }) => {
           <p className="text-slate-600 mt-1">
             Intelligence collective sur l'évolution du travail et des compétences
           </p>
+          <div className="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2" data-testid="observatoire-sample-data-banner">
+            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700">Les données affichées sont des <strong>exemples initiaux</strong> pour illustrer le fonctionnement de l'observatoire. Elles seront enrichies et remplacées par les contributions réelles des utilisateurs de la plateforme.</p>
+          </div>
         </div>
         <Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen}>
           <DialogTrigger asChild>

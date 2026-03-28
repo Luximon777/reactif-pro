@@ -569,9 +569,13 @@ const LearningSection = ({ modules, updateProgress, token }) => {
       {/* Static modules */}
       {modules.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <BookOpen className="w-5 h-5 text-[#1e3a5f]" />
             <h2 className="text-lg font-semibold text-slate-900">Modules de formation</h2>
+          </div>
+          <div className="mb-4 p-2.5 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2" data-testid="formations-sample-data-banner">
+            <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700">Ces modules sont des <strong>exemples initiaux</strong> pour illustrer le parcours de formation. Ils seront enrichis avec des contenus personnalisés en fonction de votre profil.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {modules.map((module, idx) => <LearningCard key={idx} module={module} onUpdateProgress={updateProgress} />)}
