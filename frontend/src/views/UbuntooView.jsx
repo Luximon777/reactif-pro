@@ -11,6 +11,8 @@ import {
   ThumbsUp, Star, Send, Clock, HelpCircle, Reply, Hash
 } from "lucide-react";
 
+import LogoReactifPro from "@/components/LogoReactifPro";
+
 const C = {
   bgDark: "#0d1117", bgCard: "rgba(255,255,255,0.03)", bgCardHover: "rgba(255,255,255,0.06)",
   textPrimary: "#f0f4fc", textSecondary: "rgba(240,244,252,0.65)",
@@ -412,7 +414,11 @@ const UbuntooView = ({ token }) => {
     <div data-testid="ubuntoo-view" style={{ background: C.bgDark, minHeight: "100vh", margin: "-1.5rem", padding: "0" }}>
       {/* Navigation */}
       <nav className="sticky top-0 z-10 flex items-center gap-1 px-4 py-2 overflow-x-auto" style={{ background: "rgba(13,17,23,0.95)", borderBottom: `1px solid ${C.border}`, backdropFilter: "blur(8px)" }}>
-        <img src={LOGO} alt="Ubuntoo" className="h-6 mr-3 flex-shrink-0" />
+        <div className="flex items-center gap-2 mr-4 flex-shrink-0">
+          <LogoReactifPro size="sm" />
+          <span style={{ color: C.textSecondary, fontSize: "11px" }}>×</span>
+          <img src={LOGO} alt="Ubuntoo" className="h-6" />
+        </div>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} data-testid={`ubuntoo-tab-${t.id}`}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all"

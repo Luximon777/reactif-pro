@@ -46,7 +46,6 @@ import EvolutionIndexView from "@/views/EvolutionIndexView";
 import PassportView from "@/views/PassportView";
 import ExplorateurView from "@/views/ExplorateurView";
 import PrivacySettingsView from "@/views/PrivacySettingsView";
-import UbuntooView from "@/views/UbuntooView";
 
 const Dashboard = () => {
   const { token, role, profileId, switchRole, logout, authMode, pseudo } = useAuth();
@@ -307,7 +306,7 @@ const Dashboard = () => {
               {/* Ubuntoo Link */}
               <Button variant="outline" size="sm"
                 className="hidden sm:flex border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 gap-1.5 text-xs"
-                onClick={() => navigate("/dashboard/ubuntoo")}
+                onClick={() => window.open("/ubuntoo", "_blank")}
                 data-testid="ubuntoo-link">
                 <img src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
                   alt="Ubuntoo" className="h-4 w-auto" />
@@ -491,7 +490,7 @@ const Dashboard = () => {
               })}
               <Button variant="ghost"
                 className="w-full justify-start text-teal-700 hover:bg-teal-50"
-                onClick={() => { navigate("/dashboard/ubuntoo"); setMobileMenuOpen(false); }}
+                onClick={() => { window.open("/ubuntoo", "_blank"); setMobileMenuOpen(false); }}
                 data-testid="ubuntoo-link-mobile">
                 <img
                   src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
@@ -516,7 +515,6 @@ const Dashboard = () => {
             <Route path="/explorateur" element={<ExplorateurView token={token} key={`explorateur-${refreshKey}`} />} />
             <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
             <Route path="/confidentialite" element={<PrivacySettingsView token={token} key={`privacy-${refreshKey}`} />} />
-            <Route path="/ubuntoo" element={<UbuntooView token={token} key={`ubuntoo-${refreshKey}`} />} />
             <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
             <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
