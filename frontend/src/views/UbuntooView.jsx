@@ -539,7 +539,6 @@ const UbuntooView = ({ token }) => {
           <a href="/dashboard" title={`Retour \u00e0 Re'Actif Pro`} style={{ display: "flex", alignItems: "center" }}>
             <LogoReactifPro size="sm" />
           </a>
-          <span className="ub-brand-tag">x Ubuntoo</span>
           <img src={LOGO} alt="Ubuntoo" style={{ height: "32px" }} />
         </div>
         <div className="ub-nav-links">
