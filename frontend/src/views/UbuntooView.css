@@ -204,3 +204,22 @@
 /* Small button */
 .ub-btn-small { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); color: var(--ub-cyan); padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
 .ub-btn-small:hover { background: rgba(6,182,212,0.25); }
+
+/* Responsive nav */
+@media (max-width: 768px) {
+  .ub-nav { flex-direction: column; gap: 8px; padding: 10px 16px; }
+  .ub-nav-links { flex-wrap: wrap; justify-content: center; }
+  .ub-nav-link { padding: 8px 10px; font-size: 12px; }
+  .ub-content { padding: 20px 16px; }
+  .ub-offers-grid { grid-template-columns: 1fr; }
+  .ub-groups-grid { grid-template-columns: 1fr; }
+  .ub-impact-grid { grid-template-columns: 1fr; }
+  .ub-kpi-grid { grid-template-columns: 1fr; }
+  .ub-profile-grid { grid-template-columns: 1fr; }
+  .ub-profile-card { flex-direction: column !important; }
+}
+
+/* Font */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+.ubuntoo-page { font-family: 'Outfit', system-ui, sans-serif; }
+.ubuntoo-page h1, .ubuntoo-page h2, .ubuntoo-page h3, .ubuntoo-page h4 { font-family: 'Outfit', sans-serif; }
