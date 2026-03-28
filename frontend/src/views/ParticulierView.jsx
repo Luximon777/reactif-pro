@@ -91,12 +91,15 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
         merged.push({ name: s.name, level: s.level ?? (s.declared_level ? s.declared_level * 20 : 50), source: s.source || "declaratif" });
       }
     }
+    // Only merge passport competences from actual analyses (prevents ghost skills on empty profiles)
+    const validSources = new Set(["dclic_pro", "ia_detectee", "analyse_cv", "centres_interet"]);
     for (const c of (passport?.competences || [])) {
       const key = (c.name || "").toLowerCase();
-      if (key && !seen.has(key)) {
+      const src = c.source || "";
+      if (key && !seen.has(key) && validSources.has(src)) {
         seen.add(key);
         const lvl = c.level === "expert" ? 90 : c.level === "avance" ? 70 : c.level === "intermediaire" ? 50 : 30;
-        merged.push({ name: c.name, level: lvl, source: c.source || "ia_detectee", nature: c.nature });
+        merged.push({ name: c.name, level: lvl, source: src, nature: c.nature });
       }
     }
     return merged;

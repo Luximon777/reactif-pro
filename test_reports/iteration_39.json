@@ -1,0 +1,65 @@
+{
+  "summary": "Iteration 39 - Bug fixes verification: Ghost skills fix, French accents in CvAnalysisSection, new Job Matching filters (lieu_residence, salaire_minimum)",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Auth Modal", "issues": ["Console warning: Missing aria-describedby for DialogContent - accessibility improvement (existing issue)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_job_matching_filters.py",
+    "/app/test_reports/pytest/pytest_iteration39.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_job_matching_filters.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": "bob15 / Solerys777!",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 4 bug fixes verified working: 1) Ghost skills fix - allSkills useMemo filters by valid sources only, 2) French accents present in CvAnalysisSection, 3) New Job Matching filters lieu_residence and salaire_minimum exist with proper data-testid attributes, 4) Backend API accepts new filter fields",
+  "features_tested": {
+    "ghost_skills_fix": {
+      "status": "PASSED",
+      "details": "ParticulierView.jsx lines 84-106: allSkills useMemo now filters passport competences by valid sources only (dclic_pro, ia_detectee, analyse_cv, centres_interet). Empty state message shown when no CV analyzed."
+    },
+    "french_accents_fix": {
+      "status": "PASSED",
+      "details": "CvAnalysisSection.jsx contains proper French accents: critères, complété, données, Sélectionnez, modèle, ciblée, compétences, etc."
+    },
+    "job_matching_lieu_residence_filter": {
+      "status": "PASSED",
+      "details": "Filter exists with data-testid='filter-lieu-residence' in JobMatchingSection.jsx. Backend accepts lieu_residence field in CandidateSearchProfile model."
+    },
+    "job_matching_salaire_minimum_filter": {
+      "status": "PASSED",
+      "details": "Filter exists with data-testid='filter-salaire-min' in JobMatchingSection.jsx. Backend accepts salaire_minimum field in CandidateSearchProfile model."
+    },
+    "backend_api_new_filters": {
+      "status": "PASSED",
+      "details": "POST /api/jobs/matching/search accepts lieu_residence and salaire_minimum fields. All 9 pytest tests passed."
+    },
+    "salary_display_in_job_cards": {
+      "status": "PASSED",
+      "details": "JobMatchingSection.jsx line 809 shows salary with data-testid='salary-{idx}' pattern when salaire_indicatif is present in AI-generated offers."
+    }
+  },
+  "code_review_verification": {
+    "ParticulierView.jsx": "Lines 84-106: Ghost skills fix implemented correctly with validSources Set filtering",
+    "CvAnalysisSection.jsx": "French accents present throughout the file",
+    "JobMatchingSection.jsx": "DEFAULT_FILTERS includes lieu_residence and salaire_minimum. FilterRow components added for both. buildSearchPayload sends new fields.",
+    "models.py": "CandidateSearchProfile includes zone_geographique, distance_km, lieu_residence, salaire_minimum fields",
+    "routes/jobs.py": "_generate_ai_offers includes lieu_residence and salaire_minimum in AI prompt context. all_filter_keys updated."
+  }
+}

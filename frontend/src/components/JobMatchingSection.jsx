@@ -90,8 +90,10 @@ const DEFAULT_FILTERS = {
   secteur: { value: "", priority: 3 },
   contrat: { value: [], priority: 3 },
   temps_travail: { value: "indifférent", priority: 2 },
+  lieu_residence: { value: "", priority: 4 },
   zone_geographique: { value: "", priority: 4 },
   distance_km: { value: 30, priority: 3 },
+  salaire_minimum: { value: "", priority: 3 },
   trajet_max_minutes: { value: 60, priority: 3 },
   teletravail: { value: "non prioritaire", priority: 2 },
   amenagement_poste: { value: "aucun", priority: 2 },
@@ -179,8 +181,10 @@ const JobMatchingSection = ({ token }) => {
           secteur: saved.secteur || prev.secteur,
           contrat: saved.contrat || prev.contrat,
           temps_travail: saved.temps_travail || prev.temps_travail,
+          lieu_residence: saved.lieu_residence || prev.lieu_residence,
           zone_geographique: saved.zone_geographique || prev.zone_geographique,
           distance_km: saved.distance_km || prev.distance_km,
+          salaire_minimum: saved.salaire_minimum || prev.salaire_minimum,
           trajet_max_minutes: saved.trajet_max_minutes || prev.trajet_max_minutes,
           teletravail: saved.teletravail || prev.teletravail,
           amenagement_poste: saved.amenagement_poste || prev.amenagement_poste,
@@ -230,6 +234,9 @@ const JobMatchingSection = ({ token }) => {
     if (filters.temps_travail.value && filters.temps_travail.value !== "indifférent") {
       payload.temps_travail = { value: filters.temps_travail.value, priority: filters.temps_travail.priority };
     }
+    if (filters.lieu_residence.value) {
+      payload.lieu_residence = { value: filters.lieu_residence.value, priority: filters.lieu_residence.priority };
+    }
     if (filters.trajet_max_minutes.value) {
       payload.trajet_max_minutes = { value: parseInt(filters.trajet_max_minutes.value) || 60, priority: filters.trajet_max_minutes.priority };
     }
@@ -238,6 +245,9 @@ const JobMatchingSection = ({ token }) => {
     }
     if (filters.distance_km.value) {
       payload.distance_km = { value: parseInt(filters.distance_km.value) || 30, priority: filters.distance_km.priority };
+    }
+    if (filters.salaire_minimum.value) {
+      payload.salaire_minimum = { value: parseInt(filters.salaire_minimum.value) || 0, priority: filters.salaire_minimum.priority };
     }
     if (filters.teletravail.value && filters.teletravail.value !== "non prioritaire") {
       payload.teletravail = { value: filters.teletravail.value, priority: filters.teletravail.priority };
@@ -407,6 +417,22 @@ const JobMatchingSection = ({ token }) => {
               </div>
             </FilterRow>
 
+            {/* Salaire minimum */}
+            <FilterRow label="Estimation du salaire minimum (brut annuel)" priority={filters.salaire_minimum.priority} onPriorityChange={(v) => updateFilter("salaire_minimum", "priority", v)}>
+              <div className="flex items-center gap-3">
+                <Input type="number" min={15000} max={150000} step={1000} placeholder="Ex: 25000"
+                  value={filters.salaire_minimum.value}
+                  onChange={(e) => updateFilter("salaire_minimum", "value", e.target.value)}
+                  className="h-9 text-sm w-32" data-testid="filter-salaire-min" />
+                <span className="text-xs text-slate-500">€ brut/an</span>
+                {filters.salaire_minimum.value && (
+                  <span className="text-xs text-blue-600 font-medium">
+                    ~{Math.round((parseInt(filters.salaire_minimum.value) || 0) / 12)} €/mois
+                  </span>
+                )}
+              </div>
+            </FilterRow>
+
             {/* Temps */}
             <FilterRow label="Temps de travail" priority={filters.temps_travail.priority} onPriorityChange={(v) => updateFilter("temps_travail", "priority", v)}>
               <div className="flex gap-2">
@@ -419,8 +445,20 @@ const JobMatchingSection = ({ token }) => {
               </div>
             </FilterRow>
 
+            {/* Lieu de résidence */}
+            <FilterRow label="Lieu de résidence (votre domicile)" priority={filters.lieu_residence.priority} onPriorityChange={(v) => updateFilter("lieu_residence", "priority", v)}>
+              <Input
+                type="text"
+                placeholder="Ex: Marseille, 13001, Bouches-du-Rhône..."
+                value={filters.lieu_residence.value}
+                onChange={(e) => updateFilter("lieu_residence", "value", e.target.value)}
+                className="h-9 text-sm"
+                data-testid="filter-lieu-residence"
+              />
+            </FilterRow>
+
             {/* Zone géographique */}
-            <FilterRow label="Zone géographique (ville, département)" priority={filters.zone_geographique.priority} onPriorityChange={(v) => updateFilter("zone_geographique", "priority", v)}>
+            <FilterRow label="Zone géographique souhaitée (où chercher)" priority={filters.zone_geographique.priority} onPriorityChange={(v) => updateFilter("zone_geographique", "priority", v)}>
               <Input
                 type="text"
                 placeholder="Ex: Paris, Lyon, Île-de-France..."
@@ -431,8 +469,8 @@ const JobMatchingSection = ({ token }) => {
               />
             </FilterRow>
 
-            {/* Distance max */}
-            <FilterRow label="Distance maximale du domicile" priority={filters.distance_km.priority} onPriorityChange={(v) => updateFilter("distance_km", "priority", v)}>
+            {/* Distance max depuis résidence */}
+            <FilterRow label="Distance maximale depuis votre résidence" priority={filters.distance_km.priority} onPriorityChange={(v) => updateFilter("distance_km", "priority", v)}>
               <div className="flex items-center gap-3">
                 <Input type="number" min={5} max={200} value={filters.distance_km.value}
                   onChange={(e) => updateFilter("distance_km", "value", e.target.value)} className="h-9 text-sm w-24" data-testid="filter-distance-km" />
@@ -764,10 +802,14 @@ const JobMatchingSection = ({ token }) => {
                   </div>
 
                   {/* Meta info */}
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 flex-wrap gap-1">
                     {match.localisation && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{match.localisation}</span>}
                     {match.distance_domicile_km && <span className="text-blue-500 font-medium">{match.distance_domicile_km} km</span>}
-                    {match.salaire_indicatif && <span className="font-medium text-slate-600">{match.salaire_indicatif}</span>}
+                    {match.salaire_indicatif && (
+                      <span className="font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded" data-testid={`salary-${idx}`}>
+                        {match.salaire_indicatif}
+                      </span>
+                    )}
                   </div>
 
                   {/* Expand for details */}

@@ -82,6 +82,8 @@ async def _generate_ai_offers(token_id: str, user_skills: set, user_title: str, 
     # Add filter context to guide AI generation
     filter_context = ""
     if filters:
+        if filters.get("lieu_residence") and filters["lieu_residence"].get("value"):
+            filter_context += f"\nLieu de résidence du candidat: {filters['lieu_residence']['value']}"
         if filters.get("metier") and filters["metier"].get("value"):
             val = filters["metier"]["value"]
             if isinstance(val, list):
@@ -101,9 +103,11 @@ async def _generate_ai_offers(token_id: str, user_skills: set, user_title: str, 
             else:
                 filter_context += f"\nType de contrat: {val}"
         if filters.get("zone_geographique") and filters["zone_geographique"].get("value"):
-            filter_context += f"\nZone géographique: {filters['zone_geographique']['value']}"
+            filter_context += f"\nZone géographique souhaitée: {filters['zone_geographique']['value']}"
         if filters.get("distance_km") and filters["distance_km"].get("value"):
-            filter_context += f"\nDistance maximale du domicile: {filters['distance_km']['value']} km"
+            filter_context += f"\nDistance maximale depuis le domicile: {filters['distance_km']['value']} km"
+        if filters.get("salaire_minimum") and filters["salaire_minimum"].get("value"):
+            filter_context += f"\nSalaire minimum souhaité: {filters['salaire_minimum']['value']} € brut/an"
 
     if filter_context:
         context += f"\n\nCritères de recherche du candidat:{filter_context}"
@@ -226,7 +230,8 @@ async def get_job_matching(token: str):
     # If user has filters, score each offer with the algorithm
     matches = []
     all_filter_keys = ["metier", "secteur", "contrat", "temps_travail", "trajet_max_minutes", "teletravail",
-                       "amenagement_poste", "restrictions_fonctionnelles", "ciblage_employeurs_inclusifs", "accessibilite_metier_handicap"]
+                       "amenagement_poste", "restrictions_fonctionnelles", "ciblage_employeurs_inclusifs", "accessibilite_metier_handicap",
+                       "zone_geographique", "distance_km", "lieu_residence", "salaire_minimum"]
     if filters and any(filters.get(k) for k in all_filter_keys):
         candidate_profile = {}
         for key in all_filter_keys:

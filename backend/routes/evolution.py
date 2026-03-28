@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
+import hashlib
 from db import db
 from helpers import get_current_token
 
@@ -192,9 +193,10 @@ async def get_user_evolution_analysis(token: str):
 
     # If we have a CV but no matching job indices, generate personalized analysis via AI
     if has_cv and (not relevant_jobs or len(relevant_jobs) < 2) and EMERGENT_LLM_KEY and user_skills:
-        # Check cache first
+        # Check cache with skills hash to auto-invalidate when profile changes
+        skills_hash = hashlib.md5("|".join(sorted(user_skills_list)).encode()).hexdigest()[:12]
         cached = await db.evolution_cache.find_one({"token_id": token_id}, {"_id": 0})
-        if cached and cached.get("ai_analysis"):
+        if cached and cached.get("ai_analysis") and cached.get("skills_hash") == skills_hash:
             ai_analysis = cached["ai_analysis"]
         else:
             ai_analysis = await _generate_evolution_analysis_ai(
@@ -203,7 +205,7 @@ async def get_user_evolution_analysis(token: str):
             if ai_analysis:
                 await db.evolution_cache.update_one(
                     {"token_id": token_id},
-                    {"$set": {"token_id": token_id, "ai_analysis": ai_analysis, "user_title": user_title, "updated_at": datetime.now(timezone.utc).isoformat()}},
+                    {"$set": {"token_id": token_id, "ai_analysis": ai_analysis, "user_title": user_title, "skills_hash": skills_hash, "updated_at": datetime.now(timezone.utc).isoformat()}},
                     upsert=True
                 )
         if ai_analysis:
@@ -280,7 +282,13 @@ async def _generate_evolution_analysis_ai(user_title, user_skills, user_sectors,
 
     skills_str = ", ".join(user_skills[:25])
     sectors_str = ", ".join(user_sectors[:5]) if user_sectors else "non précisé"
-    context = f"Titre du profil: {user_title}\nCompétences: {skills_str}\nSecteurs: {sectors_str}"
+    context = f"""PROFIL À ANALYSER:
+Titre/Métier actuel: {user_title}
+Compétences identifiées dans le CV: {skills_str}
+Secteurs d'activité: {sectors_str}
+
+IMPORTANT: Ton analyse DOIT être directement liée au métier "{user_title}" et aux compétences ci-dessus.
+Ne génère PAS une analyse générique. Chaque recommandation doit s'appuyer sur les compétences réelles du profil."""
 
     try:
         chat = LlmChat(

@@ -143,6 +143,10 @@ class CandidateSearchProfile(BaseModel):
     rqth_eqth: Optional[RqthEqthInfo] = None
     ciblage_employeurs_inclusifs: Optional[CandidateSearchCriterion] = None
     accessibilite_metier_handicap: Optional[CandidateSearchCriterion] = None
+    zone_geographique: Optional[CandidateSearchCriterion] = None
+    distance_km: Optional[CandidateSearchCriterion] = None
+    lieu_residence: Optional[CandidateSearchCriterion] = None
+    salaire_minimum: Optional[CandidateSearchCriterion] = None
 
 
 class CoffreDocument(BaseModel):

@@ -16,7 +16,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://reactif-pro-preview.preview.emergentagent.com"
+    BASE_URL = "https://dclick-replica.preview.emergentagent.com"
 
 
 class TestReferentielEndpoints:

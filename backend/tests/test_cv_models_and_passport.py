@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://reactif-pro-preview.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://dclick-replica.preview.emergentagent.com').rstrip('/')
 TEST_TOKEN = "BzCnm4CfG4cm6aixgdgcrwcjM-tIpnl99ycJWySXOGs"
 
 

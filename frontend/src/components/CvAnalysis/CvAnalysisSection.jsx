@@ -254,7 +254,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           if (res.data.status === "completed") {
             const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
             if (modelsRes.data.models) setCvModels(modelsRes.data);
-            toast.success(`${selectedGenModels.length} CV optimise${selectedGenModels.length > 1 ? "s" : ""} par IA`);
+            toast.success(`${selectedGenModels.length} CV optimisé${selectedGenModels.length > 1 ? "s" : ""} par IA`);
             setSelectedGenModels([]);
             break;
           }
@@ -354,7 +354,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div>
             <FileDown className="w-8 h-8 mx-auto text-slate-400 mb-2" />
             <p className="text-sm font-medium text-slate-700">Chargez votre CV (PDF, DOCX, TXT)</p>
-            <p className="text-sm text-slate-400">L'IA auditera votre CV selon 10 criteres professionnels et proposera une optimisation percutante</p>
+            <p className="text-sm text-slate-400">L'IA auditera votre CV selon 10 critères professionnels et proposera une optimisation percutante</p>
           </div>
         )}
       </div>
@@ -452,7 +452,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               </div>
             </div>
           )}
-          <p className="text-sm text-emerald-600 font-medium">Passeport automatiquement complete avec les donnees extraites</p>
+          <p className="text-sm text-emerald-600 font-medium">Passeport automatiquement complété avec les données extraites</p>
           {/* Boutons transfert vers coffre-fort */}
           <div className="border-t border-emerald-200 pt-3 mt-3">
             <p className="text-xs font-medium text-slate-500 mb-2">Transférer dans le coffre-fort :</p>
@@ -501,7 +501,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-[#1e3a5f]" />
-              <h4 className="font-semibold text-slate-800">Audit CV — 10 criteres professionnels</h4>
+              <h4 className="font-semibold text-slate-800">Audit CV — 10 critères professionnels</h4>
             </div>
             {analysisResult.score_global_cv != null && (
               <div className="flex items-center gap-2">
@@ -516,7 +516,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             {analysisResult.audit_cv.map((item, i) => {
               const statusColor = item.statut === "ok" ? "bg-emerald-50 border-emerald-200" : item.statut === "ameliorable" ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
               const statusBadge = item.statut === "ok" ? "bg-emerald-100 text-emerald-700" : item.statut === "ameliorable" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
-              const statusLabel = item.statut === "ok" ? "OK" : item.statut === "ameliorable" ? "A ameliorer" : "Absent";
+              const statusLabel = item.statut === "ok" ? "OK" : item.statut === "ameliorable" ? "À améliorer" : "Absent";
               return (
                 <div key={i} className={`p-2.5 rounded-lg border ${statusColor} space-y-1`} data-testid={`audit-rule-${i}`}>
                   <div className="flex items-center justify-between">
@@ -664,7 +664,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
           <BarChart3 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-blue-800">
-              Modele recommande : <span className="text-blue-600">{CV_MODELS_CONFIG.find(c => c.key === analysisResult.modele_suggere)?.name || analysisResult.modele_suggere}</span>
+              Modèle recommandé : <span className="text-blue-600">{CV_MODELS_CONFIG.find(c => c.key === analysisResult.modele_suggere)?.name || analysisResult.modele_suggere}</span>
             </p>
             {analysisResult.raison_modele && (
               <p className="text-xs text-blue-600 mt-0.5">{analysisResult.raison_modele}</p>
@@ -680,13 +680,13 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <Sparkles className="w-4 h-4 text-blue-600" />
             <h4 className="text-base font-semibold text-slate-800">Optimiser votre CV par IA</h4>
           </div>
-          <p className="text-sm text-slate-500">Re'Actif Pro IA optimise et adapte votre CV pour passer les filtres ATS des recruteurs. Selectionnez un modele et collez une offre d'emploi pour une optimisation ciblee.</p>
+          <p className="text-sm text-slate-500">Re'Actif Pro IA optimise et adapte votre CV pour passer les filtres ATS des recruteurs. Sélectionnez un modèle et collez une offre d'emploi pour une optimisation ciblée.</p>
 
           {/* Job offer input for ATS optimization */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2" data-testid="job-offer-input">
             <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
               <Target className="w-4 h-4 text-[#1e3a5f]" />
-              Offre d'emploi cible (optionnel — pour optimisation ATS ciblee)
+              Offre d'emploi cible (optionnel — pour optimisation ATS ciblée)
             </label>
             <textarea
               className="w-full text-sm border border-slate-200 rounded-lg p-3 resize-none focus:ring-1 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] placeholder:text-slate-400"
@@ -706,7 +706,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                     const res = await axios.get(`${API}/scrape/job-offer?url=${encodeURIComponent(jobOfferText.trim())}`);
                     if (res.data.success) {
                       setJobOfferText(res.data.text);
-                      toast.success("Offre d'emploi importee depuis le lien !");
+                      toast.success("Offre d'emploi importée depuis le lien !");
                     } else {
                       toast.error("Import impossible pour ce site. Copiez-collez le texte de l'offre directement.");
                     }
@@ -726,7 +726,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             )}
             {jobOfferText && !/^https?:\/\/\S+$/i.test(jobOfferText.trim()) && (
               <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> L'IA integrera les mots-cles de cette offre pour optimiser le passage ATS
+                <CheckCircle2 className="w-3.5 h-3.5" /> L'IA intégrera les mots-clés de cette offre pour optimiser le passage ATS
               </p>
             )}
           </div>
@@ -769,7 +769,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold truncate">{cv.name}</p>
-                        {hasModel && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Optimise</span>}
+                        {hasModel && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex-shrink-0">Optimisé</span>}
                       </div>
                       <p className="text-xs opacity-70">{cv.desc}</p>
                     </div>
@@ -797,8 +797,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             <div className="flex items-center justify-between pt-1">
               <p className="text-sm text-slate-500">
                 {selectedGenModels.length === 0
-                  ? "Selectionnez au moins un modele"
-                  : `${selectedGenModels.length} modele${selectedGenModels.length > 1 ? "s" : ""} selectionne${selectedGenModels.length > 1 ? "s" : ""}`}
+                  ? "Sélectionnez au moins un modèle"
+                  : `${selectedGenModels.length} modèle${selectedGenModels.length > 1 ? "s" : ""} sélectionné${selectedGenModels.length > 1 ? "s" : ""}`}
               </p>
               <Button
                 size="sm"
@@ -820,24 +820,24 @@ const CvAnalysisSection = ({ token, onComplete }) => {
         <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5a8f] rounded-xl p-4 text-white space-y-3" data-testid="ats-strategy-section">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5" />
-            <h4 className="font-semibold text-sm">Strategie Re'Actif Pro — Optimisation ATS</h4>
+            <h4 className="font-semibold text-sm">Stratégie Re'Actif Pro — Optimisation ATS</h4>
           </div>
-          <p className="text-sm text-white/80">Votre CV est optimise par l'IA pour passer les filtres automatiques (ATS) des recruteurs : mots-cles adaptes, format simple, intitules clairs, competences explicites.</p>
+          <p className="text-sm text-white/80">Votre CV est optimisé par l'IA pour passer les filtres automatiques (ATS) des recruteurs : mots-clés adaptés, format simple, intitulés clairs, compétences explicites.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
               <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Canal ATS</p>
-              <p className="text-sm text-white mt-1">CV optimise mots-cles</p>
-              <p className="text-xs text-white/60 mt-0.5">Format Word/PDF simple, intitules exacts, competences explicites</p>
+              <p className="text-sm text-white mt-1">CV optimisé mots-clés</p>
+              <p className="text-xs text-white/60 mt-0.5">Format Word/PDF simple, intitulés exacts, compétences explicites</p>
             </div>
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
-              <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Canal Reseau</p>
+              <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Canal Réseau</p>
               <p className="text-sm text-white mt-1">Recommandations et contacts</p>
-              <p className="text-xs text-white/60 mt-0.5">Activez votre reseau : l'ATS standardise, le reseau humanise</p>
+              <p className="text-xs text-white/60 mt-0.5">Activez votre réseau : l'ATS standardise, le réseau humanise</p>
             </div>
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
               <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Approche directe</p>
               <p className="text-sm text-white mt-1">Mail, LinkedIn, appel</p>
-              <p className="text-xs text-white/60 mt-0.5">Demarquez-vous au-dela des filtres automatiques</p>
+              <p className="text-xs text-white/60 mt-0.5">Démarquez-vous au-delà des filtres automatiques</p>
             </div>
           </div>
         </div>
