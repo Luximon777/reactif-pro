@@ -79,7 +79,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   };
 
   // Fusionner skills du profil + compétences du passeport avec la source
-  const displayProfile = profile || { name: "Utilisateur", profile_score: 45, skills: [], strengths: [], gaps: [], sectors: [] };
+  const displayProfile = profile || { name: "Utilisateur", profile_score: 0, skills: [], strengths: [], gaps: [], sectors: [] };
 
   const allSkills = useMemo(() => {
     const merged = [];
@@ -114,7 +114,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   }
 
   const metrics = [
-    { title: "Identité Professionnelle", value: `${displayProfile.profile_score || 45}%`, icon: Target, color: "blue", subtitle: "Complétude de votre profil" },
+    { title: "Identité Professionnelle", value: `${displayProfile.profile_score ?? 0}%`, icon: Target, color: "blue", subtitle: "Complétude de votre profil" },
     { title: "Job Matching", value: jobs.filter(j => j.match_score >= 60).length.toString(), icon: Briefcase, color: "emerald", subtitle: "Offres compatibles" },
     { title: "Parcours Formation", value: learningModules.filter(m => m.progress > 0 && m.progress < 100).length.toString(), icon: BookOpen, color: "amber", subtitle: "Modules en cours" },
     { title: "Compétences Valorisées", value: allSkills.length.toString(), icon: Zap, color: "violet", subtitle: "Toutes sources confondues" }
