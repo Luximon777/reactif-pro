@@ -163,7 +163,7 @@ const AccueilTab = () => (
       <h2 className="text-xl font-bold mb-2" style={{ color: C.textPrimary }}>Rejoignez la communauté Ubuntoo</h2>
       <p className="text-sm mb-4" style={{ color: C.textSecondary }}>Vous êtes connecté avec votre compte RE'ACTIF PRO. L'espace communautaire sera bientôt pleinement actif.</p>
       <div className="flex flex-wrap justify-center gap-3">
-        <a href="https://declicpro-preview.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer">
+        <a href="https://coffre-fort-pro.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer">
           <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white gap-2">Accéder à D'CLIC PRO <ExternalLink className="w-4 h-4" /></Button>
         </a>
         <a href="https://www.alt-act.eu/" target="_blank" rel="noopener noreferrer">

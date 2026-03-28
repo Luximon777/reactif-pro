@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://dclick-replica.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://coffre-fort-pro.preview.emergentagent.com')
 
 # Test credentials
 TEST_USER_PSEUDO = f"testverif_{int(time.time())}"
