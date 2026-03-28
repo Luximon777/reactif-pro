@@ -1,33 +1,35 @@
 # Re'Actif Pro - PRD
 
-## Problème original
-Répliquer D'CLIC PRO, intégrer Ubuntoo, coffre-fort numérique, fonctionnalités IA.
+## Probl\u00e8me original
+R\u00e9pliquer D'CLIC PRO, int\u00e9grer Ubuntoo, coffre-fort num\u00e9rique, fonctionnalit\u00e9s IA.
 
 ## Architecture
 - Frontend: React + Tailwind + Shadcn/UI + Recharts
 - Backend: FastAPI + MongoDB (Motor async)
 - Auth: Pseudonyme anonyme (JWT tokens)
 - LLM: OpenAI GPT-5.2 via Emergent LLM Key
-- Déploiement: Nginx + systemd, GitHub Actions → OVH VPS
+- D\u00e9ploiement: Nginx + systemd, GitHub Actions \u2192 OVH VPS
 
-## Implémenté
+## Impl\u00e9ment\u00e9
 - Design D'CLIC PRO, Auth, Analyse CV, Passeport, Coffre-fort (UI base)
 - Observatoire, Job Matching, Formations, Explorateur, Ubuntoo (base)
-- CI/CD GitHub Actions → OVH VPS
-- 27/03: Fix production zombie uvicorn, légende sources compétences, transfert CV coffre-fort, zone géographique + distance km, cache Évolution
-- 28/03: Fix compétence fantôme (filtrage sources valides), accents manquants CvAnalysisSection, cache Évolution avec hash compétences, ajout filtres lieu de résidence et estimation salaire dans Job Matching
+- CI/CD GitHub Actions \u2192 OVH VPS
+- 27/03: Fix production zombie uvicorn, l\u00e9gende sources comp\u00e9tences, transfert CV coffre-fort, zone g\u00e9ographique + distance km, cache \u00c9volution
+- 28/03: Fix comp\u00e9tence fant\u00f4me (filtrage sources valides), accents manquants CvAnalysisSection, cache \u00c9volution avec hash comp\u00e9tences, ajout filtres lieu de r\u00e9sidence et estimation salaire dans Job Matching
+- 28/03: Ubuntoo int\u00e9gr\u00e9 nativement en route standalone /ubuntoo (6 onglets: Accueil, Profil, Groupes, Discussions, Mentorat, Impact)
+- 02/2026: Ubuntoo stylis\u00e9 avec CSS complet (hover translateY, gradients arc-en-ciel, tooltip Ubuntu, cartes glassmorphiques, badges color\u00e9s, nav sticky orange)
+- 02/2026: Prompt \u00c9volution IA am\u00e9lior\u00e9 (personnalisation stricte, comp\u00e9tences du CV, formations r\u00e9elles, cache invalidation par titre+skills)
 
-## Bugs corrigés
-- 26/03: Passerelles/Job Matching incohérents
+## Bugs corrig\u00e9s
+- 26/03: Passerelles/Job Matching incoh\u00e9rents
 - 27/03: CV 502 BadGateway, production zombie uvicorn, load_dotenv override
-- 28/03: Compétence fantôme espace personnel (filtrage par source)
-- 28/03: Accents manquants CvAnalysisSection (critères, complété, données, Sélectionnez, modèle, etc.)
-- 28/03: Cache Évolution non invalidé lors de changement de profil (ajout skills_hash)
+- 28/03: Comp\u00e9tence fant\u00f4me espace personnel (filtrage par source)
+- 28/03: Accents manquants CvAnalysisSection (crit\u00e8res, compl\u00e9t\u00e9, donn\u00e9es, S\u00e9lectionnez, mod\u00e8le, etc.)
+- 28/03: Cache \u00c9volution non invalid\u00e9 lors de changement de profil (ajout skills_hash)
+- 02/2026: \u00c9volution IA g\u00e9n\u00e9rique \u2192 maintenant personnalis\u00e9e (skills_at_risk/in_demand v\u00e9rifi\u00e9es vs CV r\u00e9el)
 
 ## Backlog
-- P1: Contenu Évolution plus pertinent (prompt IA amélioré, à valider par l'utilisateur)
-- P1: Ubuntoo enrichi
-- P2: Coffre-fort upload réel (fichiers libres utilisateur)
+- P2: Coffre-fort upload r\u00e9el (fichiers libres utilisateur)
 - P3: Narratif IA D'CLIC PRO, FranceConnect
-- P4: Ateliers Codéveloppement / Micro-badges
+- P4: Ateliers Cod\u00e9veloppement / Micro-badges
 - Refactoring: DclicTestPage.jsx, ObservatoireView.jsx (>2000 lignes)

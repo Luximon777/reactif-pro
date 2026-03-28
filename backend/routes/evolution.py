@@ -194,7 +194,7 @@ async def get_user_evolution_analysis(token: str):
     # If we have a CV but no matching job indices, generate personalized analysis via AI
     if has_cv and (not relevant_jobs or len(relevant_jobs) < 2) and EMERGENT_LLM_KEY and user_skills:
         # Check cache with skills hash to auto-invalidate when profile changes
-        skills_hash = hashlib.md5("|".join(sorted(user_skills_list)).encode()).hexdigest()[:12]
+        skills_hash = hashlib.md5((user_title + "|" + "|".join(sorted(user_skills_list))).encode()).hexdigest()[:12]
         cached = await db.evolution_cache.find_one({"token_id": token_id}, {"_id": 0})
         if cached and cached.get("ai_analysis") and cached.get("skills_hash") == skills_hash:
             ai_analysis = cached["ai_analysis"]
@@ -213,6 +213,8 @@ async def get_user_evolution_analysis(token: str):
                 "has_cv": True,
                 "profile_sectors": user_sectors_list,
                 "profile_skills": user_skills_list,
+                "user_title": user_title,
+                "analysis_summary": ai_analysis.get("analysis_summary", ""),
                 "evolution_exposure": ai_analysis.get("evolution_exposure", 50),
                 "exposure_interpretation": get_index_interpretation(ai_analysis.get("evolution_exposure", 50)),
                 "relevant_jobs": ai_analysis.get("relevant_jobs", [])[:5],
@@ -280,43 +282,59 @@ async def _generate_evolution_analysis_ai(user_title, user_skills, user_sectors,
     import json as _json
     import logging
 
-    skills_str = ", ".join(user_skills[:25])
-    sectors_str = ", ".join(user_sectors[:5]) if user_sectors else "non précisé"
-    context = f"""PROFIL À ANALYSER:
-Titre/Métier actuel: {user_title}
-Compétences identifiées dans le CV: {skills_str}
-Secteurs d'activité: {sectors_str}
+    skills_str = ", ".join(user_skills[:30])
+    sectors_str = ", ".join(user_sectors[:5]) if user_sectors else "non renseign\u00e9"
+    title_display = user_title if user_title else "Profil polyvalent (titre non d\u00e9tect\u00e9)"
 
-IMPORTANT: Ton analyse DOIT être directement liée au métier "{user_title}" et aux compétences ci-dessus.
-Ne génère PAS une analyse générique. Chaque recommandation doit s'appuyer sur les compétences réelles du profil."""
+    context = f"""PROFIL PROFESSIONNEL \u00c0 ANALYSER (donn\u00e9es extraites du CV r\u00e9el de l'utilisateur) :
+
+M\u00c9TIER / TITRE ACTUEL : {title_display}
+COMP\u00c9TENCES DU CV (liste exacte) : {skills_str}
+SECTEURS D'ACTIVIT\u00c9 : {sectors_str}
+
+CONSIGNES STRICTES :
+1. Ton analyse DOIT \u00eatre 100% centr\u00e9e sur le m\u00e9tier "{title_display}" et les {len(user_skills)} comp\u00e9tences list\u00e9es ci-dessus.
+2. Dans "skills_at_risk", utilise UNIQUEMENT des comp\u00e9tences pr\u00e9sentes dans la liste ci-dessus qui sont en d\u00e9clin sur le march\u00e9.
+3. Dans "skills_in_demand", utilise UNIQUEMENT des comp\u00e9tences pr\u00e9sentes dans la liste ci-dessus qui sont recherch\u00e9es.
+4. Les "recommended_skills_to_acquire" doivent \u00eatre des comp\u00e9tences NOUVELLES (absentes du CV) mais directement li\u00e9es au m\u00e9tier "{title_display}".
+5. Les "relevant_jobs" doivent \u00eatre des m\u00e9tiers accessibles depuis le profil actuel (passerelles r\u00e9alistes).
+6. Les formations recommand\u00e9es doivent \u00eatre des formations r\u00e9elles disponibles en France (CPF, universit\u00e9s, organismes).
+7. NE G\u00c9N\u00c8RE PAS de contenu g\u00e9n\u00e9rique sans lien avec ce profil sp\u00e9cifique."""
 
     try:
         chat = LlmChat(
             api_key=api_key,
             session_id=f"evolution-{token_id[:8]}",
-            system_message="""Tu es un expert en prospective des métiers et évolution des compétences en France.
-Analyse le profil professionnel donné et génère une analyse d'évolution des compétences PERSONNALISÉE.
+            system_message="""Tu es un expert en prospective des m\u00e9tiers et \u00e9volution des comp\u00e9tences sur le march\u00e9 du travail fran\u00e7ais.
+Tu re\u00e7ois un profil professionnel r\u00e9el extrait d'un CV. Tu dois produire une analyse d'\u00e9volution ENTI\u00c8REMENT personnalis\u00e9e.
 
-Évalue sur 0-100 la vitesse à laquelle les compétences de ce profil évoluent :
-- 0-20 : Très stable
-- 20-50 : Évolutif
-- 50-80 : En transformation
-- 80-100 : Forte mutation
+\u00c9value sur 0-100 la vitesse \u00e0 laquelle les comp\u00e9tences de ce profil sp\u00e9cifique \u00e9voluent :
+- 0-20 : Tr\u00e8s stable (comp\u00e9tences p\u00e9rennes, peu d'obsolescence)
+- 20-50 : \u00c9volutif (adaptations progressives n\u00e9cessaires)
+- 50-80 : En transformation (requ\u00e9rant une mont\u00e9e en comp\u00e9tences significative)
+- 80-100 : Forte mutation (reconversion ou formation lourde n\u00e9cessaire)
 
-Réponds UNIQUEMENT en JSON valide:
+R\u00e8gles ABSOLUES :
+- "skills_at_risk" et "skills_in_demand" ne doivent contenir QUE des comp\u00e9tences qui existent dans le CV du candidat.
+- "recommended_skills_to_acquire" ne doit contenir QUE des comp\u00e9tences ABSENTES du CV mais pertinentes pour l'\u00e9volution du m\u00e9tier.
+- Les m\u00e9tiers propos\u00e9s dans "relevant_jobs" doivent \u00eatre accessibles avec les comp\u00e9tences actuelles + une formation compl\u00e9mentaire raisonnable.
+- Base-toi sur les vraies tendances du march\u00e9 fran\u00e7ais 2025-2026 (IA, num\u00e9rique, transition \u00e9cologique, sant\u00e9, etc.)
+
+R\u00e9ponds UNIQUEMENT en JSON valide (sans commentaires, sans markdown) :
 {
   "evolution_exposure": 55,
+  "analysis_summary": "R\u00e9sum\u00e9 en 2-3 phrases de l'analyse personnalis\u00e9e",
   "skills_at_risk": [
-    {"skill": "nom compétence en déclin", "job": "métier concerné"}
+    {"skill": "comp\u00e9tence exacte du CV en d\u00e9clin", "job": "m\u00e9tier concern\u00e9", "reason": "raison courte"}
   ],
   "skills_in_demand": [
-    {"skill": "nom compétence en demande", "job": "métier concerné"}
+    {"skill": "comp\u00e9tence exacte du CV recherch\u00e9e", "job": "m\u00e9tier concern\u00e9", "reason": "raison courte"}
   ],
-  "recommended_skills_to_acquire": ["compétence 1 à acquérir", "compétence 2"],
-  "recommended_trainings": ["Formation 1", "Formation 2"],
+  "recommended_skills_to_acquire": ["comp\u00e9tence nouvelle 1", "comp\u00e9tence nouvelle 2"],
+  "recommended_trainings": ["Formation 1 (organisme)", "Formation 2 (organisme)"],
   "relevant_jobs": [
     {
-      "job_name": "Métier proche",
+      "job_name": "M\u00e9tier proche",
       "sector": "Secteur",
       "evolution_index": 60,
       "emerging_skills": ["skill1", "skill2"],
@@ -324,17 +342,10 @@ Réponds UNIQUEMENT en JSON valide:
       "stable_skills": ["stable1", "stable2"],
       "recommended_skills": ["rec1"],
       "recommended_trainings": ["formation1"],
-      "job_passerelles": ["métier passerelle 1"]
+      "job_passerelles": ["m\u00e9tier passerelle 1"]
     }
   ]
-}
-
-Règles:
-- Sois réaliste et précis par rapport au marché français actuel (2025-2026)
-- Identifie au moins 3 compétences en demande et 2 à risque parmi celles du profil
-- Propose 5 métiers proches pertinents avec leurs indices d'évolution
-- Recommande 5 compétences à acquérir et 3-5 formations concrètes
-- Base-toi sur les vraies tendances du marché (IA, numérique, transition écologique, etc.)"""
+}"""
         ).with_model("openai", "gpt-5.2")
 
         response = await chat.send_message(UserMessage(text=context))
