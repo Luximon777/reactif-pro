@@ -60,11 +60,8 @@ async def aggregate_passport_from_sources(token_id: str) -> dict:
     modules = await db.modules.find({}, {"_id": 0}).to_list(50)
     for mod in modules:
         aggregated["learning_path"].append({"id": str(uuid.uuid4()), "title": mod.get("title", ""), "provider": "RE'ACTIF PRO", "skills_acquired": mod.get("skills", []), "status": "en_cours", "completion_date": None, "badge": None, "source": "plateforme"})
-    signals = await db.ubuntoo_signals.find({"validation_status": {"$in": ["validee_humain", "integree"]}}, {"_id": 0}).to_list(20)
-    for signal in signals:
-        if signal.get("signal_type") == "competence_emergente" and signal["name"].lower() not in seen_comp_names:
-            seen_comp_names.add(signal["name"].lower())
-            aggregated["competences"].append({"id": str(uuid.uuid4()), "name": signal["name"], "category": "technique", "level": "debutant", "experience_years": 0, "proof": None, "source": "ubuntoo", "is_emerging": True, "added_at": datetime.now(timezone.utc).isoformat()})
+    # Note: Ubuntoo signals are global observatory data, NOT individual user skills.
+    # They should only appear in the Ubuntoo/Observatory dashboards, not in personal passports.
     contributions = await db.contributions.find({"user_token": token_id, "status": {"$in": ["validee_ia", "validee"]}}, {"_id": 0}).to_list(20)
     for contrib in contributions:
         sname = contrib.get("skill_name", "")
