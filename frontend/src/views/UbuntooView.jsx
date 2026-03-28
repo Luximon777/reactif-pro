@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users, User, Globe, Heart, Sparkles, MessageCircle, Award, Target, Lightbulb,
-  TrendingUp, CheckCircle, ArrowRight, ExternalLink, Home, BarChart3, MessageSquare,
-  ThumbsUp, Star, Send, Clock, HelpCircle, Hash
+  TrendingUp, ExternalLink, Home, BarChart3, MessageSquare,
+  ThumbsUp, Star, Clock, HelpCircle, Hash, Send, Radio, CheckCircle
 } from "lucide-react";
 import LogoReactifPro from "@/components/LogoReactifPro";
 import "./UbuntooView.css";
 
+const API = `${process.env.REACT_APP_BACKEND_URL || ""}/api`;
 const LOGO = "https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png";
 
 const initialUser = {
@@ -19,25 +20,14 @@ const groups = [
   { id: "numerique", title: "M\u00e9tiers du Num\u00e9rique", members: 980, topics: 63, colorClass: "purple" },
   { id: "vsi", title: "Atelier VSI (Valoriser Son Identit\u00e9 pro)", members: 520, topics: 34, colorClass: "green" },
 ];
-const threads = [
-  { id: "t1", type: "question", title: "Comment valoriser une exp\u00e9rience de b\u00e9n\u00e9volat sur son CV ?", author: "Marie D.", group: "reconversion", views: 45, likes: 12, replies: 2, resolved: true, tags: ["CV", "B\u00e9n\u00e9volat"] },
-  { id: "t2", type: "discussion", title: "Retour d'exp\u00e9rience : ma reconversion dans l'ESS", author: "Philippe R.", group: "reconversion", views: 234, likes: 67, replies: 2, resolved: false, tags: ["T\u00e9moignage", "ESS"] },
-  { id: "t3", type: "aide", title: "Recherche mentor secteur num\u00e9rique", author: "Lucas T.", group: "numerique", views: 28, likes: 4, replies: 0, resolved: false, tags: ["Mentorat", "D\u00e9veloppement"] },
-];
 const mentors = [
   { id: "m1", name: "Jean-Pierre Martin", focus: "Reconversion", availability: "1h/sem", rating: 4.8 },
   { id: "m2", name: "Amina Benali", focus: "Entretien & confiance", availability: "1h/sem", rating: 4.9 },
-];
-const helpRequests = [
-  { id: 1, group: "reconversion", title: "Besoin d'aide pour structurer mon projet", author: "Thomas L.", replies: 2 },
-  { id: 2, group: "numerique", title: "Pr\u00e9parer un entretien dev junior", author: "Sarah M.", replies: 5 },
-  { id: 3, group: "vsi", title: "Comment valoriser une reconversion ?", author: "Pierre D.", replies: 3 },
 ];
 
 // ============ ACCUEIL ============
 const AccueilTab = () => (
   <div>
-    {/* Hero */}
     <div className="ub-hero">
       <div className="ub-hero-content">
         <img src={LOGO} alt="Ubuntoo" className="ub-hero-logo" style={{ filter: "drop-shadow(0 0 40px rgba(6,182,212,0.3))" }} />
@@ -53,10 +43,6 @@ const AccueilTab = () => (
                 {`Quand il leur a demand\u00e9 pourquoi ils n'avaient pas fait la course, ils ont r\u00e9pondu `}<em>{'"'}UBUNTU{'"'}</em>{`, comment peut-on \u00eatre heureux si tous les autres sont tristes ?`}
                 <br /><br />
                 <em>{`\u00ab Ubuntu \u00bb`}</em>{` dans la culture xhosa signifie : \u00ab Je suis parce que nous sommes \u00bb.`}
-                <br /><br />
-                {`En 2013, `}<em>Obama</em>{` parlait de cette philosophie lors des obs\u00e8ques de Mandela : \u00ab Nelson Mandela comprenait les liens qui unissent l'esprit humain. \u00bb`}
-                <br /><br />
-                <em>Desmond Tutu</em>{`, laur\u00e9at du prix Nobel de la paix, affirmait : \u00ab Quelqu'un d'ubuntu est ouvert et disponible pour les autres. \u00bb`}
               </span>
             </span>{" "}
             {`est le r\u00e9seau social solidaire d'ALT&ACT, inspir\u00e9 de la philosophie Ubuntu. C'est un espace o\u00f9 chaque membre contribue \u00e0 l'enrichissement collectif tout en b\u00e9n\u00e9ficiant du soutien de la communaut\u00e9.`}
@@ -64,8 +50,6 @@ const AccueilTab = () => (
         </div>
       </div>
     </div>
-
-    {/* Valeurs */}
     <div className="ub-values">
       <h2>Nos valeurs fondatrices</h2>
       <div className="ub-values-grid">
@@ -82,8 +66,6 @@ const AccueilTab = () => (
         ))}
       </div>
     </div>
-
-    {/* KPIs */}
     <div className="ub-kpi-grid">
       {[
         { value: "+35%", label: `de r\u00e9ussite vs parcours isol\u00e9s`, colorClass: "orange", icon: TrendingUp },
@@ -97,8 +79,6 @@ const AccueilTab = () => (
         </div>
       ))}
     </div>
-
-    {/* Fonctionnalités */}
     <div className="ub-offers">
       <h2>Ce que vous offre Ubuntoo</h2>
       <div className="ub-offers-grid">
@@ -118,8 +98,6 @@ const AccueilTab = () => (
         ))}
       </div>
     </div>
-
-    {/* Parcours de transformation */}
     <div className="ub-transform">
       <h2>Votre parcours de transformation</h2>
       <div className="ub-transform-path">
@@ -140,8 +118,6 @@ const AccueilTab = () => (
         ))}
       </div>
     </div>
-
-    {/* CTA */}
     <div className="ub-cta">
       <div className="ub-cta-card">
         <h2>{`Rejoignez la communaut\u00e9 Ubuntoo`}</h2>
@@ -165,19 +141,15 @@ const ProfilTab = ({ user, setUser }) => {
   const statuses = ["Membre", "Membre actif", "Pair-aidant", "Mentor", "Ambassadeur"];
   const currentIdx = statuses.indexOf(user.status);
   const colorMap = ["green", "cyan", "orange", "purple", "yellow"];
-
   const upgradeStatus = () => {
     if (currentIdx < statuses.length - 1) {
       setUser(prev => ({ ...prev, status: statuses[currentIdx + 1], trust: Math.min(100, prev.trust + 15), badges: [...prev.badges, statuses[currentIdx + 1]] }));
     }
   };
-
   return (
     <div>
       <h1 className="ub-page-title">Profil Contributif</h1>
       <p className="ub-page-intro">{`Votre identit\u00e9 au sein de la communaut\u00e9 Ubuntoo`}</p>
-
-      {/* Main profile card */}
       <div className="ub-profile-card" style={{ display: "flex", gap: "24px", alignItems: "flex-start", marginBottom: "24px" }}>
         <div className="ub-avatar">{user.name.split(" ").map(n => n[0]).join("")}</div>
         <div style={{ flex: 1 }}>
@@ -198,8 +170,6 @@ const ProfilTab = ({ user, setUser }) => {
           </button>
         </div>
       </div>
-
-      {/* Grid cards */}
       <div className="ub-profile-grid">
         <div className="ub-profile-card">
           <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -239,36 +209,50 @@ const ProfilTab = ({ user, setUser }) => {
 };
 
 // ============ GROUPES ============
-const GroupesTab = () => {
+const GroupesTab = ({ exchanges }) => {
   const [selected, setSelected] = useState(null);
+  const groupExchanges = selected ? exchanges.filter(e => e.group === selected) : [];
   return (
     <div>
       <h1 className="ub-page-title">{`Groupes Th\u00e9matiques`}</h1>
       <p className="ub-page-intro">{`Rejoignez une communaut\u00e9 de professionnels engag\u00e9s dans le d\u00e9veloppement mutuel et l'entraide.`}</p>
       <div className="ub-groups-grid">
-        {groups.map(g => (
-          <div key={g.id} className="ub-group-card" onClick={() => setSelected(g.id)} data-testid={`group-${g.id}`}
-            style={{ borderTopWidth: "3px", borderTopStyle: "solid", borderTopColor: `var(--ub-${g.colorClass})` }}>
-            <h3 style={{ fontSize: "17px", fontWeight: 600, marginBottom: "8px" }}>{g.title}</h3>
-            <div style={{ display: "flex", gap: "16px", fontSize: "13px", color: "var(--ub-text-secondary)", marginBottom: "12px" }}>
-              <span><Users size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />{g.members} membres</span>
-              <span><MessageCircle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />{g.topics} sujets</span>
+        {groups.map(g => {
+          const count = exchanges.filter(e => e.group === g.id).length;
+          return (
+            <div key={g.id} className="ub-group-card" onClick={() => setSelected(g.id)} data-testid={`group-${g.id}`}
+              style={{ borderTopWidth: "3px", borderTopStyle: "solid", borderTopColor: `var(--ub-${g.colorClass})` }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 600, marginBottom: "8px" }}>{g.title}</h3>
+              <div style={{ display: "flex", gap: "16px", fontSize: "13px", color: "var(--ub-text-secondary)", marginBottom: "12px" }}>
+                <span><Users size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />{g.members} membres</span>
+                <span><MessageCircle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />{count || g.topics} sujets</span>
+              </div>
+              <button className={`ub-badge ${g.colorClass}`} style={{ cursor: "pointer" }}>Rejoindre</button>
             </div>
-            <button className={`ub-badge ${g.colorClass}`} style={{ cursor: "pointer" }}>Rejoindre</button>
-          </div>
-        ))}
+          );
+        })}
       </div>
-
       {selected && (
         <div className="ub-profile-card" style={{ marginTop: "24px" }}>
           <h3 style={{ fontSize: "17px", fontWeight: 600, marginBottom: "12px" }}>{`\u00c9changes - ${groups.find(g => g.id === selected)?.title}`}</h3>
-          {helpRequests.filter(r => r.group === selected).map(r => (
-            <div key={r.id} style={{ background: "var(--ub-bg-card-hover)", padding: "12px", borderRadius: "var(--ub-radius)", marginBottom: "8px" }}>
-              <h4 style={{ fontSize: "14px", fontWeight: 500 }}>{r.title}</h4>
-              <p style={{ fontSize: "12px", color: "var(--ub-text-secondary)", marginTop: "4px" }}>{`par ${r.author} \u00b7 ${r.replies} r\u00e9ponses`}</p>
+          {groupExchanges.length > 0 ? groupExchanges.map(e => (
+            <div key={e.id} style={{ background: "var(--ub-bg-card-hover)", padding: "12px", borderRadius: "var(--ub-radius)", marginBottom: "8px" }}>
+              <h4 style={{ fontSize: "14px", fontWeight: 500 }}>{e.title || e.content_summary?.slice(0, 60)}</h4>
+              <p style={{ fontSize: "12px", color: "var(--ub-text-secondary)", marginTop: "4px" }}>
+                {`par ${e.author || "Anonyme"} \u00b7 ${e.exchange_type}`}
+              </p>
+              {(e.detected_skills?.length > 0 || e.detected_tools?.length > 0) && (
+                <div style={{ display: "flex", gap: "4px", marginTop: "6px", flexWrap: "wrap" }}>
+                  {e.detected_skills?.slice(0, 3).map((s, i) => (
+                    <span key={i} className="ub-badge blue" style={{ fontSize: "10px", padding: "2px 8px" }}>{s}</span>
+                  ))}
+                  {e.detected_tools?.slice(0, 2).map((t, i) => (
+                    <span key={`t-${i}`} className="ub-badge purple" style={{ fontSize: "10px", padding: "2px 8px" }}>{t}</span>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-          {helpRequests.filter(r => r.group === selected).length === 0 && (
+          )) : (
             <p style={{ color: "var(--ub-text-secondary)", fontSize: "14px" }}>{`Aucun \u00e9change dans ce groupe pour le moment.`}</p>
           )}
         </div>
@@ -277,49 +261,181 @@ const GroupesTab = () => {
   );
 };
 
-// ============ DISCUSSIONS ============
-const DiscussionsTab = () => {
+// ============ DISCUSSIONS (DYNAMIC) ============
+const DiscussionsTab = ({ exchanges, onPost }) => {
   const [filter, setFilter] = useState("all");
-  const filtered = threads.filter(t => filter === "all" || t.type === filter);
+  const [showForm, setShowForm] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [posted, setPosted] = useState(false);
+  const [form, setForm] = useState({ title: "", content: "", exchange_type: "discussion", group: "reconversion", author: "Anonyme" });
+
+  const filtered = exchanges.filter(t => filter === "all" || t.exchange_type === filter);
+
+  const handleSubmit = async () => {
+    if (!form.title.trim() || !form.content.trim()) return;
+    setPosting(true);
+    try {
+      const res = await fetch(`${API}/ubuntoo/community/exchanges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onPost(data.exchange);
+        setForm({ title: "", content: "", exchange_type: "discussion", group: "reconversion", author: "Anonyme" });
+        setShowForm(false);
+        setPosted(true);
+        setTimeout(() => setPosted(false), 4000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <div>
       <h1 className="ub-page-title">Espace Discussions</h1>
       <p className="ub-page-intro">{`Forum d'entraide, questions-r\u00e9ponses et messagerie de la communaut\u00e9 Ubuntoo`}</p>
 
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
-        {[{ k: "all", l: "Tous" }, { k: "question", l: "Questions" }, { k: "discussion", l: "Discussions" }, { k: "aide", l: "Entraide" }].map(f => (
+      {posted && (
+        <div className="ub-notice" data-testid="post-success-notice">
+          <CheckCircle size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "6px" }} />
+          {`\u00c9change publi\u00e9 et analys\u00e9 par l'IA ! Les signaux d\u00e9tect\u00e9s apparaitront dans l'Observatoire.`}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px", alignItems: "center" }}>
+        {[{ k: "all", l: "Tous" }, { k: "question", l: "Questions" }, { k: "discussion", l: "Discussions" }, { k: "aide", l: "Entraide" }, { k: "retour_experience", l: "Retours" }].map(f => (
           <button key={f.k} className={`ub-filter-btn ${filter === f.k ? "active" : ""}`} onClick={() => setFilter(f.k)}>
             {f.l}
           </button>
         ))}
+        <button
+          className="ub-btn-primary"
+          style={{ marginLeft: "auto", padding: "8px 16px", fontSize: "13px" }}
+          onClick={() => setShowForm(!showForm)}
+          data-testid="new-exchange-btn"
+        >
+          <Send size={14} /> Publier
+        </button>
       </div>
 
+      {/* Post form */}
+      {showForm && (
+        <div className="ub-profile-card" style={{ marginBottom: "24px" }} data-testid="new-exchange-form">
+          <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>{`Nouvel \u00e9change`}</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <input
+              type="text"
+              placeholder="Titre de votre message"
+              value={form.title}
+              onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+              data-testid="exchange-title-input"
+              style={{ background: "var(--ub-bg-card-hover)", border: "1px solid var(--ub-border)", borderRadius: "8px", padding: "10px 14px", color: "var(--ub-text-primary)", fontSize: "14px", outline: "none" }}
+            />
+            <textarea
+              placeholder={`D\u00e9crivez votre question, exp\u00e9rience ou demande d'aide...`}
+              value={form.content}
+              onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
+              rows={4}
+              data-testid="exchange-content-input"
+              style={{ background: "var(--ub-bg-card-hover)", border: "1px solid var(--ub-border)", borderRadius: "8px", padding: "10px 14px", color: "var(--ub-text-primary)", fontSize: "14px", outline: "none", resize: "vertical" }}
+            />
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <select
+                value={form.exchange_type}
+                onChange={e => setForm(p => ({ ...p, exchange_type: e.target.value }))}
+                data-testid="exchange-type-select"
+                style={{ background: "var(--ub-bg-card-hover)", border: "1px solid var(--ub-border)", borderRadius: "8px", padding: "8px 12px", color: "var(--ub-text-primary)", fontSize: "13px" }}
+              >
+                <option value="discussion">Discussion</option>
+                <option value="question">Question</option>
+                <option value="aide">Entraide</option>
+                <option value="retour_experience">Retour d'exp.</option>
+                <option value="mentorat">Mentorat</option>
+              </select>
+              <select
+                value={form.group}
+                onChange={e => setForm(p => ({ ...p, group: e.target.value }))}
+                data-testid="exchange-group-select"
+                style={{ background: "var(--ub-bg-card-hover)", border: "1px solid var(--ub-border)", borderRadius: "8px", padding: "8px 12px", color: "var(--ub-text-primary)", fontSize: "13px" }}
+              >
+                {groups.map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
+              </select>
+              <input
+                type="text"
+                placeholder="Votre pseudonyme"
+                value={form.author}
+                onChange={e => setForm(p => ({ ...p, author: e.target.value }))}
+                data-testid="exchange-author-input"
+                style={{ background: "var(--ub-bg-card-hover)", border: "1px solid var(--ub-border)", borderRadius: "8px", padding: "8px 12px", color: "var(--ub-text-primary)", fontSize: "13px", flex: 1, minWidth: "120px" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <button className="ub-btn-secondary" style={{ padding: "8px 16px", fontSize: "13px" }} onClick={() => setShowForm(false)}>
+                Annuler
+              </button>
+              <button
+                className="ub-btn-primary"
+                style={{ padding: "8px 16px", fontSize: "13px", opacity: posting ? 0.6 : 1 }}
+                onClick={handleSubmit}
+                disabled={posting || !form.title.trim() || !form.content.trim()}
+                data-testid="submit-exchange-btn"
+              >
+                {posting ? "Analyse IA..." : "Publier"} <Send size={14} />
+              </button>
+            </div>
+            <p style={{ fontSize: "11px", color: "var(--ub-text-secondary)" }}>
+              <Radio size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+              {`Votre message sera analys\u00e9 par l'IA pour d\u00e9tecter les signaux de comp\u00e9tences \u00e9mergentes. Ces signaux alimentent l'Observatoire Pr\u00e9dictif.`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Thread list */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {filtered.length === 0 && (
+          <p style={{ color: "var(--ub-text-secondary)", textAlign: "center", padding: "32px" }}>{`Aucun \u00e9change pour ce filtre.`}</p>
+        )}
         {filtered.map(t => (
-          <div key={t.id} className={`ub-thread-card ${t.resolved ? "resolved" : ""}`} data-testid={`thread-${t.id}`}>
+          <div key={t.id} className={`ub-thread-card`} data-testid={`thread-${t.id}`}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-              <div style={{ marginTop: "2px", color: t.type === "question" ? "var(--ub-blue)" : t.type === "aide" ? "var(--ub-orange)" : "var(--ub-green)" }}>
-                {t.type === "question" ? <HelpCircle size={18} /> : t.type === "aide" ? <Heart size={18} /> : <MessageSquare size={18} />}
+              <div style={{ marginTop: "2px", color: t.exchange_type === "question" ? "var(--ub-blue)" : t.exchange_type === "aide" ? "var(--ub-orange)" : t.exchange_type === "mentorat" ? "var(--ub-purple)" : "var(--ub-green)" }}>
+                {t.exchange_type === "question" ? <HelpCircle size={18} /> : t.exchange_type === "aide" ? <Heart size={18} /> : t.exchange_type === "mentorat" ? <Sparkles size={18} /> : <MessageSquare size={18} />}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  <h3 style={{ fontSize: "14px", fontWeight: 600 }}>{t.title}</h3>
-                  {t.resolved && <span className="ub-badge green" style={{ fontSize: "10px", padding: "2px 8px" }}>{`R\u00e9solu`}</span>}
+                  <h3 style={{ fontSize: "14px", fontWeight: 600 }}>{t.title || t.content_summary?.slice(0, 80)}</h3>
+                  <span className={`ub-badge ${t.exchange_type === "question" ? "blue" : t.exchange_type === "aide" ? "orange" : t.exchange_type === "mentorat" ? "purple" : "green"}`} style={{ fontSize: "10px", padding: "2px 8px" }}>
+                    {t.exchange_type === "retour_experience" ? "Retour" : t.exchange_type}
+                  </span>
                 </div>
+                <p style={{ fontSize: "12px", color: "var(--ub-text-secondary)", marginTop: "4px", lineHeight: 1.5 }}>
+                  {t.content_summary}
+                </p>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", fontSize: "12px", color: "var(--ub-text-secondary)" }}>
-                  <span>{t.author}</span>
-                  <span><ThumbsUp size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />{t.likes}</span>
-                  <span><MessageCircle size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />{t.replies}</span>
-                  <span><Clock size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />{t.views} vues</span>
+                  <span>{t.author || "Anonyme"}</span>
+                  {t.likes > 0 && <span><ThumbsUp size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />{t.likes}</span>}
+                  {t.replies_count > 0 && <span><MessageCircle size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />{t.replies_count}</span>}
+                  <span><Clock size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />
+                    {t.timestamp ? new Date(t.timestamp).toLocaleDateString("fr-FR") : ""}
+                  </span>
+                  {t.group && <span className="ub-badge" style={{ fontSize: "10px", padding: "1px 6px", background: "var(--ub-bg-card-hover)", color: "var(--ub-text-secondary)" }}><Hash size={10} />{groups.find(g => g.id === t.group)?.title || t.group}</span>}
                 </div>
-                <div style={{ display: "flex", gap: "4px", marginTop: "8px" }}>
-                  {t.tags.map((tag, i) => (
-                    <span key={i} style={{ background: "var(--ub-bg-card-hover)", color: "var(--ub-text-secondary)", fontSize: "10px", padding: "2px 8px", borderRadius: "12px", display: "inline-flex", alignItems: "center", gap: "2px" }}>
-                      <Hash size={10} />{tag}
-                    </span>
-                  ))}
-                </div>
+                {(t.detected_skills?.length > 0 || t.detected_tools?.length > 0) && (
+                  <div style={{ display: "flex", gap: "4px", marginTop: "8px", flexWrap: "wrap" }}>
+                    {t.detected_skills?.slice(0, 4).map((s, i) => (
+                      <span key={i} className="ub-badge blue" style={{ fontSize: "10px", padding: "2px 8px" }}>{s}</span>
+                    ))}
+                    {t.detected_tools?.slice(0, 2).map((tool, i) => (
+                      <span key={`t-${i}`} className="ub-badge purple" style={{ fontSize: "10px", padding: "2px 8px" }}>{tool}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -345,9 +461,7 @@ const MentoratTab = () => (
             <Star size={14} style={{ color: "var(--ub-yellow)", fill: "var(--ub-yellow)" }} />
             <span style={{ color: "var(--ub-yellow)", fontSize: "13px", fontWeight: 600 }}>{m.rating}</span>
           </div>
-          <button className="ub-btn-small" style={{ marginTop: "16px", width: "100%" }}>
-            Demander un mentorat
-          </button>
+          <button className="ub-btn-small" style={{ marginTop: "16px", width: "100%" }}>Demander un mentorat</button>
         </div>
       ))}
     </div>
@@ -385,6 +499,29 @@ const ImpactTab = () => (
 const UbuntooView = ({ token }) => {
   const [tab, setTab] = useState("accueil");
   const [user, setUser] = useState(initialUser);
+  const [exchanges, setExchanges] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchExchanges = async () => {
+      try {
+        const res = await fetch(`${API}/ubuntoo/community/exchanges`);
+        if (res.ok) {
+          const data = await res.json();
+          setExchanges(data);
+        }
+      } catch (e) {
+        console.error("Failed to load exchanges:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExchanges();
+  }, []);
+
+  const handleNewExchange = (exchange) => {
+    setExchanges(prev => [exchange, ...prev]);
+  };
 
   const tabs = [
     { id: "accueil", label: "Accueil", icon: Home },
@@ -397,7 +534,6 @@ const UbuntooView = ({ token }) => {
 
   return (
     <div className="ubuntoo-page" data-testid="ubuntoo-view">
-      {/* Navigation */}
       <nav className="ub-nav">
         <div className="ub-nav-brand">
           <a href="/dashboard" title={`Retour \u00e0 Re'Actif Pro`} style={{ display: "flex", alignItems: "center" }}>
@@ -416,13 +552,11 @@ const UbuntooView = ({ token }) => {
           ))}
         </div>
       </nav>
-
-      {/* Content */}
       <div className="ub-content">
         {tab === "accueil" && <AccueilTab />}
         {tab === "profil" && <ProfilTab user={user} setUser={setUser} />}
-        {tab === "groupes" && <GroupesTab />}
-        {tab === "discussions" && <DiscussionsTab />}
+        {tab === "groupes" && <GroupesTab exchanges={exchanges} />}
+        {tab === "discussions" && <DiscussionsTab exchanges={exchanges} onPost={handleNewExchange} />}
         {tab === "mentorat" && <MentoratTab />}
         {tab === "impact" && <ImpactTab />}
       </div>

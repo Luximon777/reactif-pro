@@ -1354,7 +1354,7 @@ const UbuntooIntelligenceTab = ({ data }) => {
               </div>
             </div>
             <a
-              href={`${process.env.REACT_APP_BACKEND_URL || ''}/`}
+              href="/ubuntoo"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ubuntoo-open-link"
