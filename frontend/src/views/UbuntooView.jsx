@@ -415,7 +415,9 @@ const UbuntooView = ({ token }) => {
       {/* Navigation */}
       <nav className="sticky top-0 z-10 flex items-center gap-1 px-4 py-2 overflow-x-auto" style={{ background: "rgba(13,17,23,0.95)", borderBottom: `1px solid ${C.border}`, backdropFilter: "blur(8px)" }}>
         <div className="flex items-center gap-2 mr-4 flex-shrink-0">
-          <LogoReactifPro size="sm" />
+          <a href="/dashboard" className="cursor-pointer hover:opacity-80 transition-opacity" title="Retour à Re'Actif Pro">
+            <LogoReactifPro size="sm" />
+          </a>
           <span style={{ color: C.textSecondary, fontSize: "11px" }}>×</span>
           <img src={LOGO} alt="Ubuntoo" className="h-6" />
         </div>
