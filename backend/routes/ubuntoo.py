@@ -11,6 +11,217 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 router = APIRouter()
 
 
+async def _get_user_reactif_data(token: str):
+    """Fetch all Re'Actif Pro data for a user to build their Ubuntoo profile."""
+    token_doc = await db.tokens.find_one({"token": token}, {"_id": 0})
+    if not token_doc:
+        return None
+    token_id = token_doc.get("id")
+    profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    cv_result = await db.cv_results.find_one({"token_id": token_id}, {"_id": 0})
+    cv_optimized = await db.cv_optimized.find_one({"token_id": token_id}, {"_id": 0})
+    dclic = await db.dclic_results.find_one({"token_id": token_id}, {"_id": 0})
+    return {
+        "token_id": token_id,
+        "pseudo": profile.get("pseudo", profile.get("name", "")) if profile else "",
+        "profile": profile,
+        "passport": passport,
+        "cv_result": cv_result,
+        "cv_optimized": cv_optimized,
+        "dclic": dclic,
+    }
+
+
+@router.get("/ubuntoo/profile")
+async def get_ubuntoo_profile(token: str = None):
+    """Get saved Ubuntoo profile for user, or null if not synced."""
+    if not token:
+        return {"profile": None, "synced": False}
+    token_doc = await db.tokens.find_one({"token": token}, {"_id": 0})
+    if not token_doc:
+        return {"profile": None, "synced": False}
+    token_id = token_doc["id"]
+    ub_profile = await db.ubuntoo_profiles.find_one({"token_id": token_id}, {"_id": 0})
+    has_dclic = await db.dclic_results.find_one({"token_id": token_id}, {"_id": 0}) is not None
+    has_cv = await db.cv_results.find_one({"token_id": token_id}, {"_id": 0}) is not None
+    return {
+        "profile": ub_profile,
+        "synced": ub_profile is not None,
+        "has_dclic": has_dclic,
+        "has_cv": has_cv,
+        "pseudo": token_doc.get("pseudo", ""),
+    }
+
+
+@router.post("/ubuntoo/sync-profile")
+async def sync_ubuntoo_profile(token: str = None):
+    """Sync Re'Actif Pro data to Ubuntoo profile using AI."""
+    if not token:
+        raise HTTPException(status_code=401, detail="Token requis")
+
+    data = await _get_user_reactif_data(token)
+    if not data:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouv\u00e9")
+
+    token_id = data["token_id"]
+    pseudo = data["pseudo"]
+    profile = data["profile"] or {}
+    passport = data["passport"] or {}
+    cv_result = data["cv_result"] or {}
+    cv_optimized = data["cv_optimized"] or {}
+    dclic = data["dclic"] or {}
+
+    # Gather skills from all sources
+    skills = set()
+    for s in profile.get("skills", []):
+        if isinstance(s, str): skills.add(s)
+        elif isinstance(s, dict): skills.add(s.get("name", ""))
+    for c in passport.get("competences", []):
+        if isinstance(c, dict): skills.add(c.get("name", c.get("competence", "")))
+        elif isinstance(c, str): skills.add(c)
+    for c in cv_result.get("competences_transversales", []):
+        if isinstance(c, str): skills.add(c)
+    skills.discard("")
+
+    # D'CLIC PRO results
+    dclic_mbti = dclic.get("mbti", "")
+    dclic_disc = dclic.get("disc", "")
+    dclic_riasec = dclic.get("riasec", "")
+    dclic_skills = dclic.get("competences_cles", [])
+    dclic_vertu = dclic.get("vertu", "")
+
+    # Job title
+    title = ""
+    if cv_optimized.get("models"):
+        title = cv_optimized["models"][0].get("titre", "")
+    if not title:
+        title = cv_result.get("titre_profil_suggere", "")
+
+    # Sectors
+    sectors = list(set(profile.get("sectors", []) + passport.get("target_sectors", [])))
+
+    # Territory
+    territory = profile.get("lieu_residence", profile.get("territory", "France"))
+
+    # AI generation
+    ai_profile = None
+    if EMERGENT_LLM_KEY and (skills or dclic_mbti):
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"ubuntoo-sync-{user_id[:8]}",
+                system_message="""Tu es un expert en accompagnement professionnel. \u00c0 partir des donn\u00e9es Re'Actif Pro d'un utilisateur, g\u00e9n\u00e8re son profil Ubuntoo personnalis\u00e9.
+
+R\u00e9ponds UNIQUEMENT en JSON valide :
+{
+  "suggested_status": "Accompagn\u00e9|Pair-aidant|Mentor|Ambassadeur",
+  "status_reason": "Raison courte du statut sugg\u00e9r\u00e9",
+  "trust_score": 45,
+  "softskills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+  "badges": ["badge1", "badge2"],
+  "recommended_groups": ["reconversion", "numerique", "handicap", "vsi"],
+  "ai_summary": "R\u00e9sum\u00e9 personnalis\u00e9 en 2-3 phrases du profil Ubuntoo",
+  "strengths": ["force1", "force2", "force3"],
+  "growth_areas": ["axe1", "axe2"]
+}
+
+R\u00e8gles :
+- Le trust_score d\u00e9pend de la compl\u00e9tude du profil (CV + D'CLIC PRO = 60-80, un seul = 30-50)
+- Les softskills doivent provenir des r\u00e9sultats D'CLIC PRO et CV
+- Les badges refl\u00e8tent les \u00e9tapes r\u00e9elles franchies ("D'CLIC PRO certifi\u00e9", "CV analys\u00e9", etc.)
+- Les groupes recommand\u00e9s doivent correspondre aux secteurs/comp\u00e9tences
+- Le statut sugg\u00e9r\u00e9 d\u00e9pend du niveau d'exp\u00e9rience et de contribution"""
+            ).with_model("openai", "gpt-5.2")
+
+            passport_status = "Oui" if passport.get("competences") else "Non"
+            cv_status = "Oui" if cv_result else "Non"
+            dclic_skills_str = ", ".join(dclic_skills[:10]) if dclic_skills else "Aucune"
+            sectors_str = ", ".join(sectors) if sectors else "Non renseign\u00e9s"
+            skills_str = ", ".join(list(skills)[:20])
+            title_str = title or "Non renseign\u00e9"
+            mbti_str = dclic_mbti or "Non pass\u00e9"
+            disc_str = dclic_disc or "Non pass\u00e9"
+            riasec_str = dclic_riasec or "Non pass\u00e9"
+            vertu_str = dclic_vertu or "Non pass\u00e9"
+
+            lines = [
+                "DONN\u00c9ES RE'ACTIF PRO DE L'UTILISATEUR :",
+                "",
+                "Pseudo : " + pseudo,
+                "Titre/M\u00e9tier : " + title_str,
+                "Territoire : " + territory,
+                "Secteurs : " + sectors_str,
+                "Comp\u00e9tences (" + str(len(skills)) + ") : " + skills_str,
+                "",
+                "R\u00e9sultats D'CLIC PRO :",
+                "- MBTI : " + mbti_str,
+                "- DISC : " + disc_str,
+                "- RIASEC : " + riasec_str,
+                "- Vertu : " + vertu_str,
+                "- Comp\u00e9tences cl\u00e9s D'CLIC : " + dclic_skills_str,
+                "",
+                "CV analys\u00e9 : " + cv_status,
+                "Passeport rempli : " + passport_status,
+            ]
+            context = "\n".join(lines)
+
+            response = await chat.send_message(UserMessage(text=context))
+            raw = response.strip() if isinstance(response, str) else response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+            ai_profile = json.loads(raw.strip())
+        except Exception as e:
+            logging.warning(f"AI sync profile failed: {e}")
+
+    # Build Ubuntoo profile
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await db.ubuntoo_profiles.find_one({"token_id": token_id})
+
+    ub_profile = {
+        "token_id": token_id,
+        "pseudo": pseudo,
+        "name": pseudo,
+        "title": title,
+        "territory": territory,
+        "sectors": sectors,
+        "status": ai_profile.get("suggested_status", "Accompagn\u00e9") if ai_profile else "Accompagn\u00e9",
+        "status_reason": ai_profile.get("status_reason", "") if ai_profile else "",
+        "trust": ai_profile.get("trust_score", 35) if ai_profile else 35,
+        "badges": ai_profile.get("badges", []) if ai_profile else [],
+        "softskills": ai_profile.get("softskills", list(skills)[:5]) if ai_profile else list(skills)[:5],
+        "strengths": ai_profile.get("strengths", []) if ai_profile else [],
+        "growth_areas": ai_profile.get("growth_areas", []) if ai_profile else [],
+        "recommended_groups": ai_profile.get("recommended_groups", []) if ai_profile else [],
+        "ai_summary": ai_profile.get("ai_summary", "") if ai_profile else "",
+        "contributions": existing.get("contributions", 0) if existing else 0,
+        "all_skills": list(skills),
+        "synced_from": {
+            "dclic_pro": bool(dclic_mbti),
+            "cv_analysis": bool(cv_result),
+            "passport": bool(passport.get("competences")),
+        },
+        "synced_at": now,
+        "created_at": existing.get("created_at", now) if existing else now,
+    }
+
+    if existing:
+        await db.ubuntoo_profiles.update_one({"token_id": token_id}, {"$set": ub_profile})
+    else:
+        await db.ubuntoo_profiles.insert_one(ub_profile)
+
+    # Remove _id before returning
+    ub_profile.pop("_id", None)
+
+    return {
+        "profile": ub_profile,
+        "message": "Profil Ubuntoo synchronis\u00e9 avec succ\u00e8s !",
+        "ai_generated": ai_profile is not None,
+    }
+
+
 async def analyze_ubuntoo_exchanges_with_ai(exchanges):
     if not EMERGENT_LLM_KEY or not exchanges:
         return {"detected_skills": ["Prompt Engineering", "No-Code"], "detected_tools": ["ChatGPT", "Notion"], "detected_practices": ["Automatisation de tâches"], "confidence": 0.6, "summary": "Analyse basique - IA non disponible"}

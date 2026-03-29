@@ -638,8 +638,23 @@
   border-radius: var(--ub-radius-sm);
   font-size: 13px;
   margin-bottom: 20px;
+  line-height: 1.6;
   animation: fadeIn 0.3s ease;
 }
+
+/* Sync banner */
+.ub-sync-banner {
+  background: var(--ub-white);
+  border: 2px dashed var(--ub-indigo);
+  border-radius: var(--ub-radius);
+  padding: 24px;
+  margin-bottom: 28px;
+  animation: fadeIn 0.4s ease;
+}
+
+/* Spinner */
+.ub-spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Responsive */
