@@ -16,7 +16,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://coffre-fort-pro.preview.emergentagent.com"
+    BASE_URL = "https://journey-partners-1.preview.emergentagent.com"
 
 
 class TestReferentielEndpoints:
