@@ -34,8 +34,8 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 
 ### Espace Partenaires de Parcours (COMPLET)
 - Interface de coordination (pas "Espace Partenaires")
-- Bandeau de complementarite (Orient'Est / EURES / RE'ACTIF PRO)
-- Dashboard multi-onglets: Tableau de bord, Beneficiaires, Freins, Preparation parcours, Contribution territoriale
+- Bandeau de complementarite (France Travail / Mission Locale / APEC / Orient'Est / Region Grand Est / EURES / RE'ACTIF PRO)
+- Dashboard multi-onglets: Tableau de bord, Beneficiaires, Freins, Preparation parcours IA, Contribution territoriale, Outils V2
 - Inscription SIRET + charte ethique + RGPD
 - CRUD beneficiaires, freins peripheriques (8 categories), competences validees
 - Liaison beneficiaire <-> profil Re'Actif Pro (recherche, consentement, acces profil complet)
@@ -43,6 +43,24 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Diagnostic enrichi (contexte social, mobilite, motivation, posture, autonomie)
 - Preparation de parcours IA (posture de preparation, renvoi vers Orient'Est/EURES/France Travail)
 - Contribution territoriale (freins recurrents, competences emergentes, tensions secteurs)
+
+### Outils d'accompagnement V2 (COMPLET - 29/03/2026)
+- 12 fiches augmentees en 5 phases:
+  1. Diagnostic initial: Positionnement de depart, Courbe de trajectoire
+  2. Bilan professionnel: Recit de carriere analytique, Realisations et impact, Competences dynamiques
+  3. Identite et valeurs: Identite professionnelle, Valeurs decisionnelles, Environnement et contraintes
+  4. Strategie et trajectoire: Confrontation au marche, Strategie de trajectoire (3 scenarios)
+  5. Activation: Reseau et leviers, Mon plan d'activation
+- Blocs decisionnels sur chaque fiche: "Ce que je decide / Ce que j'arrete / Ce que je teste"
+- Backward compatibility avec les fiches V1
+
+### Consentement granulaire (COMPLET - 29/03/2026)
+- 3 niveaux: Synthese partagee, Partage modulaire, Complet temporaire
+- 12 modules partageables (profil, parcours, competences, valeurs, documents, etc.)
+- Creation, consultation, mise a jour, revocation
+- Tracabilite: qui, pourquoi, quelles donnees, duree, statut
+- Expiration automatique
+- UI complete dans l'onglet Outils
 
 ## Endpoints Partenaires
 - POST /api/auth/register-partenaire
@@ -54,6 +72,10 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - POST /orientation (GPT IA avec posture complementarite)
 - POST/PUT /freins, POST /skills
 - POST /contribution-observatoire
+- GET /api/partenaires/outils/fiches (V2: 12 fiches)
+- GET/PUT /api/partenaires/beneficiaires/{id}/bilan
+- POST/GET/PUT/DELETE /api/partenaires/consent
+- GET /api/partenaires/consent-modules
 
 ## Backlog
 - P1: Coffre-fort numerique avec upload de fichiers reels
@@ -61,8 +83,10 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - P2: Coordination multi-acteurs (plusieurs partenaires / meme beneficiaire)
 - P2: FranceConnect
 - P3: Ateliers de Codeveloppement / Micro-badges
-- Refactoring: DclicTestPage.jsx, ObservatoireView.jsx
+- Refactoring: DclicTestPage.jsx, ObservatoireView.jsx, PartenaireView.jsx (>1500 lignes)
 
 ## Test Reports
-- Iteration 43: Phase 1 (25/25)
-- Iteration 44: Phase 2 (15/15)
+- Iteration 43: Phase 1 Partenaires (25/25)
+- Iteration 44: Phase 2 Partenaires (15/15)
+- Iteration 45: Outils/Fiches V1 (100%)
+- Iteration 46: Outils V2 + Consentement granulaire (Backend 16/16, Frontend 100%)
