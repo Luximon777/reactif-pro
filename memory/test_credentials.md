@@ -11,3 +11,4 @@
 - Email: test@missionlocale.fr / Password: Solerys777!
 - Structure: Mission Locale Test (acteur_insertion)
 - Login endpoint: POST /api/auth/login-pro with {pseudo: email, password: pwd}
+- 4 beneficiaires crees: Sophie Bernard (liee bob15), Pierre Leroy, Claire Moreau, Jean Martin
