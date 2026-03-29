@@ -992,102 +992,98 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
   );
 };
 
-// ===== OUTILS D'ACCOMPAGNEMENT =====
+// ===== OUTILS D'ACCOMPAGNEMENT V2 =====
 const PHASES = [
-  { id: "decouverte", label: "Decouverte", color: "bg-sky-100 text-sky-700 border-sky-200", icon: Eye },
+  { id: "diagnostic", label: "Diagnostic initial", color: "bg-sky-100 text-sky-700 border-sky-200", icon: Eye },
   { id: "bilan_pro", label: "Bilan professionnel", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Briefcase },
-  { id: "bilan_perso", label: "Bilan personnel", color: "bg-purple-100 text-purple-700 border-purple-200", icon: Heart },
-  { id: "projet", label: "Projet professionnel", color: "bg-green-100 text-green-700 border-green-200", icon: Target },
+  { id: "identite_valeurs", label: "Identite et valeurs", color: "bg-purple-100 text-purple-700 border-purple-200", icon: Heart },
+  { id: "strategie", label: "Strategie et trajectoire", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Compass },
+  { id: "activation", label: "Activation", color: "bg-green-100 text-green-700 border-green-200", icon: Target },
 ];
 
 const FICHE_FIELDS = {
-  attentes: [
-    { key: "q1", label: "Qu'attendez-vous de cet accompagnement ?", type: "textarea" },
-    { key: "q2", label: "Quels sont les sujets que vous souhaitez aborder en priorite ?", type: "textarea" },
-    { key: "q3", label: "Qu'est-ce qui vous ferait dire, a la fin, que cet accompagnement a ete utile ?", type: "textarea" },
-    { key: "q4", label: "Y a-t-il des sujets que vous ne souhaitez pas aborder ?", type: "textarea" },
+  positionnement_depart: [
+    { key: "clarte", label: "Mon niveau de clarte actuel (0 a 10)", type: "select", options: ["0","1","2","3","4","5","6","7","8","9","10"] },
+    { key: "energie", label: "Mon niveau d'energie (0 a 10)", type: "select", options: ["0","1","2","3","4","5","6","7","8","9","10"] },
+    { key: "urgence", label: "Mon urgence", type: "select", options: ["Immediat", "3 mois", "6 mois", "Plus de 6 mois"] },
+    { key: "question_cle", label: "Si rien ne change dans 6 mois, qu'est-ce que je risque ?", type: "textarea" },
+    { key: "attentes", label: "Qu'attendez-vous de cet accompagnement ?", type: "textarea" },
+    { key: "sujets_prioritaires", label: "Sujets a aborder en priorite", type: "textarea" },
   ],
-  formation: [
-    { key: "formation_initiale", label: "Formation initiale (diplomes, specialites)", type: "textarea" },
-    { key: "formation_continue", label: "Formation continue (stages, certifications)", type: "textarea" },
-    { key: "motivations_formation", label: "Motivations et interets identifies", type: "textarea" },
+  courbe_trajectoire: [
+    { key: "pics_reussite", label: "Mes pics = conditions de reussite (quand, pourquoi)", type: "textarea" },
+    { key: "zones_rupture", label: "Mes creux = zones de rupture (quand, pourquoi)", type: "textarea" },
+    { key: "fil_rouge", label: "Mes constantes = mon fil rouge", type: "textarea" },
+    { key: "ne_plus_revivre", label: "Ce que je ne veux plus revivre", type: "textarea" },
+    { key: "tendance_actuelle", label: "Tendance actuelle et projection", type: "textarea" },
   ],
   recit_carriere: [
-    { key: "periodes", label: "Grandes periodes de votre parcours (dates, postes, entreprises)", type: "textarea" },
-    { key: "moments_forts", label: "Moments forts et reussites", type: "textarea" },
-    { key: "moments_difficiles", label: "Moments difficiles et lecons tirees", type: "textarea" },
-    { key: "changements", label: "Raisons des changements entre les periodes", type: "textarea" },
-  ],
-  competences: [
-    { key: "savoirs", label: "Savoirs (connaissances theoriques)", type: "textarea" },
-    { key: "savoir_faire", label: "Savoir-faire (competences techniques)", type: "textarea" },
-    { key: "savoir_etre", label: "Savoir-etre (qualites relationnelles)", type: "textarea" },
+    { key: "periodes", label: "Grandes periodes du parcours (dates, postes, entreprises)", type: "textarea" },
+    { key: "competences_par_poste", label: "Competences developpees par poste", type: "textarea" },
+    { key: "energie_par_poste", label: "Energie ressentie par poste (0 a 10)", type: "textarea" },
+    { key: "alignement_valeurs", label: "Alignement avec mes valeurs par poste (0 a 10)", type: "textarea" },
+    { key: "environnements_favorables", label: "Mes environnements favorables", type: "textarea" },
+    { key: "environnements_toxiques", label: "Mes environnements toxiques", type: "textarea" },
+    { key: "pattern_professionnel", label: "Mon pattern professionnel (recurrence identifiee)", type: "textarea" },
   ],
   realisations: [
-    { key: "realisations_cles", label: "Realisations significatives", type: "textarea" },
-    { key: "contexte_resultats", label: "Contexte et resultats obtenus", type: "textarea" },
+    { key: "realisations_star", label: "Realisations significatives (methode STAR : Situation, Tache, Action, Resultat)", type: "textarea" },
+    { key: "impact_reel", label: "Impact reel de chaque realisation (faible / moyen / fort)", type: "textarea" },
+    { key: "niveau_preuve", label: "Niveau de preuve (ressenti / observable / mesure)", type: "textarea" },
+    { key: "ce_que_ca_dit", label: "Ce que ca dit de moi (competence + posture)", type: "textarea" },
+    { key: "contexte_reproductibilite", label: "Dans quel contexte je reproduis facilement cette reussite ?", type: "textarea" },
   ],
-  interets: [
-    { key: "interets_pro", label: "Centres d'interet professionnels", type: "textarea" },
-    { key: "domaines_attrait", label: "Domaines d'activite qui vous attirent", type: "textarea" },
+  competences_dynamiques: [
+    { key: "techniques", label: "Competences techniques (maitrisees / en developpement / a acquerir)", type: "textarea" },
+    { key: "transversales", label: "Competences transversales (maitrisees / en developpement / a acquerir)", type: "textarea" },
+    { key: "comportementales", label: "Competences comportementales (maitrisees / en developpement / a acquerir)", type: "textarea" },
+    { key: "transferabilite", label: "Transferabilite : si je change de secteur, qu'est-ce que je garde ?", type: "textarea" },
   ],
-  synthese_pro: [
-    { key: "atouts", label: "Vos principaux atouts professionnels", type: "textarea" },
-    { key: "competences_cles", label: "Competences cles a valoriser", type: "textarea" },
-    { key: "axes_developpement", label: "Axes de developpement identifies", type: "textarea" },
+  identite_professionnelle: [
+    { key: "ce_que_je_suis", label: "Ce que je suis (ressenti)", type: "textarea" },
+    { key: "ce_que_je_fais", label: "Ce que je fais (competences)", type: "textarea" },
+    { key: "ce_que_je_renvoie", label: "Ce que je renvoie (image percue)", type: "textarea" },
+    { key: "feedback_externe", label: "Feedback externe (perception recruteur, collegues)", type: "textarea" },
+    { key: "phrase_identite", label: "Ma phrase d'identite professionnelle (exploitable CV / pitch)", type: "textarea" },
   ],
-  situations_difficiles: [
-    { key: "situations", label: "Situations difficiles rencontrees", type: "textarea" },
-    { key: "strategies", label: "Strategies utilisees pour les surmonter", type: "textarea" },
-    { key: "enseignements", label: "Enseignements pour l'avenir", type: "textarea" },
+  valeurs_decisionnelles: [
+    { key: "valeurs_essentielles", label: "Mes valeurs essentielles", type: "textarea" },
+    { key: "exemples_vecus", label: "Exemple vecu pour chaque valeur", type: "textarea" },
+    { key: "non_respect", label: "Situation ou mes valeurs n'ont pas ete respectees", type: "textarea" },
+    { key: "impact_motivation", label: "Impact sur ma motivation", type: "textarea" },
+    { key: "non_negociables", label: "Mes 5 NON NEGOCIABLES pour mon futur poste", type: "textarea" },
   ],
-  points_forts: [
-    { key: "points_forts", label: "Vos points forts et qualites", type: "textarea" },
-    { key: "points_vigilance", label: "Points de vigilance ou a developper", type: "textarea" },
+  environnement_rqth: [
+    { key: "contraintes_reelles", label: "Contraintes reelles (sante, mobilite, vie perso)", type: "textarea" },
+    { key: "conditions_compatibles", label: "Conditions de travail compatibles", type: "textarea" },
+    { key: "adaptations_rqth", label: "Si RQTH/EQTH : adaptations necessaires et environnements favorables", type: "textarea" },
+    { key: "conditions_non_negociables", label: "Conditions non negociables pour la suite", type: "textarea" },
   ],
-  valeurs: [
-    { key: "valeurs_essentielles", label: "Valeurs essentielles (justice, liberte, securite, creativite...)", type: "textarea" },
-    { key: "valeurs_travail", label: "Comment ces valeurs se traduisent dans le travail", type: "textarea" },
+  confrontation_marche: [
+    { key: "metier_1", label: "Metier cible 1 : intitule, competences demandees, niveau d'acces, tension du marche", type: "textarea" },
+    { key: "metier_2", label: "Metier cible 2 : intitule, competences demandees, niveau d'acces, tension du marche", type: "textarea" },
+    { key: "metier_3", label: "Metier cible 3 : intitule, competences demandees, niveau d'acces, tension du marche", type: "textarea" },
+    { key: "ecarts", label: "Mes ecarts principaux", type: "textarea" },
+    { key: "atouts_differenciants", label: "Mes atouts differenciants", type: "textarea" },
+    { key: "decision", label: "Decision pour chaque metier", type: "select", options: ["GO", "PAS GO", "AJUSTEMENT"] },
   ],
-  moteurs: [
-    { key: "moteurs_sens", label: "Moteurs lies au sens et aux valeurs", type: "textarea" },
-    { key: "moteurs_defi", label: "Moteurs lies au defi et a la progression", type: "textarea" },
-    { key: "moteurs_relation", label: "Moteurs lies a la relation aux autres", type: "textarea" },
-    { key: "moteurs_creativite", label: "Moteurs lies a la creativite", type: "textarea" },
-    { key: "moteurs_cadre", label: "Moteurs lies a l'organisation et au cadre", type: "textarea" },
-    { key: "je_veux", label: "En synthese : je veux...", type: "textarea" },
-    { key: "je_refuse", label: "En synthese : je refuse...", type: "textarea" },
+  strategie_trajectoire: [
+    { key: "scenario_principal", label: "Scenario 1 — Projet principal (description, faisabilite, risque, delai)", type: "textarea" },
+    { key: "scenario_securise", label: "Scenario 2 — Projet securise (description, faisabilite, risque, delai)", type: "textarea" },
+    { key: "scenario_exploratoire", label: "Scenario 3 — Projet exploratoire (description, faisabilite, risque, delai)", type: "textarea" },
   ],
-  environnement: [
-    { key: "env_ideal", label: "Environnement de travail ideal", type: "textarea" },
-    { key: "activites_hors_travail", label: "Activites et engagements hors travail", type: "textarea" },
+  reseau_leviers: [
+    { key: "personnes_ressources", label: "Qui peut m'aider ? (personnes ressources)", type: "textarea" },
+    { key: "entreprises_cibles", label: "Qui recrute ? (entreprises cibles)", type: "textarea" },
+    { key: "inspirations", label: "Qui m'inspire ?", type: "textarea" },
+    { key: "recommandations", label: "Qui peut me recommander ?", type: "textarea" },
+    { key: "canaux_acces", label: "Canaux d'acces (reseau / candidature directe / plateforme)", type: "textarea" },
   ],
-  synthese_perso: [
-    { key: "decouvertes", label: "Ce que le travail de bilan vous a fait decouvrir", type: "textarea" },
-    { key: "confirmations", label: "Ce qu'il vient confirmer", type: "textarea" },
-    { key: "autoportrait", label: "Votre autoportrait", type: "textarea" },
-    { key: "axes_dev", label: "Axes majeurs de developpement", type: "textarea" },
-  ],
-  courbe_satisfaction: [
-    { key: "periodes_hautes", label: "Periodes de haute satisfaction (quand, pourquoi)", type: "textarea" },
-    { key: "periodes_basses", label: "Periodes de basse satisfaction (quand, pourquoi)", type: "textarea" },
-    { key: "tendance", label: "Tendance actuelle et projection", type: "textarea" },
-  ],
-  reflexion_projet: [
-    { key: "precision", label: "En quoi le projet est-il precis ? (secteur, metier, competences, salaire, geographie)", type: "textarea" },
-    { key: "realisme", label: "En quoi est-il realiste ? (adequation avec les competences)", type: "textarea" },
-    { key: "realisabilite", label: "En quoi est-il realisable ? (situation du marche de l'emploi)", type: "textarea" },
-    { key: "coherence", label: "En quoi est-il coherent ? (vie personnelle, contraintes, entourage)", type: "textarea" },
-    { key: "creativite", label: "En quoi est-il creatif ? (plan B, passerelles, evolutions)", type: "textarea" },
-  ],
-  definition_projet: [
-    { key: "intitule", label: "Intitule du projet (fonction, mission, environnement)", type: "textarea" },
-    { key: "competences_utiliser", label: "Competences a utiliser", type: "textarea" },
-    { key: "competences_manquantes", label: "Competences manquantes et solutions pour les acquerir", type: "textarea" },
-    { key: "risques", label: "Risques du projet (financier, humain)", type: "textarea" },
-    { key: "plan_action", label: "Plan d'action et etapes", type: "textarea" },
-    { key: "probabilite_reussite", label: "Probabilite de reussite (1 a 4)", type: "select", options: ["1 - Faible", "2 - Moyenne", "3 - Bonne", "4 - Tres bonne"] },
-    { key: "motivation", label: "Degre de motivation (1 a 4)", type: "select", options: ["1 - Faible", "2 - Moyenne", "3 - Forte", "4 - Tres forte"] },
+  plan_activation: [
+    { key: "actions_terrain", label: "3 actions terrain a realiser", type: "textarea" },
+    { key: "contacts_pro", label: "3 contacts professionnels a prendre", type: "textarea" },
+    { key: "mise_en_situation", label: "1 mise en situation concrete (immersion / test / projet)", type: "textarea" },
+    { key: "suivi_resultats", label: "Suivi : fait / non fait / resultat / apprentissage", type: "textarea" },
   ],
 };
 
@@ -1098,6 +1094,7 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
   const [ficheForm, setFicheForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [fiches, setFiches] = useState([]);
+  const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
     axios.get(`${API}/partenaires/outils/fiches?token=${token}`).then(r => setFiches(r.data)).catch(() => {});
@@ -1113,7 +1110,8 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
 
   const openFiche = (fiche) => {
     setSelectedFiche(fiche);
-    setFicheForm(bilanData[fiche.id] || {});
+    const saved = bilanData[fiche.id] || {};
+    setFicheForm({ ...saved });
   };
 
   const saveFiche = async () => {
@@ -1131,6 +1129,13 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
 
   const selectedBen = beneficiaires.find(b => b.id === selectedBenId);
   const completedFiches = fiches.filter(f => bilanData[f.id]);
+
+  // Decision block keys
+  const DECISION_KEYS = [
+    { key: "_decision_je_decide", label: "Ce que je decide" },
+    { key: "_decision_je_arrete", label: "Ce que j'arrete" },
+    { key: "_decision_je_teste", label: "Ce que je teste" },
+  ];
 
   if (selectedFiche) {
     const fields = FICHE_FIELDS[selectedFiche.id] || [{ key: "contenu", label: "Contenu libre", type: "textarea" }];
@@ -1163,6 +1168,24 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
                 ) : null}
               </div>
             ))}
+
+            {/* Bloc decisionnel V2 */}
+            <div className="border-t border-slate-200 pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-md bg-amber-100 flex items-center justify-center"><Lightbulb className="w-3.5 h-3.5 text-amber-700" /></div>
+                <h4 className="text-sm font-semibold text-slate-800">Bloc decisionnel</h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {DECISION_KEYS.map(dk => (
+                  <div key={dk.key} className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">{dk.label}</label>
+                    <Textarea value={ficheForm[dk.key] || ""} onChange={e => setFicheForm({ ...ficheForm, [dk.key]: e.target.value })}
+                      placeholder={dk.label + "..."} className="resize-none min-h-[60px] text-sm" data-testid={`decision-${dk.key}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="flex gap-2 pt-2">
               <Button onClick={saveFiche} disabled={saving} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="save-fiche-btn">
                 {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Sauvegarder</>}
@@ -1175,12 +1198,16 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
     );
   }
 
+  if (showConsent && selectedBenId) {
+    return <ConsentManager beneficiaryId={selectedBenId} beneficiaryName={selectedBen?.name} token={token} onBack={() => setShowConsent(false)} />;
+  }
+
   return (
     <div className="space-y-4" data-testid="outils-view">
       <Card className="border border-slate-100">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-[#1e3a5f]" /> Outils d'accompagnement</CardTitle>
-          <CardDescription>16 fiches structurees pour accompagner le bilan professionnel et personnel — de la decouverte au projet</CardDescription>
+          <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-[#1e3a5f]" /> Outils d'accompagnement V2</CardTitle>
+          <CardDescription>12 fiches augmentees — diagnostic, bilan, identite, strategie, activation — avec blocs decisionnels integres</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -1192,6 +1219,9 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
               <div className="flex items-center gap-2">
                 <Progress value={selectedBen?.bilan_progress || 0} className="w-32 h-2" />
                 <span className="text-xs text-slate-500 whitespace-nowrap">{completedFiches.length}/{fiches.length} fiches</span>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowConsent(true)} data-testid="consent-manage-btn">
+                  <Shield className="w-3.5 h-3.5 mr-1" /> Consentement
+                </Button>
               </div>
             )}
           </div>
@@ -1215,6 +1245,7 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {phaseFiches.map(fiche => {
                   const done = !!bilanData[fiche.id];
+                  const hasDecisions = done && (bilanData[fiche.id]._decision_je_decide || bilanData[fiche.id]._decision_je_arrete || bilanData[fiche.id]._decision_je_teste);
                   return (
                     <div key={fiche.id} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:border-[#1e3a5f]/30 ${done ? "bg-green-50/50 border-green-200" : "bg-white border-slate-100"}`}
                       onClick={() => openFiche(fiche)} data-testid={`fiche-card-${fiche.id}`}>
@@ -1225,7 +1256,10 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
                           <p className="text-[11px] text-slate-400 line-clamp-1">{fiche.description}</p>
                         </div>
                       </div>
-                      {done ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                      <div className="flex items-center gap-1.5">
+                        {hasDecisions && <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0" />}
+                        {done ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                      </div>
                     </div>
                   );
                 })}
@@ -1240,6 +1274,189 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
           <ClipboardList className="w-12 h-12 text-slate-300 mb-3" /><p className="text-slate-500 text-sm">Selectionnez un beneficiaire pour acceder aux fiches</p>
         </CardContent></Card>
       )}
+    </div>
+  );
+};
+
+// ===== CONSENT MANAGER =====
+const CONSENT_LEVEL_INFO = {
+  synthese: { label: "Synthese partagee", description: "Le partenaire voit uniquement une synthese generee", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  modulaire: { label: "Partage modulaire", description: "L'utilisateur choisit les rubriques visibles", color: "bg-amber-100 text-amber-700 border-amber-200" },
+  complet_temporaire: { label: "Complet temporaire", description: "Acces etendu mais limite dans le temps", color: "bg-red-100 text-red-700 border-red-200" },
+};
+
+const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
+  const [consents, setConsents] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [newLevel, setNewLevel] = useState("");
+  const [newModules, setNewModules] = useState([]);
+  const [newDuration, setNewDuration] = useState("90");
+  const [newPurpose, setNewPurpose] = useState("Accompagnement socioprofessionnel");
+
+  useEffect(() => { loadData(); }, [beneficiaryId]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [cRes, mRes] = await Promise.all([
+        axios.get(`${API}/partenaires/consent/${beneficiaryId}?token=${token}`),
+        axios.get(`${API}/partenaires/consent-modules?token=${token}`),
+      ]);
+      setConsents(cRes.data);
+      setModules(mRes.data);
+    } catch { }
+    setLoading(false);
+  };
+
+  const createConsent = async () => {
+    if (!newLevel) { toast.error("Choisissez un niveau"); return; }
+    setCreating(true);
+    try {
+      const payload = {
+        beneficiary_id: beneficiaryId,
+        level: newLevel,
+        modules: newLevel === "modulaire" ? newModules : null,
+        duration_days: parseInt(newDuration),
+        purpose: newPurpose,
+      };
+      await axios.post(`${API}/partenaires/consent?token=${token}`, payload, { headers: { "Content-Type": "application/json" } });
+      toast.success("Consentement cree");
+      setNewLevel("");
+      setNewModules([]);
+      loadData();
+    } catch (err) { toast.error(err.response?.data?.detail || "Erreur"); }
+    setCreating(false);
+  };
+
+  const revokeConsent = async (consentId) => {
+    try {
+      await axios.delete(`${API}/partenaires/consent/${consentId}?token=${token}`);
+      toast.success("Consentement revoque");
+      loadData();
+    } catch { toast.error("Erreur"); }
+  };
+
+  const toggleModule = (modId) => {
+    setNewModules(prev => prev.includes(modId) ? prev.filter(m => m !== modId) : [...prev, modId]);
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" /></div>;
+
+  return (
+    <div className="space-y-4" data-testid="consent-manager">
+      <Button variant="ghost" onClick={onBack} className="text-slate-500 -ml-2">
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" /> Retour aux fiches
+      </Button>
+
+      <Card className="border border-slate-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-[#1e3a5f]" /> Gestion du consentement</CardTitle>
+          <CardDescription>Autorisations de partage pour {beneficiaryName} — granulaire, temporaire et revocable</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Active consents */}
+          {consents.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-3">Consentements existants</h4>
+              <div className="space-y-2">
+                {consents.map(c => {
+                  const info = CONSENT_LEVEL_INFO[c.level] || CONSENT_LEVEL_INFO.synthese;
+                  return (
+                    <div key={c.id} className={`p-3 rounded-lg border ${c.active ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50 opacity-60"}`} data-testid={`consent-${c.id}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className={info.color}>{info.label}</Badge>
+                          <Badge className={c.active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}>{c.status || (c.active ? "actif" : "inactif")}</Badge>
+                          {c.remaining_days !== undefined && c.active && <span className="text-xs text-slate-500">{c.remaining_days}j restants</span>}
+                        </div>
+                        {c.active && (
+                          <Button size="sm" variant="outline" className="text-red-500 hover:bg-red-50 h-7 text-xs" onClick={() => revokeConsent(c.id)} data-testid={`revoke-${c.id}`}>
+                            Revoquer
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500">{c.purpose}</p>
+                      {c.modules && c.modules.length > 0 && c.level === "modulaire" && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {c.modules.map(m => <Badge key={m} variant="secondary" className="text-[10px]">{modules.find(mod => mod.id === m)?.label || m}</Badge>)}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400">
+                        <span>Cree : {new Date(c.created_at).toLocaleDateString('fr-FR')}</span>
+                        <span>Expire : {new Date(c.expires_at).toLocaleDateString('fr-FR')}</span>
+                        {c.revoked_at && <span>Revoque : {new Date(c.revoked_at).toLocaleDateString('fr-FR')}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Create new consent */}
+          <div className="border-t border-slate-100 pt-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-3">Nouveau consentement</h4>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {Object.entries(CONSENT_LEVEL_INFO).map(([key, info]) => (
+                  <div key={key} className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${newLevel === key ? "border-[#1e3a5f] bg-[#1e3a5f]/5" : "border-slate-100 hover:border-slate-300"}`}
+                    onClick={() => setNewLevel(key)} data-testid={`consent-level-${key}`}>
+                    <Badge className={`${info.color} mb-2`}>{info.label}</Badge>
+                    <p className="text-xs text-slate-500">{info.description}</p>
+                  </div>
+                ))}
+              </div>
+
+              {newLevel === "modulaire" && (
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Modules a partager</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {modules.map(m => (
+                      <div key={m.id} className={`p-2 rounded-lg border cursor-pointer transition-all text-xs ${newModules.includes(m.id) ? "border-[#1e3a5f] bg-[#1e3a5f]/5 text-[#1e3a5f] font-medium" : "border-slate-100 text-slate-600 hover:border-slate-300"}`}
+                        onClick={() => toggleModule(m.id)} data-testid={`module-${m.id}`}>
+                        {m.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Duree (jours)</label>
+                  <Select value={newDuration} onValueChange={setNewDuration}>
+                    <SelectTrigger data-testid="consent-duration"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 jours</SelectItem>
+                      <SelectItem value="60">60 jours</SelectItem>
+                      <SelectItem value="90">90 jours</SelectItem>
+                      <SelectItem value="180">180 jours</SelectItem>
+                      <SelectItem value="365">1 an</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Objectif du partage</label>
+                  <Input value={newPurpose} onChange={e => setNewPurpose(e.target.value)} data-testid="consent-purpose" />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  <Shield className="w-3.5 h-3.5 inline mr-1 text-[#1e3a5f]" />
+                  L'utilisateur conserve la maitrise de ses donnees et peut autoriser, de maniere ciblee, temporaire et reversible, le partage de tout ou partie de son espace personnel avec un partenaire de parcours.
+                </p>
+              </div>
+
+              <Button onClick={createConsent} disabled={creating || !newLevel} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="create-consent-btn">
+                {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creation...</> : <><Shield className="w-4 h-4 mr-2" /> Creer le consentement</>}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

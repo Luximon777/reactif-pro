@@ -722,31 +722,35 @@ async def search_users(token: str, query: str):
 
 
 
-# ===== OUTILS D'ACCOMPAGNEMENT (BILAN PRO & PERSO) =====
+# ===== OUTILS D'ACCOMPAGNEMENT V2 (BILAN AUGMENTE RE'ACTIF PRO) =====
 
 BILAN_FICHES = [
-    {"id": "attentes", "phase": "decouverte", "phase_label": "Decouverte", "number": 1, "title": "Vos attentes", "description": "4 questions pour clarifier les attentes et l'etat d'esprit avant l'accompagnement"},
-    {"id": "courbe_satisfaction", "phase": "decouverte", "phase_label": "Decouverte", "number": 2, "title": "Courbe de satisfaction", "description": "Representation visuelle des periodes cles de la vie professionnelle et personnelle"},
-    {"id": "formation", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 3, "title": "Savoirs et formation", "description": "Formation initiale et continue, motivations et interets"},
-    {"id": "recit_carriere", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 4, "title": "Recit de carriere", "description": "Appreciation des grandes periodes du parcours professionnel"},
-    {"id": "interets", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 5, "title": "Vos interets", "description": "Identification des centres d'interet professionnels"},
-    {"id": "realisations", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 6, "title": "Vos realisations", "description": "Recensement des realisations significatives"},
-    {"id": "competences", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 7, "title": "Vos competences", "description": "Identification des savoirs, savoir-faire et savoir-etre"},
-    {"id": "synthese_pro", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 8, "title": "Synthese bilan professionnel", "description": "Vue d'ensemble du parcours et des acquis professionnels"},
-    {"id": "situations_difficiles", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 9, "title": "Apprendre des situations difficiles", "description": "Tirer les lecons des experiences complexes"},
-    {"id": "points_forts", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 10, "title": "Points forts et vigilance", "description": "Identification des atouts et points de developpement"},
-    {"id": "valeurs", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 11, "title": "Vos valeurs", "description": "Les valeurs qui guident vos choix professionnels"},
-    {"id": "moteurs", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 12, "title": "Vos moteurs", "description": "Ce qui vous motive et vous met en mouvement"},
-    {"id": "environnement", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 13, "title": "Environnement de travail", "description": "Analyse de votre environnement ideal et synthese personnelle"},
-    {"id": "synthese_perso", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 14, "title": "Synthese bilan personnel", "description": "Autoportrait, axes de developpement, plan d'action personnel"},
-    {"id": "reflexion_projet", "phase": "projet", "phase_label": "Projet professionnel", "number": 15, "title": "Reflexion sur le projet", "description": "Le projet est-il precis, realiste, realisable, coherent et creatif ?"},
-    {"id": "definition_projet", "phase": "projet", "phase_label": "Projet professionnel", "number": 16, "title": "Definition du projet", "description": "Plan d'action, competences a utiliser, risques et echeancier"},
+    {"id": "positionnement_depart", "phase": "diagnostic", "phase_label": "Diagnostic initial", "number": 1, "title": "Positionnement de depart", "description": "Clarifier le niveau de clarte, d'energie et d'urgence avant l'accompagnement"},
+    {"id": "courbe_trajectoire", "phase": "diagnostic", "phase_label": "Diagnostic initial", "number": 2, "title": "Courbe de trajectoire", "description": "Lecture strategique du parcours : pics de reussite, zones de rupture, fil rouge"},
+    {"id": "recit_carriere", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 3, "title": "Recit de carriere analytique", "description": "Analyse approfondie de chaque poste : competences, energie, alignement valeurs"},
+    {"id": "realisations", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 4, "title": "Realisations et impact", "description": "Methode STAR augmentee : impact reel, niveau de preuve, contexte de reproductibilite"},
+    {"id": "competences_dynamiques", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 5, "title": "Competences dynamiques", "description": "3 dimensions (techniques, transversales, comportementales), 3 etats, transferabilite"},
+    {"id": "identite_professionnelle", "phase": "identite_valeurs", "phase_label": "Identite et valeurs", "number": 6, "title": "Identite professionnelle", "description": "Ce que je suis, ce que je fais, ce que je renvoie — phrase d'identite exploitable"},
+    {"id": "valeurs_decisionnelles", "phase": "identite_valeurs", "phase_label": "Identite et valeurs", "number": 7, "title": "Valeurs decisionnelles", "description": "Valeurs vecues, situations de non-respect, 5 non-negociables pour l'avenir"},
+    {"id": "environnement_rqth", "phase": "identite_valeurs", "phase_label": "Identite et valeurs", "number": 8, "title": "Environnement et contraintes", "description": "Contraintes reelles (sante, mobilite, vie perso), conditions compatibles, adaptations RQTH"},
+    {"id": "confrontation_marche", "phase": "strategie", "phase_label": "Strategie et trajectoire", "number": 9, "title": "Confrontation au marche", "description": "3 metiers cibles, competences demandees, ecarts, decision GO / PAS GO / AJUSTEMENT"},
+    {"id": "strategie_trajectoire", "phase": "strategie", "phase_label": "Strategie et trajectoire", "number": 10, "title": "Strategie de trajectoire", "description": "3 scenarios : projet principal, projet securise, projet exploratoire"},
+    {"id": "reseau_leviers", "phase": "activation", "phase_label": "Activation", "number": 11, "title": "Reseau et leviers", "description": "Cartographie reseau : personnes ressources, entreprises cibles, canaux d'acces"},
+    {"id": "plan_activation", "phase": "activation", "phase_label": "Activation", "number": 12, "title": "Mon plan d'activation", "description": "Actions terrain, contacts pro, mises en situation, suivi des resultats"},
+]
+
+# V1 fiche IDs kept for backward compatibility with existing bilan data
+V1_FICHE_IDS = [
+    "attentes", "courbe_satisfaction", "formation", "recit_carriere", "interets",
+    "realisations", "competences", "synthese_pro", "situations_difficiles",
+    "points_forts", "valeurs", "moteurs", "environnement", "synthese_perso",
+    "reflexion_projet", "definition_projet"
 ]
 
 
 @router.get("/partenaires/outils/fiches")
 async def get_fiches_list(token: str):
-    """Get the list of all bilan fiches"""
+    """Get the list of all V2 bilan fiches"""
     await get_current_token(token)
     return BILAN_FICHES
 
@@ -770,7 +774,7 @@ class FicheData(BaseModel):
 
 @router.put("/partenaires/beneficiaires/{beneficiary_id}/bilan")
 async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
-    """Save a specific fiche for a beneficiary's bilan"""
+    """Save a specific fiche for a beneficiary's bilan (V2 + backward compat V1)"""
     token_doc = await get_current_token(token)
     ben = await db.beneficiaires.find_one(
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
@@ -778,7 +782,7 @@ async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
     if not ben:
         raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
 
-    valid_ids = [f["id"] for f in BILAN_FICHES]
+    valid_ids = [f["id"] for f in BILAN_FICHES] + V1_FICHE_IDS
     if payload.fiche_id not in valid_ids:
         raise HTTPException(status_code=400, detail="Fiche invalide")
 
@@ -788,7 +792,8 @@ async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
 
-    completed_count = len([fid for fid in valid_ids if fid in bilan])
+    v2_ids = [f["id"] for f in BILAN_FICHES]
+    completed_count = len([fid for fid in v2_ids if fid in bilan])
 
     await db.beneficiaires.update_one(
         {"id": beneficiary_id},
@@ -808,3 +813,206 @@ async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
         }
     )
     return {"message": "Fiche sauvegardee", "completed": completed_count, "total": len(BILAN_FICHES)}
+
+
+# ===== CONSENTEMENT GRANULAIRE =====
+
+CONSENT_MODULES = [
+    "profil_administratif", "parcours_formation", "experiences_professionnelles",
+    "competences_techniques", "soft_skills", "valeurs_moteurs",
+    "contraintes_adaptation", "projet_professionnel", "documents",
+    "resultats_tests", "plan_action", "journal_progression"
+]
+
+
+class ConsentCreate(BaseModel):
+    beneficiary_id: str
+    level: str  # synthese, modulaire, complet_temporaire
+    modules: Optional[List[str]] = None  # for modulaire level
+    duration_days: int = 90
+    purpose: str = "Accompagnement socioprofessionnel"
+
+
+class ConsentUpdate(BaseModel):
+    level: Optional[str] = None
+    modules: Optional[List[str]] = None
+    duration_days: Optional[int] = None
+    active: Optional[bool] = None
+
+
+@router.post("/partenaires/consent")
+async def create_consent(token: str, payload: ConsentCreate):
+    """Create a granular consent for data sharing"""
+    token_doc = await get_current_token(token)
+    partner_id = token_doc["id"]
+
+    ben = await db.beneficiaires.find_one(
+        {"id": payload.beneficiary_id, "partner_id": partner_id}, {"_id": 0}
+    )
+    if not ben:
+        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+
+    if payload.level not in ["synthese", "modulaire", "complet_temporaire"]:
+        raise HTTPException(status_code=400, detail="Niveau invalide: synthese, modulaire, complet_temporaire")
+
+    if payload.level == "modulaire" and not payload.modules:
+        raise HTTPException(status_code=400, detail="Modules requis pour le niveau modulaire")
+
+    if payload.modules:
+        invalid = [m for m in payload.modules if m not in CONSENT_MODULES]
+        if invalid:
+            raise HTTPException(status_code=400, detail=f"Modules invalides: {', '.join(invalid)}")
+
+    now = datetime.now(timezone.utc)
+    consent = {
+        "id": str(uuid.uuid4()),
+        "beneficiary_id": payload.beneficiary_id,
+        "partner_id": partner_id,
+        "level": payload.level,
+        "modules": payload.modules if payload.level == "modulaire" else (
+            CONSENT_MODULES if payload.level == "complet_temporaire" else []
+        ),
+        "purpose": payload.purpose,
+        "duration_days": payload.duration_days,
+        "active": True,
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(days=payload.duration_days)).isoformat(),
+        "revoked_at": None,
+        "access_log": []
+    }
+
+    await db.consents.insert_one(consent)
+    consent.pop("_id", None)
+
+    await db.beneficiaires.update_one(
+        {"id": payload.beneficiary_id},
+        {
+            "$set": {"last_activity": now.isoformat()},
+            "$push": {
+                "historique": {
+                    "date": now.isoformat(),
+                    "action": "consent_created",
+                    "detail": f"Consentement {payload.level} cree ({payload.duration_days}j)"
+                }
+            }
+        }
+    )
+
+    return consent
+
+
+@router.get("/partenaires/consent/{beneficiary_id}")
+async def get_consent(beneficiary_id: str, token: str):
+    """Get active consent for a beneficiary"""
+    token_doc = await get_current_token(token)
+    consents = await db.consents.find(
+        {"beneficiary_id": beneficiary_id, "partner_id": token_doc["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+
+    now = datetime.now(timezone.utc)
+    for c in consents:
+        if c.get("active") and c.get("expires_at"):
+            try:
+                exp = datetime.fromisoformat(c["expires_at"].replace("Z", "+00:00"))
+                if exp < now:
+                    c["active"] = False
+                    c["status"] = "expire"
+                    await db.consents.update_one({"id": c["id"]}, {"$set": {"active": False}})
+                else:
+                    remaining = (exp - now).days
+                    c["status"] = "actif"
+                    c["remaining_days"] = remaining
+            except (ValueError, TypeError):
+                c["status"] = "actif"
+        elif not c.get("active"):
+            c["status"] = "revoque" if c.get("revoked_at") else "expire"
+
+    return consents
+
+
+@router.put("/partenaires/consent/{consent_id}")
+async def update_consent(consent_id: str, token: str, payload: ConsentUpdate):
+    """Update a consent"""
+    token_doc = await get_current_token(token)
+    consent = await db.consents.find_one(
+        {"id": consent_id, "partner_id": token_doc["id"]}, {"_id": 0}
+    )
+    if not consent:
+        raise HTTPException(status_code=404, detail="Consentement non trouve")
+
+    update_data = {}
+    if payload.level is not None:
+        update_data["level"] = payload.level
+    if payload.modules is not None:
+        update_data["modules"] = payload.modules
+    if payload.duration_days is not None:
+        update_data["duration_days"] = payload.duration_days
+        update_data["expires_at"] = (
+            datetime.fromisoformat(consent["created_at"].replace("Z", "+00:00"))
+            + timedelta(days=payload.duration_days)
+        ).isoformat()
+    if payload.active is not None:
+        update_data["active"] = payload.active
+        if not payload.active:
+            update_data["revoked_at"] = datetime.now(timezone.utc).isoformat()
+
+    if update_data:
+        await db.consents.update_one({"id": consent_id}, {"$set": update_data})
+
+    updated = await db.consents.find_one({"id": consent_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/partenaires/consent/{consent_id}")
+async def revoke_consent(consent_id: str, token: str):
+    """Revoke a consent"""
+    token_doc = await get_current_token(token)
+    consent = await db.consents.find_one(
+        {"id": consent_id, "partner_id": token_doc["id"]}, {"_id": 0}
+    )
+    if not consent:
+        raise HTTPException(status_code=404, detail="Consentement non trouve")
+
+    now = datetime.now(timezone.utc)
+    await db.consents.update_one(
+        {"id": consent_id},
+        {"$set": {"active": False, "revoked_at": now.isoformat()}}
+    )
+
+    await db.beneficiaires.update_one(
+        {"id": consent["beneficiary_id"]},
+        {
+            "$set": {"last_activity": now.isoformat()},
+            "$push": {
+                "historique": {
+                    "date": now.isoformat(),
+                    "action": "consent_revoked",
+                    "detail": f"Consentement {consent['level']} revoque"
+                }
+            }
+        }
+    )
+
+    return {"message": "Consentement revoque"}
+
+
+@router.get("/partenaires/consent-modules")
+async def get_consent_modules(token: str):
+    """Get list of available consent modules"""
+    await get_current_token(token)
+    modules_labels = {
+        "profil_administratif": "Profil administratif",
+        "parcours_formation": "Parcours de formation",
+        "experiences_professionnelles": "Experiences professionnelles",
+        "competences_techniques": "Competences techniques",
+        "soft_skills": "Soft skills",
+        "valeurs_moteurs": "Valeurs et moteurs",
+        "contraintes_adaptation": "Contraintes et besoins d'adaptation",
+        "projet_professionnel": "Projet professionnel",
+        "documents": "Documents",
+        "resultats_tests": "Resultats de tests",
+        "plan_action": "Plan d'action",
+        "journal_progression": "Journal de progression",
+    }
+    return [{"id": m, "label": modules_labels.get(m, m)} for m in CONSENT_MODULES]
