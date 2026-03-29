@@ -87,12 +87,12 @@ const PartenaireView = ({ token }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Espace Partenaires de Parcours
+            Interface de coordination partenaires
           </h1>
           <p className="text-slate-500 mt-1 text-sm">
             {profile?.company_name && <span className="font-medium text-[#1e3a5f]">{profile.company_name}</span>}
             {profile?.company_name && " — "}
-            Accompagnement et securisation des transitions professionnelles
+            Valorisation, coordination et securisation des parcours — en appui des dispositifs existants
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="add-beneficiaire-btn">
@@ -105,11 +105,12 @@ const PartenaireView = ({ token }) => {
           <TabsTrigger value="dashboard" data-testid="tab-dashboard"><BarChart3 className="w-4 h-4 mr-1.5" /> Tableau de bord</TabsTrigger>
           <TabsTrigger value="beneficiaires" data-testid="tab-beneficiaires"><Users className="w-4 h-4 mr-1.5" /> Beneficiaires</TabsTrigger>
           <TabsTrigger value="freins" data-testid="tab-freins"><AlertTriangle className="w-4 h-4 mr-1.5" /> Freins</TabsTrigger>
-          <TabsTrigger value="orientation" data-testid="tab-orientation"><Compass className="w-4 h-4 mr-1.5" /> Orientation IA</TabsTrigger>
-          <TabsTrigger value="observatoire" data-testid="tab-observatoire"><Globe className="w-4 h-4 mr-1.5" /> Observatoire</TabsTrigger>
+          <TabsTrigger value="orientation" data-testid="tab-orientation"><Compass className="w-4 h-4 mr-1.5" /> Preparation parcours</TabsTrigger>
+          <TabsTrigger value="observatoire" data-testid="tab-observatoire"><Globe className="w-4 h-4 mr-1.5" /> Contribution territoriale</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 mt-4">
+          <ComplementarityBanner />
           <StatsCards stats={stats} />
           {alertes.length > 0 && <AlertesPanel alertes={alertes} onNavigate={(b) => { setSelectedBeneficiaire(b); setActiveTab("beneficiaires"); }} />}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -186,6 +187,39 @@ const AlertesPanel = ({ alertes, onNavigate }) => {
     </Card>
   );
 };
+
+// ===== COMPLEMENTARITY BANNER =====
+const ComplementarityBanner = () => (
+  <Card className="border border-[#1e3a5f]/10 bg-gradient-to-r from-slate-50 to-blue-50/30" data-testid="complementarity-banner">
+    <CardContent className="p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-lg bg-[#1e3a5f]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <Handshake className="w-5 h-5 text-[#1e3a5f]" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-slate-800 mb-1.5">Brique complementaire de l'ecosysteme</p>
+          <p className="text-xs text-slate-500 leading-relaxed mb-3">
+            RE'ACTIF PRO n'a pas vocation a se substituer aux dispositifs existants. Il renforce leur efficacite par une meilleure qualification des profils, une coordination des parcours et une mise en visibilite des competences et freins.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+              <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+              <div><p className="text-xs font-medium text-slate-700">Orient'Est</p><p className="text-[10px] text-slate-400">Information, metiers, formations</p></div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+              <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></div>
+              <div><p className="text-xs font-medium text-slate-700">EURES</p><p className="text-[10px] text-slate-400">Mobilite europeenne, recrutement</p></div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#1e3a5f]/20">
+              <div className="w-2 h-2 rounded-full bg-[#1e3a5f] flex-shrink-0"></div>
+              <div><p className="text-xs font-medium text-[#1e3a5f]">RE'ACTIF PRO</p><p className="text-[10px] text-slate-400">Diagnostic, coordination, securisation</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 // ===== STATS CARDS =====
 const StatsCards = ({ stats }) => {
@@ -809,8 +843,8 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
     <div className="space-y-4" data-testid="orientation-view">
       <Card className="border border-slate-100">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Compass className="w-5 h-5 text-[#1e3a5f]" /> Orientation intelligente</CardTitle>
-          <CardDescription>Recommandations IA basees sur le profil reel, les contraintes et le bassin d'emploi</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Compass className="w-5 h-5 text-[#1e3a5f]" /> Preparation et qualification du parcours</CardTitle>
+          <CardDescription>Reveler le potentiel, qualifier les competences et preparer l'acces aux dispositifs existants (Orient'Est, EURES, France Travail...)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -819,7 +853,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
               <SelectContent>{beneficiaires.map(b => <SelectItem key={b.id} value={b.id}>{b.name} — {b.sector}</SelectItem>)}</SelectContent>
             </Select>
             <Button onClick={generateOrientation} disabled={loading || !selectedId} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="generate-orientation-btn">
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse IA...</> : <><Brain className="w-4 h-4 mr-2" /> Generer l'orientation</>}
+              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse IA...</> : <><Brain className="w-4 h-4 mr-2" /> Qualifier le parcours</>}
             </Button>
           </div>
           {selected && (
@@ -840,10 +874,11 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
       )}
 
       {orientation && !loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {orientation.metiers_recommandes?.length > 0 && (
             <Card className="border border-slate-100">
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Briefcase className="w-4 h-4 text-blue-600" /> Metiers recommandes</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Briefcase className="w-4 h-4 text-blue-600" /> Pistes metiers identifiees</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {orientation.metiers_recommandes.map((m, i) => (
                   <div key={i} className="p-3 rounded-lg bg-blue-50/50 border border-blue-100">
@@ -856,7 +891,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
           )}
           {orientation.formations_suggerees?.length > 0 && (
             <Card className="border border-slate-100">
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><GraduationCap className="w-4 h-4 text-green-600" /> Formations suggerees</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><GraduationCap className="w-4 h-4 text-green-600" /> Formations a explorer</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {orientation.formations_suggerees.map((f, i) => (
                   <div key={i} className="p-3 rounded-lg bg-green-50/50 border border-green-100">
@@ -897,6 +932,27 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
               </CardContent>
             </Card>
           )}
+          </div>
+          {/* Ecosystem references */}
+          <Card className="border border-dashed border-slate-200 bg-slate-50/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-medium text-slate-600 mb-2">Pour aller plus loin — dispositifs complementaires</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                  <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center"><BookOpen className="w-3 h-3 text-blue-600" /></div>
+                  <div><p className="font-medium text-slate-700">Orient'Est</p><p className="text-slate-400">Informations metiers, formations et ressources regionales</p></div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                  <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center"><Globe className="w-3 h-3 text-indigo-600" /></div>
+                  <div><p className="font-medium text-slate-700">EURES</p><p className="text-slate-400">Mobilite europeenne et opportunites transfrontalieres</p></div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Briefcase className="w-3 h-3 text-green-600" /></div>
+                  <div><p className="font-medium text-slate-700">France Travail</p><p className="text-slate-400">Offres d'emploi, aides et dispositifs nationaux</p></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
@@ -931,8 +987,8 @@ const ObservatoireContribution = ({ token, stats, beneficiaires }) => {
     <div className="space-y-4" data-testid="observatoire-contribution">
       <Card className="border border-slate-100">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5 text-[#1e3a5f]" /> Contribution a l'Observatoire</CardTitle>
-          <CardDescription>Partagez vos donnees terrain pour alimenter l'observatoire predictif des competences</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5 text-[#1e3a5f]" /> Contribution territoriale</CardTitle>
+          <CardDescription>Alimentez l'observatoire predictif avec vos donnees terrain — competences emergentes, freins recurrents, tensions sectorielles — pour renforcer l'ecosysteme d'accompagnement</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

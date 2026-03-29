@@ -78,11 +78,11 @@ const Landing = () => {
     },
     {
       id: "partenaire",
-      title: "Espace Partenaires",
-      description: "Accompagnez les transitions professionnelles avec des outils d'intelligence collective",
+      title: "Appui aux parcours",
+      description: "Interface de coordination pour les acteurs de l'accompagnement — en complementarite des dispositifs existants",
       icon: Handshake,
       color: "violet",
-      features: ["Suivi des parcours", "Observatoire des compétences", "Intelligence territoriale"]
+      features: ["Diagnostic enrichi", "Coordination des parcours", "Contribution territoriale"]
     }
   ];
 
