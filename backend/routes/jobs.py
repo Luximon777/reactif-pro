@@ -803,32 +803,6 @@ async def get_candidates(token: str, job_id: Optional[str] = None):
     return profiles
 
 
-@router.get("/partenaires/beneficiaires")
-async def get_beneficiaires(token: str):
-    token_doc = await get_current_token(token)
-    return await db.beneficiaires.find({"partner_id": token_doc["id"]}, {"_id": 0}).to_list(100)
-
-
-@router.post("/partenaires/beneficiaires")
-async def create_beneficiaire(token: str, name: str, sector: str):
-    token_doc = await get_current_token(token)
-    beneficiary = Beneficiary(name=name, status="En accompagnement", sector=sector, partner_id=token_doc["id"])
-    await db.beneficiaires.insert_one(beneficiary.model_dump())
-    return beneficiary.model_dump()
-
-
-@router.put("/partenaires/beneficiaires/{beneficiary_id}")
-async def update_beneficiaire(token: str, beneficiary_id: str, status: Optional[str] = None, progress: Optional[int] = None):
-    update_data = {}
-    if status:
-        update_data["status"] = status
-    if progress is not None:
-        update_data["progress"] = progress
-    update_data["last_activity"] = datetime.now(timezone.utc).isoformat()
-    await db.beneficiaires.update_one({"id": beneficiary_id}, {"$set": update_data})
-    return await db.beneficiaires.find_one({"id": beneficiary_id}, {"_id": 0})
-
-
 @router.get("/metrics")
 async def get_metrics():
     particuliers_count = await db.profiles.count_documents({"role": "particulier"})

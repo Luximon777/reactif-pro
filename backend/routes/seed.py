@@ -11,7 +11,6 @@ async def seed_database():
     """Seed database with demo data"""
     await db.jobs.delete_many({})
     await db.learning_modules.delete_many({})
-    await db.beneficiaires.delete_many({})
 
     demo_jobs = [
         {"id": str(uuid.uuid4()), "title": "Assistant Administratif", "company": "TechCorp France", "location": "Paris, France", "contract_type": "CDI", "salary_range": "28 000 - 35 000", "required_skills": ["Gestion administrative", "Excel", "Communication", "Organisation"], "description": "Nous recherchons un assistant administratif polyvalent pour rejoindre notre equipe.", "sector": "Administration", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
