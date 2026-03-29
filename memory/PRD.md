@@ -1,19 +1,12 @@
 # Re'Actif Pro - PRD
 
-## Positionnement strategique
-RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoires professionnelles, concue pour agir en complementarite des services publics, prives et des acteurs de l'accompagnement. Elle n'a pas vocation a se substituer aux dispositifs existants comme Orient'Est ou EURES, mais a renforcer leur efficacite par une meilleure qualification des profils, une coordination des parcours et une mise en visibilite des competences, freins et potentiels.
-
-### Repartition strategique
-- **Orient'Est** : Information, decouverte metiers, formations, ressources regionales, espace d'orientation
-- **EURES** : Mobilite europeenne, recrutement transfrontalier, accompagnement employeurs et candidats
-- **RE'ACTIF PRO** : Diagnostic enrichi, valorisation du potentiel, accompagnement multi-acteurs, levee des freins, preparation a l'acces aux dispositifs et opportunites
+## Positionnement stratégique
+RE'ACTIF PRO est une plateforme de valorisation et de sécurisation des trajectoires professionnelles, conçue pour agir en complémentarité des services publics, privés et des acteurs de l'accompagnement. Elle n'a pas vocation à se substituer aux dispositifs existants comme Orient'Est ou EURES, mais à renforcer leur efficacité par une meilleure qualification des profils, une coordination des parcours et une mise en visibilité des compétences, freins et potentiels.
 
 ### Vocabulaire institutionnel
 - "Interface de coordination" (pas "portail")
-- "Brique complementaire" (pas "solution alternative")
+- "Brique complémentaire" (pas "solution alternative")
 - "Outil d'appui aux parcours" (pas "outil d'orientation")
-- "Couche de valorisation et de securisation" (pas "plateforme qui centralise")
-- "Solution interoperable avec les acteurs existants" (pas "guichet unique")
 
 ## Architecture
 - Frontend: React + Tailwind + Shadcn/UI + Recharts
@@ -21,72 +14,61 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Auth: Pseudonyme anonyme (JWT) + Login pro (email/password)
 - LLM: OpenAI GPT via Emergent LLM Key (emergentintegrations)
 
-## Implemente
+## Implémenté
 
 ### Core
-- Design D'CLIC PRO, Auth multi-niveaux, Analyse CV, Passeport de competences
-- Observatoire predictif, Job Matching, Formations, Explorateur
+- Design D'CLIC PRO, Auth multi-niveaux, Analyse CV, Passeport de compétences
+- Observatoire prédictif, Job Matching, Formations, Explorateur
 
-### Ubuntoo (Communaute)
-- Section communautaire integree /ubuntoo
-- Pipeline Ubuntoo <-> Observatoire (AI detection signaux)
-- Sync profil Re'Actif Pro -> Ubuntoo (AI)
+### Ubuntoo (Communauté)
+- Section communautaire intégrée /ubuntoo
 
 ### Espace Partenaires de Parcours (COMPLET)
-- Interface de coordination (pas "Espace Partenaires")
-- Bandeau de complementarite (France Travail / Mission Locale / APEC / Orient'Est / Region Grand Est / EURES / RE'ACTIF PRO)
-- Dashboard multi-onglets: Tableau de bord, Beneficiaires, Freins, Preparation parcours IA, Contribution territoriale, Outils V2
-- Inscription SIRET + charte ethique + RGPD
-- CRUD beneficiaires, freins peripheriques (8 categories), competences validees
-- Liaison beneficiaire <-> profil Re'Actif Pro (recherche, consentement, acces profil complet)
-- Systeme d'alertes (inactivite, freins critiques, attente prolongee)
-- Diagnostic enrichi (contexte social, mobilite, motivation, posture, autonomie)
-- Preparation de parcours IA (posture de preparation, renvoi vers Orient'Est/EURES/France Travail)
-- Contribution territoriale (freins recurrents, competences emergentes, tensions secteurs)
+- Interface de coordination (6 onglets)
+- Bandeau complémentarité (7 acteurs)
+- Dashboard, Bénéficiaires, Freins, Préparation parcours IA, Contribution territoriale, Outils V2
 
 ### Outils d'accompagnement V2 (COMPLET - 29/03/2026)
-- 12 fiches augmentees en 5 phases:
-  1. Diagnostic initial: Positionnement de depart, Courbe de trajectoire
-  2. Bilan professionnel: Recit de carriere analytique, Realisations et impact, Competences dynamiques
-  3. Identite et valeurs: Identite professionnelle, Valeurs decisionnelles, Environnement et contraintes
-  4. Strategie et trajectoire: Confrontation au marche, Strategie de trajectoire (3 scenarios)
-  5. Activation: Reseau et leviers, Mon plan d'activation
-- Blocs decisionnels sur chaque fiche: "Ce que je decide / Ce que j'arrete / Ce que je teste"
+- 12 fiches augmentées en 5 phases (Diagnostic, Bilan pro, Identité/Valeurs, Stratégie, Activation)
+- Blocs décisionnels ("Ce que je décide / Ce que j'arrête / Ce que je teste")
 - Backward compatibility avec les fiches V1
 
 ### Consentement granulaire (COMPLET - 29/03/2026)
-- 3 niveaux: Synthese partagee, Partage modulaire, Complet temporaire
-- 12 modules partageables (profil, parcours, competences, valeurs, documents, etc.)
-- Creation, consultation, mise a jour, revocation
-- Tracabilite: qui, pourquoi, quelles donnees, duree, statut
-- Expiration automatique
-- UI complete dans l'onglet Outils
+- 3 niveaux: Synthèse partagée, Partage modulaire, Complet temporaire
+- 12 modules partageables, création/révocation, expiration automatique
 
-## Endpoints Partenaires
-- POST /api/auth/register-partenaire
-- POST /api/auth/login-pro
-- GET /api/partenaires/stats, /profile, /alertes, /search-users
-- CRUD /api/partenaires/beneficiaires
-- POST /link, DELETE /link, GET /linked-profile
-- PUT /diagnostic
-- POST /orientation (GPT IA avec posture complementarite)
-- POST/PUT /freins, POST /skills
-- POST /contribution-observatoire
+### Demande d'accès bénéficiaire RE'ACTIF PRO (COMPLET - 29/03/2026)
+- Flux principal: Recherche par nom → Vérification autorisation → Synchronisation profil complet
+- Deux boutons coexistent: "Demande d'accès RE'ACTIF PRO" + "Création manuelle"
+- Recherche par nom (real_first_name / real_last_name)
+- Badge "Compte ouvert autorisé" + bouton "Synchroniser" quand visibilité = limité
+- Badge "Accès non autorisé" quand visibilité = privé
+- Paramètres de confidentialité: champs nom/prénom requis + avertissement levée d'anonymat
+- Synchronisation complète: nom, compétences, passeport, résultats D'CLIC, CV analyses
+- Consent history enregistré pour chaque synchronisation
+
+### Accents français (COMPLET - 29/03/2026)
+- Correction systématique de tous les textes (backend + frontend)
+
+## Endpoints clés
+- POST /api/auth/register-partenaire, POST /api/auth/login-pro
+- GET /api/partenaires/stats, /beneficiaires, /alertes
+- GET /api/partenaires/demande-acces/search (recherche par nom)
+- POST /api/partenaires/demande-acces/synchroniser (sync profil)
+- PUT /api/profile/privacy (avec real_first_name/real_last_name)
 - GET /api/partenaires/outils/fiches (V2: 12 fiches)
-- GET/PUT /api/partenaires/beneficiaires/{id}/bilan
 - POST/GET/PUT/DELETE /api/partenaires/consent
-- GET /api/partenaires/consent-modules
 
 ## Backlog
-- P1: Coffre-fort numerique avec upload de fichiers reels
-- P2: Narratif IA personnalise D'CLIC PRO
-- P2: Coordination multi-acteurs (plusieurs partenaires / meme beneficiaire)
+- P1: Coffre-fort numérique avec upload de fichiers réels
+- P2: Narratif IA personnalisé D'CLIC PRO
 - P2: FranceConnect
-- P3: Ateliers de Codeveloppement / Micro-badges
-- Refactoring: DclicTestPage.jsx, ObservatoireView.jsx, PartenaireView.jsx (>1500 lignes)
+- P3: Ateliers de Codéveloppement / Micro-badges
+- Refactoring: PartenaireView.jsx (>1700 lignes), DclicTestPage.jsx, ObservatoireView.jsx
 
 ## Test Reports
 - Iteration 43: Phase 1 Partenaires (25/25)
 - Iteration 44: Phase 2 Partenaires (15/15)
 - Iteration 45: Outils/Fiches V1 (100%)
-- Iteration 46: Outils V2 + Consentement granulaire (Backend 16/16, Frontend 100%)
+- Iteration 46: Outils V2 + Consentement (Backend 16/16, Frontend 100%)
+- Iteration 47: Demande d'accès bénéficiaire (Backend 16/16, Frontend 100%)
