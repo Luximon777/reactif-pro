@@ -104,7 +104,7 @@ const SharedPassportPage = () => {
               <Target className="w-3 h-3 mr-1" />{passport.completeness_score}% complete
             </Badge>
             <Badge className="bg-white/15 text-white text-xs">
-              <Layers className="w-3 h-3 mr-1" />{comps.length} competences
+              <Layers className="w-3 h-3 mr-1" />{comps.length} compétences
             </Badge>
             <Badge className="bg-white/15 text-white text-xs">
               <Briefcase className="w-3 h-3 mr-1" />{exps.length} experiences

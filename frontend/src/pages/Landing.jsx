@@ -79,7 +79,7 @@ const Landing = () => {
     {
       id: "partenaire",
       title: "Appui aux parcours",
-      description: "Interface de coordination pour les acteurs de l'accompagnement — en complementarite des dispositifs existants",
+      description: "Interface de coordination pour les acteurs de l'accompagnement — en complémentarité des dispositifs existants",
       icon: Handshake,
       color: "violet",
       features: ["Diagnostic enrichi", "Coordination des parcours", "Contribution territoriale"]

@@ -764,7 +764,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
                   <div key={u.pseudo} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50">
                     <div>
                       <p className="text-sm font-medium">{u.display_name} <span className="text-slate-400">@{u.pseudo}</span></p>
-                      <p className="text-xs text-slate-500">{u.skills_count} competences {u.sectors?.length ? `| ${u.sectors.slice(0, 2).join(", ")}` : ""}</p>
+                      <p className="text-xs text-slate-500">{u.skills_count} compétences {u.sectors?.length ? `| ${u.sectors.slice(0, 2).join(", ")}` : ""}</p>
                     </div>
                     <Button size="sm" onClick={() => linkUser(u.pseudo)} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid={`link-user-${u.pseudo}`}>
                       <Link2 className="w-3 h-3 mr-1" /> Lier
@@ -794,7 +794,7 @@ const LinkedProfileView = ({ data, loading, pseudo }) => {
         <CardContent className="space-y-4">
           {profile && (
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Competences detectees ({(profile.skills || []).length})</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Compétences détectées ({(profile.skills || []).length})</h4>
               <div className="flex flex-wrap gap-1.5">
                 {(profile.skills || []).slice(0, 20).map((s, i) => (
                   <Badge key={i} variant="secondary" className="text-xs">{typeof s === 'object' ? s.name : s}</Badge>
@@ -809,7 +809,7 @@ const LinkedProfileView = ({ data, loading, pseudo }) => {
           )}
           {passport && (
             <div className="border-t border-slate-100 pt-4">
-              <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> Passeport de competences</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> Passeport de compétences</h4>
               {passport.professional_summary && <p className="text-sm text-slate-600 mb-2">{passport.professional_summary}</p>}
               {passport.career_project && <div className="bg-slate-50 p-3 rounded-lg"><p className="text-xs text-slate-500 mb-1">Projet professionnel</p><p className="text-sm text-slate-700">{passport.career_project}</p></div>}
               {(passport.competences || []).length > 0 && (
