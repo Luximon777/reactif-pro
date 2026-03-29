@@ -106,6 +106,7 @@ const PartenaireView = ({ token }) => {
           <TabsTrigger value="beneficiaires" data-testid="tab-beneficiaires"><Users className="w-4 h-4 mr-1.5" /> Beneficiaires</TabsTrigger>
           <TabsTrigger value="freins" data-testid="tab-freins"><AlertTriangle className="w-4 h-4 mr-1.5" /> Freins</TabsTrigger>
           <TabsTrigger value="orientation" data-testid="tab-orientation"><Compass className="w-4 h-4 mr-1.5" /> Preparation parcours</TabsTrigger>
+          <TabsTrigger value="outils" data-testid="tab-outils"><ClipboardList className="w-4 h-4 mr-1.5" /> Outils</TabsTrigger>
           <TabsTrigger value="observatoire" data-testid="tab-observatoire"><Globe className="w-4 h-4 mr-1.5" /> Contribution territoriale</TabsTrigger>
         </TabsList>
 
@@ -131,6 +132,10 @@ const PartenaireView = ({ token }) => {
 
         <TabsContent value="orientation" className="space-y-4 mt-4">
           <OrientationView beneficiaires={beneficiaires} token={token} onRefresh={loadAll} />
+        </TabsContent>
+
+        <TabsContent value="outils" className="space-y-4 mt-4">
+          <OutilsAccompagnement beneficiaires={beneficiaires} token={token} onRefresh={loadAll} />
         </TabsContent>
 
         <TabsContent value="observatoire" className="space-y-4 mt-4">
@@ -982,6 +987,258 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
             </CardContent>
           </Card>
         </div>
+      )}
+    </div>
+  );
+};
+
+// ===== OUTILS D'ACCOMPAGNEMENT =====
+const PHASES = [
+  { id: "decouverte", label: "Decouverte", color: "bg-sky-100 text-sky-700 border-sky-200", icon: Eye },
+  { id: "bilan_pro", label: "Bilan professionnel", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Briefcase },
+  { id: "bilan_perso", label: "Bilan personnel", color: "bg-purple-100 text-purple-700 border-purple-200", icon: Heart },
+  { id: "projet", label: "Projet professionnel", color: "bg-green-100 text-green-700 border-green-200", icon: Target },
+];
+
+const FICHE_FIELDS = {
+  attentes: [
+    { key: "q1", label: "Qu'attendez-vous de cet accompagnement ?", type: "textarea" },
+    { key: "q2", label: "Quels sont les sujets que vous souhaitez aborder en priorite ?", type: "textarea" },
+    { key: "q3", label: "Qu'est-ce qui vous ferait dire, a la fin, que cet accompagnement a ete utile ?", type: "textarea" },
+    { key: "q4", label: "Y a-t-il des sujets que vous ne souhaitez pas aborder ?", type: "textarea" },
+  ],
+  formation: [
+    { key: "formation_initiale", label: "Formation initiale (diplomes, specialites)", type: "textarea" },
+    { key: "formation_continue", label: "Formation continue (stages, certifications)", type: "textarea" },
+    { key: "motivations_formation", label: "Motivations et interets identifies", type: "textarea" },
+  ],
+  recit_carriere: [
+    { key: "periodes", label: "Grandes periodes de votre parcours (dates, postes, entreprises)", type: "textarea" },
+    { key: "moments_forts", label: "Moments forts et reussites", type: "textarea" },
+    { key: "moments_difficiles", label: "Moments difficiles et lecons tirees", type: "textarea" },
+    { key: "changements", label: "Raisons des changements entre les periodes", type: "textarea" },
+  ],
+  competences: [
+    { key: "savoirs", label: "Savoirs (connaissances theoriques)", type: "textarea" },
+    { key: "savoir_faire", label: "Savoir-faire (competences techniques)", type: "textarea" },
+    { key: "savoir_etre", label: "Savoir-etre (qualites relationnelles)", type: "textarea" },
+  ],
+  realisations: [
+    { key: "realisations_cles", label: "Realisations significatives", type: "textarea" },
+    { key: "contexte_resultats", label: "Contexte et resultats obtenus", type: "textarea" },
+  ],
+  interets: [
+    { key: "interets_pro", label: "Centres d'interet professionnels", type: "textarea" },
+    { key: "domaines_attrait", label: "Domaines d'activite qui vous attirent", type: "textarea" },
+  ],
+  synthese_pro: [
+    { key: "atouts", label: "Vos principaux atouts professionnels", type: "textarea" },
+    { key: "competences_cles", label: "Competences cles a valoriser", type: "textarea" },
+    { key: "axes_developpement", label: "Axes de developpement identifies", type: "textarea" },
+  ],
+  situations_difficiles: [
+    { key: "situations", label: "Situations difficiles rencontrees", type: "textarea" },
+    { key: "strategies", label: "Strategies utilisees pour les surmonter", type: "textarea" },
+    { key: "enseignements", label: "Enseignements pour l'avenir", type: "textarea" },
+  ],
+  points_forts: [
+    { key: "points_forts", label: "Vos points forts et qualites", type: "textarea" },
+    { key: "points_vigilance", label: "Points de vigilance ou a developper", type: "textarea" },
+  ],
+  valeurs: [
+    { key: "valeurs_essentielles", label: "Valeurs essentielles (justice, liberte, securite, creativite...)", type: "textarea" },
+    { key: "valeurs_travail", label: "Comment ces valeurs se traduisent dans le travail", type: "textarea" },
+  ],
+  moteurs: [
+    { key: "moteurs_sens", label: "Moteurs lies au sens et aux valeurs", type: "textarea" },
+    { key: "moteurs_defi", label: "Moteurs lies au defi et a la progression", type: "textarea" },
+    { key: "moteurs_relation", label: "Moteurs lies a la relation aux autres", type: "textarea" },
+    { key: "moteurs_creativite", label: "Moteurs lies a la creativite", type: "textarea" },
+    { key: "moteurs_cadre", label: "Moteurs lies a l'organisation et au cadre", type: "textarea" },
+    { key: "je_veux", label: "En synthese : je veux...", type: "textarea" },
+    { key: "je_refuse", label: "En synthese : je refuse...", type: "textarea" },
+  ],
+  environnement: [
+    { key: "env_ideal", label: "Environnement de travail ideal", type: "textarea" },
+    { key: "activites_hors_travail", label: "Activites et engagements hors travail", type: "textarea" },
+  ],
+  synthese_perso: [
+    { key: "decouvertes", label: "Ce que le travail de bilan vous a fait decouvrir", type: "textarea" },
+    { key: "confirmations", label: "Ce qu'il vient confirmer", type: "textarea" },
+    { key: "autoportrait", label: "Votre autoportrait", type: "textarea" },
+    { key: "axes_dev", label: "Axes majeurs de developpement", type: "textarea" },
+  ],
+  courbe_satisfaction: [
+    { key: "periodes_hautes", label: "Periodes de haute satisfaction (quand, pourquoi)", type: "textarea" },
+    { key: "periodes_basses", label: "Periodes de basse satisfaction (quand, pourquoi)", type: "textarea" },
+    { key: "tendance", label: "Tendance actuelle et projection", type: "textarea" },
+  ],
+  reflexion_projet: [
+    { key: "precision", label: "En quoi le projet est-il precis ? (secteur, metier, competences, salaire, geographie)", type: "textarea" },
+    { key: "realisme", label: "En quoi est-il realiste ? (adequation avec les competences)", type: "textarea" },
+    { key: "realisabilite", label: "En quoi est-il realisable ? (situation du marche de l'emploi)", type: "textarea" },
+    { key: "coherence", label: "En quoi est-il coherent ? (vie personnelle, contraintes, entourage)", type: "textarea" },
+    { key: "creativite", label: "En quoi est-il creatif ? (plan B, passerelles, evolutions)", type: "textarea" },
+  ],
+  definition_projet: [
+    { key: "intitule", label: "Intitule du projet (fonction, mission, environnement)", type: "textarea" },
+    { key: "competences_utiliser", label: "Competences a utiliser", type: "textarea" },
+    { key: "competences_manquantes", label: "Competences manquantes et solutions pour les acquerir", type: "textarea" },
+    { key: "risques", label: "Risques du projet (financier, humain)", type: "textarea" },
+    { key: "plan_action", label: "Plan d'action et etapes", type: "textarea" },
+    { key: "probabilite_reussite", label: "Probabilite de reussite (1 a 4)", type: "select", options: ["1 - Faible", "2 - Moyenne", "3 - Bonne", "4 - Tres bonne"] },
+    { key: "motivation", label: "Degre de motivation (1 a 4)", type: "select", options: ["1 - Faible", "2 - Moyenne", "3 - Forte", "4 - Tres forte"] },
+  ],
+};
+
+const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
+  const [selectedBenId, setSelectedBenId] = useState("");
+  const [selectedFiche, setSelectedFiche] = useState(null);
+  const [bilanData, setBilanData] = useState({});
+  const [ficheForm, setFicheForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [fiches, setFiches] = useState([]);
+
+  useEffect(() => {
+    axios.get(`${API}/partenaires/outils/fiches?token=${token}`).then(r => setFiches(r.data)).catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
+    if (selectedBenId) {
+      axios.get(`${API}/partenaires/beneficiaires/${selectedBenId}/bilan?token=${token}`)
+        .then(r => setBilanData(r.data || {}))
+        .catch(() => setBilanData({}));
+    }
+  }, [selectedBenId, token]);
+
+  const openFiche = (fiche) => {
+    setSelectedFiche(fiche);
+    setFicheForm(bilanData[fiche.id] || {});
+  };
+
+  const saveFiche = async () => {
+    if (!selectedFiche || !selectedBenId) return;
+    setSaving(true);
+    try {
+      await axios.put(`${API}/partenaires/beneficiaires/${selectedBenId}/bilan?token=${token}`, { fiche_id: selectedFiche.id, data: ficheForm }, { headers: { "Content-Type": "application/json" } });
+      toast.success("Fiche sauvegardee");
+      setBilanData({ ...bilanData, [selectedFiche.id]: { ...ficheForm, updated_at: new Date().toISOString() } });
+      setSelectedFiche(null);
+      onRefresh();
+    } catch { toast.error("Erreur"); }
+    setSaving(false);
+  };
+
+  const selectedBen = beneficiaires.find(b => b.id === selectedBenId);
+  const completedFiches = fiches.filter(f => bilanData[f.id]);
+
+  if (selectedFiche) {
+    const fields = FICHE_FIELDS[selectedFiche.id] || [{ key: "contenu", label: "Contenu libre", type: "textarea" }];
+    return (
+      <div className="space-y-4" data-testid="fiche-editor">
+        <Button variant="ghost" onClick={() => setSelectedFiche(null)} className="text-slate-500 -ml-2">
+          <ChevronRight className="w-4 h-4 rotate-180 mr-1" /> Retour aux fiches
+        </Button>
+        <Card className="border border-slate-100">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-[#1e3a5f]/10 text-[#1e3a5f]">Fiche {selectedFiche.number}</Badge>
+              <CardTitle className="text-lg">{selectedFiche.title}</CardTitle>
+            </div>
+            <CardDescription>{selectedFiche.description}</CardDescription>
+            {selectedBen && <p className="text-xs text-slate-400 mt-1">Beneficiaire : {selectedBen.name}</p>}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {fields.map(field => (
+              <div key={field.key} className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">{field.label}</label>
+                {field.type === "textarea" ? (
+                  <Textarea value={ficheForm[field.key] || ""} onChange={e => setFicheForm({ ...ficheForm, [field.key]: e.target.value })}
+                    placeholder="Saisissez ici..." className="resize-none min-h-[80px]" data-testid={`fiche-field-${field.key}`} />
+                ) : field.type === "select" ? (
+                  <Select value={ficheForm[field.key] || ""} onValueChange={v => setFicheForm({ ...ficheForm, [field.key]: v })}>
+                    <SelectTrigger data-testid={`fiche-field-${field.key}`}><SelectValue placeholder="Choisir..." /></SelectTrigger>
+                    <SelectContent>{field.options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : null}
+              </div>
+            ))}
+            <div className="flex gap-2 pt-2">
+              <Button onClick={saveFiche} disabled={saving} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="save-fiche-btn">
+                {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Sauvegarder</>}
+              </Button>
+              <Button variant="outline" onClick={() => setSelectedFiche(null)}>Annuler</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4" data-testid="outils-view">
+      <Card className="border border-slate-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-[#1e3a5f]" /> Outils d'accompagnement</CardTitle>
+          <CardDescription>16 fiches structurees pour accompagner le bilan professionnel et personnel — de la decouverte au projet</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <Select value={selectedBenId} onValueChange={setSelectedBenId}>
+              <SelectTrigger className="flex-1" data-testid="outils-select-beneficiaire"><SelectValue placeholder="Choisir un beneficiaire..." /></SelectTrigger>
+              <SelectContent>{beneficiaires.map(b => <SelectItem key={b.id} value={b.id}>{b.name} — {b.sector}</SelectItem>)}</SelectContent>
+            </Select>
+            {selectedBenId && (
+              <div className="flex items-center gap-2">
+                <Progress value={selectedBen?.bilan_progress || 0} className="w-32 h-2" />
+                <span className="text-xs text-slate-500 whitespace-nowrap">{completedFiches.length}/{fiches.length} fiches</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedBenId && PHASES.map(phase => {
+        const phaseFiches = fiches.filter(f => f.phase === phase.id);
+        if (!phaseFiches.length) return null;
+        const PhIcon = phase.icon;
+        return (
+          <Card key={phase.id} className="border border-slate-100">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className={`w-7 h-7 rounded-md ${phase.color} flex items-center justify-center`}><PhIcon className="w-3.5 h-3.5" /></div>
+                {phase.label}
+                <Badge variant="secondary" className="text-xs ml-auto">{phaseFiches.filter(f => bilanData[f.id]).length}/{phaseFiches.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {phaseFiches.map(fiche => {
+                  const done = !!bilanData[fiche.id];
+                  return (
+                    <div key={fiche.id} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:border-[#1e3a5f]/30 ${done ? "bg-green-50/50 border-green-200" : "bg-white border-slate-100"}`}
+                      onClick={() => openFiche(fiche)} data-testid={`fiche-card-${fiche.id}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${done ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>{fiche.number}</div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">{fiche.title}</p>
+                          <p className="text-[11px] text-slate-400 line-clamp-1">{fiche.description}</p>
+                        </div>
+                      </div>
+                      {done ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {!selectedBenId && (
+        <Card className="border-dashed border-2 border-slate-200"><CardContent className="flex flex-col items-center justify-center py-12">
+          <ClipboardList className="w-12 h-12 text-slate-300 mb-3" /><p className="text-slate-500 text-sm">Selectionnez un beneficiaire pour acceder aux fiches</p>
+        </CardContent></Card>
       )}
     </div>
   );

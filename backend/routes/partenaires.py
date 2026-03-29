@@ -719,3 +719,92 @@ async def search_users(token: str, query: str):
             "token_id": u.get("token_id"),
         })
     return results
+
+
+
+# ===== OUTILS D'ACCOMPAGNEMENT (BILAN PRO & PERSO) =====
+
+BILAN_FICHES = [
+    {"id": "attentes", "phase": "decouverte", "phase_label": "Decouverte", "number": 1, "title": "Vos attentes", "description": "4 questions pour clarifier les attentes et l'etat d'esprit avant l'accompagnement"},
+    {"id": "courbe_satisfaction", "phase": "decouverte", "phase_label": "Decouverte", "number": 2, "title": "Courbe de satisfaction", "description": "Representation visuelle des periodes cles de la vie professionnelle et personnelle"},
+    {"id": "formation", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 3, "title": "Savoirs et formation", "description": "Formation initiale et continue, motivations et interets"},
+    {"id": "recit_carriere", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 4, "title": "Recit de carriere", "description": "Appreciation des grandes periodes du parcours professionnel"},
+    {"id": "interets", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 5, "title": "Vos interets", "description": "Identification des centres d'interet professionnels"},
+    {"id": "realisations", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 6, "title": "Vos realisations", "description": "Recensement des realisations significatives"},
+    {"id": "competences", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 7, "title": "Vos competences", "description": "Identification des savoirs, savoir-faire et savoir-etre"},
+    {"id": "synthese_pro", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 8, "title": "Synthese bilan professionnel", "description": "Vue d'ensemble du parcours et des acquis professionnels"},
+    {"id": "situations_difficiles", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 9, "title": "Apprendre des situations difficiles", "description": "Tirer les lecons des experiences complexes"},
+    {"id": "points_forts", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 10, "title": "Points forts et vigilance", "description": "Identification des atouts et points de developpement"},
+    {"id": "valeurs", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 11, "title": "Vos valeurs", "description": "Les valeurs qui guident vos choix professionnels"},
+    {"id": "moteurs", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 12, "title": "Vos moteurs", "description": "Ce qui vous motive et vous met en mouvement"},
+    {"id": "environnement", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 13, "title": "Environnement de travail", "description": "Analyse de votre environnement ideal et synthese personnelle"},
+    {"id": "synthese_perso", "phase": "bilan_perso", "phase_label": "Bilan personnel", "number": 14, "title": "Synthese bilan personnel", "description": "Autoportrait, axes de developpement, plan d'action personnel"},
+    {"id": "reflexion_projet", "phase": "projet", "phase_label": "Projet professionnel", "number": 15, "title": "Reflexion sur le projet", "description": "Le projet est-il precis, realiste, realisable, coherent et creatif ?"},
+    {"id": "definition_projet", "phase": "projet", "phase_label": "Projet professionnel", "number": 16, "title": "Definition du projet", "description": "Plan d'action, competences a utiliser, risques et echeancier"},
+]
+
+
+@router.get("/partenaires/outils/fiches")
+async def get_fiches_list(token: str):
+    """Get the list of all bilan fiches"""
+    await get_current_token(token)
+    return BILAN_FICHES
+
+
+@router.get("/partenaires/beneficiaires/{beneficiary_id}/bilan")
+async def get_beneficiaire_bilan(beneficiary_id: str, token: str):
+    """Get all bilan data for a beneficiary"""
+    token_doc = await get_current_token(token)
+    ben = await db.beneficiaires.find_one(
+        {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
+    )
+    if not ben:
+        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+    return ben.get("bilan", {})
+
+
+class FicheData(BaseModel):
+    fiche_id: str
+    data: dict
+
+
+@router.put("/partenaires/beneficiaires/{beneficiary_id}/bilan")
+async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
+    """Save a specific fiche for a beneficiary's bilan"""
+    token_doc = await get_current_token(token)
+    ben = await db.beneficiaires.find_one(
+        {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
+    )
+    if not ben:
+        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+
+    valid_ids = [f["id"] for f in BILAN_FICHES]
+    if payload.fiche_id not in valid_ids:
+        raise HTTPException(status_code=400, detail="Fiche invalide")
+
+    bilan = ben.get("bilan", {})
+    bilan[payload.fiche_id] = {
+        **payload.data,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    completed_count = len([fid for fid in valid_ids if fid in bilan])
+
+    await db.beneficiaires.update_one(
+        {"id": beneficiary_id},
+        {
+            "$set": {
+                "bilan": bilan,
+                "bilan_progress": round((completed_count / len(BILAN_FICHES)) * 100),
+                "last_activity": datetime.now(timezone.utc).isoformat()
+            },
+            "$push": {
+                "historique": {
+                    "date": datetime.now(timezone.utc).isoformat(),
+                    "action": "bilan_fiche",
+                    "detail": f"Fiche {payload.fiche_id} completee"
+                }
+            }
+        }
+    )
+    return {"message": "Fiche sauvegardee", "completed": completed_count, "total": len(BILAN_FICHES)}
