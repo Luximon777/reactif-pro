@@ -451,8 +451,11 @@ Reponds TOUJOURS en JSON avec cette structure exacte:
 
 Dans "dispositifs_adaptes", inclus quand pertinent:
 - Les ressources Orient'Est (information metiers, formations regionales)
-- Le reseau EURES (si potentiel de mobilite europeenne)
-- Les dispositifs France Travail, Mission Locale, Cap Emploi
+- Le reseau EURES (si potentiel de mobilite europeenne ou transfrontaliere)
+- Les dispositifs France Travail (offres, aides, accompagnement)
+- Les Missions Locales (insertion jeunes 16-25 ans)
+- L'APEC (cadres et evolution professionnelle)
+- Les politiques de la Region Grand Est (formations, aides regionales)
 
 Base tes recommandations sur:
 - Le profil reel (pas seulement le diplome)

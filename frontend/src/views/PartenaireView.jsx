@@ -196,23 +196,39 @@ const ComplementarityBanner = () => (
         <div className="w-9 h-9 rounded-lg bg-[#1e3a5f]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Handshake className="w-5 h-5 text-[#1e3a5f]" />
         </div>
-        <div>
+        <div className="w-full">
           <p className="text-sm font-medium text-slate-800 mb-1.5">Brique complementaire de l'ecosysteme</p>
           <p className="text-xs text-slate-500 leading-relaxed mb-3">
             RE'ACTIF PRO n'a pas vocation a se substituer aux dispositifs existants. Il renforce leur efficacite par une meilleure qualification des profils, une coordination des parcours et une mise en visibilite des competences et freins.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
               <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-              <div><p className="text-xs font-medium text-slate-700">Orient'Est</p><p className="text-[10px] text-slate-400">Information, metiers, formations</p></div>
+              <div><p className="text-[11px] font-medium text-slate-700">France Travail</p><p className="text-[9px] text-slate-400">Emploi, aides, dispositifs</p></div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+              <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+              <div><p className="text-[11px] font-medium text-slate-700">Mission Locale</p><p className="text-[9px] text-slate-400">Insertion jeunes</p></div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+              <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+              <div><p className="text-[11px] font-medium text-slate-700">APEC</p><p className="text-[9px] text-slate-400">Cadres, evolution pro</p></div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+              <div className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></div>
+              <div><p className="text-[11px] font-medium text-slate-700">Orient'Est</p><p className="text-[9px] text-slate-400">Metiers, formations</p></div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+              <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
+              <div><p className="text-[11px] font-medium text-slate-700">Region Grand Est</p><p className="text-[9px] text-slate-400">Politiques regionales</p></div>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
               <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></div>
-              <div><p className="text-xs font-medium text-slate-700">EURES</p><p className="text-[10px] text-slate-400">Mobilite europeenne, recrutement</p></div>
+              <div><p className="text-[11px] font-medium text-slate-700">EURES</p><p className="text-[9px] text-slate-400">Mobilite europeenne</p></div>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#1e3a5f]/20">
               <div className="w-2 h-2 rounded-full bg-[#1e3a5f] flex-shrink-0"></div>
-              <div><p className="text-xs font-medium text-[#1e3a5f]">RE'ACTIF PRO</p><p className="text-[10px] text-slate-400">Diagnostic, coordination, securisation</p></div>
+              <div><p className="text-[11px] font-medium text-[#1e3a5f]">RE'ACTIF PRO</p><p className="text-[9px] text-slate-400">Diagnostic, coordination</p></div>
             </div>
           </div>
         </div>
@@ -844,7 +860,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
       <Card className="border border-slate-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Compass className="w-5 h-5 text-[#1e3a5f]" /> Preparation et qualification du parcours</CardTitle>
-          <CardDescription>Reveler le potentiel, qualifier les competences et preparer l'acces aux dispositifs existants (Orient'Est, EURES, France Travail...)</CardDescription>
+          <CardDescription>Reveler le potentiel, qualifier les competences et preparer l'acces aux dispositifs existants (France Travail, Mission Locale, APEC, Orient'Est, Region Grand Est, EURES...)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -937,18 +953,30 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
           <Card className="border border-dashed border-slate-200 bg-slate-50/50">
             <CardContent className="p-4">
               <p className="text-xs font-medium text-slate-600 mb-2">Pour aller plus loin — dispositifs complementaires</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
-                  <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center"><BookOpen className="w-3 h-3 text-blue-600" /></div>
-                  <div><p className="font-medium text-slate-700">Orient'Est</p><p className="text-slate-400">Informations metiers, formations et ressources regionales</p></div>
+                  <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center flex-shrink-0"><Briefcase className="w-3 h-3 text-blue-600" /></div>
+                  <div><p className="font-medium text-slate-700">France Travail</p><p className="text-[10px] text-slate-400">Offres, aides, dispositifs</p></div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
-                  <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center"><Globe className="w-3 h-3 text-indigo-600" /></div>
-                  <div><p className="font-medium text-slate-700">EURES</p><p className="text-slate-400">Mobilite europeenne et opportunites transfrontalieres</p></div>
+                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center flex-shrink-0"><Users className="w-3 h-3 text-green-600" /></div>
+                  <div><p className="font-medium text-slate-700">Mission Locale</p><p className="text-[10px] text-slate-400">Insertion des jeunes</p></div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
-                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Briefcase className="w-3 h-3 text-green-600" /></div>
-                  <div><p className="font-medium text-slate-700">France Travail</p><p className="text-slate-400">Offres d'emploi, aides et dispositifs nationaux</p></div>
+                  <div className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-3 h-3 text-amber-600" /></div>
+                  <div><p className="font-medium text-slate-700">APEC</p><p className="text-[10px] text-slate-400">Cadres, evolution pro</p></div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                  <div className="w-6 h-6 rounded bg-sky-100 flex items-center justify-center flex-shrink-0"><BookOpen className="w-3 h-3 text-sky-600" /></div>
+                  <div><p className="font-medium text-slate-700">Orient'Est</p><p className="text-[10px] text-slate-400">Metiers, formations</p></div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                  <div className="w-6 h-6 rounded bg-red-100 flex items-center justify-center flex-shrink-0"><Target className="w-3 h-3 text-red-600" /></div>
+                  <div><p className="font-medium text-slate-700">Region Grand Est</p><p className="text-[10px] text-slate-400">Politiques regionales</p></div>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                  <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center flex-shrink-0"><Globe className="w-3 h-3 text-indigo-600" /></div>
+                  <div><p className="font-medium text-slate-700">EURES</p><p className="text-[10px] text-slate-400">Mobilite europeenne</p></div>
                 </div>
               </div>
             </CardContent>
