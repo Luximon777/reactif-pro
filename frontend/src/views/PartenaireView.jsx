@@ -24,8 +24,8 @@ import { toast } from "sonner";
 
 const FREIN_CATEGORIES = [
   { value: "logement", label: "Logement", icon: HomeIcon, color: "bg-orange-100 text-orange-700 border-orange-200" },
-  { value: "sante", label: "Sante", icon: Heart, color: "bg-red-100 text-red-700 border-red-200" },
-  { value: "mobilite", label: "Mobilite", icon: Car, color: "bg-blue-100 text-blue-700 border-blue-200" },
+  { value: "sante", label: "Santé", icon: Heart, color: "bg-red-100 text-red-700 border-red-200" },
+  { value: "mobilite", label: "Mobilité", icon: Car, color: "bg-blue-100 text-blue-700 border-blue-200" },
   { value: "garde_enfant", label: "Garde d'enfant", icon: Baby, color: "bg-pink-100 text-pink-700 border-pink-200" },
   { value: "handicap", label: "Handicap / RQTH", icon: Accessibility, color: "bg-purple-100 text-purple-700 border-purple-200" },
   { value: "administratif", label: "Administratif", icon: FileWarning, color: "bg-slate-100 text-slate-700 border-slate-200" },
@@ -92,20 +92,20 @@ const PartenaireView = ({ token }) => {
           <p className="text-slate-500 mt-1 text-sm">
             {profile?.company_name && <span className="font-medium text-[#1e3a5f]">{profile.company_name}</span>}
             {profile?.company_name && " — "}
-            Valorisation, coordination et securisation des parcours — en appui des dispositifs existants
+            Valorisation, coordination et sécurisation des parcours — en appui des dispositifs existants
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="add-beneficiaire-btn">
-          <Plus className="w-4 h-4 mr-2" /> Nouveau beneficiaire
+          <Plus className="w-4 h-4 mr-2" /> Nouveau bénéficiaire
         </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-slate-100 border border-slate-200 flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="dashboard" data-testid="tab-dashboard"><BarChart3 className="w-4 h-4 mr-1.5" /> Tableau de bord</TabsTrigger>
-          <TabsTrigger value="beneficiaires" data-testid="tab-beneficiaires"><Users className="w-4 h-4 mr-1.5" /> Beneficiaires</TabsTrigger>
+          <TabsTrigger value="beneficiaires" data-testid="tab-beneficiaires"><Users className="w-4 h-4 mr-1.5" /> Bénéficiaires</TabsTrigger>
           <TabsTrigger value="freins" data-testid="tab-freins"><AlertTriangle className="w-4 h-4 mr-1.5" /> Freins</TabsTrigger>
-          <TabsTrigger value="orientation" data-testid="tab-orientation"><Compass className="w-4 h-4 mr-1.5" /> Preparation parcours</TabsTrigger>
+          <TabsTrigger value="orientation" data-testid="tab-orientation"><Compass className="w-4 h-4 mr-1.5" /> Préparation parcours</TabsTrigger>
           <TabsTrigger value="outils" data-testid="tab-outils"><ClipboardList className="w-4 h-4 mr-1.5" /> Outils</TabsTrigger>
           <TabsTrigger value="observatoire" data-testid="tab-observatoire"><Globe className="w-4 h-4 mr-1.5" /> Contribution territoriale</TabsTrigger>
         </TabsList>
@@ -204,7 +204,7 @@ const ComplementarityBanner = () => (
         <div className="w-full">
           <p className="text-sm font-medium text-slate-800 mb-1.5">Brique complementaire de l'ecosysteme</p>
           <p className="text-xs text-slate-500 leading-relaxed mb-3">
-            RE'ACTIF PRO n'a pas vocation a se substituer aux dispositifs existants. Il renforce leur efficacite par une meilleure qualification des profils, une coordination des parcours et une mise en visibilite des competences et freins.
+            RE'ACTIF PRO n'a pas vocation à se substituer aux dispositifs existants. Il renforce leur efficacité par une meilleure qualification des profils, une coordination des parcours et une mise en visibilité des compétences et freins.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
@@ -246,12 +246,12 @@ const ComplementarityBanner = () => (
 const StatsCards = ({ stats }) => {
   if (!stats) return null;
   const metrics = [
-    { title: "Personnes accompagnees", value: stats.total, icon: Users, accent: "bg-[#1e3a5f]/10 text-[#1e3a5f]" },
+    { title: "Personnes accompagnées", value: stats.total, icon: Users, accent: "bg-[#1e3a5f]/10 text-[#1e3a5f]" },
     { title: "Accompagnement actif", value: stats.en_accompagnement, icon: Handshake, accent: "bg-blue-100 text-blue-600" },
-    { title: "Insertions reussies", value: stats.en_emploi, icon: CheckCircle2, accent: "bg-green-100 text-green-600" },
+    { title: "Insertions réussies", value: stats.en_emploi, icon: CheckCircle2, accent: "bg-green-100 text-green-600" },
     { title: "Taux d'insertion", value: `${stats.taux_insertion}%`, icon: TrendingUp, accent: "bg-amber-100 text-amber-600" },
     { title: "Freins actifs", value: stats.freins_actifs, icon: AlertTriangle, accent: "bg-red-100 text-red-600" },
-    { title: "Profils lies", value: stats.linked_profiles || 0, icon: Link2, accent: "bg-purple-100 text-purple-600" },
+    { title: "Profils liés", value: stats.linked_profiles || 0, icon: Link2, accent: "bg-purple-100 text-purple-600" },
   ];
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="partenaire-metrics">
@@ -277,10 +277,10 @@ const RecentActivity = ({ beneficiaires, onSelect }) => {
   return (
     <Card className="lg:col-span-2 border border-slate-100" data-testid="recent-activity">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg"><Calendar className="w-5 h-5 text-[#1e3a5f]" /> Activite recente</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-lg"><Calendar className="w-5 h-5 text-[#1e3a5f]" /> Activité récente</CardTitle>
       </CardHeader>
       <CardContent>
-        {recent.length === 0 ? <p className="text-sm text-slate-400 text-center py-8">Aucun beneficiaire</p> : (
+        {recent.length === 0 ? <p className="text-sm text-slate-400 text-center py-8">Aucun bénéficiaire</p> : (
           <div className="space-y-3">
             {recent.map((b) => {
               const st = STATUS_OPTIONS.find(s => s.value === b.status) || STATUS_OPTIONS[0];
@@ -322,7 +322,7 @@ const FreinsSummary = ({ beneficiaires }) => {
   return (
     <Card className="border border-slate-100" data-testid="freins-summary">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="w-5 h-5 text-amber-600" /> Freins peripheriques</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="w-5 h-5 text-amber-600" /> Freins périphériques</CardTitle>
         <CardDescription>{activeFreins.length} frein{activeFreins.length !== 1 ? "s" : ""} actif{activeFreins.length !== 1 ? "s" : ""}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -451,7 +451,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
   const updateStatus = async (newStatus) => {
     try {
       await axios.put(`${API}/partenaires/beneficiaires/${b.id}?token=${token}&status=${encodeURIComponent(newStatus)}`);
-      toast.success("Statut mis a jour");
+      toast.success("Statut mis à jour");
       onRefresh();
     } catch { toast.error("Erreur"); }
   };
@@ -459,7 +459,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
   const deleteBeneficiaire = async () => {
     try {
       await axios.delete(`${API}/partenaires/beneficiaires/${b.id}?token=${token}`);
-      toast.success("Supprime");
+      toast.success("Supprimé");
       onBack();
       onRefresh();
     } catch { toast.error("Erreur"); }
@@ -469,7 +469,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
     if (!newSkill.trim()) return;
     try {
       await axios.post(`${API}/partenaires/beneficiaires/${b.id}/skills?token=${token}&skill=${encodeURIComponent(newSkill.trim())}`);
-      toast.success("Competence ajoutee");
+      toast.success("Compétence ajoutée");
       setNewSkill("");
       onRefresh();
     } catch { toast.error("Erreur"); }
@@ -488,7 +488,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
   const linkUser = async (pseudo) => {
     try {
       await axios.post(`${API}/partenaires/beneficiaires/${b.id}/link?token=${token}&pseudo=${encodeURIComponent(pseudo)}`);
-      toast.success("Profil lie !");
+      toast.success("Profil lié !");
       setShowLinkDialog(false);
       onRefresh();
     } catch (err) { toast.error(err.response?.data?.detail || "Erreur"); }
@@ -497,7 +497,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
   const unlinkUser = async () => {
     try {
       await axios.delete(`${API}/partenaires/beneficiaires/${b.id}/link?token=${token}`);
-      toast.success("Liaison supprimee");
+      toast.success("Liaison supprimée");
       setLinkedProfile(null);
       onRefresh();
     } catch { toast.error("Erreur"); }
@@ -507,7 +507,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
     setSavingDiag(true);
     try {
       await axios.put(`${API}/partenaires/beneficiaires/${b.id}/diagnostic?token=${token}`, diagForm, { headers: { "Content-Type": "application/json" } });
-      toast.success("Diagnostic sauvegarde");
+      toast.success("Diagnostic sauvegardé");
       onRefresh();
     } catch { toast.error("Erreur"); }
     setSavingDiag(false);
@@ -516,7 +516,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
   const handleResolveFrein = async (freinId) => {
     try {
       await axios.put(`${API}/partenaires/beneficiaires/${b.id}/freins/${freinId}?token=${token}&status=resolu`);
-      toast.success("Frein resolu !");
+      toast.success("Frein résolu !");
       onRefresh();
     } catch { toast.error("Erreur"); }
   };
@@ -583,14 +583,14 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
         <TabsContent value="profil" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="border border-slate-100">
-              <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Award className="w-4 h-4 text-[#1e3a5f]" /> Competences validees</CardTitle></CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Award className="w-4 h-4 text-[#1e3a5f]" /> Compétences validées</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {(b.skills_acquired || []).map((skill, i) => <Badge key={i} className="bg-[#1e3a5f]/10 text-[#1e3a5f] border-[#1e3a5f]/20">{skill}</Badge>)}
-                  {!(b.skills_acquired || []).length && <p className="text-sm text-slate-400">Aucune competence validee</p>}
+                  {!(b.skills_acquired || []).length && <p className="text-sm text-slate-400">Aucune compétence validée</p>}
                 </div>
                 <div className="flex gap-2">
-                  <Input placeholder="Ajouter une competence..." value={newSkill} onChange={e => setNewSkill(e.target.value)}
+                  <Input placeholder="Ajouter une compétence..." value={newSkill} onChange={e => setNewSkill(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") addSkill(); }} className="h-8 text-sm" data-testid="add-skill-input" />
                   <Button size="sm" variant="outline" className="h-8" onClick={addSkill} data-testid="add-skill-btn"><PlusCircle className="w-3.5 h-3.5" /></Button>
                 </div>
@@ -613,8 +613,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
         <TabsContent value="diagnostic" className="mt-4">
           <Card className="border border-slate-100">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-indigo-600" /> Diagnostic enrichi</CardTitle>
-              <CardDescription>Complement au profil : contexte social, motivation, posture, soft skills</CardDescription>
+              <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-indigo-600" /> Diagnostic enrichi</CardTitle>              <CardDescription>Complément au profil : contexte social, motivation, posture, soft skills</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -624,46 +623,46 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
                     placeholder="Situation familiale, conditions de vie..." className="resize-none h-20" data-testid="diag-contexte" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Mobilite (detail)</label>
+                  <label className="text-sm font-medium text-slate-700">Mobilité (détail)</label>
                   <Textarea value={diagForm.mobilite_detail || ""} onChange={e => setDiagForm({ ...diagForm, mobilite_detail: e.target.value })}
-                    placeholder="Permis, transports, rayon de deplacement..." className="resize-none h-20" data-testid="diag-mobilite" />
+                    placeholder="Permis, transports, rayon de déplacement..." className="resize-none h-20" data-testid="diag-mobilite" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Motivation</label>
                   <Select value={diagForm.motivation_level || ""} onValueChange={v => setDiagForm({ ...diagForm, motivation_level: v })}>
-                    <SelectTrigger data-testid="diag-motivation"><SelectValue placeholder="Evaluer..." /></SelectTrigger>
+                    <SelectTrigger data-testid="diag-motivation"><SelectValue placeholder="Évaluer..." /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="tres_elevee">Tres elevee</SelectItem><SelectItem value="elevee">Elevee</SelectItem>
+                      <SelectItem value="tres_elevee">Très élevée</SelectItem><SelectItem value="elevee">Élevée</SelectItem>
                       <SelectItem value="moyenne">Moyenne</SelectItem><SelectItem value="faible">Faible</SelectItem>
-                      <SelectItem value="a_travailler">A travailler</SelectItem>
+                      <SelectItem value="a_travailler">À travailler</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Posture professionnelle</label>
                   <Select value={diagForm.posture || ""} onValueChange={v => setDiagForm({ ...diagForm, posture: v })}>
-                    <SelectTrigger data-testid="diag-posture"><SelectValue placeholder="Evaluer..." /></SelectTrigger>
+                    <SelectTrigger data-testid="diag-posture"><SelectValue placeholder="Évaluer..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="autonome">Autonome</SelectItem><SelectItem value="en_progression">En progression</SelectItem>
-                      <SelectItem value="a_accompagner">A accompagner</SelectItem><SelectItem value="en_difficulte">En difficulte</SelectItem>
+                      <SelectItem value="a_accompagner">À accompagner</SelectItem><SelectItem value="en_difficulte">En difficulté</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Autonomie</label>
                   <Select value={diagForm.autonomie || ""} onValueChange={v => setDiagForm({ ...diagForm, autonomie: v })}>
-                    <SelectTrigger data-testid="diag-autonomie"><SelectValue placeholder="Evaluer..." /></SelectTrigger>
+                    <SelectTrigger data-testid="diag-autonomie"><SelectValue placeholder="Évaluer..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="forte">Forte</SelectItem><SelectItem value="moyenne">Moyenne</SelectItem>
-                      <SelectItem value="limitee">Limitee</SelectItem><SelectItem value="tres_limitee">Tres limitee</SelectItem>
+                      <SelectItem value="limitee">Limitée</SelectItem><SelectItem value="tres_limitee">Très limitée</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Observations complementaires</label>
+                <label className="text-sm font-medium text-slate-700">Observations complémentaires</label>
                 <Textarea value={diagForm.observations || ""} onChange={e => setDiagForm({ ...diagForm, observations: e.target.value })}
                   placeholder="Observations, points de vigilance..." className="resize-none h-20" data-testid="diag-observations" />
               </div>
@@ -679,12 +678,12 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
           <Card className="border border-slate-100">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600" /> Freins peripheriques</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600" /> Freins périphériques</CardTitle>
                 <Button size="sm" variant="outline" onClick={onAddFrein} data-testid="add-frein-btn"><Plus className="w-3.5 h-3.5 mr-1" /> Ajouter</Button>
               </div>
             </CardHeader>
             <CardContent>
-              {!freinsActifs.length && !(b.freins || []).filter(f => f.status === "resolu").length ? <p className="text-sm text-slate-400">Aucun frein declare</p> : (
+              {!freinsActifs.length && !(b.freins || []).filter(f => f.status === "resolu").length ? <p className="text-sm text-slate-400">Aucun frein déclaré</p> : (
                 <div className="space-y-2">
                   {freinsActifs.map(f => {
                     const cat = FREIN_CATEGORIES.find(c => c.value === f.category) || FREIN_CATEGORIES[7];
@@ -695,7 +694,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
                           <div className={`w-7 h-7 rounded-md ${cat.color} flex items-center justify-center`}><CIcon className="w-3.5 h-3.5" /></div>
                           <div><p className="text-sm font-medium text-slate-700">{cat.label}</p>{f.description && <p className="text-xs text-slate-400">{f.description}</p>}</div>
                         </div>
-                        <Button size="sm" variant="outline" className="text-green-600 hover:bg-green-50 h-7 text-xs" onClick={() => handleResolveFrein(f.id)}><CheckCircle2 className="w-3 h-3 mr-1" /> Resoudre</Button>
+                        <Button size="sm" variant="outline" className="text-green-600 hover:bg-green-50 h-7 text-xs" onClick={() => handleResolveFrein(f.id)}><CheckCircle2 className="w-3 h-3 mr-1" /> Résoudre</Button>
                       </div>
                     );
                   })}
@@ -741,8 +740,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
         <DialogContent className="sm:max-w-[500px]" data-testid="link-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Link2 className="w-5 h-5 text-purple-600" /> Lier a un profil Re'Actif Pro</DialogTitle>
-            <DialogDescription>Recherchez l'utilisateur par son pseudo</DialogDescription>
-          </DialogHeader>
+            <DialogDescription>Recherchez l'utilisateur par son pseudo</DialogDescription>          </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="flex gap-2">
               <Input placeholder="Rechercher un pseudo..." value={linkSearch} onChange={e => setLinkSearch(e.target.value)}
@@ -850,7 +848,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
     try {
       const res = await axios.post(`${API}/partenaires/beneficiaires/${selectedId}/orientation?token=${token}`);
       setOrientation(res.data);
-      toast.success("Orientation generee !");
+      toast.success("Orientation générée !");
       onRefresh();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Erreur IA");
@@ -864,13 +862,13 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
     <div className="space-y-4" data-testid="orientation-view">
       <Card className="border border-slate-100">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Compass className="w-5 h-5 text-[#1e3a5f]" /> Preparation et qualification du parcours</CardTitle>
-          <CardDescription>Reveler le potentiel, qualifier les competences et preparer l'acces aux dispositifs existants (France Travail, Mission Locale, APEC, Orient'Est, Region Grand Est, EURES...)</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Compass className="w-5 h-5 text-[#1e3a5f]" /> Préparation et qualification du parcours</CardTitle>
+          <CardDescription>Révéler le potentiel, qualifier les compétences et préparer l'accès aux dispositifs existants (France Travail, Mission Locale, APEC, Orient'Est, Région Grand Est, EURES...)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
             <Select value={selectedId} onValueChange={setSelectedId}>
-              <SelectTrigger className="flex-1" data-testid="orientation-select-beneficiaire"><SelectValue placeholder="Choisir un beneficiaire..." /></SelectTrigger>
+              <SelectTrigger className="flex-1" data-testid="orientation-select-beneficiaire"><SelectValue placeholder="Choisir un bénéficiaire..." /></SelectTrigger>
               <SelectContent>{beneficiaires.map(b => <SelectItem key={b.id} value={b.id}>{b.name} — {b.sector}</SelectItem>)}</SelectContent>
             </Select>
             <Button onClick={generateOrientation} disabled={loading || !selectedId} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="generate-orientation-btn">
@@ -882,7 +880,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
               <Badge variant="secondary">{selected.sector}</Badge>
               {(selected.skills_acquired || []).map((s, i) => <Badge key={i} className="bg-[#1e3a5f]/10 text-[#1e3a5f]">{s}</Badge>)}
               {(selected.freins || []).filter(f => f.status !== "resolu").map(f => <Badge key={f.id} className="bg-amber-100 text-amber-700">{f.category}</Badge>)}
-              {selected.linked_token_id && <Badge className="bg-purple-100 text-purple-700"><Link2 className="w-3 h-3 mr-1" /> Profil lie</Badge>}
+              {selected.linked_token_id && <Badge className="bg-purple-100 text-purple-700"><Link2 className="w-3 h-3 mr-1" /> Profil lié</Badge>}
             </div>
           )}
         </CardContent>
@@ -899,7 +897,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {orientation.metiers_recommandes?.length > 0 && (
             <Card className="border border-slate-100">
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Briefcase className="w-4 h-4 text-blue-600" /> Pistes metiers identifiees</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Briefcase className="w-4 h-4 text-blue-600" /> Pistes métiers identifiées</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {orientation.metiers_recommandes.map((m, i) => (
                   <div key={i} className="p-3 rounded-lg bg-blue-50/50 border border-blue-100">
@@ -912,7 +910,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
           )}
           {orientation.formations_suggerees?.length > 0 && (
             <Card className="border border-slate-100">
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><GraduationCap className="w-4 h-4 text-green-600" /> Formations a explorer</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><GraduationCap className="w-4 h-4 text-green-600" /> Formations à explorer</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {orientation.formations_suggerees.map((f, i) => (
                   <div key={i} className="p-3 rounded-lg bg-green-50/50 border border-green-100">
@@ -925,7 +923,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
           )}
           {orientation.dispositifs_adaptes?.length > 0 && (
             <Card className="border border-slate-100">
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Lightbulb className="w-4 h-4 text-amber-600" /> Dispositifs adaptes</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Lightbulb className="w-4 h-4 text-amber-600" /> Dispositifs adaptés</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {orientation.dispositifs_adaptes.map((d, i) => (
                   <div key={i} className="p-3 rounded-lg bg-amber-50/50 border border-amber-100">
@@ -941,7 +939,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
               <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-[#1e3a5f]" /> Actions et vigilance</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {orientation.actions_immediates?.length > 0 && (
-                  <div><p className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Actions immediates</p>
+                  <div><p className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Actions immédiates</p>
                     <ul className="space-y-1">{orientation.actions_immediates.map((a, i) => <li key={i} className="text-sm text-slate-700 flex items-start gap-2"><ArrowUpRight className="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" />{a}</li>)}</ul>
                   </div>
                 )}
@@ -957,7 +955,7 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
           {/* Ecosystem references */}
           <Card className="border border-dashed border-slate-200 bg-slate-50/50">
             <CardContent className="p-4">
-              <p className="text-xs font-medium text-slate-600 mb-2">Pour aller plus loin — dispositifs complementaires</p>
+              <p className="text-xs font-medium text-slate-600 mb-2">Pour aller plus loin — dispositifs complémentaires</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
                   <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center flex-shrink-0"><Briefcase className="w-3 h-3 text-blue-600" /></div>
@@ -969,19 +967,19 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
                   <div className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-3 h-3 text-amber-600" /></div>
-                  <div><p className="font-medium text-slate-700">APEC</p><p className="text-[10px] text-slate-400">Cadres, evolution pro</p></div>
+                  <div><p className="font-medium text-slate-700">APEC</p><p className="text-[10px] text-slate-400">Cadres, évolution pro</p></div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
                   <div className="w-6 h-6 rounded bg-sky-100 flex items-center justify-center flex-shrink-0"><BookOpen className="w-3 h-3 text-sky-600" /></div>
-                  <div><p className="font-medium text-slate-700">Orient'Est</p><p className="text-[10px] text-slate-400">Metiers, formations</p></div>
+                  <div><p className="font-medium text-slate-700">Orient'Est</p><p className="text-[10px] text-slate-400">Métiers, formations</p></div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
                   <div className="w-6 h-6 rounded bg-red-100 flex items-center justify-center flex-shrink-0"><Target className="w-3 h-3 text-red-600" /></div>
-                  <div><p className="font-medium text-slate-700">Region Grand Est</p><p className="text-[10px] text-slate-400">Politiques regionales</p></div>
+                  <div><p className="font-medium text-slate-700">Région Grand Est</p><p className="text-[10px] text-slate-400">Politiques régionales</p></div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
                   <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center flex-shrink-0"><Globe className="w-3 h-3 text-indigo-600" /></div>
-                  <div><p className="font-medium text-slate-700">EURES</p><p className="text-[10px] text-slate-400">Mobilite europeenne</p></div>
+                  <div><p className="font-medium text-slate-700">EURES</p><p className="text-[10px] text-slate-400">Mobilité européenne</p></div>
                 </div>
               </div>
             </CardContent>
@@ -996,94 +994,94 @@ const OrientationView = ({ beneficiaires, token, onRefresh }) => {
 const PHASES = [
   { id: "diagnostic", label: "Diagnostic initial", color: "bg-sky-100 text-sky-700 border-sky-200", icon: Eye },
   { id: "bilan_pro", label: "Bilan professionnel", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Briefcase },
-  { id: "identite_valeurs", label: "Identite et valeurs", color: "bg-purple-100 text-purple-700 border-purple-200", icon: Heart },
-  { id: "strategie", label: "Strategie et trajectoire", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Compass },
+  { id: "identite_valeurs", label: "Identité et valeurs", color: "bg-purple-100 text-purple-700 border-purple-200", icon: Heart },
+  { id: "strategie", label: "Stratégie et trajectoire", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Compass },
   { id: "activation", label: "Activation", color: "bg-green-100 text-green-700 border-green-200", icon: Target },
 ];
 
 const FICHE_FIELDS = {
   positionnement_depart: [
-    { key: "clarte", label: "Mon niveau de clarte actuel (0 a 10)", type: "select", options: ["0","1","2","3","4","5","6","7","8","9","10"] },
-    { key: "energie", label: "Mon niveau d'energie (0 a 10)", type: "select", options: ["0","1","2","3","4","5","6","7","8","9","10"] },
-    { key: "urgence", label: "Mon urgence", type: "select", options: ["Immediat", "3 mois", "6 mois", "Plus de 6 mois"] },
+    { key: "clarte", label: "Mon niveau de clarté actuel (0 à 10)", type: "select", options: ["0","1","2","3","4","5","6","7","8","9","10"] },
+    { key: "energie", label: "Mon niveau d'énergie (0 à 10)", type: "select", options: ["0","1","2","3","4","5","6","7","8","9","10"] },
+    { key: "urgence", label: "Mon urgence", type: "select", options: ["Immédiat", "3 mois", "6 mois", "Plus de 6 mois"] },
     { key: "question_cle", label: "Si rien ne change dans 6 mois, qu'est-ce que je risque ?", type: "textarea" },
     { key: "attentes", label: "Qu'attendez-vous de cet accompagnement ?", type: "textarea" },
-    { key: "sujets_prioritaires", label: "Sujets a aborder en priorite", type: "textarea" },
+    { key: "sujets_prioritaires", label: "Sujets à aborder en priorité", type: "textarea" },
   ],
   courbe_trajectoire: [
-    { key: "pics_reussite", label: "Mes pics = conditions de reussite (quand, pourquoi)", type: "textarea" },
+    { key: "pics_reussite", label: "Mes pics = conditions de réussite (quand, pourquoi)", type: "textarea" },
     { key: "zones_rupture", label: "Mes creux = zones de rupture (quand, pourquoi)", type: "textarea" },
     { key: "fil_rouge", label: "Mes constantes = mon fil rouge", type: "textarea" },
     { key: "ne_plus_revivre", label: "Ce que je ne veux plus revivre", type: "textarea" },
     { key: "tendance_actuelle", label: "Tendance actuelle et projection", type: "textarea" },
   ],
   recit_carriere: [
-    { key: "periodes", label: "Grandes periodes du parcours (dates, postes, entreprises)", type: "textarea" },
-    { key: "competences_par_poste", label: "Competences developpees par poste", type: "textarea" },
-    { key: "energie_par_poste", label: "Energie ressentie par poste (0 a 10)", type: "textarea" },
-    { key: "alignement_valeurs", label: "Alignement avec mes valeurs par poste (0 a 10)", type: "textarea" },
+    { key: "periodes", label: "Grandes périodes du parcours (dates, postes, entreprises)", type: "textarea" },
+    { key: "competences_par_poste", label: "Compétences développées par poste", type: "textarea" },
+    { key: "energie_par_poste", label: "Énergie ressentie par poste (0 à 10)", type: "textarea" },
+    { key: "alignement_valeurs", label: "Alignement avec mes valeurs par poste (0 à 10)", type: "textarea" },
     { key: "environnements_favorables", label: "Mes environnements favorables", type: "textarea" },
     { key: "environnements_toxiques", label: "Mes environnements toxiques", type: "textarea" },
-    { key: "pattern_professionnel", label: "Mon pattern professionnel (recurrence identifiee)", type: "textarea" },
+    { key: "pattern_professionnel", label: "Mon pattern professionnel (récurrence identifiée)", type: "textarea" },
   ],
   realisations: [
-    { key: "realisations_star", label: "Realisations significatives (methode STAR : Situation, Tache, Action, Resultat)", type: "textarea" },
-    { key: "impact_reel", label: "Impact reel de chaque realisation (faible / moyen / fort)", type: "textarea" },
-    { key: "niveau_preuve", label: "Niveau de preuve (ressenti / observable / mesure)", type: "textarea" },
-    { key: "ce_que_ca_dit", label: "Ce que ca dit de moi (competence + posture)", type: "textarea" },
-    { key: "contexte_reproductibilite", label: "Dans quel contexte je reproduis facilement cette reussite ?", type: "textarea" },
+    { key: "realisations_star", label: "Réalisations significatives (méthode STAR : Situation, Tâche, Action, Résultat)", type: "textarea" },
+    { key: "impact_reel", label: "Impact réel de chaque réalisation (faible / moyen / fort)", type: "textarea" },
+    { key: "niveau_preuve", label: "Niveau de preuve (ressenti / observable / mesuré)", type: "textarea" },
+    { key: "ce_que_ca_dit", label: "Ce que ça dit de moi (compétence + posture)", type: "textarea" },
+    { key: "contexte_reproductibilite", label: "Dans quel contexte je reproduis facilement cette réussite ?", type: "textarea" },
   ],
   competences_dynamiques: [
-    { key: "techniques", label: "Competences techniques (maitrisees / en developpement / a acquerir)", type: "textarea" },
-    { key: "transversales", label: "Competences transversales (maitrisees / en developpement / a acquerir)", type: "textarea" },
-    { key: "comportementales", label: "Competences comportementales (maitrisees / en developpement / a acquerir)", type: "textarea" },
-    { key: "transferabilite", label: "Transferabilite : si je change de secteur, qu'est-ce que je garde ?", type: "textarea" },
+    { key: "techniques", label: "Compétences techniques (maîtrisées / en développement / à acquérir)", type: "textarea" },
+    { key: "transversales", label: "Compétences transversales (maîtrisées / en développement / à acquérir)", type: "textarea" },
+    { key: "comportementales", label: "Compétences comportementales (maîtrisées / en développement / à acquérir)", type: "textarea" },
+    { key: "transferabilite", label: "Transférabilité : si je change de secteur, qu'est-ce que je garde ?", type: "textarea" },
   ],
   identite_professionnelle: [
     { key: "ce_que_je_suis", label: "Ce que je suis (ressenti)", type: "textarea" },
-    { key: "ce_que_je_fais", label: "Ce que je fais (competences)", type: "textarea" },
-    { key: "ce_que_je_renvoie", label: "Ce que je renvoie (image percue)", type: "textarea" },
-    { key: "feedback_externe", label: "Feedback externe (perception recruteur, collegues)", type: "textarea" },
-    { key: "phrase_identite", label: "Ma phrase d'identite professionnelle (exploitable CV / pitch)", type: "textarea" },
+    { key: "ce_que_je_fais", label: "Ce que je fais (compétences)", type: "textarea" },
+    { key: "ce_que_je_renvoie", label: "Ce que je renvoie (image perçue)", type: "textarea" },
+    { key: "feedback_externe", label: "Feedback externe (perception recruteur, collègues)", type: "textarea" },
+    { key: "phrase_identite", label: "Ma phrase d'identité professionnelle (exploitable CV / pitch)", type: "textarea" },
   ],
   valeurs_decisionnelles: [
     { key: "valeurs_essentielles", label: "Mes valeurs essentielles", type: "textarea" },
-    { key: "exemples_vecus", label: "Exemple vecu pour chaque valeur", type: "textarea" },
-    { key: "non_respect", label: "Situation ou mes valeurs n'ont pas ete respectees", type: "textarea" },
+    { key: "exemples_vecus", label: "Exemple vécu pour chaque valeur", type: "textarea" },
+    { key: "non_respect", label: "Situation où mes valeurs n'ont pas été respectées", type: "textarea" },
     { key: "impact_motivation", label: "Impact sur ma motivation", type: "textarea" },
-    { key: "non_negociables", label: "Mes 5 NON NEGOCIABLES pour mon futur poste", type: "textarea" },
+    { key: "non_negociables", label: "Mes 5 NON NÉGOCIABLES pour mon futur poste", type: "textarea" },
   ],
   environnement_rqth: [
-    { key: "contraintes_reelles", label: "Contraintes reelles (sante, mobilite, vie perso)", type: "textarea" },
+    { key: "contraintes_reelles", label: "Contraintes réelles (santé, mobilité, vie perso)", type: "textarea" },
     { key: "conditions_compatibles", label: "Conditions de travail compatibles", type: "textarea" },
-    { key: "adaptations_rqth", label: "Si RQTH/EQTH : adaptations necessaires et environnements favorables", type: "textarea" },
-    { key: "conditions_non_negociables", label: "Conditions non negociables pour la suite", type: "textarea" },
+    { key: "adaptations_rqth", label: "Si RQTH/EQTH : adaptations nécessaires et environnements favorables", type: "textarea" },
+    { key: "conditions_non_negociables", label: "Conditions non négociables pour la suite", type: "textarea" },
   ],
   confrontation_marche: [
-    { key: "metier_1", label: "Metier cible 1 : intitule, competences demandees, niveau d'acces, tension du marche", type: "textarea" },
-    { key: "metier_2", label: "Metier cible 2 : intitule, competences demandees, niveau d'acces, tension du marche", type: "textarea" },
-    { key: "metier_3", label: "Metier cible 3 : intitule, competences demandees, niveau d'acces, tension du marche", type: "textarea" },
-    { key: "ecarts", label: "Mes ecarts principaux", type: "textarea" },
-    { key: "atouts_differenciants", label: "Mes atouts differenciants", type: "textarea" },
-    { key: "decision", label: "Decision pour chaque metier", type: "select", options: ["GO", "PAS GO", "AJUSTEMENT"] },
+    { key: "metier_1", label: "Métier cible 1 : intitulé, compétences demandées, niveau d'accès, tension du marché", type: "textarea" },
+    { key: "metier_2", label: "Métier cible 2 : intitulé, compétences demandées, niveau d'accès, tension du marché", type: "textarea" },
+    { key: "metier_3", label: "Métier cible 3 : intitulé, compétences demandées, niveau d'accès, tension du marché", type: "textarea" },
+    { key: "ecarts", label: "Mes écarts principaux", type: "textarea" },
+    { key: "atouts_differenciants", label: "Mes atouts différenciants", type: "textarea" },
+    { key: "decision", label: "Décision pour chaque métier", type: "select", options: ["GO", "PAS GO", "AJUSTEMENT"] },
   ],
   strategie_trajectoire: [
-    { key: "scenario_principal", label: "Scenario 1 — Projet principal (description, faisabilite, risque, delai)", type: "textarea" },
-    { key: "scenario_securise", label: "Scenario 2 — Projet securise (description, faisabilite, risque, delai)", type: "textarea" },
-    { key: "scenario_exploratoire", label: "Scenario 3 — Projet exploratoire (description, faisabilite, risque, delai)", type: "textarea" },
+    { key: "scenario_principal", label: "Scénario 1 — Projet principal (description, faisabilité, risque, délai)", type: "textarea" },
+    { key: "scenario_securise", label: "Scénario 2 — Projet sécurisé (description, faisabilité, risque, délai)", type: "textarea" },
+    { key: "scenario_exploratoire", label: "Scénario 3 — Projet exploratoire (description, faisabilité, risque, délai)", type: "textarea" },
   ],
   reseau_leviers: [
     { key: "personnes_ressources", label: "Qui peut m'aider ? (personnes ressources)", type: "textarea" },
     { key: "entreprises_cibles", label: "Qui recrute ? (entreprises cibles)", type: "textarea" },
     { key: "inspirations", label: "Qui m'inspire ?", type: "textarea" },
     { key: "recommandations", label: "Qui peut me recommander ?", type: "textarea" },
-    { key: "canaux_acces", label: "Canaux d'acces (reseau / candidature directe / plateforme)", type: "textarea" },
+    { key: "canaux_acces", label: "Canaux d'accès (réseau / candidature directe / plateforme)", type: "textarea" },
   ],
   plan_activation: [
-    { key: "actions_terrain", label: "3 actions terrain a realiser", type: "textarea" },
-    { key: "contacts_pro", label: "3 contacts professionnels a prendre", type: "textarea" },
-    { key: "mise_en_situation", label: "1 mise en situation concrete (immersion / test / projet)", type: "textarea" },
-    { key: "suivi_resultats", label: "Suivi : fait / non fait / resultat / apprentissage", type: "textarea" },
+    { key: "actions_terrain", label: "3 actions terrain à réaliser", type: "textarea" },
+    { key: "contacts_pro", label: "3 contacts professionnels à prendre", type: "textarea" },
+    { key: "mise_en_situation", label: "1 mise en situation concrète (immersion / test / projet)", type: "textarea" },
+    { key: "suivi_resultats", label: "Suivi : fait / non fait / résultat / apprentissage", type: "textarea" },
   ],
 };
 
@@ -1119,7 +1117,7 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
     setSaving(true);
     try {
       await axios.put(`${API}/partenaires/beneficiaires/${selectedBenId}/bilan?token=${token}`, { fiche_id: selectedFiche.id, data: ficheForm }, { headers: { "Content-Type": "application/json" } });
-      toast.success("Fiche sauvegardee");
+      toast.success("Fiche sauvegardée");
       setBilanData({ ...bilanData, [selectedFiche.id]: { ...ficheForm, updated_at: new Date().toISOString() } });
       setSelectedFiche(null);
       onRefresh();
@@ -1132,8 +1130,8 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
 
   // Decision block keys
   const DECISION_KEYS = [
-    { key: "_decision_je_decide", label: "Ce que je decide" },
-    { key: "_decision_je_arrete", label: "Ce que j'arrete" },
+    { key: "_decision_je_decide", label: "Ce que je décide" },
+    { key: "_decision_je_arrete", label: "Ce que j'arrête" },
     { key: "_decision_je_teste", label: "Ce que je teste" },
   ];
 
@@ -1151,7 +1149,7 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
               <CardTitle className="text-lg">{selectedFiche.title}</CardTitle>
             </div>
             <CardDescription>{selectedFiche.description}</CardDescription>
-            {selectedBen && <p className="text-xs text-slate-400 mt-1">Beneficiaire : {selectedBen.name}</p>}
+            {selectedBen && <p className="text-xs text-slate-400 mt-1">Bénéficiaire : {selectedBen.name}</p>}
           </CardHeader>
           <CardContent className="space-y-4">
             {fields.map(field => (
@@ -1173,7 +1171,7 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
             <div className="border-t border-slate-200 pt-4 mt-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-md bg-amber-100 flex items-center justify-center"><Lightbulb className="w-3.5 h-3.5 text-amber-700" /></div>
-                <h4 className="text-sm font-semibold text-slate-800">Bloc decisionnel</h4>
+                <h4 className="text-sm font-semibold text-slate-800">Bloc décisionnel</h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {DECISION_KEYS.map(dk => (
@@ -1207,12 +1205,12 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
       <Card className="border border-slate-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ClipboardList className="w-5 h-5 text-[#1e3a5f]" /> Outils d'accompagnement V2</CardTitle>
-          <CardDescription>12 fiches augmentees — diagnostic, bilan, identite, strategie, activation — avec blocs decisionnels integres</CardDescription>
+          <CardDescription>12 fiches augmentées — diagnostic, bilan, identité, stratégie, activation — avec blocs décisionnels intégrés</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             <Select value={selectedBenId} onValueChange={setSelectedBenId}>
-              <SelectTrigger className="flex-1" data-testid="outils-select-beneficiaire"><SelectValue placeholder="Choisir un beneficiaire..." /></SelectTrigger>
+              <SelectTrigger className="flex-1" data-testid="outils-select-beneficiaire"><SelectValue placeholder="Choisir un bénéficiaire..." /></SelectTrigger>
               <SelectContent>{beneficiaires.map(b => <SelectItem key={b.id} value={b.id}>{b.name} — {b.sector}</SelectItem>)}</SelectContent>
             </Select>
             {selectedBenId && (
@@ -1271,7 +1269,7 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
 
       {!selectedBenId && (
         <Card className="border-dashed border-2 border-slate-200"><CardContent className="flex flex-col items-center justify-center py-12">
-          <ClipboardList className="w-12 h-12 text-slate-300 mb-3" /><p className="text-slate-500 text-sm">Selectionnez un beneficiaire pour acceder aux fiches</p>
+          <ClipboardList className="w-12 h-12 text-slate-300 mb-3" /><p className="text-slate-500 text-sm">Sélectionnez un bénéficiaire pour accéder aux fiches</p>
         </CardContent></Card>
       )}
     </div>
@@ -1280,9 +1278,9 @@ const OutilsAccompagnement = ({ beneficiaires, token, onRefresh }) => {
 
 // ===== CONSENT MANAGER =====
 const CONSENT_LEVEL_INFO = {
-  synthese: { label: "Synthese partagee", description: "Le partenaire voit uniquement une synthese generee", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  synthese: { label: "Synthèse partagée", description: "Le partenaire voit uniquement une synthèse générée", color: "bg-blue-100 text-blue-700 border-blue-200" },
   modulaire: { label: "Partage modulaire", description: "L'utilisateur choisit les rubriques visibles", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  complet_temporaire: { label: "Complet temporaire", description: "Acces etendu mais limite dans le temps", color: "bg-red-100 text-red-700 border-red-200" },
+  complet_temporaire: { label: "Complet temporaire", description: "Accès étendu mais limité dans le temps", color: "bg-red-100 text-red-700 border-red-200" },
 };
 
 const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
@@ -1322,7 +1320,7 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
         purpose: newPurpose,
       };
       await axios.post(`${API}/partenaires/consent?token=${token}`, payload, { headers: { "Content-Type": "application/json" } });
-      toast.success("Consentement cree");
+      toast.success("Consentement créé");
       setNewLevel("");
       setNewModules([]);
       loadData();
@@ -1333,7 +1331,7 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
   const revokeConsent = async (consentId) => {
     try {
       await axios.delete(`${API}/partenaires/consent/${consentId}?token=${token}`);
-      toast.success("Consentement revoque");
+      toast.success("Consentement révoqué");
       loadData();
     } catch { toast.error("Erreur"); }
   };
@@ -1353,14 +1351,13 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
       <Card className="border border-slate-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-[#1e3a5f]" /> Gestion du consentement</CardTitle>
-          <CardDescription>Autorisations de partage pour {beneficiaryName} — granulaire, temporaire et revocable</CardDescription>
+          <CardDescription>Autorisations de partage pour {beneficiaryName} — granulaire, temporaire et révocable</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Active consents */}
           {consents.length > 0 && (
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-3">Consentements existants</h4>
-              <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-slate-700 mb-3">Consentements existants</h4>              <div className="space-y-2">
                 {consents.map(c => {
                   const info = CONSENT_LEVEL_INFO[c.level] || CONSENT_LEVEL_INFO.synthese;
                   return (
@@ -1373,7 +1370,7 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
                         </div>
                         {c.active && (
                           <Button size="sm" variant="outline" className="text-red-500 hover:bg-red-50 h-7 text-xs" onClick={() => revokeConsent(c.id)} data-testid={`revoke-${c.id}`}>
-                            Revoquer
+                            Révoquer
                           </Button>
                         )}
                       </div>
@@ -1384,9 +1381,9 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
                         </div>
                       )}
                       <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400">
-                        <span>Cree : {new Date(c.created_at).toLocaleDateString('fr-FR')}</span>
+                        <span>Créé : {new Date(c.created_at).toLocaleDateString('fr-FR')}</span>
                         <span>Expire : {new Date(c.expires_at).toLocaleDateString('fr-FR')}</span>
-                        {c.revoked_at && <span>Revoque : {new Date(c.revoked_at).toLocaleDateString('fr-FR')}</span>}
+                        {c.revoked_at && <span>Révoqué : {new Date(c.revoked_at).toLocaleDateString('fr-FR')}</span>}
                       </div>
                     </div>
                   );
@@ -1411,7 +1408,7 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
 
               {newLevel === "modulaire" && (
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Modules a partager</label>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Modules à partager</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {modules.map(m => (
                       <div key={m.id} className={`p-2 rounded-lg border cursor-pointer transition-all text-xs ${newModules.includes(m.id) ? "border-[#1e3a5f] bg-[#1e3a5f]/5 text-[#1e3a5f] font-medium" : "border-slate-100 text-slate-600 hover:border-slate-300"}`}
@@ -1425,7 +1422,7 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Duree (jours)</label>
+                  <label className="text-sm font-medium text-slate-700">Durée (jours)</label>
                   <Select value={newDuration} onValueChange={setNewDuration}>
                     <SelectTrigger data-testid="consent-duration"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -1446,12 +1443,12 @@ const ConsentManager = ({ beneficiaryId, beneficiaryName, token, onBack }) => {
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                 <p className="text-xs text-slate-500 leading-relaxed">
                   <Shield className="w-3.5 h-3.5 inline mr-1 text-[#1e3a5f]" />
-                  L'utilisateur conserve la maitrise de ses donnees et peut autoriser, de maniere ciblee, temporaire et reversible, le partage de tout ou partie de son espace personnel avec un partenaire de parcours.
+                  L'utilisateur conserve la maîtrise de ses données et peut autoriser, de manière ciblée, temporaire et réversible, le partage de tout ou partie de son espace personnel avec un partenaire de parcours.
                 </p>
               </div>
 
               <Button onClick={createConsent} disabled={creating || !newLevel} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="create-consent-btn">
-                {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creation...</> : <><Shield className="w-4 h-4 mr-2" /> Creer le consentement</>}
+                {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Création...</> : <><Shield className="w-4 h-4 mr-2" /> Créer le consentement</>}
               </Button>
             </div>
           </div>
@@ -1480,7 +1477,7 @@ const ObservatoireContribution = ({ token, stats, beneficiaires }) => {
     try {
       const res = await axios.post(`${API}/partenaires/contribution-observatoire?token=${token}`);
       setLastContribution(res.data);
-      toast.success("Contribution envoyee !");
+      toast.success("Contribution envoyée !");
     } catch { toast.error("Erreur"); }
     setContributing(false);
   };
@@ -1490,14 +1487,14 @@ const ObservatoireContribution = ({ token, stats, beneficiaires }) => {
       <Card className="border border-slate-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5 text-[#1e3a5f]" /> Contribution territoriale</CardTitle>
-          <CardDescription>Alimentez l'observatoire predictif avec vos donnees terrain — competences emergentes, freins recurrents, tensions sectorielles — pour renforcer l'ecosysteme d'accompagnement</CardDescription>
+          <CardDescription>Alimentez l'observatoire prédictif avec vos données terrain — compétences émergentes, freins récurrents, tensions sectorielles — pour renforcer l'écosystème d'accompagnement</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border border-slate-100 bg-slate-50">
               <CardContent className="p-4">
-                <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-amber-600" /> Freins recurrents</h4>
-                {Object.keys(freinsRepartition).length === 0 ? <p className="text-xs text-slate-400">Aucune donnee</p> : (
+                <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-amber-600" /> Freins récurrents</h4>
+                {Object.keys(freinsRepartition).length === 0 ? <p className="text-xs text-slate-400">Aucune donnée</p> : (
                   <div className="space-y-1.5">
                     {Object.entries(freinsRepartition).sort((a, b) => b[1] - a[1]).map(([cat, count]) => {
                       const fc = FREIN_CATEGORIES.find(c => c.value === cat) || FREIN_CATEGORIES[7];
@@ -1509,7 +1506,7 @@ const ObservatoireContribution = ({ token, stats, beneficiaires }) => {
             </Card>
             <Card className="border border-slate-100 bg-slate-50">
               <CardContent className="p-4">
-                <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><Award className="w-4 h-4 text-[#1e3a5f]" /> Competences emergentes</h4>
+                <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"><Award className="w-4 h-4 text-[#1e3a5f]" /> Compétences émergentes</h4>
                 {Object.keys(skillsCount).length === 0 ? <p className="text-xs text-slate-400">Aucune donnee</p> : (
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(skillsCount).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([skill, count]) => (
@@ -1533,7 +1530,7 @@ const ObservatoireContribution = ({ token, stats, beneficiaires }) => {
             </Card>
           </div>
           <Button onClick={contribute} disabled={contributing} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="contribute-observatoire-btn">
-            {contributing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi...</> : <><Globe className="w-4 h-4 mr-2" /> Envoyer a l'Observatoire</>}
+            {contributing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi...</> : <><Globe className="w-4 h-4 mr-2" /> Envoyer à l'Observatoire</>}
           </Button>
           {lastContribution && <p className="text-xs text-green-600">Derniere contribution envoyee avec succes !</p>}
         </CardContent>
@@ -1551,7 +1548,7 @@ const FreinsView = ({ beneficiaires, token, onRefresh }) => {
   const handleResolve = async (benId, freinId) => {
     try {
       await axios.put(`${API}/partenaires/beneficiaires/${benId}/freins/${freinId}?token=${token}&status=resolu`);
-      toast.success("Frein resolu !");
+      toast.success("Frein résolu !");
       onRefresh();
     } catch { toast.error("Erreur"); }
   };
@@ -1574,7 +1571,7 @@ const FreinsView = ({ beneficiaires, token, onRefresh }) => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={f.severity === "critique" ? "bg-red-100 text-red-700" : f.severity === "eleve" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"}>{f.severity || "moyen"}</Badge>
-                      <Button size="sm" variant="outline" className="text-green-600 hover:bg-green-50 h-8 text-xs" onClick={() => handleResolve(f.beneficiaire_id, f.id)}><CheckCircle2 className="w-3 h-3 mr-1" /> Resoudre</Button>
+                      <Button size="sm" variant="outline" className="text-green-600 hover:bg-green-50 h-8 text-xs" onClick={() => handleResolve(f.beneficiaire_id, f.id)}><CheckCircle2 className="w-3 h-3 mr-1" /> Résoudre</Button>
                     </div>
                   </div>
                 );
@@ -1604,24 +1601,24 @@ const CreateBeneficiaireDialog = ({ open, onOpenChange, token, onCreated }) => {
     setLoading(true);
     try {
       await axios.post(`${API}/partenaires/beneficiaires?token=${token}&name=${encodeURIComponent(name.trim())}&sector=${encodeURIComponent(sector)}&notes=${encodeURIComponent(notes)}`);
-      toast.success("Beneficiaire ajoute !"); setName(""); setSector("Autre"); setNotes(""); onOpenChange(false); onCreated();
+      toast.success("Bénéficiaire ajouté !"); setName(""); setSector("Autre"); setNotes(""); onOpenChange(false); onCreated();
     } catch { toast.error("Erreur"); }
     setLoading(false);
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]" data-testid="create-beneficiaire-dialog">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-[#1e3a5f]" /> Nouveau beneficiaire</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-[#1e3a5f]" /> Nouveau bénéficiaire</DialogTitle></DialogHeader>
         <div className="space-y-4 mt-2">
           <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Nom *</label><Input placeholder="Prenom Nom" value={name} onChange={e => setName(e.target.value)} data-testid="create-name-input" /></div>
           <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Secteur vise</label>
             <Select value={sector} onValueChange={setSector}><SelectTrigger data-testid="create-sector-select"><SelectValue /></SelectTrigger>
-              <SelectContent>{["Administration", "Commerce", "Informatique", "Comptabilite", "Formation", "Sante", "Industrie", "Autre"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>{["Administration", "Commerce", "Informatique", "Comptabilité", "Formation", "Santé", "Industrie", "Autre"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select></div>
           <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Notes</label><Textarea placeholder="Contexte..." value={notes} onChange={e => setNotes(e.target.value)} className="resize-none h-20" data-testid="create-notes-input" /></div>
         </div>
         <DialogFooter className="mt-4"><Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button onClick={handleCreate} disabled={loading || !name.trim()} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="create-submit-btn">{loading ? "Creation..." : "Creer"}</Button>
+          <Button onClick={handleCreate} disabled={loading || !name.trim()} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="create-submit-btn">{loading ? "Création..." : "Créer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1635,26 +1632,26 @@ const AddFreinDialog = ({ open, onOpenChange, beneficiaire, token, onAdded }) =>
     setLoading(true);
     try {
       await axios.post(`${API}/partenaires/beneficiaires/${beneficiaire.id}/freins?token=${token}&category=${encodeURIComponent(category)}&description=${encodeURIComponent(description)}&severity=${encodeURIComponent(severity)}`);
-      toast.success("Frein ajoute"); setCategory(""); setDescription(""); setSeverity("moyen"); onOpenChange(false); onAdded();
+      toast.success("Frein ajouté"); setCategory(""); setDescription(""); setSeverity("moyen"); onOpenChange(false); onAdded();
     } catch (err) { toast.error(err.response?.data?.detail || "Erreur"); }
     setLoading(false);
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]" data-testid="add-frein-dialog">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-600" /> Declarer un frein</DialogTitle>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-600" /> Déclarer un frein</DialogTitle>
           <DialogDescription>{beneficiaire ? `Pour ${beneficiaire.name}` : ""}</DialogDescription></DialogHeader>
         <div className="space-y-4 mt-2">
-          <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Categorie *</label>
+          <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Catégorie *</label>
             <Select value={category} onValueChange={setCategory}><SelectTrigger data-testid="frein-category-select"><SelectValue placeholder="Choisir..." /></SelectTrigger>
               <SelectContent>{FREIN_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Description</label><Textarea placeholder="Details..." value={description} onChange={e => setDescription(e.target.value)} className="resize-none h-20" data-testid="frein-description-input" /></div>
-          <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Severite</label>
+          <div className="space-y-2"><label className="text-sm font-medium text-slate-700">Sévérité</label>
             <Select value={severity} onValueChange={setSeverity}><SelectTrigger data-testid="frein-severity-select"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="faible">Faible</SelectItem><SelectItem value="moyen">Moyen</SelectItem><SelectItem value="eleve">Eleve</SelectItem><SelectItem value="critique">Critique</SelectItem></SelectContent></Select></div>
         </div>
         <DialogFooter className="mt-4"><Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button onClick={handleAdd} disabled={loading || !category} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="frein-submit-btn">{loading ? "Ajout..." : "Declarer"}</Button>
+          <Button onClick={handleAdd} disabled={loading || !category} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="frein-submit-btn">{loading ? "Ajout..." : "Déclarer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

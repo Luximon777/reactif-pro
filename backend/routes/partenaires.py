@@ -137,7 +137,7 @@ async def get_beneficiaire_detail(beneficiary_id: str, token: str):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
     return ben
 
 
@@ -183,7 +183,7 @@ async def update_beneficiaire(
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     update_data = {"last_activity": datetime.now(timezone.utc).isoformat()}
     hist_entry = {"date": datetime.now(timezone.utc).isoformat(), "action": "update"}
@@ -217,8 +217,8 @@ async def delete_beneficiaire(beneficiary_id: str, token: str):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}
     )
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
-    return {"message": "Beneficiaire supprime"}
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
+    return {"message": "Bénéficiaire supprimé"}
 
 
 # ===== LIAISON PROFIL RE'ACTIF PRO =====
@@ -231,11 +231,11 @@ async def link_beneficiaire_to_user(beneficiary_id: str, token: str, pseudo: str
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     user_profile = await db.profiles.find_one({"pseudo": pseudo}, {"_id": 0, "password_hash": 0})
     if not user_profile:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouve avec ce pseudo")
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé avec ce pseudo")
 
     user_token_id = user_profile["token_id"]
 
@@ -261,12 +261,12 @@ async def link_beneficiaire_to_user(beneficiary_id: str, token: str, pseudo: str
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "link",
-                    "detail": f"Profil lie a l'utilisateur {pseudo}"
+                    "detail": f"Profil lié à l'utilisateur {pseudo}"
                 }
             }
         }
     )
-    return {"message": "Profil lie avec succes", "linked_token_id": user_token_id}
+    return {"message": "Profil lié avec succès", "linked_token_id": user_token_id}
 
 
 @router.delete("/partenaires/beneficiaires/{beneficiary_id}/link")
@@ -280,12 +280,12 @@ async def unlink_beneficiaire(beneficiary_id: str, token: str):
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "unlink",
-                    "detail": "Liaison profil supprimee"
+                    "detail": "Liaison profil supprimée"
                 }
             }
         }
     )
-    return {"message": "Liaison supprimee"}
+    return {"message": "Liaison supprimée"}
 
 
 @router.get("/partenaires/beneficiaires/{beneficiary_id}/linked-profile")
@@ -296,7 +296,7 @@ async def get_linked_profile(beneficiary_id: str, token: str):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
     if not ben.get("linked_token_id"):
         raise HTTPException(status_code=400, detail="Aucun profil lie")
 
@@ -334,7 +334,7 @@ async def update_diagnostic(beneficiary_id: str, token: str, data: DiagnosticUpd
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     diag = ben.get("diagnostic", {})
     update_fields = data.model_dump(exclude_none=True)
@@ -352,7 +352,7 @@ async def update_diagnostic(beneficiary_id: str, token: str, data: DiagnosticUpd
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "diagnostic",
-                    "detail": f"Diagnostic enrichi mis a jour ({', '.join(update_fields.keys())})"
+                    "detail": f"Diagnostic enrichi mis à jour ({', '.join(update_fields.keys())})"
                 }
             }
         }
@@ -370,7 +370,7 @@ async def get_orientation_ia(beneficiary_id: str, token: str):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     profile_data = None
     passport_data = None
@@ -385,11 +385,11 @@ async def get_orientation_ia(beneficiary_id: str, token: str):
     context_parts = [f"Nom: {ben['name']}", f"Secteur vise: {ben.get('sector', 'non defini')}"]
 
     if ben.get("skills_acquired"):
-        context_parts.append(f"Competences validees: {', '.join(ben['skills_acquired'])}")
+        context_parts.append(f"Compétences validées: {', '.join(ben['skills_acquired'])}")
 
     freins_actifs = [f for f in ben.get("freins", []) if f.get("status") != "resolu"]
     if freins_actifs:
-        context_parts.append(f"Freins peripheriques actifs: {', '.join(f['category'] for f in freins_actifs)}")
+        context_parts.append(f"Freins périphériques actifs: {', '.join(f['category'] for f in freins_actifs)}")
 
     diag = ben.get("diagnostic", {})
     if diag:
@@ -403,7 +403,7 @@ async def get_orientation_ia(beneficiary_id: str, token: str):
     if profile_data:
         if profile_data.get("skills"):
             skills_list = [s.get("name", str(s)) if isinstance(s, dict) else str(s) for s in profile_data["skills"][:15]]
-            context_parts.append(f"Competences Re'Actif Pro: {', '.join(skills_list)}")
+            context_parts.append(f"Compétences Re'Actif Pro: {', '.join(skills_list)}")
         if profile_data.get("sectors"):
             context_parts.append(f"Secteurs: {', '.join(profile_data['sectors'])}")
 
@@ -499,7 +499,7 @@ Maximum 4 elements par categorie. Sois concret et realiste."""
                     "historique": {
                         "date": datetime.now(timezone.utc).isoformat(),
                         "action": "orientation_ia",
-                        "detail": "Orientation IA generee"
+                        "detail": "Orientation IA générée"
                     }
                 }
             }
@@ -520,7 +520,7 @@ async def add_frein(beneficiary_id: str, token: str, category: str, description:
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     valid_categories = ["logement", "sante", "mobilite", "garde_enfant", "handicap", "administratif", "financier", "autre"]
     if category not in valid_categories:
@@ -545,7 +545,7 @@ async def add_frein(beneficiary_id: str, token: str, category: str, description:
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "frein_ajout",
-                    "detail": f"Frein ajoute: {category}"
+                    "detail": f"Frein ajouté: {category}"
                 }
             },
             "$set": {"last_activity": datetime.now(timezone.utc).isoformat()}
@@ -561,7 +561,7 @@ async def update_frein(beneficiary_id: str, frein_id: str, token: str, status: s
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     freins = ben.get("freins", [])
     updated = False
@@ -579,7 +579,7 @@ async def update_frein(beneficiary_id: str, frein_id: str, token: str, status: s
             break
 
     if not updated:
-        raise HTTPException(status_code=404, detail="Frein non trouve")
+        raise HTTPException(status_code=404, detail="Frein non trouvé")
 
     await db.beneficiaires.update_one(
         {"id": beneficiary_id},
@@ -592,12 +592,12 @@ async def update_frein(beneficiary_id: str, frein_id: str, token: str, status: s
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "frein_update",
-                    "detail": f"Frein mis a jour: {status or 'modification'}"
+                    "detail": f"Frein mis à jour: {status or 'modification'}"
                 }
             }
         }
     )
-    return {"message": "Frein mis a jour", "frein": target_frein}
+    return {"message": "Frein mis à jour", "frein": target_frein}
 
 
 # ===== SKILLS =====
@@ -609,7 +609,7 @@ async def add_skill(beneficiary_id: str, token: str, skill: str):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     skills = ben.get("skills_acquired", [])
     if skill not in skills:
@@ -626,7 +626,7 @@ async def add_skill(beneficiary_id: str, token: str, skill: str):
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "skill_ajout",
-                    "detail": f"Competence validee: {skill}"
+                    "detail": f"Compétence validée: {skill}"
                 }
             }
         }
@@ -641,7 +641,7 @@ async def get_partenaire_profile(token: str):
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not profile:
-        raise HTTPException(status_code=404, detail="Profil non trouve")
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
     profile.pop("password_hash", None)
     return profile
 
@@ -689,7 +689,7 @@ async def contribute_to_observatoire(token: str):
 
     await db.ubuntoo_signals.insert_one(signal)
     signal.pop("_id", None)
-    return {"message": "Contribution envoyee a l'Observatoire", "signal": signal}
+    return {"message": "Contribution envoyée à l'Observatoire", "signal": signal}
 
 
 # ===== SEARCH USERS =====
@@ -725,18 +725,18 @@ async def search_users(token: str, query: str):
 # ===== OUTILS D'ACCOMPAGNEMENT V2 (BILAN AUGMENTE RE'ACTIF PRO) =====
 
 BILAN_FICHES = [
-    {"id": "positionnement_depart", "phase": "diagnostic", "phase_label": "Diagnostic initial", "number": 1, "title": "Positionnement de depart", "description": "Clarifier le niveau de clarte, d'energie et d'urgence avant l'accompagnement"},
-    {"id": "courbe_trajectoire", "phase": "diagnostic", "phase_label": "Diagnostic initial", "number": 2, "title": "Courbe de trajectoire", "description": "Lecture strategique du parcours : pics de reussite, zones de rupture, fil rouge"},
-    {"id": "recit_carriere", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 3, "title": "Recit de carriere analytique", "description": "Analyse approfondie de chaque poste : competences, energie, alignement valeurs"},
-    {"id": "realisations", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 4, "title": "Realisations et impact", "description": "Methode STAR augmentee : impact reel, niveau de preuve, contexte de reproductibilite"},
-    {"id": "competences_dynamiques", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 5, "title": "Competences dynamiques", "description": "3 dimensions (techniques, transversales, comportementales), 3 etats, transferabilite"},
-    {"id": "identite_professionnelle", "phase": "identite_valeurs", "phase_label": "Identite et valeurs", "number": 6, "title": "Identite professionnelle", "description": "Ce que je suis, ce que je fais, ce que je renvoie — phrase d'identite exploitable"},
-    {"id": "valeurs_decisionnelles", "phase": "identite_valeurs", "phase_label": "Identite et valeurs", "number": 7, "title": "Valeurs decisionnelles", "description": "Valeurs vecues, situations de non-respect, 5 non-negociables pour l'avenir"},
-    {"id": "environnement_rqth", "phase": "identite_valeurs", "phase_label": "Identite et valeurs", "number": 8, "title": "Environnement et contraintes", "description": "Contraintes reelles (sante, mobilite, vie perso), conditions compatibles, adaptations RQTH"},
-    {"id": "confrontation_marche", "phase": "strategie", "phase_label": "Strategie et trajectoire", "number": 9, "title": "Confrontation au marche", "description": "3 metiers cibles, competences demandees, ecarts, decision GO / PAS GO / AJUSTEMENT"},
-    {"id": "strategie_trajectoire", "phase": "strategie", "phase_label": "Strategie et trajectoire", "number": 10, "title": "Strategie de trajectoire", "description": "3 scenarios : projet principal, projet securise, projet exploratoire"},
-    {"id": "reseau_leviers", "phase": "activation", "phase_label": "Activation", "number": 11, "title": "Reseau et leviers", "description": "Cartographie reseau : personnes ressources, entreprises cibles, canaux d'acces"},
-    {"id": "plan_activation", "phase": "activation", "phase_label": "Activation", "number": 12, "title": "Mon plan d'activation", "description": "Actions terrain, contacts pro, mises en situation, suivi des resultats"},
+    {"id": "positionnement_depart", "phase": "diagnostic", "phase_label": "Diagnostic initial", "number": 1, "title": "Positionnement de départ", "description": "Clarifier le niveau de clarté, d'énergie et d'urgence avant l'accompagnement"},
+    {"id": "courbe_trajectoire", "phase": "diagnostic", "phase_label": "Diagnostic initial", "number": 2, "title": "Courbe de trajectoire", "description": "Lecture stratégique du parcours : pics de réussite, zones de rupture, fil rouge"},
+    {"id": "recit_carriere", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 3, "title": "Récit de carrière analytique", "description": "Analyse approfondie de chaque poste : compétences, énergie, alignement valeurs"},
+    {"id": "realisations", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 4, "title": "Réalisations et impact", "description": "Méthode STAR augmentée : impact réel, niveau de preuve, contexte de reproductibilité"},
+    {"id": "competences_dynamiques", "phase": "bilan_pro", "phase_label": "Bilan professionnel", "number": 5, "title": "Compétences dynamiques", "description": "3 dimensions (techniques, transversales, comportementales), 3 états, transférabilité"},
+    {"id": "identite_professionnelle", "phase": "identite_valeurs", "phase_label": "Identité et valeurs", "number": 6, "title": "Identité professionnelle", "description": "Ce que je suis, ce que je fais, ce que je renvoie — phrase d'identité exploitable"},
+    {"id": "valeurs_decisionnelles", "phase": "identite_valeurs", "phase_label": "Identité et valeurs", "number": 7, "title": "Valeurs décisionnelles", "description": "Valeurs vécues, situations de non-respect, 5 non-négociables pour l'avenir"},
+    {"id": "environnement_rqth", "phase": "identite_valeurs", "phase_label": "Identité et valeurs", "number": 8, "title": "Environnement et contraintes", "description": "Contraintes réelles (santé, mobilité, vie perso), conditions compatibles, adaptations RQTH"},
+    {"id": "confrontation_marche", "phase": "strategie", "phase_label": "Stratégie et trajectoire", "number": 9, "title": "Confrontation au marché", "description": "3 métiers ciblés, compétences demandées, écarts, décision GO / PAS GO / AJUSTEMENT"},
+    {"id": "strategie_trajectoire", "phase": "strategie", "phase_label": "Stratégie et trajectoire", "number": 10, "title": "Stratégie de trajectoire", "description": "3 scénarios : projet principal, projet sécurisé, projet exploratoire"},
+    {"id": "reseau_leviers", "phase": "activation", "phase_label": "Activation", "number": 11, "title": "Réseau et leviers", "description": "Cartographie réseau : personnes ressources, entreprises cibles, canaux d'accès"},
+    {"id": "plan_activation", "phase": "activation", "phase_label": "Activation", "number": 12, "title": "Mon plan d'activation", "description": "Actions terrain, contacts pro, mises en situation, suivi des résultats"},
 ]
 
 # V1 fiche IDs kept for backward compatibility with existing bilan data
@@ -763,7 +763,7 @@ async def get_beneficiaire_bilan(beneficiary_id: str, token: str):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
     return ben.get("bilan", {})
 
 
@@ -780,7 +780,7 @@ async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
         {"id": beneficiary_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     valid_ids = [f["id"] for f in BILAN_FICHES] + V1_FICHE_IDS
     if payload.fiche_id not in valid_ids:
@@ -807,12 +807,12 @@ async def save_fiche_bilan(beneficiary_id: str, token: str, payload: FicheData):
                 "historique": {
                     "date": datetime.now(timezone.utc).isoformat(),
                     "action": "bilan_fiche",
-                    "detail": f"Fiche {payload.fiche_id} completee"
+                    "detail": f"Fiche {payload.fiche_id} complétée"
                 }
             }
         }
     )
-    return {"message": "Fiche sauvegardee", "completed": completed_count, "total": len(BILAN_FICHES)}
+    return {"message": "Fiche sauvegardée", "completed": completed_count, "total": len(BILAN_FICHES)}
 
 
 # ===== CONSENTEMENT GRANULAIRE =====
@@ -850,7 +850,7 @@ async def create_consent(token: str, payload: ConsentCreate):
         {"id": payload.beneficiary_id, "partner_id": partner_id}, {"_id": 0}
     )
     if not ben:
-        raise HTTPException(status_code=404, detail="Beneficiaire non trouve")
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
 
     if payload.level not in ["synthese", "modulaire", "complet_temporaire"]:
         raise HTTPException(status_code=400, detail="Niveau invalide: synthese, modulaire, complet_temporaire")
@@ -939,7 +939,7 @@ async def update_consent(consent_id: str, token: str, payload: ConsentUpdate):
         {"id": consent_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not consent:
-        raise HTTPException(status_code=404, detail="Consentement non trouve")
+        raise HTTPException(status_code=404, detail="Consentement non trouvé")
 
     update_data = {}
     if payload.level is not None:
@@ -972,7 +972,7 @@ async def revoke_consent(consent_id: str, token: str):
         {"id": consent_id, "partner_id": token_doc["id"]}, {"_id": 0}
     )
     if not consent:
-        raise HTTPException(status_code=404, detail="Consentement non trouve")
+        raise HTTPException(status_code=404, detail="Consentement non trouvé")
 
     now = datetime.now(timezone.utc)
     await db.consents.update_one(
@@ -1004,14 +1004,14 @@ async def get_consent_modules(token: str):
     modules_labels = {
         "profil_administratif": "Profil administratif",
         "parcours_formation": "Parcours de formation",
-        "experiences_professionnelles": "Experiences professionnelles",
-        "competences_techniques": "Competences techniques",
+        "experiences_professionnelles": "Expériences professionnelles",
+        "competences_techniques": "Compétences techniques",
         "soft_skills": "Soft skills",
         "valeurs_moteurs": "Valeurs et moteurs",
         "contraintes_adaptation": "Contraintes et besoins d'adaptation",
         "projet_professionnel": "Projet professionnel",
         "documents": "Documents",
-        "resultats_tests": "Resultats de tests",
+        "resultats_tests": "Résultats de tests",
         "plan_action": "Plan d'action",
         "journal_progression": "Journal de progression",
     }
