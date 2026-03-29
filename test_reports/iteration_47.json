@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 47 - Demande d'accès bénéficiaire RE'ACTIF PRO flow testing. All 16 backend tests passed. All frontend features verified: two buttons in header (Demande d'accès + Création manuelle), search by name dialog, 'Compte ouvert autorisé' badge, 'Synchroniser' button, Privacy settings with name fields when 'Limité' selected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "ProRegisterModal / DemandeAccesDialog",
+        "issues": ["Minor: DialogContent missing aria-describedby (console warning) - cosmetic only"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_demande_acces.py",
+    "/app/test_reports/pytest/pytest_demande_acces.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_demande_acces.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": "Partenaire: test@missionlocale.fr / Solerys777!, Particulier: bob15 / Solerys777!",
+  "seed_data_creation": "Used existing test users. bob15 set to limited visibility with real_first_name=Robert, real_last_name=Dupont.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Demande d'accès flow fully functional. Two buttons in partenaire header: 'Demande d'accès bénéficiaire RE'ACTIF PRO' (data-testid='demande-acces-btn') and 'Création manuelle' (data-testid='add-beneficiaire-btn'). Search endpoint /api/partenaires/demande-acces/search searches by real name and returns only users with visibility_level='limited' or 'public'. Sync endpoint /api/partenaires/demande-acces/synchroniser creates beneficiary with synced=True. Privacy settings shows name fields when 'Limité' is selected with warning about anonymat levée.",
+  "features_tested": {
+    "backend_api": {
+      "PUT_profile_privacy_with_real_name": "PASSED - Accepts real_first_name and real_last_name parameters",
+      "GET_profile_shows_real_name": "PASSED - Profile returns real_first_name and real_last_name",
+      "GET_demande_acces_search_returns_limited_users": "PASSED - Only returns users with limited/public visibility",
+      "GET_demande_acces_search_returns_authorized_flag": "PASSED - Results include 'authorized' flag",
+      "GET_demande_acces_search_returns_full_name": "PASSED - Results include full_name, real_first_name, real_last_name",
+      "GET_demande_acces_search_by_alice": "PASSED - Search by 'Alice' finds bob18",
+      "GET_demande_acces_search_minimum_query": "PASSED - Query < 2 chars returns empty",
+      "GET_demande_acces_search_excludes_private": "PASSED - Private users NOT returned",
+      "POST_demande_acces_synchroniser_creates_beneficiary": "PASSED - Creates beneficiary with synced=True, linked_token_id",
+      "POST_demande_acces_synchroniser_403_private": "PASSED - Returns 403 for private user",
+      "POST_demande_acces_synchroniser_409_already_synced": "PASSED - Returns 409 if already synced",
+      "POST_demande_acces_synchroniser_404_nonexistent": "PASSED - Returns 404 for non-existent user",
+      "GET_outils_fiches_returns_12": "PASSED - Regression: V2 fiches returns 12 fiches",
+      "GET_consent_modules": "PASSED - Regression: Consent modules endpoint works",
+      "GET_beneficiaires_includes_synced": "PASSED - Beneficiaires list includes synced beneficiaries"
+    },
+    "frontend_ui": {
+      "partenaire_login": "PASSED - Login via ProRegisterModal works",
+      "dashboard_loads": "PASSED - Interface de coordination partenaires displayed",
+      "demande_acces_button": "PASSED - 'Demande d'accès bénéficiaire RE'ACTIF PRO' button visible",
+      "creation_manuelle_button": "PASSED - 'Création manuelle' button visible",
+      "demande_acces_dialog_opens": "PASSED - Dialog opens with search field",
+      "search_by_name_works": "PASSED - Search for 'Robert' returns results",
+      "compte_ouvert_autorise_badge": "PASSED - Green 'Compte ouvert autorisé' badge displayed for authorized users",
+      "synchroniser_button": "PASSED - 'Synchroniser' button displayed for authorized users",
+      "privacy_settings_loads": "PASSED - Confidentialité view loads for particulier",
+      "limited_visibility_option": "PASSED - 'Limité' option clickable",
+      "name_fields_appear_when_limited": "PASSED - Prénom and Nom fields appear when Limité selected",
+      "anonymat_warning_displayed": "PASSED - 'Levée de l'anonymat' warning shown with explanation"
+    }
+  },
+  "mocked_api": {
+    "has_mocked_apis": false,
+    "note": "All APIs are real. No mocked endpoints."
+  }
+}

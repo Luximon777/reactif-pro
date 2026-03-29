@@ -721,6 +721,146 @@ async def search_users(token: str, query: str):
     return results
 
 
+@router.get("/partenaires/demande-acces/search")
+async def search_users_by_name(token: str, query: str):
+    """Search Re'Actif Pro users by real name — only returns users with visibility limited or public"""
+    await get_current_token(token)
+    if len(query) < 2:
+        return []
+
+    regex = {"$regex": query, "$options": "i"}
+    users = await db.profiles.find(
+        {
+            "role": "particulier",
+            "visibility_level": {"$in": ["limited", "public"]},
+            "$or": [
+                {"real_first_name": regex},
+                {"real_last_name": regex},
+                {"display_name": regex},
+            ]
+        },
+        {"_id": 0, "password_hash": 0, "email_recovery": 0}
+    ).to_list(20)
+
+    results = []
+    for u in users:
+        first = u.get("real_first_name") or ""
+        last = u.get("real_last_name") or ""
+        full_name = f"{first} {last}".strip() or u.get("display_name") or u.get("name", "Anonyme")
+        results.append({
+            "token_id": u.get("token_id"),
+            "profile_id": u.get("id"),
+            "full_name": full_name,
+            "real_first_name": first,
+            "real_last_name": last,
+            "pseudo": u.get("pseudo"),
+            "display_name": u.get("display_name"),
+            "visibility_level": u.get("visibility_level"),
+            "sectors": u.get("sectors", []),
+            "skills_count": len(u.get("skills", [])),
+            "authorized": u.get("visibility_level") == "limited",
+        })
+    return results
+
+
+class SyncRequest(BaseModel):
+    user_token_id: str
+
+
+@router.post("/partenaires/demande-acces/synchroniser")
+async def synchroniser_beneficiaire(token: str, payload: SyncRequest):
+    """Create a beneficiary from a RE'ACTIF PRO user and sync full profile data"""
+    token_doc = await get_current_token(token)
+    partner_id = token_doc["id"]
+
+    profile = await db.profiles.find_one(
+        {"token_id": payload.user_token_id, "role": "particulier"},
+        {"_id": 0, "password_hash": 0, "email_recovery": 0}
+    )
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil utilisateur non trouvé")
+
+    if profile.get("visibility_level") not in ("limited", "public"):
+        raise HTTPException(status_code=403, detail="Accès non autorisé — l'utilisateur n'a pas ouvert son profil")
+
+    existing = await db.beneficiaires.find_one(
+        {"partner_id": partner_id, "linked_token_id": payload.user_token_id},
+        {"_id": 0}
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Ce bénéficiaire est déjà synchronisé")
+
+    first = profile.get("real_first_name") or ""
+    last = profile.get("real_last_name") or ""
+    full_name = f"{first} {last}".strip() or profile.get("display_name") or profile.get("name", "Anonyme")
+
+    passport = await db.passports.find_one({"token_id": payload.user_token_id}, {"_id": 0})
+    cv_analyses = await db.cv_analyses.find({"token_id": payload.user_token_id}, {"_id": 0}).to_list(10)
+    dclic = await db.dclic_results.find_one({"token_id": payload.user_token_id}, {"_id": 0})
+
+    skills_from_profile = [s.get("name", "") for s in profile.get("skills", []) if s.get("name")]
+    skills_from_passport = []
+    if passport:
+        for comp in passport.get("competences", []):
+            if isinstance(comp, dict):
+                skills_from_passport.append(comp.get("nom", comp.get("name", "")))
+            elif isinstance(comp, str):
+                skills_from_passport.append(comp)
+    all_skills = list(set(s for s in skills_from_profile + skills_from_passport if s))
+
+    sectors = profile.get("sectors", [])
+    sector = sectors[0] if sectors else "Autre"
+
+    now = datetime.now(timezone.utc)
+    beneficiary = {
+        "id": str(uuid.uuid4()),
+        "name": full_name,
+        "status": "En accompagnement",
+        "progress": 0,
+        "skills_acquired": all_skills[:20],
+        "sector": sector,
+        "notes": f"Synchronisé depuis RE'ACTIF PRO le {now.strftime('%d/%m/%Y')}",
+        "freins": [],
+        "diagnostic": {},
+        "linked_token_id": payload.user_token_id,
+        "linked_pseudo": profile.get("pseudo"),
+        "synced": True,
+        "sync_date": now.isoformat(),
+        "sync_data": {
+            "profile_score": profile.get("profile_score", 0),
+            "experience_years": profile.get("experience_years", 0),
+            "strengths": profile.get("strengths", []),
+            "gaps": profile.get("gaps", []),
+            "dclic_summary": dclic.get("summary") if dclic else None,
+            "cv_count": len(cv_analyses),
+            "passport_competences_count": len(passport.get("competences", [])) if passport else 0,
+        },
+        "historique": [{
+            "date": now.isoformat(),
+            "action": "sync",
+            "detail": f"Profil synchronisé depuis RE'ACTIF PRO ({profile.get('pseudo', 'N/A')})"
+        }],
+        "last_activity": now.isoformat(),
+        "created_at": now.isoformat(),
+        "partner_id": partner_id,
+    }
+
+    await db.beneficiaires.insert_one(beneficiary)
+    beneficiary.pop("_id", None)
+
+    await db.consent_history.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "partenaire_sync",
+        "user_token_id": payload.user_token_id,
+        "partner_id": partner_id,
+        "beneficiary_id": beneficiary["id"],
+        "accepted": True,
+        "date": now.isoformat()
+    })
+
+    return beneficiary
+
+
 
 # ===== OUTILS D'ACCOMPAGNEMENT V2 (BILAN AUGMENTE RE'ACTIF PRO) =====
 

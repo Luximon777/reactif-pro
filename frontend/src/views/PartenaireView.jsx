@@ -50,6 +50,7 @@ const PartenaireView = ({ token }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedBeneficiaire, setSelectedBeneficiaire] = useState(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [demandeAccesOpen, setDemandeAccesOpen] = useState(false);
   const [freinDialogOpen, setFreinDialogOpen] = useState(false);
   const [freinTarget, setFreinTarget] = useState(null);
 
@@ -95,9 +96,14 @@ const PartenaireView = ({ token }) => {
             Valorisation, coordination et sécurisation des parcours — en appui des dispositifs existants
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="add-beneficiaire-btn">
-          <Plus className="w-4 h-4 mr-2" /> Nouveau bénéficiaire
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setDemandeAccesOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="demande-acces-btn">
+            <Search className="w-4 h-4 mr-2" /> Demande d'accès bénéficiaire RE'ACTIF PRO
+          </Button>
+          <Button variant="outline" onClick={() => setCreateDialogOpen(true)} data-testid="add-beneficiaire-btn">
+            <Plus className="w-4 h-4 mr-2" /> Création manuelle
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -144,6 +150,7 @@ const PartenaireView = ({ token }) => {
       </Tabs>
 
       <CreateBeneficiaireDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} token={token} onCreated={loadAll} />
+      <DemandeAccesDialog open={demandeAccesOpen} onOpenChange={setDemandeAccesOpen} token={token} onSynced={loadAll} />
       <AddFreinDialog open={freinDialogOpen} onOpenChange={setFreinDialogOpen} beneficiaire={freinTarget} token={token} onAdded={loadAll} />
     </div>
   );
@@ -295,6 +302,7 @@ const RecentActivity = ({ beneficiaires, onSelect }) => {
                       <div className="flex items-center gap-1.5 text-xs text-slate-400">
                         <span>{b.sector}</span>
                         {b.linked_token_id && <Badge className="bg-purple-100 text-purple-700 text-[10px] py-0 px-1"><Link2 className="w-2.5 h-2.5" /></Badge>}
+                        {b.synced && <Badge className="bg-green-100 text-green-700 text-[10px] py-0 px-1">Synchronisé</Badge>}
                       </div>
                     </div>
                   </div>
@@ -536,7 +544,8 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>{b.name}</h2>
-                  {b.linked_token_id && <Badge className="bg-purple-100 text-purple-700 text-xs"><Link2 className="w-3 h-3 mr-1" /> Lie</Badge>}
+                  {b.linked_token_id && <Badge className="bg-purple-100 text-purple-700 text-xs"><Link2 className="w-3 h-3 mr-1" /> Lié</Badge>}
+                  {b.synced && <Badge className="bg-green-100 text-green-700 text-xs"><CheckCircle2 className="w-3 h-3 mr-1" /> Synchronisé RE'ACTIF PRO</Badge>}
                 </div>
                 <p className="text-sm text-slate-500">Secteur : {b.sector}</p>
                 <Badge className={`${st.color} flex items-center gap-1 mt-1 w-fit text-xs`}><StIcon className="w-3 h-3" /> {b.status}</Badge>
@@ -1652,6 +1661,135 @@ const AddFreinDialog = ({ open, onOpenChange, beneficiaire, token, onAdded }) =>
         </div>
         <DialogFooter className="mt-4"><Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={handleAdd} disabled={loading || !category} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="frein-submit-btn">{loading ? "Ajout..." : "Déclarer"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ===== DEMANDE D'ACCES BENEFICIAIRE RE'ACTIF PRO =====
+const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [syncing, setSyncing] = useState(null);
+  const [searched, setSearched] = useState(false);
+
+  const handleSearch = async () => {
+    if (searchQuery.trim().length < 2) { toast.error("Minimum 2 caractères"); return; }
+    setSearching(true);
+    setSearched(true);
+    try {
+      const res = await axios.get(`${API}/partenaires/demande-acces/search?token=${token}&query=${encodeURIComponent(searchQuery.trim())}`);
+      setResults(res.data);
+      if (res.data.length === 0) toast.info("Aucun bénéficiaire trouvé avec ce nom");
+    } catch { toast.error("Erreur recherche"); }
+    setSearching(false);
+  };
+
+  const handleSync = async (user) => {
+    setSyncing(user.token_id);
+    try {
+      await axios.post(`${API}/partenaires/demande-acces/synchroniser?token=${token}`, { user_token_id: user.token_id }, { headers: { "Content-Type": "application/json" } });
+      toast.success(`${user.full_name} synchronisé avec succès !`);
+      onSynced();
+      onOpenChange(false);
+      setSearchQuery("");
+      setResults([]);
+      setSearched(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur de synchronisation");
+    }
+    setSyncing(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearchQuery(""); setResults([]); setSearched(false); } }}>
+      <DialogContent className="max-w-lg" data-testid="demande-acces-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Search className="w-5 h-5 text-[#1e3a5f]" /> Demande d'accès bénéficiaire RE'ACTIF PRO
+          </DialogTitle>
+          <DialogDescription>Recherchez un utilisateur par son nom pour accéder à son profil</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Rechercher par nom..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              data-testid="demande-acces-search-input"
+            />
+            <Button onClick={handleSearch} disabled={searching} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="demande-acces-search-btn">
+              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            </Button>
+          </div>
+
+          {results.length > 0 && (
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {results.map((user) => (
+                <div key={user.token_id} className="p-3 rounded-lg border border-slate-200 bg-white" data-testid={`acces-result-${user.token_id}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{user.full_name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {user.pseudo && <Badge variant="secondary" className="text-[10px]">@{user.pseudo}</Badge>}
+                        {user.sectors?.length > 0 && <Badge variant="outline" className="text-[10px]">{user.sectors[0]}</Badge>}
+                        {user.skills_count > 0 && <span className="text-[10px] text-slate-400">{user.skills_count} compétences</span>}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      {user.authorized ? (
+                        <>
+                          <Badge className="bg-green-100 text-green-700 border-green-200" data-testid={`status-authorized-${user.token_id}`}>
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> Compte ouvert autorisé
+                          </Badge>
+                          <Button
+                            size="sm"
+                            className="bg-[#1e3a5f] hover:bg-[#152a45] h-7 text-xs"
+                            onClick={() => handleSync(user)}
+                            disabled={syncing === user.token_id}
+                            data-testid={`sync-btn-${user.token_id}`}
+                          >
+                            {syncing === user.token_id ? (
+                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Synchronisation...</>
+                            ) : (
+                              <><Link2 className="w-3 h-3 mr-1" /> Synchroniser</>
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge className="bg-red-100 text-red-700 border-red-200" data-testid={`status-denied-${user.token_id}`}>
+                          <Shield className="w-3 h-3 mr-1" /> Accès non autorisé
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {searched && results.length === 0 && !searching && (
+            <div className="text-center py-6">
+              <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Aucun résultat pour "{searchQuery}"</p>
+              <p className="text-xs text-slate-400 mt-1">L'utilisateur doit avoir activé le mode "Limité" dans ses paramètres de confidentialité</p>
+            </div>
+          )}
+
+          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              <Shield className="w-3.5 h-3.5 inline mr-1 text-[#1e3a5f]" />
+              Seuls les utilisateurs ayant choisi le niveau de confidentialité "Limité" sont accessibles. En acceptant, le bénéficiaire reconnaît que son nom et prénom seront communiqués au partenaire.
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fermer</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

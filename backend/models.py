@@ -45,6 +45,9 @@ class Profile(BaseModel):
     legal_last_name: Optional[str] = None
     birth_date: Optional[str] = None
     birth_place: Optional[str] = None
+    # Real identity (shared when visibility_level = "limited")
+    real_first_name: Optional[str] = None
+    real_last_name: Optional[str] = None
     verified_at: Optional[str] = None
     last_identity_sync_at: Optional[str] = None
     # Entreprise fields

@@ -34,6 +34,8 @@ const PrivacySettingsView = ({ token }) => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [consentMarketing, setConsentMarketing] = useState(false);
+  const [realFirstName, setRealFirstName] = useState("");
+  const [realLastName, setRealLastName] = useState("");
 
   useEffect(() => { loadProfile(); }, [token]);
 
@@ -46,6 +48,8 @@ const PrivacySettingsView = ({ token }) => {
       setDisplayName(res.data.display_name || "");
       setBio(res.data.bio || "");
       setConsentMarketing(res.data.consent_marketing || false);
+      setRealFirstName(res.data.real_first_name || "");
+      setRealLastName(res.data.real_last_name || "");
     } catch (err) {
       toast.error("Erreur chargement du profil");
     }
@@ -53,6 +57,10 @@ const PrivacySettingsView = ({ token }) => {
   };
 
   const savePrivacy = async () => {
+    if (visibilityLevel === "limited" && (!realFirstName.trim() || !realLastName.trim())) {
+      toast.error("Nom et prénom requis pour le mode Limité");
+      return;
+    }
     setSaving(true);
     try {
       const params = new URLSearchParams({ token });
@@ -60,6 +68,8 @@ const PrivacySettingsView = ({ token }) => {
       if (displayName !== undefined) params.append("display_name", displayName);
       if (bio !== undefined) params.append("bio", bio);
       params.append("consent_marketing", consentMarketing);
+      if (realFirstName !== undefined) params.append("real_first_name", realFirstName);
+      if (realLastName !== undefined) params.append("real_last_name", realLastName);
       await axios.put(`${API}/profile/privacy?${params.toString()}`);
       toast.success("Paramètres de confidentialité mis à jour");
       loadProfile();
@@ -109,8 +119,8 @@ const PrivacySettingsView = ({ token }) => {
   }
 
   const visibilityOptions = [
-    { value: "private", label: "Privé", desc: "Seul vous pouvez voir vos informations", icon: Lock },
-    { value: "limited", label: "Limité", desc: "Visible uniquement par vos partenaires autorisés", icon: Eye },
+    { value: "private", label: "Privé", desc: "Seul vous pouvez voir vos informations. Votre anonymat est préservé.", icon: Lock },
+    { value: "limited", label: "Limité", desc: "Accessible aux partenaires de parcours autorisés. Votre nom et prénom seront communiqués.", icon: Eye },
     { value: "public", label: "Public", desc: "Votre profil pseudonyme est visible par tous", icon: EyeOff },
   ];
 
@@ -205,6 +215,42 @@ const PrivacySettingsView = ({ token }) => {
               </button>
             );
           })}
+
+          {visibilityLevel === "limited" && (
+            <div className="space-y-4 mt-4 p-4 bg-amber-50/50 rounded-lg border border-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">Levée de l'anonymat</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    En choisissant le mode "Limité", vous acceptez que votre nom et prénom soient communiqués aux partenaires de parcours (Mission Locale, France Travail, APEC, etc.) qui effectuent une demande d'accès à votre profil. Vos données restent protégées et le partage est révocable à tout moment.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="real-first-name">Prénom *</Label>
+                  <Input
+                    id="real-first-name"
+                    placeholder="Votre prénom"
+                    value={realFirstName}
+                    onChange={(e) => setRealFirstName(e.target.value)}
+                    data-testid="real-first-name-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="real-last-name">Nom *</Label>
+                  <Input
+                    id="real-last-name"
+                    placeholder="Votre nom de famille"
+                    value={realLastName}
+                    onChange={(e) => setRealLastName(e.target.value)}
+                    data-testid="real-last-name-input"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

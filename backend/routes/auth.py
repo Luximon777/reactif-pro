@@ -261,7 +261,7 @@ async def update_profile(token: str, request: UpdateProfileRequest):
 # ===== PRIVACY SETTINGS =====
 
 @router.put("/profile/privacy")
-async def update_privacy(token: str, visibility_level: str = None, display_name: str = None, bio: str = None, consent_marketing: bool = None):
+async def update_privacy(token: str, visibility_level: str = None, display_name: str = None, bio: str = None, consent_marketing: bool = None, real_first_name: str = None, real_last_name: str = None):
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not profile:
@@ -274,6 +274,10 @@ async def update_privacy(token: str, visibility_level: str = None, display_name:
         update["display_name"] = display_name
     if bio is not None:
         update["bio"] = bio
+    if real_first_name is not None:
+        update["real_first_name"] = real_first_name
+    if real_last_name is not None:
+        update["real_last_name"] = real_last_name
     if consent_marketing is not None:
         update["consent_marketing"] = consent_marketing
         consent = ConsentRecord(user_id=profile["id"], consent_type="marketing", consent_value=consent_marketing)
