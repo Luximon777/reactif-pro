@@ -924,12 +924,37 @@ async def synchroniser_beneficiaire(token: str, payload: SyncRequest):
     sectors = profile.get("sectors", [])
     sector = sectors[0] if sectors else "Autre"
 
+    # Calcul automatique de la progression basée sur les données synchronisées
+    progress_points = 0
+    # Profil de base rempli (nom, secteurs) = 10%
+    if full_name and full_name != "Anonyme":
+        progress_points += 5
+    if sectors:
+        progress_points += 5
+    # Compétences identifiées = 20%
+    if all_skills:
+        progress_points += min(20, len(all_skills) * 4)
+    # CV analysé = 20%
+    if cv_analyses:
+        progress_points += 20
+    # Passeport de compétences = 25%
+    if passport:
+        progress_points += 10
+        if passport.get("professional_summary"):
+            progress_points += 8
+        if passport.get("career_project"):
+            progress_points += 7
+    # Test D'CLIC réalisé = 25%
+    if dclic:
+        progress_points += 25
+    sync_progress = min(progress_points, 100)
+
     now = datetime.now(timezone.utc)
     beneficiary = {
         "id": str(uuid.uuid4()),
         "name": full_name,
         "status": "En accompagnement",
-        "progress": 0,
+        "progress": sync_progress,
         "skills_acquired": all_skills[:20],
         "sector": sector,
         "notes": f"Synchronisé depuis RE'ACTIF PRO le {now.strftime('%d/%m/%Y')}",
@@ -973,6 +998,109 @@ async def synchroniser_beneficiaire(token: str, payload: SyncRequest):
 
     return beneficiary
 
+
+@router.post("/partenaires/beneficiaires/{beneficiary_id}/resync")
+async def resync_beneficiaire(beneficiary_id: str, token: str):
+    """Re-sync a linked beneficiary's data and recalculate progress"""
+    token_doc = await get_current_token(token)
+    partner_id = token_doc["id"]
+
+    ben = await db.beneficiaires.find_one(
+        {"id": beneficiary_id, "partner_id": partner_id}, {"_id": 0}
+    )
+    if not ben:
+        raise HTTPException(status_code=404, detail="Bénéficiaire non trouvé")
+    if not ben.get("linked_token_id"):
+        raise HTTPException(status_code=400, detail="Ce bénéficiaire n'est pas lié à un profil RE'ACTIF PRO")
+
+    user_tid = ben["linked_token_id"]
+    profile = await db.profiles.find_one(
+        {"token_id": user_tid, "role": "particulier"},
+        {"_id": 0, "password_hash": 0, "email_recovery": 0}
+    )
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil utilisateur non trouvé")
+
+    passport = await db.passports.find_one({"token_id": user_tid}, {"_id": 0})
+    cv_analyses = await db.cv_analyses.find({"token_id": user_tid}, {"_id": 0}).to_list(10)
+    dclic = await db.dclic_results.find_one({"token_id": user_tid}, {"_id": 0})
+
+    skills_from_profile = [s.get("name", "") for s in profile.get("skills", []) if s.get("name")]
+    skills_from_passport = []
+    if passport:
+        for comp in passport.get("competences", []):
+            if isinstance(comp, dict):
+                skills_from_passport.append(comp.get("nom", comp.get("name", "")))
+            elif isinstance(comp, str):
+                skills_from_passport.append(comp)
+    all_skills = list(set(s for s in skills_from_profile + skills_from_passport if s))
+
+    first = profile.get("real_first_name") or ""
+    last = profile.get("real_last_name") or ""
+    full_name = f"{first} {last}".strip() or profile.get("display_name") or profile.get("name", "Anonyme")
+
+    sectors = profile.get("sectors", [])
+    sector = sectors[0] if sectors else ben.get("sector", "Autre")
+
+    # Calcul de la progression
+    progress_points = 0
+    if full_name and full_name != "Anonyme":
+        progress_points += 5
+    if sectors:
+        progress_points += 5
+    if all_skills:
+        progress_points += min(20, len(all_skills) * 4)
+    if cv_analyses:
+        progress_points += 20
+    if passport:
+        progress_points += 10
+        if passport.get("professional_summary"):
+            progress_points += 8
+        if passport.get("career_project"):
+            progress_points += 7
+    if dclic:
+        progress_points += 25
+    # Ajouter progression du bilan partenaire
+    bilan_progress = ben.get("bilan_progress", 0)
+    if bilan_progress > 0:
+        progress_points += int(bilan_progress * 0.1)
+    sync_progress = min(progress_points, 100)
+
+    now = datetime.now(timezone.utc)
+    update_data = {
+        "name": full_name,
+        "progress": sync_progress,
+        "skills_acquired": all_skills[:20],
+        "sector": sector,
+        "sync_date": now.isoformat(),
+        "sync_data": {
+            "profile_score": profile.get("profile_score", 0),
+            "experience_years": profile.get("experience_years", 0),
+            "strengths": profile.get("strengths", []),
+            "gaps": profile.get("gaps", []),
+            "dclic_summary": dclic.get("summary") if dclic else None,
+            "cv_count": len(cv_analyses),
+            "passport_competences_count": len(passport.get("competences", [])) if passport else 0,
+        },
+        "last_activity": now.isoformat(),
+    }
+
+    await db.beneficiaires.update_one(
+        {"id": beneficiary_id},
+        {
+            "$set": update_data,
+            "$push": {
+                "historique": {
+                    "date": now.isoformat(),
+                    "action": "resync",
+                    "detail": f"Profil re-synchronisé — progression {sync_progress}%"
+                }
+            }
+        }
+    )
+
+    updated = await db.beneficiaires.find_one({"id": beneficiary_id}, {"_id": 0})
+    return updated
 
 
 # ===== OUTILS D'ACCOMPAGNEMENT V2 (BILAN AUGMENTE RE'ACTIF PRO) =====

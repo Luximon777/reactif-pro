@@ -27,25 +27,33 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - 3 niveaux: Synthese, Modulaire, Complet temporaire
 
 ### Demande d'acces beneficiaire RE'ACTIF PRO avec approbation (29/03/2026)
-- **Cote partenaire**: Recherche par nom -> "Demander l'acces" -> attente approbation -> Synchroniser (apres acceptation)
-- **Cote beneficiaire**: Notification sur le dashboard + dans les parametres de confidentialite -> Accepter / Refuser
-- Le beneficiaire reste maitre de ses donnees et proprietaire de ses decisions
-- Levee d'anonymat consentie : champs nom/prenom requis quand visibilite = "Limite"
-- Synchronisation complete du profil (competences, passeport, CV, D'CLIC) apres approbation
-- Collection MongoDB: access_requests (id, partner_id, user_token_id, status, created_at, responded_at)
+- Cote partenaire: Recherche par nom -> Demander l'acces -> attente approbation -> Synchroniser
+- Cote beneficiaire: Notification + Accepter / Refuser
+- Levee d'anonymat consentie
+- Synchronisation complete du profil apres approbation
 
 ### Bandeau de synchronisation en attente (30/03/2026)
 - Notification sur le dashboard partenaire quand des demandes sont acceptees mais non synchronisees
-- Bouton "Synchroniser maintenant" directement sur le dashboard (plus besoin de re-chercher)
-- Detection automatique des demandes acceptees non liees a un beneficiaire existant
+- Bouton "Synchroniser maintenant" directement sur le dashboard
 
-### Endpoints cles (demande d'acces)
-- POST /api/partenaires/demande-acces/request (envoie demande)
-- GET /api/partenaires/demande-acces/status (statuts cote partenaire)
-- GET /api/partenaires/demande-acces/search (recherche par nom)
-- GET /api/notifications/access-requests (demandes cote beneficiaire)
-- POST /api/notifications/access-requests/{id}/respond (accepter/refuser)
-- POST /api/partenaires/demande-acces/synchroniser (sync apres approbation)
+### Calcul automatique de la progression du parcours (30/03/2026)
+- Progression calculee automatiquement lors de la synchronisation basee sur:
+  - Nom reel defini (5%) + Secteurs (5%)
+  - Competences identifiees (max 20%)
+  - CV analyse (20%)
+  - Passeport de competences (25%)
+  - Test D'CLIC PRO (25%)
+- Endpoint POST /api/partenaires/beneficiaires/{id}/resync pour re-calculer la progression
+- Bouton "Re-synchroniser" dans la fiche du beneficiaire
+
+### Endpoints cles
+- POST /api/partenaires/demande-acces/request
+- GET /api/partenaires/demande-acces/status
+- GET /api/partenaires/demande-acces/search
+- GET /api/notifications/access-requests
+- POST /api/notifications/access-requests/{id}/respond
+- POST /api/partenaires/demande-acces/synchroniser
+- POST /api/partenaires/beneficiaires/{id}/resync (NEW)
 
 ## Backlog
 - P1: Coffre-fort numerique avec upload de fichiers reels

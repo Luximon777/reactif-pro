@@ -498,6 +498,7 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [diagForm, setDiagForm] = useState(b.diagnostic || {});
   const [savingDiag, setSavingDiag] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   const st = STATUS_OPTIONS.find(s => s.value === b.status) || STATUS_OPTIONS[0];
   const StIcon = st.icon;
@@ -571,6 +572,18 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
     } catch { toast.error("Erreur"); }
   };
 
+  const resyncProfile = async () => {
+    setResyncing(true);
+    try {
+      await axios.post(`${API}/partenaires/beneficiaires/${b.id}/resync?token=${token}`);
+      toast.success("Profil re-synchronisé — progression mise à jour !");
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur de re-synchronisation");
+    }
+    setResyncing(false);
+  };
+
   const saveDiagnostic = async () => {
     setSavingDiag(true);
     try {
@@ -617,9 +630,15 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
                   <Link2 className="w-4 h-4 mr-1" /> Lier un profil
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" onClick={unlinkUser} className="text-red-500 hover:text-red-700" data-testid="unlink-profile-btn">
-                  <Unlink className="w-4 h-4 mr-1" /> Delier
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={resyncProfile} disabled={resyncing}
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50" data-testid="resync-btn">
+                    {resyncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ArrowUpRight className="w-4 h-4 mr-1" />} Re-synchroniser
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={unlinkUser} className="text-red-500 hover:text-red-700" data-testid="unlink-profile-btn">
+                    <Unlink className="w-4 h-4 mr-1" /> Delier
+                  </Button>
+                </>
               )}
               <Select value={b.status} onValueChange={updateStatus}>
                 <SelectTrigger className="w-44 h-9 text-sm" data-testid="detail-status-select"><SelectValue /></SelectTrigger>
