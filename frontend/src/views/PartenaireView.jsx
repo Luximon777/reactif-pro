@@ -53,22 +53,27 @@ const PartenaireView = ({ token }) => {
   const [demandeAccesOpen, setDemandeAccesOpen] = useState(false);
   const [freinDialogOpen, setFreinDialogOpen] = useState(false);
   const [freinTarget, setFreinTarget] = useState(null);
+  const [pendingSyncs, setPendingSyncs] = useState([]);
 
   useEffect(() => { loadAll(); }, [token]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [bRes, sRes, pRes, aRes] = await Promise.all([
+      const [bRes, sRes, pRes, aRes, rRes] = await Promise.all([
         axios.get(`${API}/partenaires/beneficiaires?token=${token}`),
         axios.get(`${API}/partenaires/stats?token=${token}`),
         axios.get(`${API}/partenaires/profile?token=${token}`),
         axios.get(`${API}/partenaires/alertes?token=${token}`),
+        axios.get(`${API}/partenaires/demande-acces/status?token=${token}`),
       ]);
       setBeneficiaires(bRes.data);
       setStats(sRes.data);
       setProfile(pRes.data);
       setAlertes(aRes.data);
+      const linkedIds = new Set((bRes.data || []).map(b => b.linked_token_id).filter(Boolean));
+      const accepted = (rRes.data || []).filter(r => r.status === "accepte" && !linkedIds.has(r.user_token_id));
+      setPendingSyncs(accepted);
     } catch (err) {
       console.error("Erreur chargement:", err);
     }
@@ -118,6 +123,7 @@ const PartenaireView = ({ token }) => {
 
         <TabsContent value="dashboard" className="space-y-6 mt-4">
           <ComplementarityBanner />
+          {pendingSyncs.length > 0 && <PendingSyncBanner pendingSyncs={pendingSyncs} token={token} onSynced={loadAll} />}
           <StatsCards stats={stats} />
           {alertes.length > 0 && <AlertesPanel alertes={alertes} onNavigate={(b) => { setSelectedBeneficiaire(b); setActiveTab("beneficiaires"); }} />}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -153,6 +159,60 @@ const PartenaireView = ({ token }) => {
       <DemandeAccesDialog open={demandeAccesOpen} onOpenChange={setDemandeAccesOpen} token={token} onSynced={loadAll} />
       <AddFreinDialog open={freinDialogOpen} onOpenChange={setFreinDialogOpen} beneficiaire={freinTarget} token={token} onAdded={loadAll} />
     </div>
+  );
+};
+
+// ===== PENDING SYNC BANNER =====
+const PendingSyncBanner = ({ pendingSyncs, token, onSynced }) => {
+  const [syncing, setSyncing] = useState(null);
+
+  const handleSync = async (req) => {
+    setSyncing(req.user_token_id);
+    try {
+      await axios.post(`${API}/partenaires/demande-acces/synchroniser?token=${token}`, { user_token_id: req.user_token_id }, { headers: { "Content-Type": "application/json" } });
+      toast.success(`${req.user_name} synchronisé avec succès !`);
+      onSynced();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur de synchronisation");
+    }
+    setSyncing(null);
+  };
+
+  return (
+    <Card className="border-l-4 border-l-green-500 border border-green-200 bg-green-50/50" data-testid="pending-sync-banner">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CheckCircle2 className="w-5 h-5 text-green-600" /> Demandes acceptées — prêtes à synchroniser ({pendingSyncs.length})
+        </CardTitle>
+        <CardDescription className="text-green-700/70">
+          Ces bénéficiaires ont approuvé votre demande d'accès. Cliquez sur "Synchroniser" pour les ajouter à votre espace.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {pendingSyncs.map((req) => (
+            <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border border-green-200 bg-white" data-testid={`pending-sync-${req.id}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-green-700" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{req.user_name}</p>
+                  <p className="text-xs text-slate-500">@{req.user_pseudo} — accepté le {new Date(req.responded_at).toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 text-xs"
+                onClick={() => handleSync(req)} disabled={syncing === req.user_token_id}
+                data-testid={`sync-now-btn-${req.id}`}>
+                {syncing === req.user_token_id
+                  ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Synchronisation...</>
+                  : <><Link2 className="w-3 h-3 mr-1" /> Synchroniser maintenant</>}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
