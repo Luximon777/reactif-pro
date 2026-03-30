@@ -1,18 +1,20 @@
 # Test Credentials
 
-## Espace Partenaire
+## Espace Partenaire - Mission Locale Test
 - Email: `test@missionlocale.fr`
 - Password: `Solerys777!`
 - Role: `partenaire`
-- Login: POST /api/auth/login-pro with {pseudo: email, password: pwd}
+
+## Espace Partenaire - Solerys
+- Email: `cluximon@gmail.com`
+- Password: `Solerys777!`
+- Role: `partenaire`
+- Structure: Solerys (acteur_insertion)
 
 ## Espace Particulier (Preview Users)
-- bob15: password `Solerys777!` — visibility: limited, real_first_name: Robert, real_last_name: Dupont
-- bob18: password `Solerys777!` — visibility: limited, real_first_name: Alice, real_last_name: Martin
-- bob22: password `Solerys777!` — visibility: limited, real_first_name: Marc, real_last_name: Lefevre (synced to partner)
+- bob15: password `Solerys777!` — visibility: limited, Robert Dupont
+- bob18: password `Solerys777!` — visibility: limited, Alice Martin
+- bob22: password `Solerys777!` — visibility: limited, Marc Lefevre
+- bob23: password `Solerys777!`
 - Login: POST /api/auth/login with {pseudo: "bob15", password: "Solerys777!"}
-
-## Synced Beneficiaries
-- Marc Lefevre (bob22) — synced=True, linked to partner test@missionlocale.fr
-- Sophie Bernard — linked to bob18 (manual)
-- Jean Martin — linked to bob15 (manual)
+- Login pro: POST /api/auth/login-pro with {pseudo: "cluximon@gmail.com", password: "Solerys777!"}
