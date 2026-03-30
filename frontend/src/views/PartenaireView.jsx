@@ -18,7 +18,7 @@ import {
   PlusCircle, Shield, Bell, Link2, Unlink, Search, Brain,
   Briefcase, GraduationCap, Lightbulb, ClipboardList, FileText,
   ChevronDown, ChevronUp, Loader2, Compass, BookOpen,
-  MessageSquare, Activity, Globe
+  MessageSquare, Activity, Globe, Send
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1672,8 +1672,23 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [requesting, setRequesting] = useState(null);
   const [syncing, setSyncing] = useState(null);
   const [searched, setSearched] = useState(false);
+  const [requestStatuses, setRequestStatuses] = useState({});
+
+  useEffect(() => {
+    if (open) loadStatuses();
+  }, [open]);
+
+  const loadStatuses = async () => {
+    try {
+      const res = await axios.get(`${API}/partenaires/demande-acces/status?token=${token}`);
+      const map = {};
+      for (const r of res.data) { map[r.user_token_id] = r; }
+      setRequestStatuses(map);
+    } catch {}
+  };
 
   const handleSearch = async () => {
     if (searchQuery.trim().length < 2) { toast.error("Minimum 2 caractères"); return; }
@@ -1687,6 +1702,18 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
     setSearching(false);
   };
 
+  const handleRequest = async (user) => {
+    setRequesting(user.token_id);
+    try {
+      await axios.post(`${API}/partenaires/demande-acces/request?token=${token}`, { user_token_id: user.token_id }, { headers: { "Content-Type": "application/json" } });
+      toast.success(`Demande envoyée à ${user.full_name}`);
+      loadStatuses();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur");
+    }
+    setRequesting(null);
+  };
+
   const handleSync = async (user) => {
     setSyncing(user.token_id);
     try {
@@ -1694,14 +1721,14 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
       toast.success(`${user.full_name} synchronisé avec succès !`);
       onSynced();
       onOpenChange(false);
-      setSearchQuery("");
-      setResults([]);
-      setSearched(false);
+      setSearchQuery(""); setResults([]); setSearched(false);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Erreur de synchronisation");
     }
     setSyncing(null);
   };
+
+  const getRequestStatus = (tokenId) => requestStatuses[tokenId] || null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearchQuery(""); setResults([]); setSearched(false); } }}>
@@ -1710,7 +1737,7 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
           <DialogTitle className="flex items-center gap-2">
             <Search className="w-5 h-5 text-[#1e3a5f]" /> Demande d'accès bénéficiaire RE'ACTIF PRO
           </DialogTitle>
-          <DialogDescription>Recherchez un utilisateur par son nom pour accéder à son profil</DialogDescription>
+          <DialogDescription>Recherchez un utilisateur par son nom pour demander l'accès à son profil</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -1729,46 +1756,64 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
 
           {results.length > 0 && (
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {results.map((user) => (
-                <div key={user.token_id} className="p-3 rounded-lg border border-slate-200 bg-white" data-testid={`acces-result-${user.token_id}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{user.full_name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {user.pseudo && <Badge variant="secondary" className="text-[10px]">@{user.pseudo}</Badge>}
-                        {user.sectors?.length > 0 && <Badge variant="outline" className="text-[10px]">{user.sectors[0]}</Badge>}
-                        {user.skills_count > 0 && <span className="text-[10px] text-slate-400">{user.skills_count} compétences</span>}
+              {results.map((user) => {
+                const reqStatus = getRequestStatus(user.token_id);
+                return (
+                  <div key={user.token_id} className="p-3 rounded-lg border border-slate-200 bg-white" data-testid={`acces-result-${user.token_id}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{user.full_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {user.pseudo && <Badge variant="secondary" className="text-[10px]">@{user.pseudo}</Badge>}
+                          {user.sectors?.length > 0 && <Badge variant="outline" className="text-[10px]">{user.sectors[0]}</Badge>}
+                          {user.skills_count > 0 && <span className="text-[10px] text-slate-400">{user.skills_count} compétences</span>}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5">
+                        {user.authorized ? (
+                          <>
+                            <Badge className="bg-green-100 text-green-700 border-green-200" data-testid={`status-authorized-${user.token_id}`}>
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Compte ouvert autorisé
+                            </Badge>
+                            {!reqStatus && (
+                              <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45] h-7 text-xs"
+                                onClick={() => handleRequest(user)} disabled={requesting === user.token_id}
+                                data-testid={`request-btn-${user.token_id}`}>
+                                {requesting === user.token_id
+                                  ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Envoi...</>
+                                  : <><Send className="w-3 h-3 mr-1" /> Demander l'accès</>}
+                              </Button>
+                            )}
+                            {reqStatus?.status === "en_attente" && (
+                              <Badge className="bg-amber-100 text-amber-700 border-amber-200" data-testid={`status-pending-${user.token_id}`}>
+                                <Clock className="w-3 h-3 mr-1" /> En attente d'approbation
+                              </Badge>
+                            )}
+                            {reqStatus?.status === "accepte" && (
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-7 text-xs"
+                                onClick={() => handleSync(user)} disabled={syncing === user.token_id}
+                                data-testid={`sync-btn-${user.token_id}`}>
+                                {syncing === user.token_id
+                                  ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Synchronisation...</>
+                                  : <><Link2 className="w-3 h-3 mr-1" /> Synchroniser</>}
+                              </Button>
+                            )}
+                            {reqStatus?.status === "refuse" && (
+                              <Badge className="bg-red-100 text-red-700 border-red-200" data-testid={`status-refused-${user.token_id}`}>
+                                <Shield className="w-3 h-3 mr-1" /> Demande refusée
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
+                          <Badge className="bg-red-100 text-red-700 border-red-200" data-testid={`status-denied-${user.token_id}`}>
+                            <Shield className="w-3 h-3 mr-1" /> Accès non autorisé
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5">
-                      {user.authorized ? (
-                        <>
-                          <Badge className="bg-green-100 text-green-700 border-green-200" data-testid={`status-authorized-${user.token_id}`}>
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> Compte ouvert autorisé
-                          </Badge>
-                          <Button
-                            size="sm"
-                            className="bg-[#1e3a5f] hover:bg-[#152a45] h-7 text-xs"
-                            onClick={() => handleSync(user)}
-                            disabled={syncing === user.token_id}
-                            data-testid={`sync-btn-${user.token_id}`}
-                          >
-                            {syncing === user.token_id ? (
-                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Synchronisation...</>
-                            ) : (
-                              <><Link2 className="w-3 h-3 mr-1" /> Synchroniser</>
-                            )}
-                          </Button>
-                        </>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-700 border-red-200" data-testid={`status-denied-${user.token_id}`}>
-                          <Shield className="w-3 h-3 mr-1" /> Accès non autorisé
-                        </Badge>
-                      )}
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -1783,7 +1828,7 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
           <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
             <p className="text-xs text-slate-500 leading-relaxed">
               <Shield className="w-3.5 h-3.5 inline mr-1 text-[#1e3a5f]" />
-              Seuls les utilisateurs ayant choisi le niveau de confidentialité "Limité" sont accessibles. En acceptant, le bénéficiaire reconnaît que son nom et prénom seront communiqués au partenaire.
+              Le bénéficiaire sera notifié de votre demande et devra l'approuver avant que vous puissiez accéder à son profil. Il reste maître de ses données.
             </p>
           </div>
         </div>

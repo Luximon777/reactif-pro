@@ -767,9 +767,15 @@ class SyncRequest(BaseModel):
     user_token_id: str
 
 
-@router.post("/partenaires/demande-acces/synchroniser")
-async def synchroniser_beneficiaire(token: str, payload: SyncRequest):
-    """Create a beneficiary from a RE'ACTIF PRO user and sync full profile data"""
+class AccessRequestResponse(BaseModel):
+    action: str  # "accept" or "reject"
+
+
+# ===== DEMANDE D'ACCES (APPROBATION PAR LE BENEFICIAIRE) =====
+
+@router.post("/partenaires/demande-acces/request")
+async def create_access_request(token: str, payload: SyncRequest):
+    """Partner sends an access request to a RE'ACTIF PRO user — requires user approval"""
     token_doc = await get_current_token(token)
     partner_id = token_doc["id"]
 
@@ -782,6 +788,113 @@ async def synchroniser_beneficiaire(token: str, payload: SyncRequest):
 
     if profile.get("visibility_level") not in ("limited", "public"):
         raise HTTPException(status_code=403, detail="Accès non autorisé — l'utilisateur n'a pas ouvert son profil")
+
+    existing = await db.access_requests.find_one(
+        {"partner_id": partner_id, "user_token_id": payload.user_token_id, "status": {"$in": ["en_attente", "accepte"]}},
+        {"_id": 0}
+    )
+    if existing:
+        if existing["status"] == "en_attente":
+            raise HTTPException(status_code=409, detail="Une demande est déjà en attente pour ce bénéficiaire")
+        if existing["status"] == "accepte":
+            raise HTTPException(status_code=409, detail="L'accès a déjà été accordé")
+
+    partner_profile = await db.profiles.find_one({"token_id": partner_id}, {"_id": 0})
+    partner_name = partner_profile.get("company_name") or partner_profile.get("display_name") or partner_profile.get("name", "Partenaire")
+
+    first = profile.get("real_first_name") or ""
+    last = profile.get("real_last_name") or ""
+    user_full_name = f"{first} {last}".strip() or profile.get("display_name") or "Anonyme"
+
+    now = datetime.now(timezone.utc)
+    request_doc = {
+        "id": str(uuid.uuid4()),
+        "partner_id": partner_id,
+        "partner_name": partner_name,
+        "user_token_id": payload.user_token_id,
+        "user_name": user_full_name,
+        "user_pseudo": profile.get("pseudo"),
+        "status": "en_attente",
+        "created_at": now.isoformat(),
+        "responded_at": None,
+    }
+
+    await db.access_requests.insert_one(request_doc)
+    request_doc.pop("_id", None)
+    return request_doc
+
+
+@router.get("/partenaires/demande-acces/status")
+async def get_access_requests_partner(token: str):
+    """Get all access requests sent by this partner"""
+    token_doc = await get_current_token(token)
+    requests = await db.access_requests.find(
+        {"partner_id": token_doc["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return requests
+
+
+# Endpoints for the beneficiary (user side)
+@router.get("/notifications/access-requests")
+async def get_access_requests_user(token: str):
+    """Get pending access requests for the current user"""
+    token_doc = await get_current_token(token)
+    requests = await db.access_requests.find(
+        {"user_token_id": token_doc["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return requests
+
+
+@router.post("/notifications/access-requests/{request_id}/respond")
+async def respond_access_request(request_id: str, token: str, payload: AccessRequestResponse):
+    """Beneficiary accepts or rejects an access request"""
+    token_doc = await get_current_token(token)
+
+    req = await db.access_requests.find_one(
+        {"id": request_id, "user_token_id": token_doc["id"]},
+        {"_id": 0}
+    )
+    if not req:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+
+    if req["status"] != "en_attente":
+        raise HTTPException(status_code=400, detail="Cette demande a déjà été traitée")
+
+    if payload.action not in ("accept", "reject"):
+        raise HTTPException(status_code=400, detail="Action invalide: accept ou reject")
+
+    now = datetime.now(timezone.utc)
+    new_status = "accepte" if payload.action == "accept" else "refuse"
+
+    await db.access_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": new_status, "responded_at": now.isoformat()}}
+    )
+
+    return {"message": f"Demande {new_status}", "status": new_status}
+
+
+@router.post("/partenaires/demande-acces/synchroniser")
+async def synchroniser_beneficiaire(token: str, payload: SyncRequest):
+    """Sync profile — only works if the access request was approved by the beneficiary"""
+    token_doc = await get_current_token(token)
+    partner_id = token_doc["id"]
+
+    approved = await db.access_requests.find_one(
+        {"partner_id": partner_id, "user_token_id": payload.user_token_id, "status": "accepte"},
+        {"_id": 0}
+    )
+    if not approved:
+        raise HTTPException(status_code=403, detail="Accès non autorisé — le bénéficiaire n'a pas encore accepté votre demande")
+
+    profile = await db.profiles.find_one(
+        {"token_id": payload.user_token_id, "role": "particulier"},
+        {"_id": 0, "password_hash": 0, "email_recovery": 0}
+    )
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil utilisateur non trouvé")
 
     existing = await db.beneficiaires.find_one(
         {"partner_id": partner_id, "linked_token_id": payload.user_token_id},

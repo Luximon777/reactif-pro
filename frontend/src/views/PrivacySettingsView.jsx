@@ -325,6 +325,9 @@ const PrivacySettingsView = ({ token }) => {
         </CardContent>
       </Card>
 
+      {/* Access Requests History */}
+      <AccessHistoryCard token={token} />
+
       {/* Save Button */}
       <div className="flex justify-end">
         <Button
@@ -543,6 +546,94 @@ const ChangePasswordDialog = ({ open, onOpenChange, token }) => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// ===== HISTORIQUE DES ACCES PARTENAIRES =====
+const AccessHistoryCard = ({ token }) => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [responding, setResponding] = useState(null);
+
+  useEffect(() => { loadRequests(); }, []);
+
+  const loadRequests = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/notifications/access-requests?token=${token}`);
+      setRequests(res.data);
+    } catch {}
+    setLoading(false);
+  };
+
+  const respond = async (requestId, action) => {
+    setResponding(requestId);
+    try {
+      await axios.post(`${API}/notifications/access-requests/${requestId}/respond?token=${token}`, { action }, { headers: { "Content-Type": "application/json" } });
+      toast.success(action === "accept" ? "Accès autorisé" : "Demande refusée");
+      loadRequests();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur");
+    }
+    setResponding(null);
+  };
+
+  if (loading) return null;
+  if (requests.length === 0) return null;
+
+  const pending = requests.filter(r => r.status === "en_attente");
+  const past = requests.filter(r => r.status !== "en_attente");
+
+  return (
+    <Card data-testid="access-history-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Eye className="w-5 h-5 text-[#1e3a5f]" />
+          Historique des accès partenaires
+          {pending.length > 0 && <Badge className="bg-amber-100 text-amber-700 text-xs ml-1">{pending.length} en attente</Badge>}
+        </CardTitle>
+        <CardDescription>Demandes d'accès à votre profil par les partenaires de parcours</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {pending.map(req => (
+          <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50/50" data-testid={`privacy-req-${req.id}`}>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">{req.partner_name}</p>
+              <p className="text-xs text-slate-500">Demandé le {new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
+              <p className="text-xs text-amber-600 mt-1">En acceptant, votre nom et prénom seront communiqués.</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-7 text-xs" onClick={() => respond(req.id, "accept")}
+                disabled={responding === req.id} data-testid={`privacy-accept-${req.id}`}>
+                <CheckCircle2 className="w-3 h-3 mr-1" /> Accepter
+              </Button>
+              <Button size="sm" variant="outline" className="text-red-500 hover:bg-red-50 h-7 text-xs border-red-200" onClick={() => respond(req.id, "reject")}
+                disabled={responding === req.id} data-testid={`privacy-reject-${req.id}`}>
+                Refuser
+              </Button>
+            </div>
+          </div>
+        ))}
+        {past.length > 0 && (
+          <div className={pending.length > 0 ? "pt-2 border-t border-slate-100" : ""}>
+            {pending.length > 0 && <p className="text-xs font-medium text-slate-500 mb-2">Historique</p>}
+            <div className="space-y-1">
+              {past.map(req => (
+                <div key={req.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50" data-testid={`privacy-history-${req.id}`}>
+                  <div>
+                    <p className="text-sm text-slate-700">{req.partner_name}</p>
+                    <p className="text-xs text-slate-400">{new Date(req.responded_at || req.created_at).toLocaleDateString('fr-FR')}</p>
+                  </div>
+                  <Badge className={req.status === "accepte" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                    {req.status === "accepte" ? "Accepté" : "Refusé"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

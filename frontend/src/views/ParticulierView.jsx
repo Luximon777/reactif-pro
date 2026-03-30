@@ -10,7 +10,7 @@ import {
   User, Target, TrendingUp, BookOpen, Briefcase, MapPin, Clock, Euro,
   Star, ChevronRight, Plus, Sparkles, Zap, Award, AlertCircle,
   Play, FolderLock, FileDown, FileText, LayoutList, Layers, Shield, BarChart3,
-  ExternalLink, Upload, CheckCircle
+  ExternalLink, Upload, CheckCircle, Bell, CheckCircle2, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -138,6 +138,9 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
           Tiers de confiance numérique
         </Badge>
       </div>
+
+      {/* Access Requests Notifications */}
+      <AccessRequestsNotifications token={token} />
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="metrics-grid">
@@ -583,6 +586,90 @@ const LearningSection = ({ modules, updateProgress, token }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// ===== NOTIFICATIONS DEMANDES D'ACCES =====
+const AccessRequestsNotifications = ({ token }) => {
+  const [requests, setRequests] = useState([]);
+  const [responding, setResponding] = useState(null);
+
+  useEffect(() => { loadRequests(); }, []);
+
+  const loadRequests = async () => {
+    try {
+      const res = await axios.get(`${API}/notifications/access-requests?token=${token}`);
+      setRequests(res.data);
+    } catch {}
+  };
+
+  const respond = async (requestId, action) => {
+    setResponding(requestId);
+    try {
+      await axios.post(`${API}/notifications/access-requests/${requestId}/respond?token=${token}`, { action }, { headers: { "Content-Type": "application/json" } });
+      toast.success(action === "accept" ? "Accès autorisé" : "Demande refusée");
+      loadRequests();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Erreur");
+    }
+    setResponding(null);
+  };
+
+  const pending = requests.filter(r => r.status === "en_attente");
+  const past = requests.filter(r => r.status !== "en_attente");
+
+  if (requests.length === 0) return null;
+
+  return (
+    <Card className={`border ${pending.length > 0 ? "border-amber-200 bg-amber-50/30" : "border-slate-100"}`} data-testid="access-requests-notifications">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Bell className="w-4 h-4 text-amber-600" />
+          Demandes d'accès à votre profil
+          {pending.length > 0 && <Badge className="bg-amber-100 text-amber-700 text-xs ml-1">{pending.length} en attente</Badge>}
+        </CardTitle>
+        <CardDescription>
+          Vous avez choisi le mode "Limité" : les partenaires peuvent demander à consulter votre profil. Vous restez maître de vos données.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {pending.map(req => (
+          <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-white" data-testid={`access-req-${req.id}`}>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">{req.partner_name}</p>
+              <p className="text-xs text-slate-500">Demande d'accès à votre profil — {new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
+              <p className="text-xs text-amber-600 mt-1">En acceptant, votre nom et prénom seront communiqués à ce partenaire.</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8 text-xs" onClick={() => respond(req.id, "accept")}
+                disabled={responding === req.id} data-testid={`accept-req-${req.id}`}>
+                {responding === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><CheckCircle2 className="w-3 h-3 mr-1" /> Accepter</>}
+              </Button>
+              <Button size="sm" variant="outline" className="text-red-500 hover:bg-red-50 h-8 text-xs border-red-200" onClick={() => respond(req.id, "reject")}
+                disabled={responding === req.id} data-testid={`reject-req-${req.id}`}>
+                <Shield className="w-3 h-3 mr-1" /> Refuser
+              </Button>
+            </div>
+          </div>
+        ))}
+        {past.length > 0 && (
+          <div className="pt-2 border-t border-slate-100">
+            <p className="text-xs font-medium text-slate-500 mb-2">Historique</p>
+            {past.slice(0, 5).map(req => (
+              <div key={req.id} className="flex items-center justify-between py-1.5 text-xs" data-testid={`access-history-${req.id}`}>
+                <span className="text-slate-600">{req.partner_name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">{new Date(req.responded_at || req.created_at).toLocaleDateString('fr-FR')}</span>
+                  <Badge className={req.status === "accepte" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"} variant="secondary">
+                    {req.status === "accepte" ? "Accepté" : "Refusé"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
