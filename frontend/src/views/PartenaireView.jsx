@@ -18,9 +18,10 @@ import {
   PlusCircle, Shield, Bell, Link2, Unlink, Search, Brain,
   Briefcase, GraduationCap, Lightbulb, ClipboardList, FileText,
   ChevronDown, ChevronUp, Loader2, Compass, BookOpen,
-  MessageSquare, Activity, Globe, Send
+  MessageSquare, Activity, Globe, Send, Zap
 } from "lucide-react";
 import { toast } from "sonner";
+import { SynthesePreEntretien, CompteRenduPanel, PlanActionPanel, LectureRapide, ExportPanel, BilanFinalPanel } from "./partenaire/WorkflowTools";
 
 const FREIN_CATEGORIES = [
   { value: "logement", label: "Logement", icon: HomeIcon, color: "bg-orange-100 text-orange-700 border-orange-200" },
@@ -488,7 +489,7 @@ const BeneficiairesList = ({ beneficiaires, token, onRefresh, selectedBeneficiai
 
 // ===== BENEFICIAIRE DETAIL =====
 const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
-  const [detailTab, setDetailTab] = useState("profil");
+  const [detailTab, setDetailTab] = useState("lecture_rapide");
   const [newSkill, setNewSkill] = useState("");
   const [linkedProfile, setLinkedProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -660,12 +661,22 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
       {/* Detail Tabs */}
       <Tabs value={detailTab} onValueChange={setDetailTab}>
         <TabsList className="bg-slate-100 border border-slate-200 h-auto gap-1 p-1 flex-wrap">
+          <TabsTrigger value="lecture_rapide" data-testid="tab-lecture-rapide"><Zap className="w-3.5 h-3.5 mr-1" /> Vue rapide</TabsTrigger>
           <TabsTrigger value="profil"><FileText className="w-3.5 h-3.5 mr-1" /> Profil</TabsTrigger>
           <TabsTrigger value="diagnostic"><ClipboardList className="w-3.5 h-3.5 mr-1" /> Diagnostic</TabsTrigger>
+          <TabsTrigger value="synthese_ia" data-testid="tab-synthese"><Brain className="w-3.5 h-3.5 mr-1" /> Synthèse IA</TabsTrigger>
+          <TabsTrigger value="compte_rendu" data-testid="tab-compte-rendu"><FileText className="w-3.5 h-3.5 mr-1" /> Entretiens</TabsTrigger>
+          <TabsTrigger value="plan_action" data-testid="tab-plan-action"><Target className="w-3.5 h-3.5 mr-1" /> Plan d'action</TabsTrigger>
           <TabsTrigger value="freins_detail"><AlertTriangle className="w-3.5 h-3.5 mr-1" /> Freins</TabsTrigger>
           <TabsTrigger value="historique"><History className="w-3.5 h-3.5 mr-1" /> Historique</TabsTrigger>
+          <TabsTrigger value="export_bilan" data-testid="tab-export"><Send className="w-3.5 h-3.5 mr-1" /> Export / Bilan</TabsTrigger>
           {b.linked_token_id && <TabsTrigger value="profil_reactif"><Eye className="w-3.5 h-3.5 mr-1" /> Profil Re'Actif</TabsTrigger>}
         </TabsList>
+
+        {/* Vue Lecture Rapide */}
+        <TabsContent value="lecture_rapide" className="mt-4">
+          <LectureRapide beneficiaryId={b.id} token={token} />
+        </TabsContent>
 
         {/* Profil Tab */}
         <TabsContent value="profil" className="mt-4">
@@ -813,6 +824,35 @@ const BeneficiaireDetail = ({ b, onBack, onAddFrein, token, onRefresh }) => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Synthese IA Tab */}
+        <TabsContent value="synthese_ia" className="mt-4">
+          <SynthesePreEntretien beneficiaryId={b.id} token={token} existingSynthese={b.last_synthese?.data} />
+        </TabsContent>
+
+        {/* Compte Rendu Tab */}
+        <TabsContent value="compte_rendu" className="mt-4">
+          <CompteRenduPanel beneficiaryId={b.id} token={token} />
+        </TabsContent>
+
+        {/* Plan d'action Tab */}
+        <TabsContent value="plan_action" className="mt-4">
+          <PlanActionPanel beneficiaryId={b.id} token={token} />
+        </TabsContent>
+
+        {/* Export / Bilan Tab */}
+        <TabsContent value="export_bilan" className="mt-4">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2"><Send className="w-4 h-4" /> Export du dossier</h3>
+              <ExportPanel beneficiaryId={b.id} token={token} benName={b.name} />
+            </div>
+            <div className="border-t pt-6">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Bilan de fin de parcours</h3>
+              <BilanFinalPanel beneficiaryId={b.id} token={token} />
+            </div>
+          </div>
         </TabsContent>
 
         {/* Linked Profile Tab */}
