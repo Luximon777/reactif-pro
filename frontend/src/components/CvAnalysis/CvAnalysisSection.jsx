@@ -131,19 +131,14 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
     }
 
     if (ext === "pdf") {
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64 = btoa(binary);
+      const formData = new FormData();
+      formData.append("file", file);
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const res = await axios.post(`${API}/cv/extract-text-b64?token=${token}`, {
-            data: base64,
-            filename: file.name,
-          }, { timeout: 60000 });
+          const res = await axios.post(`${API}/cv/extract-text?token=${token}`, formData, {
+            timeout: 60000,
+            headers: { "Content-Type": "multipart/form-data" },
+          });
           return res.data.text;
         } catch (err) {
           const s = err.response?.status;
