@@ -58,7 +58,6 @@ const DclicBoostSection = ({ profile, token }) => {
   const dclicSkills = (profile.skills || []).filter(s => s.source === "dclic_pro");
   const competences = profile.dclic_competences || [];
   const dimensions = [
-    profile.dclic_mbti && { label: "Personnalité MBTI", value: "Analysée", color: "from-violet-500 to-purple-600", icon: User, description: "Votre type de personnalité" },
     profile.dclic_disc_label && { label: "Profil DISC", value: profile.dclic_disc_label, color: "from-blue-500 to-cyan-600", icon: Target, description: "Votre style comportemental" },
     profile.dclic_riasec_major && { label: "Intérêts RIASEC", value: profile.dclic_riasec_major, color: "from-emerald-500 to-teal-600", icon: TrendingUp, description: "Votre orientation professionnelle" },
     profile.dclic_vertu_dominante && { label: "Vertu dominante", value: profile.dclic_vertu_dominante, color: "from-amber-500 to-orange-600", icon: Award, description: "Votre force motrice" },
@@ -1196,7 +1195,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-[24px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 text-white shadow-xl md:p-7"
+              className="rounded-[24px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 text-white shadow-xl md:p-7 overflow-visible"
               data-testid="trajectory-hero"
             >
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
@@ -1209,7 +1208,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                     Visualisez votre parcours de manière chronologique, comprenez ce qu'il révèle de votre évolution et choisissez qui peut consulter chaque étape.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <div className="shrink-0">
+                    <div className="shrink-0 relative z-20">
                       <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
                     </div>
                     <Button variant="outline" className="rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 text-sm" onClick={() => setShareDialogOpen(true)} data-testid="share-trajectory-btn">

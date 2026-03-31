@@ -335,50 +335,28 @@ async def download_coffre_file(token: str, document_id: str):
     )
 
 
-@router.post("/coffre/transfer-cv")
-async def transfer_cv_to_coffre(token: str, cv_type: str = "uploaded"):
-    """Transfer the user's uploaded or generated CV to the coffre-fort."""
+@router.get("/coffre/cv-files")
+async def list_cv_files(token: str):
+    """List CV files available in the coffre-fort for re-analysis."""
     token_doc = await get_current_token(token)
-    token_id = token_doc["id"]
-
-    # Find the latest CV analysis job
-    job = await db.cv_jobs.find_one(
-        {"token_id": token_id, "status": "completed"},
-        {"_id": 0},
-        sort=[("created_at", -1)]
-    )
-    if not job:
-        raise HTTPException(status_code=404, detail="Aucun CV analysé trouvé")
-
-    # Check if already transferred
-    existing = await db.coffre_documents.find_one({
-        "token_id": token_id,
-        "document_type": f"cv_{cv_type}",
-        "source_job_id": job.get("job_id")
-    })
-    if existing:
-        raise HTTPException(status_code=409, detail="CV déjà dans le coffre-fort")
-
-    # Get original file info from job
-    filename = job.get("filename", "cv_upload.pdf")
-    storage_path = job.get("storage_path")
-
-    # If no storage path, create a text version from the analysis
-    if not storage_path:
-        text_content = job.get("cv_text", "")
-        if text_content:
-            storage_path = f"coffre/{token_id}/cv_{cv_type}_{uuid.uuid4().hex[:8]}.txt"
-            await put_object(storage_path, text_content.encode("utf-8"))
-            filename = f"cv_{cv_type}.txt"
-
-    doc = CoffreDocument(
-        token_id=token_id,
-        title=f"CV {'chargé' if cv_type == 'uploaded' else 'généré IA'}",
-        document_type=f"cv_{cv_type}",
-        category="cv",
-        storage_path=storage_path or "",
-        file_name=filename,
-        source_job_id=job.get("job_id", ""),
-    )
-    await db.coffre_documents.insert_one(doc.model_dump())
-    return {"message": "CV transféré dans le coffre-fort", "document_id": doc.id}
+    documents = await db.coffre_documents.find(
+        {"token_id": token_doc["id"]},
+        {"_id": 0}
+    ).to_list(500)
+    cv_files = []
+    for doc in documents:
+        fname = (doc.get("file_name") or "").lower()
+        doc_type = (doc.get("document_type") or "").lower()
+        cat = (doc.get("category") or "").lower()
+        is_cv = (
+            "cv" in doc_type or "cv" in cat
+            or fname.endswith(".pdf") or fname.endswith(".docx") or fname.endswith(".txt")
+        )
+        if is_cv and doc.get("storage_path"):
+            cv_files.append({
+                "id": doc["id"],
+                "title": doc.get("title", doc.get("file_name", "Document")),
+                "file_name": doc.get("file_name", ""),
+                "created_at": doc.get("created_at", ""),
+            })
+    return sorted(cv_files, key=lambda x: x.get("created_at", ""), reverse=True)

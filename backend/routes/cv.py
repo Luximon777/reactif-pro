@@ -787,6 +787,38 @@ async def analyze_cv(token: str, file: UploadFile = File(...)):
     return {"job_id": job_id, "status": "started", "message": "Analyse lancée en arrière-plan"}
 
 
+@router.post("/cv/analyze-from-coffre")
+async def analyze_cv_from_coffre(token: str, document_id: str):
+    """Start CV analysis from a document stored in the coffre-fort."""
+    from storage import get_object
+    token_doc = await get_current_token(token)
+    doc = await db.coffre_documents.find_one(
+        {"id": document_id, "token_id": token_doc["id"]},
+        {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé dans le coffre-fort")
+    if not doc.get("storage_path"):
+        raise HTTPException(status_code=400, detail="Ce document n'a pas de fichier associé")
+    try:
+        file_content, _ = get_object(doc["storage_path"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la lecture du fichier: {str(e)}")
+    filename = doc.get("file_name", "document.pdf")
+    job_id = str(uuid.uuid4())
+    await db.cv_jobs.insert_one({
+        "job_id": job_id,
+        "token_id": token_doc["id"],
+        "filename": filename,
+        "status": "started",
+        "step": "Démarrage de l'analyse...",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], file_content, filename))
+    return {"job_id": job_id, "status": "started", "message": "Analyse du CV depuis le coffre-fort lancée"}
+
+
+
 @router.post("/cv/extract-text")
 async def extract_cv_text(token: str, file: UploadFile = File(...)):
     await get_current_token(token)

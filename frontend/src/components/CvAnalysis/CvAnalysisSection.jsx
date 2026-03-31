@@ -39,6 +39,9 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
   const [ciEntries, setCiEntries] = useState([{ theme: "", description: "" }]);
   const [ciSaving, setCiSaving] = useState(false);
   const [ciAnalyses, setCiAnalyses] = useState(null);
+  const [coffreFiles, setCoffreFiles] = useState([]);
+  const [showCoffrePicker, setShowCoffrePicker] = useState(false);
+  const [loadingCoffre, setLoadingCoffre] = useState(false);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -232,6 +235,43 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
     );
   };
 
+  const loadCoffreFiles = async () => {
+    setLoadingCoffre(true);
+    try {
+      const res = await axios.get(`${API}/coffre/cv-files?token=${token}`);
+      setCoffreFiles(res.data || []);
+      setShowCoffrePicker(true);
+    } catch {
+      toast.error("Impossible de charger les fichiers du coffre-fort");
+    }
+    setLoadingCoffre(false);
+  };
+
+  const analyzeFromCoffre = async (docId) => {
+    setShowCoffrePicker(false);
+    setUploading(true);
+    setAnalysisResult(null);
+    setUploadError(null);
+    setServerStep("Chargement depuis le coffre-fort...");
+    try {
+      const startRes = await axios.post(`${API}/cv/analyze-from-coffre?token=${token}&document_id=${docId}`, {}, { timeout: 120000 });
+      const jobId = startRes.data.job_id;
+      setServerStep("Analyse IA en cours...");
+      const result = await pollForResult(jobId);
+      setAnalysisResult(result);
+      if (result.modele_suggere && !selectedGenModels.includes(result.modele_suggere)) {
+        setSelectedGenModels([result.modele_suggere]);
+      }
+      toast.success(`CV audité : score ${result.score_global_cv || 0}/100 — ${result.savoir_faire_count} savoir-faire, ${result.savoir_etre_count} savoir-être détectés`);
+      if (onComplete) onComplete();
+    } catch (err) {
+      let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse.";
+      setUploadError(msg);
+      toast.error(msg);
+    }
+    setUploading(false);
+  };
+
   const generateSelectedModels = async () => {
     if (selectedGenModels.length === 0) return;
     setGeneratingModel(true);
@@ -379,14 +419,87 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
                 <RefreshCw className="w-3.5 h-3.5" /> Charger un autre CV
                 <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-reupload" />
               </label>
+              <button
+                type="button"
+                onClick={loadCoffreFiles}
+                disabled={loadingCoffre}
+                className="inline-flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium cursor-pointer hover:underline"
+                data-testid="cv-compact-coffre-reload-btn"
+              >
+                {loadingCoffre ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />} Depuis le coffre-fort
+              </button>
             </div>
+            {showCoffrePicker && (
+              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2 max-h-48 overflow-y-auto mt-1" data-testid="cv-coffre-picker-result">
+                {coffreFiles.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-2">Aucun fichier CV dans votre coffre-fort</p>
+                ) : (
+                  coffreFiles.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => analyzeFromCoffre(f.id)}
+                      className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-slate-100"
+                      data-testid={`coffre-file-result-${f.id}`}
+                    >
+                      <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{f.title}</p>
+                        {f.file_name && <p className="text-xs text-slate-400 truncate">{f.file_name}</p>}
+                      </div>
+                    </button>
+                  ))
+                )}
+                <button onClick={() => setShowCoffrePicker(false)} className="w-full text-xs text-slate-400 hover:text-slate-600 py-1">Fermer</button>
+              </div>
+            )}
           </div>
         ) : (
-          <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white rounded-xl cursor-pointer transition-colors shadow-sm" data-testid="cv-compact-upload-btn">
-            <Upload className="w-4 h-4" />
-            <span className="text-sm font-medium">Charger mon CV</span>
-            <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-input" />
-          </label>
+          <div className="flex flex-col gap-2 relative" data-testid="cv-compact-upload-group">
+            <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white rounded-xl cursor-pointer transition-colors shadow-sm" data-testid="cv-compact-upload-btn">
+              <Upload className="w-4 h-4" />
+              <span className="text-sm font-medium">Charger mon CV</span>
+              <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-input" />
+            </label>
+            <button
+              type="button"
+              onClick={loadCoffreFiles}
+              disabled={loadingCoffre}
+              className="inline-flex items-center gap-2 px-4 py-2 text-[#1e3a5f] bg-white border border-[#1e3a5f]/30 hover:bg-blue-50 rounded-xl cursor-pointer transition-colors text-sm font-medium"
+              data-testid="cv-compact-coffre-picker-btn"
+            >
+              {loadingCoffre ? <Loader2 className="w-4 h-4 animate-spin" /> : <FolderLock className="w-4 h-4" />}
+              Depuis mon coffre-fort
+            </button>
+            {showCoffrePicker && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2 max-h-48 overflow-y-auto min-w-[260px]" data-testid="cv-coffre-picker">
+                {coffreFiles.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-2">Aucun fichier CV dans votre coffre-fort</p>
+                ) : (
+                  coffreFiles.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => analyzeFromCoffre(f.id)}
+                      className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-slate-100"
+                      data-testid={`coffre-file-${f.id}`}
+                    >
+                      <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{f.title}</p>
+                        {f.file_name && <p className="text-xs text-slate-400 truncate">{f.file_name}</p>}
+                      </div>
+                    </button>
+                  ))
+                )}
+                <button
+                  onClick={() => setShowCoffrePicker(false)}
+                  className="w-full text-xs text-slate-400 hover:text-slate-600 py-1"
+                  data-testid="cv-coffre-picker-close"
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
