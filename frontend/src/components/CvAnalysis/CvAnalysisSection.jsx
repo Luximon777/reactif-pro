@@ -172,29 +172,27 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
     setUploading(true);
     setAnalysisResult(null);
     setUploadError(null);
-    setServerStep("Lecture du fichier...");
+    setServerStep("Envoi du fichier...");
 
     try {
-      const cvText = await extractTextFromFile(file);
-      if (!cvText || cvText.trim().length < 50) {
-        throw new Error("Le fichier ne contient pas assez de texte exploitable.");
-      }
-
-      setServerStep("Envoi du texte au serveur...");
+      // Send file directly to backend — no client-side extraction
+      setServerStep("Envoi du fichier au serveur...");
+      const formData = new FormData();
+      formData.append("file", file);
 
       let jobId;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const startRes = await axios.post(`${API}/cv/analyze-text?token=${token}`, {
-            text: cvText,
-            filename: file.name,
-          }, { timeout: 15000 });
+          const startRes = await axios.post(`${API}/cv/analyze?token=${token}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+            timeout: 120000,
+          });
           jobId = startRes.data.job_id;
           break;
         } catch (err) {
           const s = err.response?.status;
-          if (attempt < 2 && (s === 502 || s === 503 || s === 504 || !err.response)) {
-            await new Promise(r => setTimeout(r, 2000));
+          if (attempt < 2 && (s === 502 || s === 503 || s === 504 || s === 413 || !err.response)) {
+            await new Promise(r => setTimeout(r, 3000));
             continue;
           }
           throw err;
@@ -212,12 +210,15 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
     } catch (err) {
       let msg = err.response?.data?.detail || err.message || "Erreur lors de l'analyse du CV.";
       if (msg.toLowerCase().includes("budget") || msg.toLowerCase().includes("key")) {
-        msg = "Le crédit d'analyse IA est temporairement épuisé. Rechargez votre clé dans Profil > Universal Key.";
+        msg = "Le crédit d'analyse IA est temporairement épuisé.";
       } else if (msg.toLowerCase().includes("502") || msg.toLowerCase().includes("gateway") || msg.toLowerCase().includes("timeout")) {
-        msg = "Le service IA est temporairement surchargé. Réessayez dans quelques instants.";
-      } else if (msg.toLowerCase().includes("texte") || msg.toLowerCase().includes("eof") || msg.toLowerCase().includes("zip")) {
-        msg = "Le fichier n'a pas pu être lu correctement. Essayez un autre format (PDF, DOCX ou TXT).";
+        msg = "Le service est temporairement surchargé. Réessayez dans quelques instants.";
+      } else if (msg.toLowerCase().includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("entity")) {
+        msg = "Le fichier est trop volumineux (max 10 Mo).";
+      } else if (msg.toLowerCase().includes("format") || msg.toLowerCase().includes("support")) {
+        msg = "Format non supporté. Utilisez PDF, DOCX ou TXT.";
       }
+      console.error("CV upload error:", err);
       setUploadError(msg);
       toast.error(msg);
     }

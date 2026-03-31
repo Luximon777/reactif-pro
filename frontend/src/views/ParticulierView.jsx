@@ -899,6 +899,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
       console.error("Error loading data:", error);
       if (!silent) toast.error("Erreur lors du chargement");
     }
+    console.log("[DEBUG] loadData finished, setting loading=false, silent=", silent);
     if (!silent) setLoading(false);
   };
 
