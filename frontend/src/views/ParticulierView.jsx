@@ -951,9 +951,32 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
           {/* Timeline */}
           {steps.length > 0 ? (
             <div data-testid="timeline-container">
-              {steps.map(step => (
-                <TimelineStepCard key={step.id} step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} />
-              ))}
+              {(() => {
+                const sorted = [...steps].sort((a, b) => {
+                  const da = a.start_date || "9999";
+                  const db = b.start_date || "9999";
+                  return da.localeCompare(db);
+                });
+                let lastYear = null;
+                return sorted.map(step => {
+                  const year = step.start_date ? step.start_date.substring(0, 4) : null;
+                  const showYear = year && year !== lastYear;
+                  if (year) lastYear = year;
+                  return (
+                    <div key={step.id}>
+                      {showYear && (
+                        <div className="flex items-center gap-3 mb-3 mt-2" data-testid={`year-separator-${year}`}>
+                          <div className="w-12 h-7 rounded-full bg-[#1e3a5f] flex items-center justify-center shadow-sm">
+                            <span className="text-xs font-bold text-white">{year}</span>
+                          </div>
+                          <div className="flex-1 h-px bg-slate-200" />
+                        </div>
+                      )}
+                      <TimelineStepCard step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} />
+                    </div>
+                  );
+                });
+              })()}
             </div>
           ) : (
             <Card className="border-dashed border-2 border-slate-200">
