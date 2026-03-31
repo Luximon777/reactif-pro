@@ -184,7 +184,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
       {/* Privacy reassurance */}
       <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
         <Shield className="w-5 h-5 text-[#1e3a5f] mt-0.5 flex-shrink-0" />
