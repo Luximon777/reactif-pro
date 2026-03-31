@@ -326,7 +326,7 @@ const VisibilityCards = ({ settings, onUpdate }) => {
     { key: "self", label: "Moi uniquement", desc: "Version complète de mon parcours", icon: User, status: "Toujours actif", active: true, locked: true, color: "emerald" },
     { key: "conseiller", label: "Conseiller / Accompagnateur", desc: "Accès sur autorisation", icon: Handshake, status: settings?.conseiller ? "Autorisé" : "Désactivé", active: !!settings?.conseiller, color: "blue" },
     { key: "recruteur", label: "Recruteurs / Employeurs", desc: "Version adaptée candidature", icon: Building2, status: settings?.recruteur ? "Autorisé" : "Désactivé", active: !!settings?.recruteur, color: "violet" },
-    { key: "partenaire", label: "Partenaires de parcours", desc: "Accès limité au suivi", icon: Users, status: settings?.partenaire ? "Autorisé" : "Désactivé", active: !!settings?.partenaire, color: "amber" },
+    { key: "partenaire", label: "Services RH", desc: "Accès limité au suivi", icon: Building2, status: settings?.partenaire ? "Autorisé" : "Désactivé", active: !!settings?.partenaire, color: "amber" },
   ];
 
   return (
