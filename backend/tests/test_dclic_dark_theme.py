@@ -11,7 +11,7 @@ import os
 import re
 from collections import Counter
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cv-timeline-pro.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://coffre-vault-test.preview.emergentagent.com').rstrip('/')
 
 
 class TestDclicQuestionnaire:

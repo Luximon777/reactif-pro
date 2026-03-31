@@ -9,7 +9,7 @@ import {
   Target, Briefcase, Clock, Star, Sparkles, Zap, Award,
   CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3,
   Link as LinkIcon, RefreshCw, Heart, Plus, Trash2, Send, Loader2, FolderDown,
-  Upload, Route
+  Upload, Route, FolderLock
 } from "lucide-react";
 import { toast } from "sonner";
 import CvPreview from "./CvPreview";
@@ -359,10 +359,27 @@ const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
                 </p>
               </div>
             )}
-            <label className="inline-flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium cursor-pointer hover:underline mt-1">
-              <RefreshCw className="w-3.5 h-3.5" /> Charger un autre CV
-              <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-reupload" />
-            </label>
+            <div className="flex items-center gap-3 mt-1">
+              <button
+                className="inline-flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium cursor-pointer hover:underline"
+                onClick={async () => {
+                  try {
+                    await axios.post(`${API}/coffre/transfer-cv?token=${token}&cv_type=uploaded`);
+                    toast.success("CV transféré dans le coffre-fort");
+                  } catch (e) {
+                    if (e.response?.status === 409) toast.info("CV déjà dans le coffre-fort");
+                    else toast.error("Erreur lors du transfert");
+                  }
+                }}
+                data-testid="cv-compact-coffre-btn"
+              >
+                <FolderLock className="w-3.5 h-3.5" /> Sauvegarder dans le coffre-fort
+              </button>
+              <label className="inline-flex items-center gap-1.5 text-xs text-slate-500 font-medium cursor-pointer hover:underline">
+                <RefreshCw className="w-3.5 h-3.5" /> Charger un autre CV
+                <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-reupload" />
+              </label>
+            </div>
           </div>
         ) : (
           <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white rounded-xl cursor-pointer transition-colors shadow-sm" data-testid="cv-compact-upload-btn">

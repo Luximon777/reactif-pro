@@ -140,7 +140,7 @@ const AccueilTab = ({ ubProfile, onSync, syncing, isLoggedIn }) => (
         <h2>{`Rejoignez la communaut\u00e9 Ubuntoo`}</h2>
         <p>{`L'espace communautaire sera bient\u00f4t pleinement actif.`}</p>
         <div className="ub-cta-buttons">
-          <a href="https://cv-timeline-pro.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer" className="ub-btn-primary">
+          <a href="https://coffre-vault-test.preview.emergentagent.com/" target="_blank" rel="noopener noreferrer" className="ub-btn-primary">
             {`Acc\u00e9der \u00e0 D'CLIC PRO`} <ExternalLink size={16} />
           </a>
           <a href="https://www.alt-act.eu/" target="_blank" rel="noopener noreferrer" className="ub-btn-secondary">

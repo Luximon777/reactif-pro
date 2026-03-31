@@ -53,16 +53,80 @@ const VISIBILITY_OPTIONS = [
 ];
 
 // ===== D'CLIC PRO BOOST VISUAL SECTION =====
-const DclicBoostSection = ({ profile }) => {
+const DclicBoostSection = ({ profile, token }) => {
   const [expanded, setExpanded] = useState(false);
   const dclicSkills = (profile.skills || []).filter(s => s.source === "dclic_pro");
   const competences = profile.dclic_competences || [];
   const dimensions = [
-    profile.dclic_mbti && { label: "Personnalité MBTI", value: profile.dclic_mbti, color: "from-violet-500 to-purple-600", icon: User, description: "Votre type de personnalité" },
+    profile.dclic_mbti && { label: "Personnalité MBTI", value: "Analysée", color: "from-violet-500 to-purple-600", icon: User, description: "Votre type de personnalité" },
     profile.dclic_disc_label && { label: "Profil DISC", value: profile.dclic_disc_label, color: "from-blue-500 to-cyan-600", icon: Target, description: "Votre style comportemental" },
     profile.dclic_riasec_major && { label: "Intérêts RIASEC", value: profile.dclic_riasec_major, color: "from-emerald-500 to-teal-600", icon: TrendingUp, description: "Votre orientation professionnelle" },
     profile.dclic_vertu_dominante && { label: "Vertu dominante", value: profile.dclic_vertu_dominante, color: "from-amber-500 to-orange-600", icon: Award, description: "Votre force motrice" },
   ].filter(Boolean);
+
+  const handleDownloadProfile = async () => {
+    try {
+      const res = await axios.get(`${API}/profile?token=${token}`);
+      const p = res.data;
+      const content = [
+        "═══ PROFIL D'CLIC PRO ═══",
+        "",
+        `Pseudo: ${p.pseudo || ""}`,
+        `Date: ${new Date().toLocaleDateString("fr-FR")}`,
+        "",
+        "── Dimensions analysées ──",
+        p.dclic_mbti ? `Personnalité MBTI: ${p.dclic_mbti}` : "",
+        p.dclic_disc_label ? `Profil DISC: ${p.dclic_disc_label}` : "",
+        p.dclic_riasec_major ? `Intérêts RIASEC: ${p.dclic_riasec_major}` : "",
+        p.dclic_vertu_dominante ? `Vertu dominante: ${p.dclic_vertu_dominante}` : "",
+        "",
+        "── Compétences identifiées ──",
+        ...(p.dclic_competences || []).map(c => `• ${c}`),
+        "",
+        "── Skills D'CLIC ──",
+        ...(p.skills || []).filter(s => s.source === "dclic_pro").map(s => `• ${s.name} — ${s.level}%`),
+      ].filter(Boolean).join("\n");
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `profil-dclic-pro-${p.pseudo || "user"}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Profil D'CLIC PRO téléchargé");
+    } catch {
+      toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  const handleSaveToCoffre = async () => {
+    try {
+      const res = await axios.get(`${API}/profile?token=${token}`);
+      const p = res.data;
+      const content = [
+        "PROFIL D'CLIC PRO",
+        `Date: ${new Date().toLocaleDateString("fr-FR")}`,
+        "",
+        p.dclic_mbti ? `MBTI: ${p.dclic_mbti}` : "",
+        p.dclic_disc_label ? `DISC: ${p.dclic_disc_label}` : "",
+        p.dclic_riasec_major ? `RIASEC: ${p.dclic_riasec_major}` : "",
+        p.dclic_vertu_dominante ? `Vertu: ${p.dclic_vertu_dominante}` : "",
+        "",
+        "Compétences:",
+        ...(p.dclic_competences || []).map(c => `- ${c}`),
+      ].filter(Boolean).join("\n");
+      const blob = new Blob([content], { type: "text/plain" });
+      const formData = new FormData();
+      formData.append("file", blob, `profil-dclic-pro.txt`);
+      formData.append("title", "Profil D'CLIC PRO");
+      formData.append("document_type", "profil_dclic");
+      await axios.post(`${API}/coffre/upload?token=${token}`, formData);
+      toast.success("Profil D'CLIC PRO sauvegardé dans le coffre-fort");
+    } catch (e) {
+      if (e.response?.status === 409) toast.info("Déjà dans le coffre-fort");
+      else toast.error("Erreur lors de la sauvegarde");
+    }
+  };
 
   return (
     <Card className="border-0 shadow-lg overflow-hidden" data-testid="dclic-boost-section">
@@ -82,10 +146,16 @@ const DclicBoostSection = ({ profile }) => {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={() => setExpanded(!expanded)} data-testid="dclic-boost-toggle">
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            <span className="ml-1 text-xs">{expanded ? "Réduire" : "Voir le détail"}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={handleDownloadProfile} data-testid="dclic-download-btn">
+              <Download className="w-4 h-4" />
+              <span className="ml-1 text-xs">Télécharger</span>
+            </Button>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={handleSaveToCoffre} data-testid="dclic-coffre-btn">
+              <FolderLock className="w-4 h-4" />
+              <span className="ml-1 text-xs">Coffre-fort</span>
+            </Button>
+          </div>
         </div>
       </div>
       <CardContent className="p-5">
@@ -102,8 +172,8 @@ const DclicBoostSection = ({ profile }) => {
             );
           })}
         </div>
-        {expanded && (
-          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+        {(competences.length > 0 || dclicSkills.length > 0) && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
             {competences.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Compétences fortes</p>
@@ -899,7 +969,6 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
       console.error("Error loading data:", error);
       if (!silent) toast.error("Erreur lors du chargement");
     }
-    console.log("[DEBUG] loadData finished, setting loading=false, silent=", silent);
     if (!silent) setLoading(false);
   };
 
@@ -1373,7 +1442,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
         <TabsContent value="competences" className="space-y-6 mt-6">
           {/* D'CLIC Boost Section or "Booster mon profil" visual */}
           {profile?.dclic_imported ? (
-            <DclicBoostSection profile={profile} />
+            <DclicBoostSection profile={profile} token={token} />
           ) : (
             <Card className="border-0 shadow-lg overflow-hidden" data-testid="dclic-boost-invite">
               <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-6 relative">

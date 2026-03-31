@@ -198,6 +198,7 @@ class CoffreDocument(BaseModel):
     is_sensitive: bool = False
     source_ref: Optional[str] = None
     storage_path: Optional[str] = None
+    source_job_id: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     view_history: List[Dict[str, Any]] = []
