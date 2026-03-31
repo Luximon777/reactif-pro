@@ -172,8 +172,23 @@ Retourne UNIQUEMENT un JSON valide avec ces clés:
   "environnements_maitrises": ["Types d'environnements professionnels maîtrisés"],
   "axes_evolution": ["2-3 axes d'évolution possibles"],
   "competences_transferables": ["3-5 compétences transférables vers d'autres métiers"],
-  "message_valorisant": "Un message court et encourageant sur la valeur du parcours (2 phrases max)"
+  "message_valorisant": "Un message court et encourageant sur la valeur du parcours (2 phrases max)",
+  "competences_dominantes": ["Les 3-5 compétences les plus présentes dans le parcours"],
+  "analyse_narrative": "Un paragraphe de 3-4 phrases décrivant de manière fluide ce que le parcours révèle de la personne, ses forces, sa capacité d'évolution, et ce qui fait sa valeur unique.",
+  "scores": {
+    "coherence": 72,
+    "adaptabilite": 84,
+    "transferabilite": 76,
+    "continuite": 65,
+    "alignement_metier": 68
+  }
 }
+Les scores doivent être sur 100 et refléter objectivement le parcours:
+- coherence: liens logiques entre les étapes
+- adaptabilite: capacité à évoluer dans différents contextes
+- transferabilite: compétences réutilisables dans d'autres métiers
+- continuite: absence de ruptures non expliquées
+- alignement_metier: progression vers un objectif professionnel clair
 Ne retourne RIEN d'autre que le JSON."""
         ).with_model("openai", "gpt-5.2")
         chat.add_message(UserMessage(content=f"Voici le parcours professionnel à analyser:\n{context}"))
@@ -193,7 +208,10 @@ Ne retourne RIEN d'autre que le JSON."""
             "environnements_maitrises": ["Environnements variés"],
             "axes_evolution": ["Consolidation des acquis", "Nouvelles responsabilités"],
             "competences_transferables": ["Organisation", "Communication", "Gestion"],
-            "message_valorisant": "Chaque étape de votre parcours a contribué à construire votre richesse professionnelle."
+            "message_valorisant": "Chaque étape de votre parcours a contribué à construire votre richesse professionnelle.",
+            "competences_dominantes": ["Adaptation", "Organisation", "Communication"],
+            "analyse_narrative": "Votre parcours met en évidence une capacité à vous adapter et à vous repositionner de manière progressive. Les compétences acquises sont transférables et témoignent d'une vraie polyvalence.",
+            "scores": {"coherence": 70, "adaptabilite": 75, "transferabilite": 70, "continuite": 65, "alignement_metier": 60}
         }}
 
 

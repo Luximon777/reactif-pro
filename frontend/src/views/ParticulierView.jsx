@@ -19,7 +19,8 @@ import {
   Route, Eye, EyeOff, Users, Building2, Handshake, GraduationCap,
   Trash2, Edit3, ChevronDown, ChevronUp, Lock, History, RefreshCw,
   Lightbulb, Compass, Heart, Brain, ArrowRight, Share2, Link2, Copy,
-  Check, QrCode, Download, X
+  Check, QrCode, Download, X, ShieldCheck, CalendarDays, PauseCircle,
+  SlidersHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,7 @@ import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
 import { QRCodeSVG } from "qrcode.react";
 import { toPng } from "html-to-image";
+import { motion } from "framer-motion";
 
 // ===== STEP TYPE CONFIG =====
 const STEP_TYPES = {
@@ -134,106 +136,143 @@ const TimelineStepCard = ({ step, onEdit, onDelete, onVisibilityChange }) => {
   const config = STEP_TYPES[step.step_type] || STEP_TYPES.emploi;
   const StepIcon = config.icon;
   const visOpt = VISIBILITY_OPTIONS.find(v => v.value === step.visibility) || VISIBILITY_OPTIONS[0];
+  const VisIcon = visOpt.icon;
 
   const period = step.start_date
     ? `${step.start_date}${step.end_date ? ` — ${step.end_date}` : step.is_ongoing ? " — Aujourd'hui" : ""}`
     : "";
 
+  // Map step_type to gradient
+  const gradientMap = {
+    emploi: "from-blue-50 to-white", formation: "from-emerald-50 to-white", stage: "from-cyan-50 to-white",
+    interim: "from-indigo-50 to-white", reconversion: "from-violet-50 to-white", recherche: "from-amber-50 to-white",
+    pause: "from-slate-50 to-white", benevolat: "from-rose-50 to-white", creation: "from-orange-50 to-white",
+    mobilite: "from-teal-50 to-white", certification: "from-pink-50 to-white"
+  };
+  const cardGradient = gradientMap[step.step_type] || "from-blue-50 to-white";
+
   return (
-    <div className="relative pl-12 pb-6 group" data-testid={`timeline-step-${step.id}`}>
-      {/* Timeline line */}
-      <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-200 group-last:hidden" />
-      {/* Step dot */}
-      <div className={`absolute left-0 top-1 w-10 h-10 rounded-xl ${config.color} flex items-center justify-center shadow-lg z-10`}>
-        <StepIcon className="w-5 h-5 text-white" />
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="relative pl-8"
+      data-testid={`timeline-step-${step.id}`}
+    >
+      {/* Dot on timeline */}
+      <div className={`absolute left-0 top-8 h-4 w-4 rounded-full ring-4 ring-white ${config.color} z-10`} />
 
-      <Card className={`border ${config.border} shadow-sm hover:shadow-md transition-all overflow-hidden`}>
-        {/* Card Header - Type + Period + Actions */}
-        <div className={`${config.bg} px-4 py-2.5 flex items-center justify-between border-b ${config.border}`}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <Badge className={`text-xs font-semibold ${config.bg} ${config.text} ${config.border} border`}>{config.label}</Badge>
-            {period && <span className="text-sm font-medium text-slate-600">{period}</span>}
-          </div>
-          <div className="flex items-center gap-1">
-            {/* Visibility toggle directly on card */}
-            <Select value={step.visibility} onValueChange={v => onVisibilityChange && onVisibilityChange(step.id, v)}>
-              <SelectTrigger className="h-7 w-auto text-[10px] border-0 bg-white/60 gap-1 px-2">
-                <visOpt.icon className="w-3 h-3" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VISIBILITY_OPTIONS.map(opt => {
-                  const OI = opt.icon;
-                  return <SelectItem key={opt.value} value={opt.value}><span className="flex items-center gap-1.5 text-xs"><OI className="w-3 h-3" />{opt.label}</span></SelectItem>;
-                })}
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(step)} data-testid={`edit-step-${step.id}`}>
-              <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(step.id)} data-testid={`delete-step-${step.id}`}>
-              <Trash2 className="w-3.5 h-3.5 text-red-300" />
-            </Button>
-          </div>
-        </div>
-
-        <CardContent className="p-4 space-y-3">
-          {/* Title + Organization */}
-          <div>
-            <h4 className="font-bold text-slate-900">{step.title}</h4>
-            {step.organization && (
-              <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" />{step.organization}
-              </p>
-            )}
-          </div>
-
-          {/* Description */}
-          {step.description && (
-            <p className="text-sm text-slate-600 leading-relaxed">{step.description}</p>
-          )}
-
-          {/* Missions */}
-          {step.missions?.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5" />Missions principales
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {step.missions.map((m, i) => (
-                  <span key={i} className="text-xs bg-slate-100 text-slate-700 rounded-full px-2.5 py-0.5">{m}</span>
-                ))}
+      <Card className={`overflow-hidden rounded-2xl border-0 bg-gradient-to-br ${cardGradient} shadow-sm hover:shadow-md transition-shadow`}>
+        <CardContent className="p-5">
+          {/* Header: Type + Year + Dates */}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={`rounded-full border text-xs font-semibold ${config.bg} ${config.text} ${config.border}`}>{config.label}</Badge>
+                {step.start_date && <Badge variant="outline" className="rounded-full text-xs">{step.start_date.substring(0, 4)}</Badge>}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{step.title}</h3>
+                {step.organization && (
+                  <p className="mt-0.5 text-sm text-slate-500 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5" />{step.organization}
+                  </p>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Competences */}
-          {step.competences?.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <Brain className="w-3.5 h-3.5" />Compétences mobilisées
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {step.competences.map((c, i) => (
-                  <Badge key={i} className={`text-xs ${config.bg} ${config.text} ${config.border} border`}>{c}</Badge>
-                ))}
+            <div className="flex items-center gap-2">
+              {period && (
+                <div className="flex items-center gap-2 rounded-xl bg-white/80 px-3 py-1.5 text-sm text-slate-600 shadow-sm shrink-0">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  <span className="text-xs">{period}</span>
+                </div>
+              )}
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onEdit(step)} data-testid={`edit-step-${step.id}`}>
+                <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onDelete(step.id)} data-testid={`delete-step-${step.id}`}>
+                <Trash2 className="w-3.5 h-3.5 text-red-300" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Body: Two columns */}
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            {/* Left: Details */}
+            <div className="space-y-3">
+              {/* Description / Summary */}
+              {step.description && (
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-800 mb-1">
+                    <StepIcon className="h-3.5 w-3.5" />
+                    <span>Ce que comprend cette étape</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-600">{step.description}</p>
+                </div>
+              )}
+
+              {/* Missions */}
+              {step.missions?.length > 0 && (
+                <div>
+                  <div className="mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Target className="w-3 h-3" />Missions principales
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {step.missions.map((m, i) => (
+                      <span key={i} className="text-xs bg-slate-100 text-slate-700 rounded-full px-2.5 py-0.5">{m}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Competences */}
+              {step.competences?.length > 0 && (
+                <div>
+                  <div className="mb-1.5 text-sm font-medium text-slate-800">Compétences mobilisées</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {step.competences.map((c, i) => (
+                      <Badge key={i} variant="secondary" className="rounded-full bg-white text-slate-700 shadow-sm text-xs">{c}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Acquis / Gains */}
+              {step.acquis && (
+                <div>
+                  <div className="mb-1 text-sm font-medium text-slate-800">Apport de l'étape</div>
+                  <p className="text-sm leading-relaxed text-slate-600">{step.acquis}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Visibility */}
+            <div className="rounded-xl bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                <VisIcon className="h-4 w-4" />
+                <span>Visibilité actuelle</span>
+              </div>
+              <p className="mt-1.5 text-sm text-slate-600">{visOpt.label}</p>
+              <div className="mt-3">
+                <div className="mb-1.5 text-xs uppercase tracking-wide text-slate-500">Modifier</div>
+                <Select value={step.visibility} onValueChange={v => onVisibilityChange && onVisibilityChange(step.id, v)}>
+                  <SelectTrigger className="rounded-xl bg-white text-xs h-9" data-testid={`visibility-select-${step.id}`}>
+                    <SelectValue placeholder="Choisir la visibilité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIBILITY_OPTIONS.map(opt => {
+                      const OI = opt.icon;
+                      return <SelectItem key={opt.value} value={opt.value}><span className="flex items-center gap-1.5 text-xs"><OI className="w-3 h-3" />{opt.label}</span></SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
-
-          {/* Acquis */}
-          {step.acquis && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-              <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5" />Ce que j'ai développé
-              </p>
-              <p className="text-sm text-emerald-800 mt-0.5">{step.acquis}</p>
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 };
 
@@ -465,7 +504,7 @@ const VisibilityCards = ({ settings, onUpdate }) => {
 const SynthesisSection = ({ synthesis, loading }) => {
   if (loading) {
     return (
-      <Card className="border border-violet-100 bg-violet-50/30">
+      <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="p-6 flex items-center gap-3">
           <Loader2 className="w-5 h-5 animate-spin text-violet-600" />
           <span className="text-sm text-violet-700">Analyse de votre parcours en cours...</span>
@@ -475,67 +514,100 @@ const SynthesisSection = ({ synthesis, loading }) => {
   }
   if (!synthesis) return null;
 
+  const scores = synthesis.scores || {};
+  const dominantSkills = synthesis.competences_dominantes || synthesis.forces_recurrentes || [];
+
   return (
-    <Card className="border-0 shadow-lg overflow-hidden" data-testid="synthesis-section">
-      <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8e] p-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-            <Brain className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white">Ce que mon parcours révèle</h3>
-            <p className="text-blue-200 text-xs">Analyse valorisante générée par IA</p>
-          </div>
-        </div>
-      </div>
-      <CardContent className="p-5 space-y-4">
-        {synthesis.fil_conducteur && (
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-xs font-semibold text-blue-800 mb-1 flex items-center gap-1"><Route className="w-3.5 h-3.5" /> Fil conducteur</p>
-            <p className="text-sm text-slate-700">{synthesis.fil_conducteur}</p>
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {synthesis.forces_recurrentes?.length > 0 && (
-            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-              <p className="text-xs font-semibold text-emerald-800 mb-2 flex items-center gap-1"><Zap className="w-3.5 h-3.5" /> Forces récurrentes</p>
-              <div className="flex flex-wrap gap-1">
-                {synthesis.forces_recurrentes.map((f, i) => <Badge key={i} className="bg-emerald-100 text-emerald-700 text-xs">{f}</Badge>)}
+    <div className="space-y-5">
+      {/* Ce que mon parcours révèle */}
+      <Card className="rounded-2xl border-0 shadow-sm" data-testid="synthesis-insights">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
+            <Sparkles className="h-5 w-5" />
+            Ce que mon parcours révèle
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm leading-6 text-slate-600">
+          <p>{synthesis.analyse_narrative || synthesis.fil_conducteur}</p>
+          {dominantSkills.length > 0 && (
+            <div>
+              <div className="mb-2 text-sm font-medium text-slate-900">Compétences les plus visibles</div>
+              <div className="flex flex-wrap gap-2">
+                {dominantSkills.map((skill, i) => (
+                  <Badge key={i} className="rounded-full bg-slate-900 text-white hover:bg-slate-900 text-xs">{skill}</Badge>
+                ))}
               </div>
             </div>
           )}
-          {synthesis.competences_transferables?.length > 0 && (
-            <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
-              <p className="text-xs font-semibold text-violet-800 mb-2 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> Compétences transférables</p>
-              <div className="flex flex-wrap gap-1">
-                {synthesis.competences_transferables.map((c, i) => <Badge key={i} className="bg-violet-100 text-violet-700 text-xs">{c}</Badge>)}
+        </CardContent>
+      </Card>
+
+      {/* Lecture de cohérence */}
+      <Card className="rounded-2xl border-0 shadow-sm" data-testid="synthesis-scores">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base text-slate-900">Lecture de cohérence</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm leading-6 text-slate-600">
+          <div className="space-y-3">
+            {[
+              { label: "Cohérence", value: scores.coherence || 70 },
+              { label: "Adaptabilité", value: scores.adaptabilite || 75 },
+              { label: "Transférabilité", value: scores.transferabilite || 70 },
+              { label: "Continuité", value: scores.continuite || 65 },
+              { label: "Alignement métier", value: scores.alignement_metier || 60 },
+            ].map((item, i) => (
+              <div key={i}>
+                <div className="mb-1 flex items-center justify-between text-sm text-slate-700">
+                  <span>{item.label}</span>
+                  <span className="font-semibold">{item.value}%</span>
+                </div>
+                <Progress value={item.value} className="h-2" />
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Détails de l'analyse */}
+      {(synthesis.forces_recurrentes?.length > 0 || synthesis.competences_transferables?.length > 0) && (
+        <Card className="rounded-2xl border-0 shadow-sm" data-testid="synthesis-details">
+          <CardContent className="p-5 space-y-3">
+            {synthesis.forces_recurrentes?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-emerald-800 mb-2 flex items-center gap-1"><Zap className="w-3.5 h-3.5" /> Forces récurrentes</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {synthesis.forces_recurrentes.map((f, i) => <Badge key={i} className="bg-emerald-100 text-emerald-700 text-xs rounded-full">{f}</Badge>)}
+                </div>
+              </div>
+            )}
+            {synthesis.competences_transferables?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-violet-800 mb-2 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> Compétences transférables</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {synthesis.competences_transferables.map((c, i) => <Badge key={i} className="bg-violet-100 text-violet-700 text-xs rounded-full">{c}</Badge>)}
+                </div>
+              </div>
+            )}
+            {synthesis.axes_evolution?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> Axes d'évolution</p>
+                <div className="space-y-1">
+                  {synthesis.axes_evolution.map((a, i) => (
+                    <p key={i} className="text-sm text-slate-600 flex items-center gap-2"><ArrowRight className="w-3 h-3 text-blue-500 shrink-0" />{a}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {synthesis.message_valorisant && (
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-violet-50 rounded-xl border border-blue-100 text-center">
+          <p className="text-sm font-medium text-slate-800 italic">"{synthesis.message_valorisant}"</p>
         </div>
-        {synthesis.capacite_adaptation && (
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-            <p className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1"><RefreshCw className="w-3.5 h-3.5" /> Capacité d'adaptation</p>
-            <p className="text-sm text-slate-700">{synthesis.capacite_adaptation}</p>
-          </div>
-        )}
-        {synthesis.axes_evolution?.length > 0 && (
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> Axes d'évolution</p>
-            <div className="space-y-1">
-              {synthesis.axes_evolution.map((a, i) => (
-                <p key={i} className="text-sm text-slate-600 flex items-center gap-2"><ArrowRight className="w-3 h-3 text-blue-500 shrink-0" />{a}</p>
-              ))}
-            </div>
-          </div>
-        )}
-        {synthesis.message_valorisant && (
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-violet-50 rounded-xl border border-blue-100 text-center">
-            <p className="text-sm font-medium text-slate-800 italic">"{synthesis.message_valorisant}"</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 
@@ -806,6 +878,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
+  const [viewMode, setViewMode] = useState("timeline");
 
   useEffect(() => { loadData(); }, [token]);
 
@@ -843,6 +916,13 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   }, [token]);
 
   useEffect(() => { if (activeTab === "trajectoire") loadTrajectory(); }, [activeTab, loadTrajectory]);
+
+  // Auto-load synthesis when steps are loaded
+  useEffect(() => {
+    if (steps.length > 0 && !synthesis && !loadingSynthesis) {
+      loadSynthesis();
+    }
+  }, [steps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSynthesis = async () => {
     setLoadingSynthesis(true);
@@ -933,6 +1013,16 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
     return merged;
   }, [displayProfile.skills, passport?.competences]);
 
+  // Trajectory visibility stats
+  const trajectoryStats = useMemo(() => {
+    const total = steps.length;
+    const recruiterVisible = steps.filter(s => s.visibility === "recruteur" || s.visibility === "public").length;
+    const coachVisible = steps.filter(s => s.visibility === "accompagnateur" || s.visibility === "public").length;
+    const privateOnly = steps.filter(s => s.visibility === "private").length;
+    const coherenceScore = synthesis?.scores?.coherence || 0;
+    return { total, recruiterVisible, coachVisible, privateOnly, coherenceScore };
+  }, [steps, synthesis]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1012,8 +1102,9 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
         {/* === TRAJECTOIRE TAB === */}
         <TabsContent value="trajectoire" className="space-y-6 mt-6">
-          {/* CV Upload Section - Entry point */}
-          {steps.length === 0 ? (
+
+          {/* CV Upload - Empty State */}
+          {steps.length === 0 && (
             <Card className="border-2 border-dashed border-[#1e3a5f]/30 bg-gradient-to-br from-blue-50/50 to-slate-50" data-testid="cv-entry-section">
               <CardContent className="p-6">
                 <div className="flex flex-col items-center text-center gap-4">
@@ -1028,130 +1119,253 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                 </div>
               </CardContent>
             </Card>
-          ) : (
-            <Card className="border border-slate-100 bg-slate-50/50" data-testid="cv-update-section">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">Mettre à jour mon CV</p>
-                    <p className="text-xs text-slate-500">Chargez un nouveau CV pour enrichir votre frise</p>
-                  </div>
-                  <div className="shrink-0">
-                    <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
-          {/* Trust Banner */}
-          <Card className="bg-gradient-to-r from-slate-50 to-blue-50 border border-blue-100" data-testid="trust-banner">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#1e3a5f] flex items-center justify-center shrink-0">
-                <Lock className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-800">Vous contrôlez votre parcours</h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Votre parcours est personnel. Vous choisissez quelles informations sont visibles, par qui, et dans quel contexte.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Visibility Cards */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-[#1e3a5f]" /> Qui peut voir mon parcours ?
-            </h3>
-            <VisibilityCards settings={visibilitySettings} onUpdate={updateVisibility} />
-          </div>
-
-          {/* Timeline Header */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Route className="w-4 h-4 text-[#1e3a5f]" /> Mon parcours en étapes
-            </h3>
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setShareDialogOpen(true)} data-testid="share-trajectory-btn">
-                <Share2 className="w-3.5 h-3.5 mr-1.5" />Partager
-              </Button>
-              <Button variant="outline" size="sm" onClick={autoPopulate} disabled={autoPopulating} data-testid="auto-populate-btn">
-                {autoPopulating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
-                Importer depuis mes données
-              </Button>
-              <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingStep(null); setStepDialogOpen(true); }} data-testid="add-step-btn">
-                <Plus className="w-3.5 h-3.5 mr-1.5" />Ajouter une étape
-              </Button>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          {steps.length > 0 ? (
-            <div data-testid="timeline-container">
-              {(() => {
-                const sorted = [...steps].sort((a, b) => {
-                  const da = a.start_date || "9999";
-                  const db = b.start_date || "9999";
-                  return da.localeCompare(db);
-                });
-                let lastYear = null;
-                return sorted.map(step => {
-                  const year = step.start_date ? step.start_date.substring(0, 4) : null;
-                  const showYear = year && year !== lastYear;
-                  if (year) lastYear = year;
-                  return (
-                    <div key={step.id}>
-                      {showYear && (
-                        <div className="flex items-center gap-3 mb-3 mt-2" data-testid={`year-separator-${year}`}>
-                          <div className="w-12 h-7 rounded-full bg-[#1e3a5f] flex items-center justify-center shadow-sm">
-                            <span className="text-xs font-bold text-white">{year}</span>
-                          </div>
-                          <div className="flex-1 h-px bg-slate-200" />
-                        </div>
-                      )}
-                      <TimelineStepCard step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} onVisibilityChange={updateStepVisibility} />
+          {/* Dark Gradient Hero Header - Only when steps exist */}
+          {steps.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-[24px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 text-white shadow-xl md:p-7"
+              data-testid="trajectory-hero"
+            >
+              <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+                <div>
+                  <Badge className="rounded-full bg-white/10 text-white hover:bg-white/10 text-xs">Profil personnalité et compétences</Badge>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    Ma trajectoire professionnelle
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                    Visualisez votre parcours de manière chronologique, comprenez ce qu'il révèle de votre évolution et choisissez qui peut consulter chaque étape.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <div className="shrink-0">
+                      <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
                     </div>
-                  );
-                });
-              })()}
-            </div>
-          ) : (
-            <Card className="border-dashed border-2 border-slate-200">
-              <CardContent className="p-8 text-center">
-                <Route className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <h4 className="text-sm font-semibold text-slate-600 mb-1">Votre frise de parcours est vide</h4>
-                <p className="text-xs text-slate-400 mb-4">Ajoutez vos étapes professionnelles ou importez-les depuis vos données existantes</p>
-                <div className="flex gap-2 justify-center">
-                  <Button variant="outline" size="sm" onClick={autoPopulate} disabled={autoPopulating} data-testid="auto-populate-empty-btn">
-                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Importer automatiquement
-                  </Button>
-                  <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingStep(null); setStepDialogOpen(true); }}>
-                    <Plus className="w-3.5 h-3.5 mr-1.5" />Ajouter manuellement
-                  </Button>
+                    <Button variant="outline" className="rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 text-sm" onClick={() => setShareDialogOpen(true)} data-testid="share-trajectory-btn">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Partager une version adaptée
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <Card className="rounded-2xl border-0 bg-white/10 text-white shadow-none backdrop-blur" data-testid="trajectory-stats-card">
+                  <CardContent className="grid gap-3 p-4 md:grid-cols-2">
+                    <div>
+                      <div className="text-xs text-slate-300">Cohérence de parcours</div>
+                      <div className="mt-1 text-3xl font-semibold">{trajectoryStats.coherenceScore || "—"}<span className="text-lg text-slate-400">/100</span></div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-300">Étapes enregistrées</div>
+                      <div className="mt-1 text-3xl font-semibold">{trajectoryStats.total}</div>
+                    </div>
+                    <div className="md:col-span-2">
+                      {trajectoryStats.coherenceScore > 0 && <Progress value={trajectoryStats.coherenceScore} className="h-2 bg-white/10" />}
+                      <p className="mt-2 text-xs leading-5 text-slate-300">
+                        {synthesis?.message_valorisant || "Chargez la synthèse IA pour une analyse valorisante de votre parcours."}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
           )}
 
-          {/* AI Synthesis */}
-          {(steps.length > 0 || allSkills.length > 0) && (
-            <div>
-              {!synthesis && !loadingSynthesis ? (
-                <Button variant="outline" className="w-full border-violet-200 text-violet-700 hover:bg-violet-50" onClick={loadSynthesis} data-testid="generate-synthesis-btn">
-                  <Brain className="w-4 h-4 mr-2" /> Générer l'analyse de mon parcours
-                </Button>
-              ) : (
-                <SynthesisSection synthesis={synthesis} loading={loadingSynthesis} />
-              )}
+          {/* === TWO-COLUMN GRID === */}
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+
+            {/* === LEFT COLUMN: Visibility + Timeline === */}
+            <div className="space-y-6">
+
+              {/* Qui peut voir quoi? */}
+              <Card className="rounded-2xl border-0 shadow-sm" data-testid="visibility-section">
+                <CardHeader className="pb-2">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <CardTitle className="text-lg text-slate-900">Qui peut voir quoi ?</CardTitle>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        Votre historique vous appartient. Chaque audience voit uniquement le niveau d'information que vous autorisez.
+                      </p>
+                    </div>
+                    <Tabs value={viewMode} onValueChange={setViewMode}>
+                      <TabsList className="rounded-xl">
+                        <TabsTrigger value="timeline" className="rounded-xl text-xs" data-testid="view-frise-tab">Frise</TabsTrigger>
+                        <TabsTrigger value="access" className="rounded-xl text-xs" data-testid="view-access-tab">Accès</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs value={viewMode} onValueChange={setViewMode}>
+                    <TabsContent value="timeline" className="mt-0">
+                      <div className="grid gap-3 md:grid-cols-3" data-testid="viewer-cards">
+                        {[
+                          { key: "self", title: "Moi uniquement", description: "Accès complet à l'ensemble de mon parcours et à mes détails personnels.", status: "Actif", icon: Lock, active: true },
+                          { key: "conseiller", title: "Conseiller / accompagnateur", description: "Accès autorisé uniquement dans le cadre de mon accompagnement.", status: visibilitySettings?.conseiller ? "Autorisé" : "Désactivé", icon: Users, active: !!visibilitySettings?.conseiller },
+                          { key: "recruteur", title: "Recruteurs / employeurs", description: "Accès limité à une version ciblée et adaptée à la candidature.", status: visibilitySettings?.recruteur ? "Autorisé" : "Désactivé", icon: Building2, active: !!visibilitySettings?.recruteur },
+                        ].map((item) => {
+                          const CIcon = item.icon;
+                          return (
+                            <Card key={item.key} className={`rounded-2xl border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${item.active ? "ring-1 ring-emerald-200" : ""}`}
+                              onClick={() => { if (item.key !== "self") updateVisibility({ ...visibilitySettings, [item.key]: !visibilitySettings?.[item.key] }); }}
+                              data-testid={`viewer-card-${item.key}`}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="rounded-xl bg-slate-100 p-2">
+                                    <CIcon className="h-4 w-4 text-slate-700" />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <h3 className="text-sm font-semibold text-slate-900">{item.title}</h3>
+                                      <Badge variant="outline" className={`rounded-full text-[10px] ${item.active ? "border-emerald-300 text-emerald-700" : "border-slate-200 text-slate-500"}`}>{item.status}</Badge>
+                                    </div>
+                                    <p className="text-xs leading-5 text-slate-600">{item.description}</p>
+                                    {item.key !== "self" && (
+                                      <Switch checked={item.active} onCheckedChange={() => updateVisibility({ ...visibilitySettings, [item.key]: !visibilitySettings?.[item.key] })} />
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="access" className="mt-0">
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-1"><CardTitle className="text-sm text-slate-900">Partage accompagnement</CardTitle></CardHeader><CardContent className="text-sm text-slate-600">{trajectoryStats.coachVisible} étape(s) visibles par les accompagnateurs autorisés.</CardContent></Card>
+                        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-1"><CardTitle className="text-sm text-slate-900">Partage recrutement</CardTitle></CardHeader><CardContent className="text-sm text-slate-600">{trajectoryStats.recruiterVisible} étape(s) visibles dans une logique de candidature.</CardContent></Card>
+                        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-1"><CardTitle className="text-sm text-slate-900">Espace privé</CardTitle></CardHeader><CardContent className="text-sm text-slate-600">{trajectoryStats.privateOnly} étape(s) restent visibles uniquement par vous.</CardContent></Card>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* Ma frise de parcours */}
+              <Card className="rounded-2xl border-0 shadow-sm" data-testid="timeline-section">
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <CardTitle className="text-lg text-slate-900">Ma frise de parcours</CardTitle>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        Chaque étape représente une période de votre trajectoire, avec son contexte, ses compétences et son niveau de visibilité.
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button variant="outline" size="sm" className="rounded-xl" onClick={autoPopulate} disabled={autoPopulating} data-testid="auto-populate-btn">
+                        {autoPopulating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+                        Importer
+                      </Button>
+                      <Button size="sm" className="rounded-xl bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingStep(null); setStepDialogOpen(true); }} data-testid="add-step-btn">
+                        <Plus className="w-3.5 h-3.5 mr-1.5" />Ajouter une étape
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {steps.length > 0 ? (
+                    <div className="relative space-y-5 before:absolute before:left-[7px] before:top-2 before:h-[calc(100%-12px)] before:w-px before:bg-slate-200" data-testid="timeline-container">
+                      {(() => {
+                        const sorted = [...steps].sort((a, b) => {
+                          const da = a.start_date || "9999";
+                          const db2 = b.start_date || "9999";
+                          return da.localeCompare(db2);
+                        });
+                        return sorted.map(step => (
+                          <TimelineStepCard
+                            key={step.id}
+                            step={step}
+                            onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }}
+                            onDelete={deleteStep}
+                            onVisibilityChange={updateStepVisibility}
+                          />
+                        ));
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Route className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                      <h4 className="text-sm font-semibold text-slate-600 mb-1">Votre frise de parcours est vide</h4>
+                      <p className="text-xs text-slate-400 mb-4">Ajoutez vos étapes professionnelles ou importez-les depuis vos données existantes</p>
+                      <div className="flex gap-2 justify-center">
+                        <Button variant="outline" size="sm" className="rounded-xl" onClick={autoPopulate} disabled={autoPopulating} data-testid="auto-populate-empty-btn">
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Importer automatiquement
+                        </Button>
+                        <Button size="sm" className="rounded-xl bg-[#1e3a5f] hover:bg-[#152a45]" onClick={() => { setEditingStep(null); setStepDialogOpen(true); }}>
+                          <Plus className="w-3.5 h-3.5 mr-1.5" />Ajouter manuellement
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          )}
 
-          {/* Consultation History */}
-          <ConsultationHistory token={token} />
+            {/* === RIGHT COLUMN: Insights Sidebar === */}
+            <div className="space-y-5">
+
+              {/* AI Synthesis */}
+              {(steps.length > 0 || allSkills.length > 0) && (
+                <>
+                  {!synthesis && !loadingSynthesis ? (
+                    <Button variant="outline" className="w-full rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50" onClick={loadSynthesis} data-testid="generate-synthesis-btn">
+                      <Brain className="w-4 h-4 mr-2" /> Générer l'analyse de mon parcours
+                    </Button>
+                  ) : (
+                    <SynthesisSection synthesis={synthesis} loading={loadingSynthesis} />
+                  )}
+                </>
+              )}
+
+              {/* Partager une version adaptée */}
+              <Card className="rounded-2xl border-0 shadow-sm" data-testid="share-options">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-slate-900">Partager une version adaptée</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Version accompagnement", audience: "accompagnateur" },
+                      { label: "Version recrutement", audience: "recruteur" },
+                      { label: "Version publique", audience: "public" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.audience}
+                        onClick={() => { setShareDialogOpen(true); }}
+                        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        data-testid={`share-option-${opt.audience}`}
+                      >
+                        <span>{opt.label}</span>
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Consultation History */}
+              <ConsultationHistory token={token} />
+
+              {/* Trust Card */}
+              <Card className="rounded-2xl border-0 bg-emerald-50 shadow-sm" data-testid="trust-card">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-white p-2.5 shadow-sm">
+                      <ShieldCheck className="h-5 w-5 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900 text-sm">Votre parcours vous appartient</h3>
+                      <p className="mt-1.5 text-sm leading-6 text-slate-600">
+                        RE'ACTIF PRO vous permet de valoriser votre histoire professionnelle sans tout exposer. Vous gardez la maîtrise des accès, des vues partagées et des étapes visibles.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* === COMPETENCES TAB === */}
