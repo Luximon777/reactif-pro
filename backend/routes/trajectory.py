@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 import logging
 import secrets
+import uuid
 from datetime import datetime, timezone, timedelta
 from models import TrajectoryStep
 from db import db, EMERGENT_LLM_KEY
@@ -162,7 +163,6 @@ async def get_synthesis(token: str):
     try:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            model="gpt-4o",
             system_message="""Tu es un conseiller en évolution professionnelle bienveillant. Analyse le parcours de cette personne et produis une synthèse valorisante en JSON.
 Retourne UNIQUEMENT un JSON valide avec ces clés:
 {
@@ -175,7 +175,7 @@ Retourne UNIQUEMENT un JSON valide avec ces clés:
   "message_valorisant": "Un message court et encourageant sur la valeur du parcours (2 phrases max)"
 }
 Ne retourne RIEN d'autre que le JSON."""
-        )
+        ).with_model("openai", "gpt-5.2")
         chat.add_message(UserMessage(content=f"Voici le parcours professionnel à analyser:\n{context}"))
         response = await chat.chat()
         import json

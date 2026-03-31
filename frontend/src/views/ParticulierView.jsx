@@ -129,62 +129,160 @@ const DclicBoostSection = ({ profile }) => {
   );
 };
 
-// ===== TIMELINE STEP CARD =====
-const TimelineStepCard = ({ step, onEdit, onDelete }) => {
+// ===== TIMELINE STEP CARD (modèle chronologique détaillé) =====
+const TimelineStepCard = ({ step, onEdit, onDelete, onVisibilityChange }) => {
   const config = STEP_TYPES[step.step_type] || STEP_TYPES.emploi;
   const StepIcon = config.icon;
   const visOpt = VISIBILITY_OPTIONS.find(v => v.value === step.visibility) || VISIBILITY_OPTIONS[0];
-  const VisIcon = visOpt.icon;
+
+  const period = step.start_date
+    ? `${step.start_date}${step.end_date ? ` — ${step.end_date}` : step.is_ongoing ? " — Aujourd'hui" : ""}`
+    : "";
 
   return (
-    <div className="relative pl-10 pb-8 group" data-testid={`timeline-step-${step.id}`}>
+    <div className="relative pl-12 pb-6 group" data-testid={`timeline-step-${step.id}`}>
       {/* Timeline line */}
-      <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-slate-200 group-last:hidden" />
+      <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-200 group-last:hidden" />
       {/* Step dot */}
-      <div className={`absolute left-0 top-1 w-8 h-8 rounded-full ${config.color} flex items-center justify-center shadow-md z-10`}>
-        <StepIcon className="w-4 h-4 text-white" />
+      <div className={`absolute left-0 top-1 w-10 h-10 rounded-xl ${config.color} flex items-center justify-center shadow-lg z-10`}>
+        <StepIcon className="w-5 h-5 text-white" />
       </div>
-      <Card className={`${config.bg} ${config.border} border shadow-sm hover:shadow-md transition-shadow`}>
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <Badge className={`text-[10px] ${config.bg} ${config.text} ${config.border} border`}>{config.label}</Badge>
-                <span className="text-[11px] text-slate-400">
-                  {step.start_date}{step.end_date ? ` — ${step.end_date}` : step.is_ongoing ? " — En cours" : ""}
-                </span>
-                <Badge variant="outline" className="text-[10px] gap-0.5">
-                  <VisIcon className="w-2.5 h-2.5" />{visOpt.label}
-                </Badge>
-              </div>
-              <h4 className="font-semibold text-slate-900 text-sm">{step.title}</h4>
-              {step.organization && <p className="text-xs text-slate-500 mt-0.5">{step.organization}</p>}
-              {step.description && <p className="text-xs text-slate-600 mt-2 line-clamp-2">{step.description}</p>}
-              {step.competences?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {step.competences.slice(0, 5).map((c, i) => (
-                    <Badge key={i} variant="secondary" className="text-[10px]">{c}</Badge>
-                  ))}
-                </div>
-              )}
-              {step.acquis && (
-                <p className="text-[11px] text-emerald-700 mt-2 bg-emerald-50 rounded px-2 py-1 inline-block">
-                  <Lightbulb className="w-3 h-3 inline mr-1" />{step.acquis}
-                </p>
-              )}
-            </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(step)} data-testid={`edit-step-${step.id}`}>
-                <Edit3 className="w-3.5 h-3.5 text-slate-500" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(step.id)} data-testid={`delete-step-${step.id}`}>
-                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-              </Button>
-            </div>
+
+      <Card className={`border ${config.border} shadow-sm hover:shadow-md transition-all overflow-hidden`}>
+        {/* Card Header - Type + Period + Actions */}
+        <div className={`${config.bg} px-4 py-2.5 flex items-center justify-between border-b ${config.border}`}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Badge className={`text-xs font-semibold ${config.bg} ${config.text} ${config.border} border`}>{config.label}</Badge>
+            {period && <span className="text-sm font-medium text-slate-600">{period}</span>}
           </div>
+          <div className="flex items-center gap-1">
+            {/* Visibility toggle directly on card */}
+            <Select value={step.visibility} onValueChange={v => onVisibilityChange && onVisibilityChange(step.id, v)}>
+              <SelectTrigger className="h-7 w-auto text-[10px] border-0 bg-white/60 gap-1 px-2">
+                <visOpt.icon className="w-3 h-3" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VISIBILITY_OPTIONS.map(opt => {
+                  const OI = opt.icon;
+                  return <SelectItem key={opt.value} value={opt.value}><span className="flex items-center gap-1.5 text-xs"><OI className="w-3 h-3" />{opt.label}</span></SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(step)} data-testid={`edit-step-${step.id}`}>
+              <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(step.id)} data-testid={`delete-step-${step.id}`}>
+              <Trash2 className="w-3.5 h-3.5 text-red-300" />
+            </Button>
+          </div>
+        </div>
+
+        <CardContent className="p-4 space-y-3">
+          {/* Title + Organization */}
+          <div>
+            <h4 className="font-bold text-slate-900">{step.title}</h4>
+            {step.organization && (
+              <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
+                <Building2 className="w-3.5 h-3.5 text-slate-400" />{step.organization}
+              </p>
+            )}
+          </div>
+
+          {/* Description */}
+          {step.description && (
+            <p className="text-sm text-slate-600 leading-relaxed">{step.description}</p>
+          )}
+
+          {/* Missions */}
+          {step.missions?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" />Missions principales
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {step.missions.map((m, i) => (
+                  <span key={i} className="text-xs bg-slate-100 text-slate-700 rounded-full px-2.5 py-0.5">{m}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Competences */}
+          {step.competences?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5" />Compétences mobilisées
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {step.competences.map((c, i) => (
+                  <Badge key={i} className={`text-xs ${config.bg} ${config.text} ${config.border} border`}>{c}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Acquis */}
+          {step.acquis && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5" />Ce que j'ai développé
+              </p>
+              <p className="text-sm text-emerald-800 mt-0.5">{step.acquis}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+// ===== CONSULTATION HISTORY =====
+const ConsultationHistory = ({ token }) => {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await axios.get(`${API}/trajectory/access-log?token=${token}`);
+        setLogs(res.data);
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, [token]);
+
+  if (loading || logs.length === 0) return null;
+
+  return (
+    <Card className="border border-slate-100" data-testid="consultation-history">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <History className="w-4 h-4 text-slate-500" />Consultations de mon parcours
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {logs.slice(0, 8).map((log, idx) => (
+            <div key={idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-50 text-xs" data-testid={`consult-log-${idx}`}>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Eye className="w-3 h-3 text-blue-600" />
+                </div>
+                <div>
+                  <span className="font-medium text-slate-700">
+                    {log.audience === "accompagnateur" ? "Accompagnateur" : log.audience === "recruteur" ? "Recruteur" : "Consultation"}
+                  </span>
+                  <span className="text-slate-400 ml-2">via lien partagé</span>
+                </div>
+              </div>
+              <span className="text-slate-400">{new Date(log.accessed_at).toLocaleDateString('fr-FR')}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -773,6 +871,14 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
     } catch (e) { toast.error("Erreur"); }
   };
 
+  const updateStepVisibility = async (stepId, newVisibility) => {
+    try {
+      await axios.put(`${API}/trajectory/steps/${stepId}?token=${token}`, { visibility: newVisibility });
+      setSteps(prev => prev.map(s => s.id === stepId ? { ...s, visibility: newVisibility } : s));
+      toast.success("Visibilité de l'étape mise à jour");
+    } catch (e) { toast.error("Erreur"); }
+  };
+
   const updateVisibility = async (newSettings) => {
     setVisibilitySettings(newSettings);
     try {
@@ -972,7 +1078,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                           <div className="flex-1 h-px bg-slate-200" />
                         </div>
                       )}
-                      <TimelineStepCard step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} />
+                      <TimelineStepCard step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} onVisibilityChange={updateStepVisibility} />
                     </div>
                   );
                 });
@@ -1008,6 +1114,9 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
               )}
             </div>
           )}
+
+          {/* Consultation History */}
+          <ConsultationHistory token={token} />
         </TabsContent>
 
         {/* === COMPETENCES TAB === */}
