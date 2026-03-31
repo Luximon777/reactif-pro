@@ -534,7 +534,7 @@ const SynthesisSection = ({ synthesis, loading }) => {
               <div className="mb-2 text-sm font-medium text-slate-900">Compétences les plus visibles</div>
               <div className="flex flex-wrap gap-2">
                 {dominantSkills.map((skill, i) => (
-                  <Badge key={i} className="rounded-full bg-slate-900 text-white hover:bg-slate-900 text-xs">{skill}</Badge>
+                  <Badge key={i} className="rounded-full bg-[#1e3a5f] text-white hover:bg-[#1e3a5f] text-xs">{skill}</Badge>
                 ))}
               </div>
             </div>
