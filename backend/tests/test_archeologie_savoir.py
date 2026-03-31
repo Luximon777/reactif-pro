@@ -16,7 +16,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://partenaires-workflow.preview.emergentagent.com"
+    BASE_URL = "https://cv-timeline-pro.preview.emergentagent.com"
 
 
 class TestReferentielEndpoints:

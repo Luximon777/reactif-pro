@@ -1012,6 +1012,39 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
         {/* === TRAJECTOIRE TAB === */}
         <TabsContent value="trajectoire" className="space-y-6 mt-6">
+          {/* CV Upload Section - Entry point */}
+          {steps.length === 0 ? (
+            <Card className="border-2 border-dashed border-[#1e3a5f]/30 bg-gradient-to-br from-blue-50/50 to-slate-50" data-testid="cv-entry-section">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-[#1e3a5f] flex items-center justify-center shadow-lg">
+                    <Upload className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Commencez par charger votre CV</h3>
+                    <p className="text-sm text-slate-500 mt-1 max-w-md">Votre historique professionnel sera automatiquement extrait et affiché sous forme de frise chronologique</p>
+                  </div>
+                  <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border border-slate-100 bg-slate-50/50" data-testid="cv-update-section">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-800">Mettre à jour mon CV</p>
+                    <p className="text-xs text-slate-500">Chargez un nouveau CV pour enrichir votre frise</p>
+                  </div>
+                  <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Trust Banner */}
           <Card className="bg-gradient-to-r from-slate-50 to-blue-50 border border-blue-100" data-testid="trust-banner">
             <CardContent className="p-4 flex items-start gap-3">

@@ -5,7 +5,7 @@ from datetime import datetime
 
 class ReActifProAPITester:
     def __init__(self):
-        self.base_url = "https://partenaires-workflow.preview.emergentagent.com/api"
+        self.base_url = "https://cv-timeline-pro.preview.emergentagent.com/api"
         self.token = None
         self.profile_id = None
         self.tests_run = 0
@@ -270,7 +270,7 @@ class ReActifProAPITester:
 
 def main():
     print("🚀 Starting Ré'Actif Pro Backend API Tests")
-    print(f"Testing backend at: https://partenaires-workflow.preview.emergentagent.com/api")
+    print(f"Testing backend at: https://cv-timeline-pro.preview.emergentagent.com/api")
     
     tester = ReActifProAPITester()
     
