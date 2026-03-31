@@ -1035,11 +1035,13 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                   <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-800">Mettre à jour mon CV</p>
                     <p className="text-xs text-slate-500">Chargez un nouveau CV pour enrichir votre frise</p>
                   </div>
-                  <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
+                  <div className="shrink-0">
+                    <CvAnalysisSection token={token} onComplete={() => { loadData(true); loadTrajectory(); }} compact />
+                  </div>
                 </div>
               </CardContent>
             </Card>

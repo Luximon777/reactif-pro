@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import {
   Target, Briefcase, Clock, Star, Sparkles, Zap, Award,
   CheckCircle2, AlertCircle, Play, FileDown, FileText, Shield, BarChart3,
-  Link as LinkIcon, RefreshCw, Heart, Plus, Trash2, Send, Loader2, FolderDown
+  Link as LinkIcon, RefreshCw, Heart, Plus, Trash2, Send, Loader2, FolderDown,
+  Upload, Route
 } from "lucide-react";
 import { toast } from "sonner";
 import CvPreview from "./CvPreview";
@@ -20,7 +21,7 @@ const CV_MODELS_CONFIG = [
   { key: "nouvelle_generation", name: "CV Nouvelle Generation", desc: "Profil dynamique : intentions, preuves, potentiel, valeurs", color: "bg-amber-50 border-amber-200 text-amber-700", icon: Star },
 ];
 
-const CvAnalysisSection = ({ token, onComplete }) => {
+const CvAnalysisSection = ({ token, onComplete, compact = false }) => {
   const [uploading, setUploading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [cvModels, setCvModels] = useState(null);
@@ -282,6 +283,103 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     window.open(`${API}/cv/download-pdf/${key}?token=${token}`, '_blank');
   };
 
+  // === COMPACT MODE: Minimal upload UI for Trajectoire tab ===
+  if (compact) {
+    return (
+      <div data-testid="cv-compact-section">
+        {loadingPrevious && (
+          <div className="flex items-center justify-center py-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+          </div>
+        )}
+
+        {uploading ? (
+          <div className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 space-y-3" data-testid="cv-compact-progress">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
+                <span className="text-sm font-semibold text-blue-800">Analyse IA en cours</span>
+              </div>
+              <div className="flex items-center gap-1 bg-white/80 px-2 py-0.5 rounded-full shadow-sm">
+                <Clock className="w-3.5 h-3.5 text-blue-600" />
+                <span className="text-sm font-mono font-bold text-blue-700" data-testid="cv-compact-timer">
+                  {Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+            <div className="w-full h-1.5 bg-blue-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${Math.min((elapsed / 120) * 100, 95)}%` }}
+              />
+            </div>
+            {serverStep && (
+              <p className="text-xs text-indigo-600 font-medium">{serverStep}</p>
+            )}
+            <div className="space-y-1">
+              {STEPS.map((step, idx) => {
+                const StepIcon = step.icon;
+                const isDone = idx < currentStep;
+                const isCurrent = idx === currentStep;
+                if (idx > currentStep + 1) return null;
+                return (
+                  <div key={idx} className={`flex items-center gap-2 py-0.5 px-1.5 rounded transition-all ${isCurrent ? "bg-white/70" : ""}`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${isDone ? "bg-emerald-500" : isCurrent ? "bg-blue-500 animate-pulse" : "bg-slate-300"}`}>
+                      {isDone ? <CheckCircle2 className="w-2.5 h-2.5 text-white" /> : <StepIcon className="w-2.5 h-2.5 text-white" />}
+                    </div>
+                    <span className={`text-xs ${isDone ? "text-emerald-700" : isCurrent ? "text-blue-800 font-semibold" : "text-slate-400"}`}>{step.label}</span>
+                    {isCurrent && <div className="ml-auto w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : uploadError && !analysisResult ? (
+          <div
+            className="bg-red-50 border border-red-200 rounded-lg p-3 cursor-pointer"
+            data-testid="cv-compact-error"
+            onClick={() => { setUploadError(null); document.querySelector('[data-testid="cv-compact-input"]')?.click(); }}
+          >
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <p className="text-xs text-red-700 flex-1">{uploadError}</p>
+            </div>
+            <p className="text-xs text-blue-600 font-medium mt-1 underline">Cliquez pour réessayer</p>
+            <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-input" />
+          </div>
+        ) : analysisResult ? (
+          <div className="w-full space-y-2" data-testid="cv-compact-result">
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <p className="text-xs text-emerald-800 font-medium flex-1">
+                CV analysé — {analysisResult.savoir_faire_count} savoir-faire, {analysisResult.savoir_etre_count} savoir-être
+              </p>
+            </div>
+            {analysisResult.experiences_count > 0 && (
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-2.5" data-testid="cv-compact-trajectory-notice">
+                <Route className="w-4 h-4 text-blue-600 shrink-0" />
+                <p className="text-xs text-blue-800 font-medium">
+                  {analysisResult.experiences_count} expérience(s) ajoutée(s) à votre frise
+                </p>
+              </div>
+            )}
+            <label className="inline-flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium cursor-pointer hover:underline mt-1">
+              <RefreshCw className="w-3.5 h-3.5" /> Charger un autre CV
+              <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-reupload" />
+            </label>
+          </div>
+        ) : (
+          <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#2a4a6f] text-white rounded-xl cursor-pointer transition-colors shadow-sm" data-testid="cv-compact-upload-btn">
+            <Upload className="w-4 h-4" />
+            <span className="text-sm font-medium">Charger mon CV</span>
+            <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" data-testid="cv-compact-input" />
+          </label>
+        )}
+      </div>
+    );
+  }
+
+  // === FULL MODE: Complete CV analysis UI for Compétences tab ===
   return (
     <div className="space-y-4">
       {loadingPrevious && (
