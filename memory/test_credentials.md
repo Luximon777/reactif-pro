@@ -1,12 +1,16 @@
 # Test Credentials
 
-## Beneficiary Account
+## Beneficiary Account (with D'CLIC)
 - Pseudo: bob23
 - Password: Solerys777!
-- Real Name: Bobo Meyer
-- Identifiant France Travail: FT_BOB_123
-- Visibility: limited
 - D'CLIC imported: True (MBTI=ENFJ, DISC=Influence, RIASEC=Social, Vertu=Empathie)
+- Identifiant France Travail: FT_BOB_123
+- Has 5+ trajectory steps
+
+## Beneficiary Account (without D'CLIC)
+- Pseudo: testboost
+- Password: Solerys777!
+- D'CLIC imported: None (sees "Boostez votre profil" invite)
 
 ## Partner Account (Solerys)
 - Email: cluximon@gmail.com

@@ -19,29 +19,38 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Trajectoire: Frise chronologique, 11 types d'etapes, visibilite par etape
 - Bloc Confiance + 4 cartes de visibilite avec toggles
 - Synthese IA "Ce que mon parcours revele" (GPT-4o)
-- Auto-import depuis passeport et D'CLIC
-- Competences: D'CLIC Boost + CV Analysis + Skills Display
-- Documents: Coffre-fort categories
-- Matching: Job Matching + Formations
+- Auto-import depuis passeport, D'CLIC et CV
+
+### Auto-remplissage frise depuis CV (31/03/2026)
+- Apres analyse CV, experiences detectees auto-ajoutees comme etapes de trajectoire
+- Notification "Frise de parcours mise a jour" dans CvAnalysisSection
+- Option d'ajouter/modifier manuellement les etapes
+
+### Visuel "Boostez votre profil" D'CLIC PRO (31/03/2026)
+- Carte gradient indigo/violet avec icone eclair jaune
+- Badges: Personnalite, Orientation, Competences validees, Carte Pro
+- 4 dimensions placeholders: MBTI, DISC, RIASEC, Vertus
+- Bouton "Passer le test" bien visible
+- Se transforme en D'CLIC Boost Section apres le test
 
 ### Lien partageable + QR code (31/03/2026)
-- Creation de liens uniques avec 3 audiences: accompagnateur, recruteur, public
-- Duree de validite configurable (7/30/90/365 jours)
-- Options: inclure carte D'CLIC, inclure competences
-- QR code genere automatiquement
-- Page publique /trajectoire/:shareId avec nom anonymise, carte D'CLIC, timeline filtree, competences
-- Historique des liens actifs avec compteur de vues et revocation
-- Journalisation des acces (trajectory_access_log)
+- Liens uniques 3 audiences: accompagnateur, recruteur, public
+- QR code, copie lien, gestion liens actifs, revocation
+- Page publique /trajectoire/:shareId
 
 ### Carte D'CLIC PRO telechargeable (31/03/2026)
-- Bouton "Telecharger la carte" dans la section CarteSection (DclicTestPage)
 - Export PNG haute qualite via html-to-image
 - QR code integre dans le pied de la carte
-- 4 dimensions: Identite Personnelle, Professionnelle, Sociale, Profonde
 
 ### Coffre-fort numerique avec stockage reel (31/03/2026)
 - Upload fichiers reels via Emergent Object Storage (max 10Mo)
 - Auto-ajout CVs uploades et generes par IA
+
+### Sections CV completes dans Competences
+- Audit CV (10 criteres, score, recommandations)
+- Centres d'interet (analyse IA, detection automatique)
+- URL offre d'emploi (adaptation ATS)
+- Generation CV optimises (4 modeles)
 
 ### Espace Partenaires (COMPLET)
 - Dashboard, Beneficiaires, Workflow zero charge admin
@@ -61,3 +70,4 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Iteration 51: Coffre-fort + Object Storage (Backend 19/19, Frontend 100%)
 - Iteration 52: Espace Personnel 4 onglets (Backend 33/33, Frontend 100%)
 - Iteration 53: Partage trajectoire + QR code + Carte telechargeable (Backend 14/14, Frontend 100%)
+- Iteration 54: Boost visual + Auto-fill frise CV + Audit/Centres/URL (Backend 15/15, Frontend 100%)
