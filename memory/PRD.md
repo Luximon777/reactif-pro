@@ -28,60 +28,32 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 ### Consentement granulaire (29/03/2026)
 - 3 niveaux: Synthese, Modulaire, Complet temporaire
 
+### Identifiant France Travail + Recherche revisee (31/03/2026)
+- **Inscription**: Champ "Identifiant France Travail" (facultatif) dans le formulaire de creation de compte
+- **Parametres de confidentialite**: Champ identifiant FT affiche en mode "Limite"
+- **Conditions pour etre trouvable par les partenaires**:
+  1. Identifiant France Travail renseigne
+  2. Test D'CLIC PRO passe
+  3. Profil booste (competences ou passeport complete)
+  4. Statut "Limite" active
+- **Recherche partenaire**: 2 champs — Identifiant France Travail + Nom/Prenom
+- Resultats: badges "Profil verifie" (vert) ou "Conditions non remplies" (orange) + details manquants
+- Backend: identifiant_france_travail stocke dans profiles, recherche avec $regex
+
 ### Demande d'acces beneficiaire avec approbation (29/03/2026)
-- Recherche par nom -> Demander l'acces -> Approbation -> Synchroniser
+- Recherche par identifiant FT + nom -> Demander l'acces -> Approbation -> Synchroniser
 - Bandeau notification sur dashboard pour syncs en attente
 
 ### Workflow "Zero charge administrative" — 7 modules (30/03/2026)
+1. Synthese pre-entretien IA
+2. Compte rendu d'entretien IA (copiable pour outil metier)
+3. Plan d'action intelligent (actions, echeances, dispositifs)
+4. Vue lecture rapide (2 minutes)
+5. Export intelligent (texte structure, copie/colle France Travail)
+6. Detection de decrochage (score de risque 0-100)
+7. Bilan de fin de parcours
 
-#### 1. Synthese pre-entretien IA
-- Generation IA de synthese exploitable en 2 minutes
-- Contenu: resume parcours, points forts, vigilances, freins, questions a explorer, dispositifs, recommandations
-- Niveaux urgence et autonomie calcules automatiquement
-- POST /api/partenaires/beneficiaires/{id}/synthese-pre-entretien
-
-#### 2. Compte rendu d'entretien IA
-- Formulaire: type entretien (diagnostic/intermediaire/final), notes, points abordes, decisions
-- Generation IA d'un compte rendu professionnel (compatible outil France Travail)
-- Texte copiable directement dans le SI du conseiller
-- Boutons: Copier, Valider
-- POST /api/partenaires/beneficiaires/{id}/compte-rendu
-- GET /api/partenaires/beneficiaires/{id}/comptes-rendus
-- PUT /api/partenaires/comptes-rendus/{id}/valider
-
-#### 3. Plan d'action intelligent
-- Generation IA: objectif principal, actions avec categories/priorites/echeances, dispositifs recommandes, jalons, risques
-- Suivi de statut par action (a_faire / en_cours / termine / annule)
-- POST /api/partenaires/beneficiaires/{id}/plan-action/generer
-- GET /api/partenaires/beneficiaires/{id}/plan-action
-- PUT /api/partenaires/plan-action/{id}/actions/{action_id}
-
-#### 4. Vue lecture rapide (2 minutes)
-- Identite + progression + score de risque
-- Diagnostic resume (motivation, posture, autonomie, competences)
-- Freins actifs, plan d'action resume, dernier entretien
-- GET /api/partenaires/beneficiaires/{id}/lecture-rapide
-
-#### 5. Export intelligent
-- Export texte structure du dossier complet
-- Format optimise copie/colle pour outil France Travail
-- Boutons: Copier tout, Telecharger .txt
-- GET /api/partenaires/beneficiaires/{id}/export
-
-#### 6. Detection de decrochage
-- Score de risque automatique (0-100) base sur: inactivite, freins critiques, motivation, autonomie, progression
-- Niveaux: faible / moyen / eleve / critique
-- Facteurs de risque identifies
-- GET /api/partenaires/beneficiaires/{id}/risque
-- GET /api/partenaires/risques-globaux
-
-#### 7. Bilan de fin de parcours
-- Generation IA: synthese globale, competences developpees, freins leves/restants, actions realisees, recommandations
-- Texte copiable compatible outil metier
-- POST /api/partenaires/beneficiaires/{id}/bilan-final
-- GET /api/partenaires/beneficiaires/{id}/bilan-final
-
-### Onglets dans la fiche beneficiaire
+### Onglets fiche beneficiaire
 Vue rapide (defaut) | Profil | Diagnostic | Synthese IA | Entretiens | Plan d'action | Freins | Historique | Export/Bilan | Profil Re'Actif
 
 ## Backlog
@@ -95,4 +67,5 @@ Vue rapide (defaut) | Profil | Diagnostic | Synthese IA | Entretiens | Plan d'ac
 - Iteration 46: Outils V2 + Consentement (100%)
 - Iteration 47: Demande d'acces (100%)
 - Iteration 48: Flux d'approbation (100%)
-- Iteration 49: Workflow zero charge admin - 7 modules (Backend 14/14, Frontend 100%)
+- Iteration 49: Workflow zero charge admin (Backend 14/14, Frontend 100%)
+- Iteration 50: Identifiant France Travail + Recherche (Backend 12/12, Frontend 100%)
