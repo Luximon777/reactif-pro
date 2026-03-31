@@ -10,6 +10,18 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - LLM: OpenAI GPT-5.2 via Emergent LLM Key (emergentintegrations)
 - Storage: Emergent Object Storage (fichiers CV, documents coffre-fort)
 
+## Navigation (8 rubriques - restructure 31/03/2026)
+| # | Rubrique | Route | Sous-rubriques |
+|---|---|---|---|
+| 1 | Accueil | /dashboard | 4 stats + 6 cartes navigation |
+| 2 | Mon Profil | /dashboard/profil | Profil, Experiences, Passerelles, Profil Dynamique |
+| 3 | Ma Trajectoire | /dashboard/trajectoire | Frise chronologique, CV upload, insights IA |
+| 4 | Mes Competences | /dashboard/competences | Inventaire, Evaluation, Archeologie, Emergentes |
+| 5 | Le Marche | /dashboard/marche | Observatoire, Evolution, Explorateur |
+| 6 | Opportunites | /dashboard/opportunites | Matching, Formations |
+| 7 | Mon Coffre-fort | /dashboard/coffre-fort | Documents, Candidatures, Partages |
+| 8 | Confidentialite | /dashboard/confidentialite | Parametres vie privee |
+
 ## Implemente
 
 ### Core
@@ -18,67 +30,28 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 ### Espace Personnel en 4 onglets (31/03/2026)
 - Trajectoire: Frise chronologique, 11 types d'etapes, visibilite par etape
 - Bloc Confiance + 4 cartes de visibilite avec toggles
-- Synthese IA "Ce que mon parcours revele" (GPT-5.2)
+- Synthese IA (GPT-5.2)
 - Auto-import depuis passeport, D'CLIC et CV
 
-### Auto-remplissage frise depuis CV (31/03/2026)
-- Apres analyse CV, experiences detectees auto-ajoutees comme etapes de trajectoire
-- Notification "Frise de parcours mise a jour" dans CvAnalysisSection
-- Option d'ajouter/modifier manuellement les etapes
-
-### Visuel "Boostez votre profil" D'CLIC PRO (31/03/2026)
-- Carte gradient indigo/violet avec icone eclair jaune
-- Badges: Personnalite, Orientation, Competences validees, Carte Pro
-- 3 dimensions: DISC, RIASEC, Vertus (MBTI supprime)
-- Bouton "Passer le test" bien visible
-- Se transforme en D'CLIC Boost Section apres le test
-
-### Lien partageable + QR code (31/03/2026)
-- Liens uniques 3 audiences: accompagnateur, recruteur, public
-- QR code, copie lien, gestion liens actifs, revocation
-- Page publique /trajectoire/:shareId
-
-### Carte D'CLIC PRO telechargeable (31/03/2026)
-- Export PNG haute qualite via html-to-image
-- QR code integre dans le pied de la carte
-
-### Coffre-fort numerique avec stockage reel (31/03/2026)
-- Upload fichiers reels via Emergent Object Storage (max 10Mo)
-- Auto-ajout CVs uploades et generes par IA
-
-### Sections CV completes dans Competences
-- Audit CV (10 criteres, score, recommandations)
-- Centres d'interet (analyse IA, detection automatique)
-- URL offre d'emploi (adaptation ATS)
-- Generation CV optimises (4 modeles)
-
-### Espace Partenaires (COMPLET)
-- Dashboard, Beneficiaires, Workflow zero charge admin
-
-### Identifiant France Travail (31/03/2026)
-- Inscription + confidentialite + recherche partenaire
-
 ### Refonte Trajectoire 2 colonnes + Insights IA (31/03/2026)
-- Header dark gradient: titre, badge, stats, boutons CV et partage
-- Layout 2 colonnes: gauche (viewers + frise), droite (sidebar insights)
-- Sidebar IA: narrative, competences dominantes, 5 scores coherence
-
-### Mode Compact CvAnalysisSection dans Trajectoire (31/03/2026)
-- Prop compact dans CvAnalysisSection: bouton upload seul, progression, resultat bref
+- Header dark gradient, Layout 2 colonnes, Sidebar IA
 
 ### Suppression carte MBTI + Charger CV depuis coffre-fort (31/03/2026)
-- Supprime la carte "Personnalite MBTI - Analysee" de la section D'CLIC Boost
-- Ajoute bouton "Depuis mon coffre-fort" dans le mode compact CvAnalysisSection
-- Endpoint GET /api/coffre/cv-files pour lister les fichiers CV du coffre-fort
-- Endpoint POST /api/cv/analyze-from-coffre pour analyser un CV depuis le coffre-fort
-- Picker dropdown avec liste des CVs disponibles dans le coffre-fort
+- Carte MBTI supprimee de D'CLIC Boost, bouton "Depuis mon coffre-fort" ajoute
+- Endpoints GET /api/coffre/cv-files et POST /api/cv/analyze-from-coffre
 
-### Personnalisation Indice d'Evolution des Competences (31/03/2026)
-- Cartes resume personnalisees (metiers lies au profil, secteurs, indice evolution, indice secteurs)
-- Repartition des metiers basee sur les metiers pertinents de l'utilisateur
-- Vue d'ensemble avec metiers personnalises (en mutation / stables)
-- Bandeau "Donnees personnalisees basees sur votre CV et profil"
-- Labels adaptatifs selon presence/absence de donnees utilisateur
+### Personnalisation Indice Evolution des Competences (31/03/2026)
+- Cartes resume, repartition et vue d'ensemble personnalisees au profil utilisateur
+
+### Restructuration Navigation Complete (31/03/2026)
+- 9 rubriques reduites a 8, tous doublons elimines
+- Progression logique: Se connaitre > Mon parcours > Mes acquis > Le marche > Agir > Securiser > Controler
+- Doublons supprimes: Competences x3 > unique, Documents x2 > unique, Matching x2 > unique, Emergentes x2 > unique
+- Nouveaux wrappers: LeMarcheView.jsx, OpportunitesView.jsx
+- PassportView et ParticulierView acceptent viewMode prop pour filtrer les onglets
+- CoffreFortView reduit de 7 a 3 onglets
+- Accueil "Mon Espace" avec dashboard d'overview et cartes de navigation
+- Redirections legacy pour compatibilite arriere (6 anciennes routes)
 
 ## Backlog
 - P1: Narratif IA D'CLIC PRO
@@ -88,11 +61,5 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - P3: Refactoring PartenaireView.jsx / ParticulierView.jsx (>1700 lignes)
 
 ## Test Reports
-- Iteration 49: Workflow (Backend 14/14, Frontend 100%)
-- Iteration 50: Identifiant FT (Backend 12/12, Frontend 100%)
-- Iteration 51: Coffre-fort + Object Storage (Backend 19/19, Frontend 100%)
-- Iteration 52: Espace Personnel 4 onglets (Backend 33/33, Frontend 100%)
-- Iteration 53: Partage trajectoire + QR code + Carte telechargeable (Backend 14/14, Frontend 100%)
-- Iteration 55: Compact CV mode dans Trajectoire (Frontend 100%)
-- Iteration 56: Refonte Trajectoire 2 colonnes + Insights IA (Frontend 100%)
 - Iteration 57: Suppression MBTI + Coffre-fort CV picker (Backend 100%, Frontend 100%)
+- Iteration 58: Restructuration Navigation (Frontend 100% - 8 tabs, all routes, legacy redirects)
