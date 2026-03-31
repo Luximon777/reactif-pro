@@ -163,6 +163,7 @@ async def get_synthesis(token: str):
     try:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
+            session_id=f"trajectory-synthesis-{token_doc['id']}",
             system_message="""Tu es un conseiller en évolution professionnelle bienveillant. Analyse le parcours de cette personne et produis une synthèse valorisante en JSON.
 Retourne UNIQUEMENT un JSON valide avec ces clés:
 {
@@ -191,10 +192,9 @@ Les scores doivent être sur 100 et refléter objectivement le parcours:
 - alignement_metier: progression vers un objectif professionnel clair
 Ne retourne RIEN d'autre que le JSON."""
         ).with_model("openai", "gpt-5.2")
-        chat.add_message(UserMessage(content=f"Voici le parcours professionnel à analyser:\n{context}"))
-        response = await chat.chat()
+        response = await chat.send_message(UserMessage(text=f"Voici le parcours professionnel à analyser:\n{context}"))
         import json
-        text = response.text.strip()
+        text = response.strip() if isinstance(response, str) else response.text.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         synthesis = json.loads(text)

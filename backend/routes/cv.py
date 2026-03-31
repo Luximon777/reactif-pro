@@ -473,8 +473,8 @@ Score 0-10 par regle. Score global /100. Diagnostic et recommandation en 1 phras
 
         skills_task = _llm_call_with_retry(
             system_msg="""Expert RH. Extrais competences et experiences. JSON uniquement.
-{"profile":{"professional_summary":"","career_project":"","target_sectors":[]},"savoir_faire":[{"name":"","category":"technique|transversale","level":"intermediaire"}],"savoir_etre":[{"name":"","level":"intermediaire"}],"competences_transversales":[],"experiences":[{"title":"","organization":"","description":"","skills_used":[]}],"offres_emploi_suggerees":[{"titre":"","secteur":"","type_contrat":"CDI","description_courte":"","competences_requises":[]}]}
-Max 10 savoir_faire, 5 savoir_etre, 3 offres.""",
+{"profile":{"professional_summary":"","career_project":"","target_sectors":[]},"savoir_faire":[{"name":"","category":"technique|transversale","level":"intermediaire"}],"savoir_etre":[{"name":"","level":"intermediaire"}],"competences_transversales":[],"experiences":[{"title":"","organization":"","description":"","skills_used":[],"start_date":"YYYY-MM","end_date":"YYYY-MM ou vide si en cours","is_current":false,"key_achievements":[],"key_learning":""}],"offres_emploi_suggerees":[{"titre":"","secteur":"","type_contrat":"CDI","description_courte":"","competences_requises":[]}]}
+IMPORTANT: Pour chaque experience, extrais OBLIGATOIREMENT start_date et end_date au format YYYY-MM. Si le candidat est toujours en poste, is_current=true et end_date vide. key_learning = ce que le candidat a developpe/appris. Max 10 savoir_faire, 5 savoir_etre, 3 offres.""",
             user_msg=f"Extrais:\n{cv_excerpt}"
         )
 
@@ -554,7 +554,18 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
         existing_exp_titles = {e.get("title", "").lower() for e in new_experiences}
         for exp in skills_result.get("experiences", []):
             if exp.get("title", "").lower() not in existing_exp_titles:
-                new_experiences.append(PassportExperience(title=exp["title"], organization=exp.get("organization", ""), description=exp.get("description", ""), experience_type="professionnel", skills_used=exp.get("skills_used", []), achievements=[], source="ia_detectee").model_dump())
+                new_experiences.append(PassportExperience(
+                    title=exp["title"],
+                    organization=exp.get("organization", ""),
+                    description=exp.get("description", ""),
+                    experience_type="professionnel",
+                    skills_used=exp.get("skills_used", []),
+                    achievements=exp.get("key_achievements", []),
+                    start_date=exp.get("start_date") or None,
+                    end_date=exp.get("end_date") or None,
+                    is_current=bool(exp.get("is_current", False)),
+                    source="ia_detectee"
+                ).model_dump())
                 existing_exp_titles.add(exp["title"].lower())
 
         profile_data = skills_result.get("profile", {})
@@ -724,7 +735,7 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
                 new_steps = []
                 for exp in passport.get("experiences", []):
                     title = exp.get("title") or exp.get("poste") or ""
-                    org = exp.get("company") or exp.get("entreprise") or ""
+                    org = exp.get("organization") or exp.get("company") or exp.get("entreprise") or ""
                     if not title:
                         continue
                     exists = await db.trajectory_steps.find_one(
@@ -736,15 +747,15 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
                     step = TrajectoryStep(
                         token_id=token_id,
                         step_type="emploi",
-                        title=title,
-                        organization=org,
-                        start_date=exp.get("start_date", ""),
-                        end_date=exp.get("end_date", ""),
-                        is_ongoing=exp.get("is_current", False),
-                        description=exp.get("description", ""),
-                        missions=exp.get("key_achievements", []),
-                        competences=exp.get("skills_used", []),
-                        acquis=exp.get("key_learning", ""),
+                        title=str(title),
+                        organization=str(org),
+                        start_date=str(exp.get("start_date", "") or ""),
+                        end_date=str(exp.get("end_date", "") or ""),
+                        is_ongoing=bool(exp.get("is_current", False)),
+                        description=str(exp.get("description", "") or ""),
+                        missions=[str(m) for m in (exp.get("key_achievements") or [])],
+                        competences=[str(c) for c in (exp.get("skills_used") or [])],
+                        acquis=str(exp.get("key_learning", "") or ""),
                         visibility="private",
                         order=order
                     )

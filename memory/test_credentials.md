@@ -7,6 +7,13 @@
 - Identifiant France Travail: FT_BOB_123
 - Has 5+ trajectory steps
 
+## Beneficiary Account (CV uploaded, 4 trajectory steps with dates)
+- Pseudo: bob30
+- Password: Solerys777!
+- CV uploaded: Martin Dupont (Conseiller insertion professionnelle)
+- Has 4 trajectory steps with dates, organizations, competences
+- AI synthesis generated (Cohérence ~78-82%)
+
 ## Beneficiary Account (without D'CLIC)
 - Pseudo: testboost
 - Password: Solerys777!
