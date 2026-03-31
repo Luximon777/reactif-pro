@@ -115,6 +115,43 @@ const EvolutionIndexView = ({ token }) => {
 
   const { summary = {}, distribution = {}, top_transforming_jobs = [], most_stable_jobs = [], sectors = [] } = dashboard || {};
 
+  // Personalized summary: prefer user data over global data
+  const hasUserData = userAnalysis && (userAnalysis.relevant_jobs?.length > 0 || userAnalysis.has_cv);
+  const personalSummary = hasUserData ? {
+    total_jobs_analyzed: userAnalysis.relevant_jobs?.length || 0,
+    total_sectors_analyzed: userAnalysis.profile_sectors?.length || 0,
+    average_job_evolution_index: userAnalysis.evolution_exposure || 0,
+    average_sector_evolution_index: userAnalysis.relevant_jobs?.length > 0
+      ? Math.round(userAnalysis.relevant_jobs.reduce((s, j) => s + (j.evolution_index || 0), 0) / userAnalysis.relevant_jobs.length)
+      : 0
+  } : summary;
+
+  // Personalized distribution when user has relevant jobs
+  const personalDistribution = hasUserData && userAnalysis.relevant_jobs?.length > 0
+    ? (() => {
+        const jobs = userAnalysis.relevant_jobs;
+        const total = jobs.length;
+        const stable = jobs.filter(j => (j.evolution_index || 0) < 20).length;
+        const evolving = jobs.filter(j => (j.evolution_index || 0) >= 20 && (j.evolution_index || 0) < 50).length;
+        const transforming = jobs.filter(j => (j.evolution_index || 0) >= 50 && (j.evolution_index || 0) < 80).length;
+        const highly_impacted = jobs.filter(j => (j.evolution_index || 0) >= 80).length;
+        return {
+          stable: { count: stable, percentage: total ? Math.round(stable / total * 100) : 0 },
+          evolving: { count: evolving, percentage: total ? Math.round(evolving / total * 100) : 0 },
+          transforming: { count: transforming, percentage: total ? Math.round(transforming / total * 100) : 0 },
+          highly_impacted: { count: highly_impacted, percentage: total ? Math.round(highly_impacted / total * 100) : 0 },
+        };
+      })()
+    : distribution;
+
+  // Personalized jobs for overview tab
+  const personalTopTransforming = hasUserData && userAnalysis.relevant_jobs?.length > 0
+    ? [...userAnalysis.relevant_jobs].sort((a, b) => (b.evolution_index || 0) - (a.evolution_index || 0))
+    : top_transforming_jobs;
+  const personalMostStable = hasUserData && userAnalysis.relevant_jobs?.length > 0
+    ? [...userAnalysis.relevant_jobs].sort((a, b) => (a.evolution_index || 0) - (b.evolution_index || 0))
+    : most_stable_jobs;
+
   const handleRefresh = async () => {
     try {
       await axios.post(`${API}/evolution-index/refresh?token=${token}`);
@@ -152,7 +189,13 @@ const EvolutionIndexView = ({ token }) => {
         <EvolutionExposureCard analysis={userAnalysis} />
       )}
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Personalized when user has data */}
+      {hasUserData && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+          <Sparkles className="w-4 h-4 text-blue-600" />
+          <p className="text-xs text-blue-700 font-medium">Données personnalisées basées sur votre CV et profil</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="evolution-summary">
         <Card className="card-metric">
           <CardContent className="p-4">
@@ -161,8 +204,8 @@ const EvolutionIndexView = ({ token }) => {
                 <Briefcase className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.total_jobs_analyzed || 0}</p>
-                <p className="text-xs text-slate-500">Métiers analysés</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.total_jobs_analyzed || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Métiers liés à votre profil" : "Métiers analysés"}</p>
               </div>
             </div>
           </CardContent>
@@ -174,8 +217,8 @@ const EvolutionIndexView = ({ token }) => {
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.total_sectors_analyzed || 0}</p>
-                <p className="text-xs text-slate-500">Secteurs analysés</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.total_sectors_analyzed || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Vos secteurs d'activité" : "Secteurs analysés"}</p>
               </div>
             </div>
           </CardContent>
@@ -187,8 +230,8 @@ const EvolutionIndexView = ({ token }) => {
                 <Gauge className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.average_job_evolution_index || 0}</p>
-                <p className="text-xs text-slate-500">Indice moyen métiers</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.average_job_evolution_index || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Votre indice d'évolution" : "Indice moyen métiers"}</p>
               </div>
             </div>
           </CardContent>
@@ -200,8 +243,8 @@ const EvolutionIndexView = ({ token }) => {
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.average_sector_evolution_index || 0}</p>
-                <p className="text-xs text-slate-500">Indice moyen secteurs</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.average_sector_evolution_index || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Indice moyen vos secteurs" : "Indice moyen secteurs"}</p>
               </div>
             </div>
           </CardContent>
@@ -219,7 +262,7 @@ const EvolutionIndexView = ({ token }) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {Object.entries(INDEX_LEVELS).map(([key, config]) => {
-              const data = distribution[key === "stable" ? "stable" : key === "evolutif" ? "evolving" : key === "en_transformation" ? "transforming" : "highly_impacted"] || { count: 0, percentage: 0 };
+              const data = personalDistribution[key === "stable" ? "stable" : key === "evolutif" ? "evolving" : key === "en_transformation" ? "transforming" : "highly_impacted"] || { count: 0, percentage: 0 };
               const Icon = config.icon;
               return (
                 <div key={key} className={`p-4 rounded-xl ${config.bgLight} border ${config.borderColor}`}>
@@ -268,13 +311,13 @@ const EvolutionIndexView = ({ token }) => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-rose-600" />
-                  Métiers en forte mutation
+                  {hasUserData ? "Métiers en mutation liés à votre profil" : "Métiers en forte mutation"}
                 </CardTitle>
-                <CardDescription>Les métiers les plus impactés par les transformations</CardDescription>
+                <CardDescription>{hasUserData ? "Les métiers proches de votre profil les plus impactés" : "Les métiers les plus impactés par les transformations"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {top_transforming_jobs.map((job, idx) => (
+                  {personalTopTransforming.map((job, idx) => (
                     <JobIndexCard key={idx} job={job} />
                   ))}
                 </div>
@@ -286,13 +329,13 @@ const EvolutionIndexView = ({ token }) => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  Métiers les plus stables
+                  {hasUserData ? "Métiers les plus stables de votre profil" : "Métiers les plus stables"}
                 </CardTitle>
-                <CardDescription>Les métiers dont les compétences évoluent peu</CardDescription>
+                <CardDescription>{hasUserData ? "Les métiers proches de votre profil avec le moins de transformations" : "Les métiers dont les compétences évoluent peu"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {most_stable_jobs.map((job, idx) => (
+                  {personalMostStable.map((job, idx) => (
                     <JobIndexCard key={idx} job={job} />
                   ))}
                 </div>

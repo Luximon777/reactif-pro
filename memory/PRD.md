@@ -59,21 +59,12 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Inscription + confidentialite + recherche partenaire
 
 ### Refonte Trajectoire 2 colonnes + Insights IA (31/03/2026)
-- Header dark gradient: titre, badge, stats (coherence/etapes), boutons CV et partage
+- Header dark gradient: titre, badge, stats, boutons CV et partage
 - Layout 2 colonnes: gauche (viewers + frise), droite (sidebar insights)
-- Viewers cards: Moi/Conseiller/Recruteurs avec switches et onglets Frise/Acces
-- Frise enrichie: cartes avec gradient par type, competences, acquis, selecteur visibilite
-- Sidebar IA: narrative, competences dominantes, 5 scores coherence (progress bars)
-- Partage 3 versions: accompagnement, recrutement, publique
-- Carte confiance: "Votre parcours vous appartient"
-- Backend synthesis enrichi: scores (coherence, adaptabilite, transferabilite, continuite, alignement), competences_dominantes, analyse_narrative
-- Auto-chargement synthese IA quand etapes existent
-- Animations framer-motion
+- Sidebar IA: narrative, competences dominantes, 5 scores coherence
 
 ### Mode Compact CvAnalysisSection dans Trajectoire (31/03/2026)
-- Prop `compact` dans CvAnalysisSection: bouton upload seul, progression, resultat bref
-- Onglet Trajectoire: upload CV en haut, frise chronologique en dessous
-- Onglet Competences: mode complet inchange (audit, centres d'interet, generation CV)
+- Prop compact dans CvAnalysisSection: bouton upload seul, progression, resultat bref
 
 ### Suppression carte MBTI + Charger CV depuis coffre-fort (31/03/2026)
 - Supprime la carte "Personnalite MBTI - Analysee" de la section D'CLIC Boost
@@ -81,7 +72,13 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Endpoint GET /api/coffre/cv-files pour lister les fichiers CV du coffre-fort
 - Endpoint POST /api/cv/analyze-from-coffre pour analyser un CV depuis le coffre-fort
 - Picker dropdown avec liste des CVs disponibles dans le coffre-fort
-- Option disponible dans l'etat initial et l'etat resultat
+
+### Personnalisation Indice d'Evolution des Competences (31/03/2026)
+- Cartes resume personnalisees (metiers lies au profil, secteurs, indice evolution, indice secteurs)
+- Repartition des metiers basee sur les metiers pertinents de l'utilisateur
+- Vue d'ensemble avec metiers personnalises (en mutation / stables)
+- Bandeau "Donnees personnalisees basees sur votre CV et profil"
+- Labels adaptatifs selon presence/absence de donnees utilisateur
 
 ## Backlog
 - P1: Narratif IA D'CLIC PRO
