@@ -453,6 +453,18 @@ const CvAnalysisSection = ({ token, onComplete }) => {
             </div>
           )}
           <p className="text-sm text-emerald-600 font-medium">Passeport automatiquement complété avec les données extraites</p>
+          {/* Auto-populated trajectory notification */}
+          {analysisResult?.experiences_count > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3" data-testid="trajectory-auto-populated">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-blue-600"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-blue-800">Frise de parcours mise à jour</p>
+                <p className="text-xs text-blue-600">{analysisResult.experiences_count} expérience(s) détectée(s) ajoutées automatiquement à votre trajectoire</p>
+              </div>
+            </div>
+          )}
           {/* Boutons transfert vers coffre-fort */}
           <div className="border-t border-emerald-200 pt-3 mt-3">
             <p className="text-xs font-medium text-slate-500 mb-2">Transférer dans le coffre-fort :</p>

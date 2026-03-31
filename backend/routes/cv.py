@@ -714,6 +714,48 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
         except Exception as e:
             logging.warning(f"Could not auto-add CV to coffre-fort: {e}")
 
+        # Auto-populate trajectory from CV experiences
+        try:
+            from models import TrajectoryStep
+            passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+            if passport:
+                existing_count = await db.trajectory_steps.count_documents({"token_id": token_id})
+                order = existing_count
+                new_steps = []
+                for exp in passport.get("experiences", []):
+                    title = exp.get("title") or exp.get("poste") or ""
+                    org = exp.get("company") or exp.get("entreprise") or ""
+                    if not title:
+                        continue
+                    exists = await db.trajectory_steps.find_one(
+                        {"token_id": token_id, "title": title, "organization": org},
+                        {"_id": 0}
+                    )
+                    if exists:
+                        continue
+                    step = TrajectoryStep(
+                        token_id=token_id,
+                        step_type="emploi",
+                        title=title,
+                        organization=org,
+                        start_date=exp.get("start_date", ""),
+                        end_date=exp.get("end_date", ""),
+                        is_ongoing=exp.get("is_current", False),
+                        description=exp.get("description", ""),
+                        missions=exp.get("key_achievements", []),
+                        competences=exp.get("skills_used", []),
+                        acquis=exp.get("key_learning", ""),
+                        visibility="private",
+                        order=order
+                    )
+                    new_steps.append(step.model_dump())
+                    order += 1
+                if new_steps:
+                    await db.trajectory_steps.insert_many(new_steps)
+                    logging.info(f"Auto-populated {len(new_steps)} trajectory steps from CV for token {token_id}")
+        except Exception as e:
+            logging.warning(f"Could not auto-populate trajectory: {e}")
+
     except Exception as e:
         logging.error(f"CV analysis job {job_id} failed: {e}")
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e), "step": "Erreur"}})

@@ -989,25 +989,51 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
         {/* === COMPETENCES TAB === */}
         <TabsContent value="competences" className="space-y-6 mt-6">
-          {/* D'CLIC Banner or Boost */}
+          {/* D'CLIC Boost Section or "Booster mon profil" visual */}
           {profile?.dclic_imported ? (
             <DclicBoostSection profile={profile} />
           ) : (
-            <Card className="bg-gradient-to-r from-indigo-600 to-blue-600 border-0 shadow-md cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-test-banner" onClick={() => window.open('/test-dclic', '_blank', 'noopener,noreferrer')}>
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-                      <Award className="w-5 h-5 text-white" />
+            <Card className="border-0 shadow-lg overflow-hidden" data-testid="dclic-boost-invite">
+              <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-6 relative">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                      <Zap className="w-7 h-7 text-yellow-300" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold text-white">Passe le test D'CLIC PRO et Boost ton profil !</h3>
-                      <p className="text-indigo-100 text-sm">Crédibilise tes compétences avec un profil personnalité validé</p>
+                      <h3 className="text-xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>Boostez votre profil avec D'CLIC PRO</h3>
+                      <p className="text-indigo-100 text-sm mt-1 max-w-lg">
+                        Découvrez votre personnalité professionnelle (MBTI, DISC, RIASEC) et valorisez vos compétences avec un profil crédibilisé par des tests reconnus.
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Badge className="bg-white/15 text-white border-0 text-xs backdrop-blur-sm"><User className="w-3 h-3 mr-1" />Personnalité</Badge>
+                        <Badge className="bg-white/15 text-white border-0 text-xs backdrop-blur-sm"><Target className="w-3 h-3 mr-1" />Orientation</Badge>
+                        <Badge className="bg-white/15 text-white border-0 text-xs backdrop-blur-sm"><Award className="w-3 h-3 mr-1" />Compétences validées</Badge>
+                        <Badge className="bg-white/15 text-white border-0 text-xs backdrop-blur-sm"><Sparkles className="w-3 h-3 mr-1" />Carte Pro</Badge>
+                      </div>
                     </div>
                   </div>
-                  <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-semibold" data-testid="dclic-test-btn" onClick={e => { e.stopPropagation(); window.open('/test-dclic', '_blank', 'noopener,noreferrer'); }}>
-                    <Play className="w-4 h-4 mr-1.5" />Passer le test
+                  <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-bold shadow-lg px-6 py-3 h-auto" data-testid="dclic-test-btn"
+                    onClick={() => window.open('/test-dclic', '_blank', 'noopener,noreferrer')}>
+                    <Play className="w-5 h-5 mr-2" />Passer le test
                   </Button>
+                </div>
+              </div>
+              <CardContent className="p-4 bg-indigo-50/50">
+                <div className="grid grid-cols-4 gap-3 text-center">
+                  {[
+                    { label: "MBTI", desc: "Type personnalité", icon: User },
+                    { label: "DISC", desc: "Style comportemental", icon: Target },
+                    { label: "RIASEC", desc: "Intérêts pro", icon: TrendingUp },
+                    { label: "Vertus", desc: "Forces motrices", icon: Award },
+                  ].map((d, i) => (
+                    <div key={i} className="p-2">
+                      <d.icon className="w-5 h-5 mx-auto text-indigo-400 mb-1" />
+                      <p className="text-xs font-bold text-indigo-700">{d.label}</p>
+                      <p className="text-[10px] text-slate-500">{d.desc}</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
