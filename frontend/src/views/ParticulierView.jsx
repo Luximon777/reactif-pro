@@ -1269,9 +1269,9 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                     <div className="relative space-y-5 before:absolute before:left-[7px] before:top-2 before:h-[calc(100%-12px)] before:w-px before:bg-slate-200" data-testid="timeline-container">
                       {(() => {
                         const sorted = [...steps].sort((a, b) => {
-                          const da = a.start_date || "9999";
-                          const db2 = b.start_date || "9999";
-                          return da.localeCompare(db2);
+                          const da = a.start_date || "0000";
+                          const db2 = b.start_date || "0000";
+                          return db2.localeCompare(da);
                         });
                         return sorted.map(step => (
                           <TimelineStepCard

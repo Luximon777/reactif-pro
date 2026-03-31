@@ -17,7 +17,7 @@ async def get_steps(token: str):
     token_doc = await get_current_token(token)
     steps = await db.trajectory_steps.find(
         {"token_id": token_doc["id"]}, {"_id": 0}
-    ).sort("start_date", 1).to_list(200)
+    ).sort("start_date", -1).to_list(200)
     return steps
 
 
