@@ -72,13 +72,14 @@ const AuthProvider = ({ children }) => {
   };
 
   // Pseudonymous registration
-  const register = async (pseudoName, password, selectedRole = "particulier", emailRecovery = null, consentMarketing = false) => {
+  const register = async (pseudoName, password, selectedRole = "particulier", emailRecovery = null, consentMarketing = false, identifiantFT = null) => {
     try {
       const response = await axios.post(`${API}/auth/register`, {
         pseudo: pseudoName,
         password,
         role: selectedRole,
         email_recovery: emailRecovery || null,
+        identifiant_france_travail: identifiantFT || null,
         consent_cgu: true,
         consent_privacy: true,
         consent_marketing: consentMarketing

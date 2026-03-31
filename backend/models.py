@@ -48,6 +48,8 @@ class Profile(BaseModel):
     # Real identity (shared when visibility_level = "limited")
     real_first_name: Optional[str] = None
     real_last_name: Optional[str] = None
+    # Identifiant France Travail
+    identifiant_france_travail: Optional[str] = None
     verified_at: Optional[str] = None
     last_identity_sync_at: Optional[str] = None
     # Entreprise fields
@@ -464,6 +466,7 @@ class RegisterRequest(BaseModel):
     password: str
     role: str = "particulier"
     email_recovery: Optional[str] = None
+    identifiant_france_travail: Optional[str] = None
     consent_cgu: bool = True
     consent_privacy: bool = True
     consent_marketing: bool = False

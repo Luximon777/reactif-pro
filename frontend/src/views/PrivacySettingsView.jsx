@@ -36,6 +36,7 @@ const PrivacySettingsView = ({ token }) => {
   const [consentMarketing, setConsentMarketing] = useState(false);
   const [realFirstName, setRealFirstName] = useState("");
   const [realLastName, setRealLastName] = useState("");
+  const [identifiantFT, setIdentifiantFT] = useState("");
 
   useEffect(() => { loadProfile(); }, [token]);
 
@@ -50,6 +51,7 @@ const PrivacySettingsView = ({ token }) => {
       setConsentMarketing(res.data.consent_marketing || false);
       setRealFirstName(res.data.real_first_name || "");
       setRealLastName(res.data.real_last_name || "");
+      setIdentifiantFT(res.data.identifiant_france_travail || "");
     } catch (err) {
       toast.error("Erreur chargement du profil");
     }
@@ -70,6 +72,7 @@ const PrivacySettingsView = ({ token }) => {
       params.append("consent_marketing", consentMarketing);
       if (realFirstName !== undefined) params.append("real_first_name", realFirstName);
       if (realLastName !== undefined) params.append("real_last_name", realLastName);
+      if (identifiantFT !== undefined) params.append("identifiant_france_travail", identifiantFT);
       await axios.put(`${API}/profile/privacy?${params.toString()}`);
       toast.success("Paramètres de confidentialité mis à jour");
       loadProfile();
@@ -223,10 +226,43 @@ const PrivacySettingsView = ({ token }) => {
                 <div>
                   <p className="text-sm font-medium text-amber-800">Levée de l'anonymat</p>
                   <p className="text-xs text-amber-700 mt-1">
-                    En choisissant le mode "Limité", vous acceptez que votre nom et prénom soient communiqués aux partenaires de parcours (Mission Locale, France Travail, APEC, etc.) qui effectuent une demande d'accès à votre profil. Vos données restent protégées et le partage est révocable à tout moment.
+                    En choisissant le mode "Limité", vous acceptez que votre nom, prénom et identifiant France Travail soient communiqués aux partenaires de parcours (Mission Locale, France Travail, APEC, etc.) qui effectuent une demande d'accès à votre profil. Vos données restent protégées et le partage est révocable à tout moment.
                   </p>
                 </div>
               </div>
+
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs font-medium text-blue-800 mb-2">Conditions requises pour être visible des partenaires :</p>
+                <div className="space-y-1">
+                  <p className="text-xs text-blue-700 flex items-center gap-1.5">
+                    {profile?.identifiant_france_travail ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> : <Info className="w-3.5 h-3.5 text-blue-400" />}
+                    Identifiant France Travail renseigné
+                  </p>
+                  <p className="text-xs text-blue-700 flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-blue-400" />
+                    Test D'CLIC PRO passé
+                  </p>
+                  <p className="text-xs text-blue-700 flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-blue-400" />
+                    Profil boosté (compétences ou passeport complété)
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ft-id">Identifiant France Travail *</Label>
+                <Input
+                  id="ft-id"
+                  placeholder="Votre identifiant France Travail"
+                  value={identifiantFT}
+                  onChange={(e) => setIdentifiantFT(e.target.value)}
+                  data-testid="ft-id-input"
+                />
+                <p className="text-xs text-slate-400">
+                  Cet identifiant permet aux conseillers et partenaires sociaux de vous retrouver
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="real-first-name">Prénom *</Label>

@@ -161,6 +161,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
   const [password, setPassword] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
   const [email, setEmail] = useState("");
+  const [identifiantFT, setIdentifiantFT] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [consentCgu, setConsentCgu] = useState(false);
   const [consentPrivacy, setConsentPrivacy] = useState(false);
@@ -172,7 +173,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
     e.preventDefault();
     if (!isValid) return;
     setLoading(true);
-    const result = await register(pseudo, password, defaultRole, email || null, false);
+    const result = await register(pseudo, password, defaultRole, email || null, false, identifiantFT || null);
     if (result.success) {
       toast.success("Compte créé avec succès !");
       onSuccess?.();
@@ -284,6 +285,27 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
         </div>
         <p className="text-xs text-slate-400 flex items-center gap-1">
           <Info className="w-3 h-3" /> Ne sera utilisé que pour la récupération de mot de passe
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="reg-ft-id" className="text-slate-700 font-medium flex items-center gap-2">
+          Identifiant France Travail
+          <Badge variant="secondary" className="text-xs font-normal">Facultatif</Badge>
+        </Label>
+        <div className="relative">
+          <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            id="reg-ft-id"
+            placeholder="Votre identifiant France Travail"
+            value={identifiantFT}
+            onChange={(e) => setIdentifiantFT(e.target.value)}
+            className="pl-10"
+            data-testid="register-ft-id-input"
+          />
+        </div>
+        <p className="text-xs text-slate-400 flex items-center gap-1">
+          <Info className="w-3 h-3" /> Permet aux partenaires sociaux de vous retrouver pour l'accompagnement
         </p>
       </div>
 

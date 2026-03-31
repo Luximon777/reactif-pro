@@ -722,33 +722,70 @@ async def search_users(token: str, query: str):
 
 
 @router.get("/partenaires/demande-acces/search")
-async def search_users_by_name(token: str, query: str):
-    """Search Re'Actif Pro users by real name — only returns users with visibility limited or public"""
+async def search_users_by_name(token: str, query: str, identifiant_ft: str = None):
+    """Search Re'Actif Pro users by identifiant France Travail + name — only returns users with visibility limited or public"""
     await get_current_token(token)
-    if len(query) < 2:
+    if len(query) < 2 and not identifiant_ft:
         return []
 
-    regex = {"$regex": query, "$options": "i"}
-    users = await db.profiles.find(
-        {
-            "role": "particulier",
-            "visibility_level": {"$in": ["limited", "public"]},
-            "$or": [
-                {"real_first_name": regex},
-                {"real_last_name": regex},
-                {"display_name": regex},
+    # Build search filter
+    filter_conditions = {
+        "role": "particulier",
+        "visibility_level": {"$in": ["limited", "public"]},
+    }
+
+    # If identifiant France Travail provided, search by it
+    if identifiant_ft and identifiant_ft.strip():
+        ft_clean = identifiant_ft.strip()
+        name_regex = {"$regex": query, "$options": "i"} if query and len(query) >= 2 else None
+
+        # Search by FT ID + name
+        if name_regex:
+            filter_conditions["identifiant_france_travail"] = {"$regex": ft_clean, "$options": "i"}
+            filter_conditions["$or"] = [
+                {"real_first_name": name_regex},
+                {"real_last_name": name_regex},
+                {"display_name": name_regex},
             ]
-        },
+        else:
+            filter_conditions["identifiant_france_travail"] = {"$regex": ft_clean, "$options": "i"}
+    else:
+        # Fallback: search by name only
+        regex = {"$regex": query, "$options": "i"}
+        filter_conditions["$or"] = [
+            {"real_first_name": regex},
+            {"real_last_name": regex},
+            {"display_name": regex},
+        ]
+
+    users = await db.profiles.find(
+        filter_conditions,
         {"_id": 0, "password_hash": 0, "email_recovery": 0}
     ).to_list(20)
 
+    # Check D'CLIC completion and profile boost for each user
     results = []
     for u in users:
         first = u.get("real_first_name") or ""
         last = u.get("real_last_name") or ""
         full_name = f"{first} {last}".strip() or u.get("display_name") or u.get("name", "Anonyme")
+
+        # Check if D'CLIC test is completed
+        tid = u.get("token_id")
+        dclic = await db.dclic_results.find_one({"token_id": tid}, {"_id": 0, "token_id": 1})
+        has_dclic = dclic is not None
+
+        # Check if profile is boosted (has skills or passport)
+        has_skills = len(u.get("skills", [])) > 0
+        passport = await db.passports.find_one({"token_id": tid}, {"_id": 0, "token_id": 1})
+        has_passport = passport is not None
+        profile_boosted = has_skills or has_passport
+
+        # User must have: visibility limited + D'CLIC done + profile boosted
+        authorized = (u.get("visibility_level") == "limited" and has_dclic and profile_boosted)
+
         results.append({
-            "token_id": u.get("token_id"),
+            "token_id": tid,
             "profile_id": u.get("id"),
             "full_name": full_name,
             "real_first_name": first,
@@ -756,9 +793,12 @@ async def search_users_by_name(token: str, query: str):
             "pseudo": u.get("pseudo"),
             "display_name": u.get("display_name"),
             "visibility_level": u.get("visibility_level"),
+            "identifiant_france_travail": u.get("identifiant_france_travail"),
             "sectors": u.get("sectors", []),
             "skills_count": len(u.get("skills", [])),
-            "authorized": u.get("visibility_level") == "limited",
+            "has_dclic": has_dclic,
+            "profile_boosted": profile_boosted,
+            "authorized": authorized,
         })
     return results
 

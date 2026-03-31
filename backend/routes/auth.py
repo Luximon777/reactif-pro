@@ -76,6 +76,7 @@ async def register_pseudo(request: RegisterRequest):
         pseudo=pseudo_clean,
         password_hash=hash_password(request.password),
         email_recovery=request.email_recovery,
+        identifiant_france_travail=request.identifiant_france_travail.strip() if request.identifiant_france_travail else None,
         auth_mode="pseudo",
         identity_level="none",
         visibility_level="private",
@@ -261,7 +262,7 @@ async def update_profile(token: str, request: UpdateProfileRequest):
 # ===== PRIVACY SETTINGS =====
 
 @router.put("/profile/privacy")
-async def update_privacy(token: str, visibility_level: str = None, display_name: str = None, bio: str = None, consent_marketing: bool = None, real_first_name: str = None, real_last_name: str = None):
+async def update_privacy(token: str, visibility_level: str = None, display_name: str = None, bio: str = None, consent_marketing: bool = None, real_first_name: str = None, real_last_name: str = None, identifiant_france_travail: str = None):
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not profile:
@@ -278,6 +279,8 @@ async def update_privacy(token: str, visibility_level: str = None, display_name:
         update["real_first_name"] = real_first_name
     if real_last_name is not None:
         update["real_last_name"] = real_last_name
+    if identifiant_france_travail is not None:
+        update["identifiant_france_travail"] = identifiant_france_travail.strip()
     if consent_marketing is not None:
         update["consent_marketing"] = consent_marketing
         consent = ConsentRecord(user_id=profile["id"], consent_type="marketing", consent_value=consent_marketing)

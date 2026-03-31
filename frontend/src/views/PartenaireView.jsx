@@ -1788,7 +1788,8 @@ const AddFreinDialog = ({ open, onOpenChange, beneficiaire, token, onAdded }) =>
 
 // ===== DEMANDE D'ACCES BENEFICIAIRE RE'ACTIF PRO =====
 const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchName, setSearchName] = useState("");
+  const [searchFT, setSearchFT] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [requesting, setRequesting] = useState(null);
@@ -1810,13 +1811,19 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
   };
 
   const handleSearch = async () => {
-    if (searchQuery.trim().length < 2) { toast.error("Minimum 2 caractères"); return; }
+    if (searchFT.trim().length < 2 && searchName.trim().length < 2) {
+      toast.error("Saisissez au minimum l'identifiant France Travail ou le nom du bénéficiaire");
+      return;
+    }
     setSearching(true);
     setSearched(true);
     try {
-      const res = await axios.get(`${API}/partenaires/demande-acces/search?token=${token}&query=${encodeURIComponent(searchQuery.trim())}`);
+      const params = new URLSearchParams({ token });
+      params.append("query", searchName.trim());
+      if (searchFT.trim()) params.append("identifiant_ft", searchFT.trim());
+      const res = await axios.get(`${API}/partenaires/demande-acces/search?${params.toString()}`);
       setResults(res.data);
-      if (res.data.length === 0) toast.info("Aucun bénéficiaire trouvé avec ce nom");
+      if (res.data.length === 0) toast.info("Aucun bénéficiaire trouvé");
     } catch { toast.error("Erreur recherche"); }
     setSearching(false);
   };
@@ -1840,7 +1847,7 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
       toast.success(`${user.full_name} synchronisé avec succès !`);
       onSynced();
       onOpenChange(false);
-      setSearchQuery(""); setResults([]); setSearched(false);
+      setSearchName(""); setSearchFT(""); setResults([]); setSearched(false);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Erreur de synchronisation");
     }
@@ -1850,26 +1857,39 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
   const getRequestStatus = (tokenId) => requestStatuses[tokenId] || null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearchQuery(""); setResults([]); setSearched(false); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearchName(""); setSearchFT(""); setResults([]); setSearched(false); } }}>
       <DialogContent className="max-w-lg" data-testid="demande-acces-dialog">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="w-5 h-5 text-[#1e3a5f]" /> Demande d'accès bénéficiaire RE'ACTIF PRO
           </DialogTitle>
-          <DialogDescription>Recherchez un utilisateur par son nom pour demander l'accès à son profil</DialogDescription>
+          <DialogDescription>Recherchez un bénéficiaire par son identifiant France Travail et/ou son nom</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Rechercher par nom..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              data-testid="demande-acces-search-input"
-            />
-            <Button onClick={handleSearch} disabled={searching} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="demande-acces-search-btn">
-              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-600">Identifiant France Travail</label>
+              <Input
+                placeholder="Identifiant France Travail du bénéficiaire"
+                value={searchFT}
+                onChange={(e) => setSearchFT(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                data-testid="demande-acces-ft-input"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-600">Nom et/ou prénom</label>
+              <Input
+                placeholder="Nom ou prénom du bénéficiaire"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                data-testid="demande-acces-name-input"
+              />
+            </div>
+            <Button onClick={handleSearch} disabled={searching} className="w-full bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="demande-acces-search-btn">
+              {searching ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Recherche en cours...</> : <><Search className="w-4 h-4 mr-1" /> Rechercher</>}
             </Button>
           </div>
 
@@ -1882,17 +1902,24 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-slate-800">{user.full_name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {user.identifiant_france_travail && <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700">FT: {user.identifiant_france_travail}</Badge>}
                           {user.pseudo && <Badge variant="secondary" className="text-[10px]">@{user.pseudo}</Badge>}
                           {user.sectors?.length > 0 && <Badge variant="outline" className="text-[10px]">{user.sectors[0]}</Badge>}
                           {user.skills_count > 0 && <span className="text-[10px] text-slate-400">{user.skills_count} compétences</span>}
                         </div>
+                        {(!user.has_dclic || !user.profile_boosted) && (
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {!user.has_dclic && <Badge className="text-[10px] bg-orange-100 text-orange-700">D'CLIC non passé</Badge>}
+                            {!user.profile_boosted && <Badge className="text-[10px] bg-orange-100 text-orange-700">Profil non boosté</Badge>}
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
                         {user.authorized ? (
                           <>
                             <Badge className="bg-green-100 text-green-700 border-green-200" data-testid={`status-authorized-${user.token_id}`}>
-                              <CheckCircle2 className="w-3 h-3 mr-1" /> Compte ouvert autorisé
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Profil vérifié
                             </Badge>
                             {!reqStatus && (
                               <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45] h-7 text-xs"
@@ -1924,8 +1951,8 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
                             )}
                           </>
                         ) : (
-                          <Badge className="bg-red-100 text-red-700 border-red-200" data-testid={`status-denied-${user.token_id}`}>
-                            <Shield className="w-3 h-3 mr-1" /> Accès non autorisé
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200" data-testid={`status-incomplete-${user.token_id}`}>
+                            <AlertTriangle className="w-3 h-3 mr-1" /> Conditions non remplies
                           </Badge>
                         )}
                       </div>
@@ -1939,8 +1966,8 @@ const DemandeAccesDialog = ({ open, onOpenChange, token, onSynced }) => {
           {searched && results.length === 0 && !searching && (
             <div className="text-center py-6">
               <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">Aucun résultat pour "{searchQuery}"</p>
-              <p className="text-xs text-slate-400 mt-1">L'utilisateur doit avoir activé le mode "Limité" dans ses paramètres de confidentialité</p>
+              <p className="text-sm text-slate-500">Aucun résultat</p>
+              <p className="text-xs text-slate-400 mt-1">Le bénéficiaire doit avoir : identifiant France Travail renseigné, mode "Limité" activé, test D'CLIC passé et profil boosté</p>
             </div>
           )}
 
