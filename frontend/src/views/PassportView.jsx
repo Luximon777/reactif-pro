@@ -42,11 +42,15 @@ import {
 
 // Configs imported from @/components/Passport/passportConfig
 
-const PassportView = ({ token }) => {
+const PassportView = ({ token, viewMode }) => {
   const [passport, setPassport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(
+    viewMode === "profil" ? "profile" :
+    viewMode === "competences" ? "competences" :
+    "profile"
+  );
   const [addCompDialogOpen, setAddCompDialogOpen] = useState(false);
   const [addExpDialogOpen, setAddExpDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -374,30 +378,46 @@ const PassportView = ({ token }) => {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-slate-100">
-          <TabsTrigger value="profile" className="text-xs sm:text-sm py-2" data-testid="passport-tab-profile">
-            <User className="w-4 h-4 mr-1 hidden sm:inline" />Profil
-          </TabsTrigger>
-          <TabsTrigger value="competences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-competences">
-            <Star className="w-4 h-4 mr-1 hidden sm:inline" />Compétences
-          </TabsTrigger>
-          <TabsTrigger value="evaluation" className="text-xs sm:text-sm py-2" data-testid="passport-tab-evaluation">
-            <Activity className="w-4 h-4 mr-1 hidden sm:inline" />Évaluation
-          </TabsTrigger>
-          <TabsTrigger value="archeologie" className="text-xs sm:text-sm py-2" data-testid="passport-tab-archeologie">
-            <Layers className="w-4 h-4 mr-1 hidden sm:inline" />Archéologie
-          </TabsTrigger>
-          <TabsTrigger value="emerging" className="text-xs sm:text-sm py-2" data-testid="passport-tab-emerging">
-            <Sparkles className="w-4 h-4 mr-1 hidden sm:inline" />Émergentes
-          </TabsTrigger>
-          <TabsTrigger value="experiences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-experiences">
-            <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />Expériences
-          </TabsTrigger>
-          <TabsTrigger value="passerelles" className="text-xs sm:text-sm py-2" data-testid="passport-tab-passerelles">
-            <Compass className="w-4 h-4 mr-1 hidden sm:inline" />Passerelles
-          </TabsTrigger>
-          <TabsTrigger value="profil_dynamique" className="text-xs sm:text-sm py-2" data-testid="passport-tab-dynamique">
-            <TrendingUp className="w-4 h-4 mr-1 hidden sm:inline" />Profil Dynamique
-          </TabsTrigger>
+          {(!viewMode || viewMode === "profil") && (
+            <TabsTrigger value="profile" className="text-xs sm:text-sm py-2" data-testid="passport-tab-profile">
+              <User className="w-4 h-4 mr-1 hidden sm:inline" />Profil
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "competences") && (
+            <TabsTrigger value="competences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-competences">
+              <Star className="w-4 h-4 mr-1 hidden sm:inline" />Inventaire
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "competences") && (
+            <TabsTrigger value="evaluation" className="text-xs sm:text-sm py-2" data-testid="passport-tab-evaluation">
+              <Activity className="w-4 h-4 mr-1 hidden sm:inline" />Évaluation
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "competences") && (
+            <TabsTrigger value="archeologie" className="text-xs sm:text-sm py-2" data-testid="passport-tab-archeologie">
+              <Layers className="w-4 h-4 mr-1 hidden sm:inline" />Archéologie
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "competences") && (
+            <TabsTrigger value="emerging" className="text-xs sm:text-sm py-2" data-testid="passport-tab-emerging">
+              <Sparkles className="w-4 h-4 mr-1 hidden sm:inline" />Émergentes
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "profil") && (
+            <TabsTrigger value="experiences" className="text-xs sm:text-sm py-2" data-testid="passport-tab-experiences">
+              <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />Expériences
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "profil") && (
+            <TabsTrigger value="passerelles" className="text-xs sm:text-sm py-2" data-testid="passport-tab-passerelles">
+              <Compass className="w-4 h-4 mr-1 hidden sm:inline" />Passerelles
+            </TabsTrigger>
+          )}
+          {(!viewMode || viewMode === "profil") && (
+            <TabsTrigger value="profil_dynamique" className="text-xs sm:text-sm py-2" data-testid="passport-tab-dynamique">
+              <TrendingUp className="w-4 h-4 mr-1 hidden sm:inline" />Profil Dynamique
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Profile Tab */}

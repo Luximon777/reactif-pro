@@ -929,14 +929,14 @@ const AccessRequestsNotifications = ({ token }) => {
 };
 
 // ===== MAIN COMPONENT =====
-const ParticulierView = ({ token, section, onOpenDclic }) => {
+const ParticulierView = ({ token, section, onOpenDclic, viewMode }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [passport, setPassport] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [learningModules, setLearningModules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("trajectoire");
+  const [activeTab, setActiveTab] = useState(viewMode || "trajectoire");
   const [steps, setSteps] = useState([]);
   const [synthesis, setSynthesis] = useState(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);
@@ -947,7 +947,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
-  const [viewMode, setViewMode] = useState("timeline");
+  const [timelineViewMode, setTimelineViewMode] = useState("timeline");
 
   useEffect(() => { loadData(); }, [token]);
 
@@ -984,7 +984,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
     }
   }, [token]);
 
-  useEffect(() => { if (activeTab === "trajectoire") loadTrajectory(); }, [activeTab, loadTrajectory]);
+  useEffect(() => { if (activeTab === "trajectoire" || viewMode === "accueil") loadTrajectory(); }, [activeTab, viewMode, loadTrajectory]);
 
   // Auto-load synthesis when steps are loaded
   useEffect(() => {
@@ -1116,9 +1116,9 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Ma Trajectoire Professionnelle
+            {viewMode === "accueil" ? "Mon Espace" : "Ma Trajectoire Professionnelle"}
           </h1>
-          <p className="text-slate-500 mt-1 text-sm">Visualisez votre parcours, valorisez vos acquis, contrôlez vos données</p>
+          <p className="text-slate-500 mt-1 text-sm">{viewMode === "accueil" ? "Votre tableau de bord personnalisé" : "Visualisez votre parcours, valorisez vos acquis, contrôlez vos données"}</p>
         </div>
         <Badge className="self-start bg-blue-100 text-[#1e3a5f] border-blue-200 px-3 py-1">
           <Shield className="w-3 h-3 mr-1" />Tiers de confiance numérique
@@ -1154,6 +1154,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
       {/* TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {!viewMode && (
         <TabsList className="w-full grid grid-cols-4 h-11 bg-slate-100 rounded-xl p-1" data-testid="main-tabs">
           <TabsTrigger value="trajectoire" className="text-xs sm:text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg" data-testid="tab-trajectoire">
             <Route className="w-4 h-4 mr-1.5 hidden sm:inline" />Trajectoire
@@ -1168,6 +1169,44 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
             <Briefcase className="w-4 h-4 mr-1.5 hidden sm:inline" />Matching
           </TabsTrigger>
         </TabsList>
+        )}
+
+        {/* === ACCUEIL OVERVIEW MODE === */}
+        {viewMode === "accueil" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6" data-testid="accueil-nav-cards">
+            {[
+              { title: "Ma Trajectoire", desc: "Visualisez votre parcours, votre frise chronologique et les insights IA", icon: Route, path: "/dashboard/trajectoire", color: "bg-[#1e3a5f]", stat: `${steps.length} étapes` },
+              { title: "Mon Profil", desc: "Identité professionnelle, personnalité, passerelles métiers", icon: Shield, path: "/dashboard/profil", color: "bg-blue-600", stat: `${displayProfile.profile_score ?? 0}% complété` },
+              { title: "Mes Compétences", desc: "Inventaire, évaluation, archéologie et compétences émergentes", icon: Zap, path: "/dashboard/competences", color: "bg-emerald-600", stat: `${allSkills.length} compétences` },
+              { title: "Le Marché", desc: "Observatoire, évolution des métiers et explorateur", icon: Brain, path: "/dashboard/marche", color: "bg-amber-600" },
+              { title: "Opportunités", desc: "Offres d'emploi compatibles et formations recommandées", icon: Briefcase, path: "/dashboard/opportunites", color: "bg-violet-600", stat: `${jobs.length} offres` },
+              { title: "Mon Coffre-fort", desc: "Documents sécurisés, candidatures et partages", icon: FolderLock, path: "/dashboard/coffre-fort", color: "bg-rose-600" },
+            ].map((item) => {
+              const NavIcon = item.icon;
+              return (
+                <Card
+                  key={item.path}
+                  className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 border-0 shadow-sm"
+                  onClick={() => window.location.href = item.path}
+                  data-testid={`nav-card-${item.path.split('/').pop()}`}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform`}>
+                        <NavIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-900 group-hover:text-[#1e3a5f] transition-colors">{item.title}</h3>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
+                        {item.stat && <span className="inline-block mt-2 text-xs font-medium text-[#1e3a5f] bg-blue-50 px-2 py-0.5 rounded-full">{item.stat}</span>}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         {/* === TRAJECTOIRE TAB === */}
         <TabsContent value="trajectoire" className="space-y-6 mt-6">
@@ -1256,7 +1295,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                         Votre historique vous appartient. Chaque audience voit uniquement le niveau d'information que vous autorisez.
                       </p>
                     </div>
-                    <Tabs value={viewMode} onValueChange={setViewMode}>
+                    <Tabs value={timelineViewMode} onValueChange={setTimelineViewMode}>
                       <TabsList className="rounded-xl">
                         <TabsTrigger value="timeline" className="rounded-xl text-xs" data-testid="view-frise-tab">Frise</TabsTrigger>
                         <TabsTrigger value="access" className="rounded-xl text-xs" data-testid="view-access-tab">Accès</TabsTrigger>
@@ -1265,7 +1304,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Tabs value={viewMode} onValueChange={setViewMode}>
+                  <Tabs value={timelineViewMode} onValueChange={setTimelineViewMode}>
                     <TabsContent value="timeline" className="mt-0">
                       <div className="grid gap-3 md:grid-cols-3" data-testid="viewer-cards">
                         {[

@@ -45,6 +45,8 @@ import ObservatoireView from "@/views/ObservatoireView";
 import EvolutionIndexView from "@/views/EvolutionIndexView";
 import PassportView from "@/views/PassportView";
 import ExplorateurView from "@/views/ExplorateurView";
+import LeMarcheView from "@/views/LeMarcheView";
+import OpportunitesView from "@/views/OpportunitesView";
 import PrivacySettingsView from "@/views/PrivacySettingsView";
 
 const Dashboard = () => {
@@ -264,14 +266,13 @@ const Dashboard = () => {
   const RoleIcon = getRoleIcon(role);
 
   const navItems = [
-    { label: "Tableau de bord", shortLabel: "Accueil", icon: Home, path: "/dashboard" },
-    { label: "Passeport", shortLabel: "Passeport", icon: Shield, path: "/dashboard/passeport", roles: ["particulier"] },
-    { label: "Coffre-fort", shortLabel: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
-    { label: "Observatoire", shortLabel: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
-    { label: "Explorateur", shortLabel: "Explorateur", icon: Layers, path: "/dashboard/explorateur" },
-    { label: "Évolution", shortLabel: "Évolution", icon: Gauge, path: "/dashboard/evolution" },
-    { label: "Job Matching", shortLabel: "Matching", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
-    { label: "Formations", shortLabel: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
+    { label: "Accueil", shortLabel: "Accueil", icon: Home, path: "/dashboard" },
+    { label: "Mon Profil", shortLabel: "Profil", icon: Shield, path: "/dashboard/profil", roles: ["particulier"] },
+    { label: "Ma Trajectoire", shortLabel: "Trajectoire", icon: Upload, path: "/dashboard/trajectoire", roles: ["particulier"] },
+    { label: "Mes Compétences", shortLabel: "Compétences", icon: Sparkles, path: "/dashboard/competences", roles: ["particulier"] },
+    { label: "Le Marché", shortLabel: "Marché", icon: Brain, path: "/dashboard/marche" },
+    { label: "Opportunités", shortLabel: "Opportunités", icon: Briefcase, path: "/dashboard/opportunites", roles: ["particulier", "entreprise"] },
+    { label: "Mon Coffre-fort", shortLabel: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
     { label: "Confidentialité", shortLabel: "Confidentialité", icon: Settings, path: "/dashboard/confidentialite" },
   ];
 
@@ -509,14 +510,20 @@ const Dashboard = () => {
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <Routes>
             <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} onOpenDclic={() => setDclicOpen(true)} />} />
-            <Route path="/passeport" element={<PassportView token={token} key={`passport-${refreshKey}`} />} />
+            <Route path="/profil" element={<PassportView token={token} viewMode="profil" key={`profil-${refreshKey}`} />} />
+            <Route path="/trajectoire" element={<ParticulierView token={token} viewMode="trajectoire" key={`trajectoire-${refreshKey}`} onOpenDclic={() => setDclicOpen(true)} />} />
+            <Route path="/competences" element={<PassportView token={token} viewMode="competences" key={`competences-${refreshKey}`} />} />
+            <Route path="/marche" element={<LeMarcheView token={token} key={`marche-${refreshKey}`} />} />
+            <Route path="/opportunites" element={<OpportunitesView token={token} key={`opportunites-${refreshKey}`} />} />
             <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
-            <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
-            <Route path="/explorateur" element={<ExplorateurView token={token} key={`explorateur-${refreshKey}`} />} />
-            <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
             <Route path="/confidentialite" element={<PrivacySettingsView token={token} key={`privacy-${refreshKey}`} />} />
-            <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
-            <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
+            {/* Legacy routes for backward compat */}
+            <Route path="/passeport" element={<Navigate to="/dashboard/profil" replace />} />
+            <Route path="/observatoire" element={<Navigate to="/dashboard/marche" replace />} />
+            <Route path="/evolution" element={<Navigate to="/dashboard/marche" replace />} />
+            <Route path="/explorateur" element={<Navigate to="/dashboard/marche" replace />} />
+            <Route path="/jobs" element={<Navigate to="/dashboard/opportunites" replace />} />
+            <Route path="/learning" element={<Navigate to="/dashboard/opportunites" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
@@ -528,13 +535,13 @@ const Dashboard = () => {
 const DashboardHome = ({ role, token, refreshKey, onOpenDclic }) => {
   switch (role) {
     case "particulier":
-      return <ParticulierView token={token} onOpenDclic={onOpenDclic} key={`particulier-${refreshKey}`} />;
+      return <ParticulierView token={token} onOpenDclic={onOpenDclic} viewMode="accueil" key={`particulier-${refreshKey}`} />;
     case "entreprise":
       return <EntrepriseView token={token} key={`entreprise-${refreshKey}`} />;
     case "partenaire":
       return <PartenaireView token={token} key={`partenaire-${refreshKey}`} />;
     default:
-      return <ParticulierView token={token} onOpenDclic={onOpenDclic} key={`default-${refreshKey}`} />;
+      return <ParticulierView token={token} onOpenDclic={onOpenDclic} viewMode="accueil" key={`default-${refreshKey}`} />;
   }
 };
 

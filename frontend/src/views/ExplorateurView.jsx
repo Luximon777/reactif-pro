@@ -176,7 +176,7 @@ const MetierFiche = ({ data, onBack, onSelectMetier }) => {
 };
 
 /* ====== VUE PRINCIPALE ====== */
-const ExplorateurView = ({ token }) => {
+const ExplorateurView = ({ token, embedded }) => {
   const [stats, setStats] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -294,6 +294,7 @@ const ExplorateurView = ({ token }) => {
   return (
     <div className="space-y-6" data-testid="explorateur-view">
       {/* Header */}
+      {!embedded && (
       <div className="text-center pt-4">
         <h2 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
           <Layers className="w-5 h-5 text-blue-600" /> Explorateur des Métiers
@@ -302,6 +303,7 @@ const ExplorateurView = ({ token }) => {
           Saisissez un métier pour découvrir sa filière, ses missions, ses compétences et remonter toute la chaîne archéologique jusqu'aux vertus fondamentales.
         </p>
       </div>
+      )}
 
       {/* Search bar - Primary entry point */}
       <form onSubmit={handleSearchSubmit} className="relative max-w-2xl mx-auto">

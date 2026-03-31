@@ -59,7 +59,7 @@ const STATUS_CONFIG = {
   en_declin: { label: "En déclin", color: "bg-amber-100 text-amber-700", icon: TrendingDown }
 };
 
-const ObservatoireView = ({ token }) => {
+const ObservatoireView = ({ token, embedded }) => {
   const [dashboard, setDashboard] = useState(null);
   const [contributions, setContributions] = useState([]);
   const [ubuntooDashboard, setUbuntooDashboard] = useState(null);
@@ -174,6 +174,7 @@ const ObservatoireView = ({ token }) => {
   return (
     <div className="space-y-6 animate-fade-in" data-testid="observatoire-view">
       {/* Header */}
+      {!embedded && (
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -318,6 +319,7 @@ const ObservatoireView = ({ token }) => {
           </DialogContent>
         </Dialog>
       </div>
+      )}
 
       {/* Key Indicators */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" data-testid="observatoire-indicators">

@@ -1,0 +1,94 @@
+{
+  "summary": "Navigation restructuring tested successfully. All 8 tabs present (Accueil, Profil, Trajectoire, Compétences, Marché, Opportunités, Coffre-fort, Confidentialité). All routes working correctly with proper viewMode filtering. Legacy redirects functional. Coffre-fort reduced to 3 tabs as expected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_58.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Navigation restructuring implemented correctly - 9 tabs reduced to 8",
+    "PassportView viewMode prop working correctly - profil mode shows only Profil/Expériences/Passerelles/Profil Dynamique tabs",
+    "PassportView viewMode prop working correctly - competences mode shows only Inventaire/Évaluation/Archéologie/Émergentes tabs",
+    "ParticulierView viewMode prop working correctly - accueil shows nav cards, trajectoire shows timeline without tab bar",
+    "LeMarcheView correctly combines Observatoire/Évolution/Explorateur into 3 sub-tabs",
+    "OpportunitesView correctly combines Matching/Formations into 2 sub-tabs",
+    "CoffreFortView correctly reduced to 3 tabs (Documents/Candidatures/Partages)",
+    "All legacy routes redirect correctly (passeport→profil, observatoire/evolution/explorateur→marche, jobs/learning→opportunites)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only test)",
+    "frontend": "100%"
+  },
+  "test_credentials": "testboost / Solerys777!",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Navigation restructuring complete. 8 tabs for particulier role: Accueil, Profil, Trajectoire, Compétences, Marché, Opportunités, Coffre-fort, Confidentialité. All viewMode props working correctly to filter visible tabs in PassportView and ParticulierView.",
+  "features_tested": {
+    "navigation_tabs": {
+      "count": 8,
+      "labels": ["Accueil", "Profil", "Trajectoire", "Compétences", "Marché", "Opportunités", "Coffre-fort", "Confidentialité"],
+      "status": "PASS"
+    },
+    "accueil_page": {
+      "mon_espace_title": "PASS",
+      "metrics_cards_count": "4 (PASS)",
+      "navigation_cards_count": "6 (PASS)",
+      "navigation_cards": ["nav-card-trajectoire", "nav-card-profil", "nav-card-competences", "nav-card-marche", "nav-card-opportunites", "nav-card-coffre-fort"],
+      "card_click_navigation": "PASS"
+    },
+    "profil_route": {
+      "url": "/dashboard/profil",
+      "visible_tabs": ["Profil", "Expériences", "Passerelles", "Profil Dynamique"],
+      "hidden_tabs": ["Inventaire", "Évaluation", "Archéologie", "Émergentes"],
+      "status": "PASS"
+    },
+    "trajectoire_route": {
+      "url": "/dashboard/trajectoire",
+      "tab_bar_hidden": true,
+      "trajectory_hero_visible": true,
+      "status": "PASS"
+    },
+    "competences_route": {
+      "url": "/dashboard/competences",
+      "visible_tabs": ["Inventaire", "Évaluation", "Archéologie", "Émergentes"],
+      "hidden_tabs": ["Profil", "Expériences", "Passerelles", "Profil Dynamique"],
+      "status": "PASS"
+    },
+    "marche_route": {
+      "url": "/dashboard/marche",
+      "sub_tabs": ["Observatoire", "Évolution", "Explorateur"],
+      "sub_tabs_count": 3,
+      "status": "PASS"
+    },
+    "opportunites_route": {
+      "url": "/dashboard/opportunites",
+      "sub_tabs": ["Matching", "Formations"],
+      "sub_tabs_count": 2,
+      "status": "PASS"
+    },
+    "coffre_fort_route": {
+      "url": "/dashboard/coffre-fort",
+      "tabs": ["Documents", "Candidatures", "Partages"],
+      "tabs_count": 3,
+      "status": "PASS"
+    },
+    "legacy_redirects": {
+      "/dashboard/passeport": {"redirects_to": "/dashboard/profil", "status": "PASS"},
+      "/dashboard/observatoire": {"redirects_to": "/dashboard/marche", "status": "PASS"},
+      "/dashboard/evolution": {"redirects_to": "/dashboard/marche", "status": "PASS"},
+      "/dashboard/explorateur": {"redirects_to": "/dashboard/marche", "status": "PASS"},
+      "/dashboard/jobs": {"redirects_to": "/dashboard/opportunites", "status": "PASS"},
+      "/dashboard/learning": {"redirects_to": "/dashboard/opportunites", "status": "PASS"}
+    }
+  }
+}

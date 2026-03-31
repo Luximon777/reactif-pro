@@ -77,7 +77,7 @@ const INDEX_LEVELS = {
   }
 };
 
-const EvolutionIndexView = ({ token }) => {
+const EvolutionIndexView = ({ token, embedded }) => {
   const [dashboard, setDashboard] = useState(null);
   const [userAnalysis, setUserAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -165,6 +165,7 @@ const EvolutionIndexView = ({ token }) => {
   return (
     <div className="space-y-6 animate-fade-in" data-testid="evolution-index-view">
       {/* Header */}
+      {!embedded && (
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -183,6 +184,7 @@ const EvolutionIndexView = ({ token }) => {
           <RefreshCw className="w-4 h-4" /> Actualiser l'analyse
         </button>
       </div>
+      )}
 
       {/* Personal Exposure Alert */}
       {userAnalysis && (

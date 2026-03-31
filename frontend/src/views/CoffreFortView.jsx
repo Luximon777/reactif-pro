@@ -557,18 +557,10 @@ const CoffreFortView = ({ token }) => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 lg:grid-cols-7 gap-1 h-auto p-1 bg-slate-100">
+        <TabsList className="grid grid-cols-3 gap-1 h-auto p-1 bg-slate-100">
           <TabsTrigger value="documents" className="text-xs sm:text-sm py-2" data-testid="tab-documents">
             <FileText className="w-4 h-4 mr-1 hidden sm:inline" />
             Documents
-          </TabsTrigger>
-          <TabsTrigger value="competences" className="text-xs sm:text-sm py-2" data-testid="tab-competences">
-            <Award className="w-4 h-4 mr-1 hidden sm:inline" />
-            Compétences
-          </TabsTrigger>
-          <TabsTrigger value="parcours" className="text-xs sm:text-sm py-2" data-testid="tab-parcours">
-            <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />
-            Parcours
           </TabsTrigger>
           <TabsTrigger value="candidatures" className="text-xs sm:text-sm py-2" data-testid="tab-candidatures">
             <Search className="w-4 h-4 mr-1 hidden sm:inline" />
@@ -577,14 +569,6 @@ const CoffreFortView = ({ token }) => {
           <TabsTrigger value="partages" className="text-xs sm:text-sm py-2" data-testid="tab-partages">
             <Share2 className="w-4 h-4 mr-1 hidden sm:inline" />
             Partages
-          </TabsTrigger>
-          <TabsTrigger value="sensibles" className="text-xs sm:text-sm py-2" data-testid="tab-sensibles">
-            <Shield className="w-4 h-4 mr-1 hidden sm:inline" />
-            Sensibles
-          </TabsTrigger>
-          <TabsTrigger value="expirants" className="text-xs sm:text-sm py-2" data-testid="tab-expirants">
-            <Clock className="w-4 h-4 mr-1 hidden sm:inline" />
-            Expirants
           </TabsTrigger>
         </TabsList>
 
