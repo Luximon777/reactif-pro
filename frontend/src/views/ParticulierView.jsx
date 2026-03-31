@@ -17,6 +17,126 @@ import { useNavigate } from "react-router-dom";
 import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
 
+// ===== D'CLIC PRO BOOST VISUAL SECTION =====
+const DclicBoostSection = ({ profile }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const dclicSkills = (profile.skills || []).filter(s => s.source === "dclic_pro");
+  const competences = profile.dclic_competences || [];
+
+  // Build dimension cards
+  const dimensions = [
+    profile.dclic_mbti && { label: "Personnalité MBTI", value: profile.dclic_mbti, color: "from-violet-500 to-purple-600", icon: User, description: "Votre type de personnalité" },
+    profile.dclic_disc_label && { label: "Profil DISC", value: profile.dclic_disc_label, color: "from-blue-500 to-cyan-600", icon: Target, description: "Votre style comportemental" },
+    profile.dclic_riasec_major && { label: "Intérêts RIASEC", value: profile.dclic_riasec_major, color: "from-emerald-500 to-teal-600", icon: TrendingUp, description: "Votre orientation professionnelle" },
+    profile.dclic_vertu_dominante && { label: "Vertu dominante", value: profile.dclic_vertu_dominante, color: "from-amber-500 to-orange-600", icon: Award, description: "Votre force motrice" },
+  ].filter(Boolean);
+
+  return (
+    <Card className="border-0 shadow-lg overflow-hidden" data-testid="dclic-boost-section">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                Profil boosté avec D'CLIC PRO
+                <CheckCircle className="w-4 h-4 text-emerald-200" />
+              </h3>
+              <p className="text-emerald-100 text-xs mt-0.5">
+                {dimensions.length} dimensions analysées — {competences.length + dclicSkills.length} compétences identifiées
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost" size="sm"
+            className="text-white/80 hover:text-white hover:bg-white/10 text-xs"
+            onClick={() => setExpanded(!expanded)}
+            data-testid="dclic-boost-toggle"
+          >
+            {expanded ? "Réduire" : "Voir le détail"}
+            <ChevronRight className={`w-3.5 h-3.5 ml-1 transition-transform ${expanded ? "rotate-90" : ""}`} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Dimension Cards — Always visible */}
+      <CardContent className="p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {dimensions.map((dim, i) => (
+            <div key={i} className={`rounded-xl bg-gradient-to-br ${dim.color} p-3 text-white shadow-md`} data-testid={`dclic-dim-${i}`}>
+              <dim.icon className="w-4 h-4 mb-1.5 opacity-80" />
+              <p className="text-lg font-bold leading-tight">{dim.value}</p>
+              <p className="text-[10px] opacity-80 mt-0.5">{dim.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Expanded: Competences + Skills */}
+        {expanded && (
+          <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
+            {/* Competences fortes */}
+            {competences.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Compétences fortes identifiées
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {competences.map((c, i) => (
+                    <Badge key={i} className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium px-2.5 py-1" data-testid={`dclic-comp-${i}`}>
+                      <Star className="w-3 h-3 mr-1 text-amber-500" /> {typeof c === "string" ? c : c.name || c.nom || JSON.stringify(c)}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Skills importés */}
+            {dclicSkills.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
+                  <BarChart3 className="w-3.5 h-3.5 text-indigo-500" /> Skills importés dans votre profil ({dclicSkills.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dclicSkills.map((s, i) => (
+                    <Badge key={i} variant="outline" className="text-xs text-indigo-700 border-indigo-200 bg-indigo-50/50">
+                      {s.name || s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* What D'CLIC changed */}
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <p className="text-xs font-semibold text-slate-600 mb-2">Ce que D'CLIC PRO a apporté à votre espace :</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  profile.dclic_mbti && "Profil de personnalité MBTI",
+                  profile.dclic_disc_label && "Analyse comportementale DISC",
+                  profile.dclic_riasec_major && "Orientation professionnelle RIASEC",
+                  profile.dclic_vertu_dominante && "Identification de votre vertu dominante",
+                  competences.length > 0 && `${competences.length} compétences fortes identifiées`,
+                  dclicSkills.length > 0 && `${dclicSkills.length} skills ajoutés à votre passeport`,
+                  "Amélioration du score d'identité professionnelle",
+                  "Meilleur ciblage du job matching",
+                ].filter(Boolean).map((item, i) => (
+                  <p key={i} className="text-xs text-slate-600 flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" /> {item}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const ParticulierView = ({ token, section, onOpenDclic }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -247,27 +367,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
       {/* D'CLIC PRO Import Banner */}
       {profile?.dclic_imported ? (
-        <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0" data-testid="dclic-banner-done">
-          <CardContent className="p-5">
-            <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-white">Profil boosté avec D'CLIC PRO</h3>
-                <p className="text-emerald-100 text-sm mb-2">Données importées avec succès dans votre espace personnel</p>
-                <div className="flex flex-wrap gap-2">
-                  {profile.dclic_mbti && <Badge className="bg-white/20 text-white border-0 text-xs">MBTI: {profile.dclic_mbti}</Badge>}
-                  {profile.dclic_disc_label && <Badge className="bg-white/20 text-white border-0 text-xs">DISC: {profile.dclic_disc_label}</Badge>}
-                  {profile.dclic_riasec_major && <Badge className="bg-white/20 text-white border-0 text-xs">RIASEC: {profile.dclic_riasec_major}</Badge>}
-                  {profile.dclic_vertu_dominante && <Badge className="bg-white/20 text-white border-0 text-xs">Vertu: {profile.dclic_vertu_dominante}</Badge>}
-                  {profile.dclic_competences?.length > 0 && <Badge className="bg-white/20 text-white border-0 text-xs">{profile.dclic_competences.length} compétences fortes</Badge>}
-                  {profile.skills?.filter(s => s.source === "dclic_pro").length > 0 && <Badge className="bg-white/20 text-white border-0 text-xs">{profile.skills.filter(s => s.source === "dclic_pro").length} skills importés</Badge>}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <DclicBoostSection profile={profile} />
       ) : (
         <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 border-0 cursor-pointer hover:shadow-lg transition-shadow" data-testid="dclic-banner" onClick={() => onOpenDclic && onOpenDclic()}>
           <CardContent className="p-5">

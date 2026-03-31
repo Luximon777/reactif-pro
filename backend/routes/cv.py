@@ -7,7 +7,7 @@ import logging
 import base64
 import io
 from datetime import datetime, timezone
-from models import CvTextPayload, CvBase64Payload, PassportCompetence, PassportExperience
+from models import CvTextPayload, CvBase64Payload, PassportCompetence, PassportExperience, CoffreDocument
 from db import db, EMERGENT_LLM_KEY
 from helpers import get_current_token, _llm_call_with_retry, _extract_text_from_bytes
 from routes.passport import calculate_completeness
@@ -678,6 +678,42 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
         except Exception as e:
             logging.warning(f"Could not recalculate profile score: {e}")
 
+        # Auto-add uploaded CV to coffre-fort
+        try:
+            existing_coffre = await db.coffre_documents.find_one({
+                "token_id": token_id,
+                "source_ref": f"cv_uploaded_{job_id}"
+            }, {"_id": 0})
+            if not existing_coffre:
+                from storage import put_object, get_mime_type
+                storage_path = f"reactif-pro/cv/{token_id}/{job_id}_{filename}"
+                mime = get_mime_type(filename)
+                put_object(storage_path, file_content, mime)
+
+                coffre_competences = []
+                for sf in skills_result.get("savoir_faire", []):
+                    n = sf.get("name", "") if isinstance(sf, dict) else str(sf)
+                    if n:
+                        coffre_competences.append(n)
+
+                coffre_doc = CoffreDocument(
+                    token_id=token_id,
+                    title=f"CV original — {filename}",
+                    category="identite_professionnelle",
+                    description="CV uploadé et analysé automatiquement",
+                    document_type="cv",
+                    file_name=filename,
+                    file_size=len(file_content),
+                    mime_type=mime,
+                    competences_liees=coffre_competences[:10],
+                    source_ref=f"cv_uploaded_{job_id}",
+                    storage_path=storage_path,
+                )
+                await db.coffre_documents.insert_one(coffre_doc.model_dump())
+                logging.info(f"Auto-added uploaded CV to coffre-fort for token {token_id}")
+        except Exception as e:
+            logging.warning(f"Could not auto-add CV to coffre-fort: {e}")
+
     except Exception as e:
         logging.error(f"CV analysis job {job_id} failed: {e}")
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e), "step": "Erreur"}})
@@ -788,6 +824,56 @@ async def generate_cv_models(token: str, request: GenerateModelRequest):
                     }},
                     upsert=True
                 )
+
+                # Auto-add generated CV to coffre-fort
+                try:
+                    source_ref = f"cv_model_{model_type}"
+                    existing = await db.coffre_documents.find_one({
+                        "token_id": token_doc["id"],
+                        "source_ref": source_ref
+                    }, {"_id": 0})
+
+                    model_labels = {
+                        "classique": "CV Classique",
+                        "competences": "CV par Compétences",
+                        "transversale": "CV Transversal",
+                        "nouvelle_generation": "CV Nouvelle Génération"
+                    }
+                    label = model_labels.get(model_type, model_type)
+
+                    from storage import put_object
+                    pdf_path = f"reactif-pro/cv-gen/{token_doc['id']}/{model_type}.pdf"
+                    docx_path = f"reactif-pro/cv-gen/{token_doc['id']}/{model_type}.docx"
+                    put_object(pdf_path, pdf_bytes, "application/pdf")
+                    put_object(docx_path, docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+                    if existing:
+                        await db.coffre_documents.update_one(
+                            {"token_id": token_doc["id"], "source_ref": source_ref},
+                            {"$set": {
+                                "storage_path": pdf_path,
+                                "file_size": len(pdf_bytes),
+                                "updated_at": datetime.now(timezone.utc).isoformat()
+                            }}
+                        )
+                    else:
+                        coffre_doc = CoffreDocument(
+                            token_id=token_doc["id"],
+                            title=f"{label} (généré par IA)",
+                            category="identite_professionnelle",
+                            description="CV optimisé généré par l'IA Ré'Actif Pro",
+                            document_type="cv_genere",
+                            file_name=f"CV_{model_type}.pdf",
+                            file_size=len(pdf_bytes),
+                            mime_type="application/pdf",
+                            source_ref=source_ref,
+                            storage_path=pdf_path,
+                        )
+                        await db.coffre_documents.insert_one(coffre_doc.model_dump())
+                    logging.info(f"Auto-added {label} to coffre-fort")
+                except Exception as e:
+                    logging.warning(f"Could not auto-add generated CV to coffre-fort: {e}")
+
             await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "progress": len(selected)}})
         except Exception as e:
             logging.error(f"CV models optimization failed: {e}")

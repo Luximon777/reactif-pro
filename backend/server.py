@@ -56,6 +56,16 @@ api_router.include_router(workflow_router)
 
 app.include_router(api_router)
 
+
+@app.on_event("startup")
+async def startup_init():
+    try:
+        from storage import init_storage
+        init_storage()
+    except Exception as e:
+        import logging
+        logging.warning(f"Storage init at startup: {e}")
+
 # Serve frontend static build if present (for OVH single-server deployment)
 frontend_build = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
 frontend_static = os.path.join(frontend_build, "static")

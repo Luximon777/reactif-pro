@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import Response
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from models import CoffreDocument, DocumentShare, CreateDocumentRequest
 from db import db
 from helpers import get_current_token
 from referentiel_data import DOCUMENT_CATEGORIES
+from storage import put_object, get_object, get_mime_type
+import uuid
 
 router = APIRouter()
 
@@ -243,7 +246,7 @@ async def transfer_cv_to_coffre(token: str, cv_type: str = "uploaded"):
             token_id=token_id,
             title=f"{label} (généré par IA)",
             category="identite_professionnelle",
-            description=f"CV optimisé généré par l'IA Re'Actif Pro",
+            description="CV optimisé généré par l'IA Re'Actif Pro",
             document_type="cv_genere",
             competences_liees=[],
             source_ref=f"cv_model_{cv_type}",
@@ -251,3 +254,82 @@ async def transfer_cv_to_coffre(token: str, cv_type: str = "uploaded"):
         await db.coffre_documents.insert_one(doc.model_dump())
         return {"message": f"{label} transféré dans le coffre-fort", "document_id": doc.id}
 
+
+
+@router.post("/coffre/upload")
+async def upload_coffre_file(
+    token: str,
+    title: str = "",
+    category: str = "documents_administratifs",
+    document_type: str = "autre",
+    description: str = "",
+    competences_liees: str = "",
+    file: UploadFile = File(...)
+):
+    token_doc = await get_current_token(token)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 10 Mo)")
+
+    filename = file.filename or "document"
+    mime = file.content_type or get_mime_type(filename)
+    file_id = str(uuid.uuid4())
+    storage_path = f"reactif-pro/coffre/{token_doc['id']}/{file_id}_{filename}"
+
+    try:
+        put_object(storage_path, file_content, mime)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
+
+    comp_list = [c.strip() for c in competences_liees.split(",") if c.strip()] if competences_liees else []
+
+    doc = CoffreDocument(
+        token_id=token_doc["id"],
+        title=title or filename,
+        category=category,
+        document_type=document_type,
+        description=description,
+        file_name=filename,
+        file_size=len(file_content),
+        mime_type=mime,
+        competences_liees=comp_list,
+        storage_path=storage_path,
+    )
+    await db.coffre_documents.insert_one(doc.model_dump())
+
+    if comp_list:
+        profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+        if profile:
+            existing_skills = [s.get("name") for s in profile.get("skills", [])]
+            new_skills = list(profile.get("skills", []))
+            for comp in comp_list:
+                if comp not in existing_skills:
+                    new_skills.append({"name": comp, "level": 50, "proven": True})
+            await db.profiles.update_one({"token_id": token_doc["id"]}, {"$set": {"skills": new_skills}})
+
+    return {"message": "Document uploadé dans le coffre-fort", "document_id": doc.id, "storage_path": storage_path}
+
+
+@router.get("/coffre/download/{document_id}")
+async def download_coffre_file(token: str, document_id: str):
+    token_doc = await get_current_token(token)
+    doc = await db.coffre_documents.find_one(
+        {"id": document_id, "token_id": token_doc["id"]},
+        {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    if not doc.get("storage_path"):
+        raise HTTPException(status_code=404, detail="Aucun fichier associé à ce document")
+
+    try:
+        data, content_type = get_object(doc["storage_path"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors du téléchargement: {str(e)}")
+
+    filename = doc.get("file_name", "document")
+    return Response(
+        content=data,
+        media_type=doc.get("mime_type", content_type),
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )

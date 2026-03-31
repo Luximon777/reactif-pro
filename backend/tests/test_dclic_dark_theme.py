@@ -11,7 +11,7 @@ import os
 import re
 from collections import Counter
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://reactif-pro-sync.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://partenaires-workflow.preview.emergentagent.com').rstrip('/')
 
 
 class TestDclicQuestionnaire:

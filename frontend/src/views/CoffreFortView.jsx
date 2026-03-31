@@ -36,7 +36,10 @@ import {
   Calendar,
   Lock,
   Unlock,
-  ChevronRight
+  ChevronRight,
+  Download,
+  Loader2,
+  File as FileIcon
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -125,6 +128,9 @@ const CoffreFortView = ({ token }) => {
     date_expiration: "",
     is_sensitive: false
   });
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -150,38 +156,72 @@ const CoffreFortView = ({ token }) => {
   };
 
   const createDocument = async () => {
-    if (!newDocument.title || !newDocument.document_type) {
-      toast.error("Veuillez remplir les champs obligatoires");
+    if (!newDocument.title && !uploadFile) {
+      toast.error("Veuillez remplir le titre ou joindre un fichier");
       return;
     }
 
+    setUploading(true);
     try {
-      const docData = {
-        ...newDocument,
-        competences_liees: newDocument.competences_liees.split(",").map(c => c.trim()).filter(Boolean)
-      };
-      
-      await axios.post(`${API}/coffre/documents?token=${token}`, docData);
+      if (uploadFile) {
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const params = new URLSearchParams({
+          token,
+          title: newDocument.title || uploadFile.name,
+          category: newDocument.category,
+          document_type: newDocument.document_type || "autre",
+          description: newDocument.description || "",
+          competences_liees: newDocument.competences_liees || ""
+        });
+        await axios.post(`${API}/coffre/upload?${params.toString()}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+      } else {
+        const docData = {
+          ...newDocument,
+          competences_liees: newDocument.competences_liees.split(",").map(c => c.trim()).filter(Boolean)
+        };
+        await axios.post(`${API}/coffre/documents?token=${token}`, docData);
+      }
       toast.success("Document ajouté au coffre-fort !");
       setCreateDialogOpen(false);
+      setUploadFile(null);
       setNewDocument({
-        title: "",
-        category: "identite_professionnelle",
-        document_type: "",
-        file_name: "",
-        date_document: "",
-        metier_associe: "",
-        secteur: "",
-        competences_liees: "",
-        description: "",
-        privacy_level: "private",
-        date_expiration: "",
-        is_sensitive: false
+        title: "", category: "identite_professionnelle", document_type: "", file_name: "",
+        date_document: "", metier_associe: "", secteur: "", competences_liees: "",
+        description: "", privacy_level: "private", date_expiration: "", is_sensitive: false
       });
       loadData();
     } catch (error) {
-      toast.error("Erreur lors de l'ajout du document");
+      toast.error(error.response?.data?.detail || "Erreur lors de l'ajout du document");
     }
+    setUploading(false);
+  };
+
+  const downloadDocument = async (doc) => {
+    if (!doc.storage_path) {
+      toast.error("Aucun fichier associé à ce document");
+      return;
+    }
+    setDownloading(doc.id);
+    try {
+      const response = await axios.get(`${API}/coffre/download/${doc.id}?token=${token}`, {
+        responseType: "blob"
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", doc.file_name || doc.title || "document");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Téléchargement lancé !");
+    } catch (error) {
+      toast.error("Erreur lors du téléchargement");
+    }
+    setDownloading(null);
   };
 
   const deleteDocument = async (docId) => {
@@ -268,6 +308,56 @@ const CoffreFortView = ({ token }) => {
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* File Upload Area */}
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Joindre un fichier</label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    uploadFile ? "border-emerald-400 bg-emerald-50" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50"
+                  }`}
+                  onClick={() => document.getElementById("coffre-file-input").click()}
+                  data-testid="file-upload-area"
+                >
+                  <input
+                    id="coffre-file-input"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.xlsx,.csv"
+                    onChange={(e) => {
+                      const f = e.target.files[0];
+                      if (f) {
+                        if (f.size > 10 * 1024 * 1024) {
+                          toast.error("Fichier trop volumineux (max 10 Mo)");
+                          return;
+                        }
+                        setUploadFile(f);
+                        if (!newDocument.title) {
+                          setNewDocument(prev => ({ ...prev, title: f.name.replace(/\.[^.]+$/, "") }));
+                        }
+                      }
+                    }}
+                  />
+                  {uploadFile ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <FileIcon className="w-5 h-5 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-700">{uploadFile.name}</span>
+                      <span className="text-xs text-slate-500">({(uploadFile.size / 1024).toFixed(0)} Ko)</span>
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={(e) => { e.stopPropagation(); setUploadFile(null); }}
+                      >
+                        <X className="w-3 h-3 text-red-500" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                      <p className="text-sm text-slate-600">Cliquez pour sélectionner un fichier</p>
+                      <p className="text-xs text-slate-400 mt-1">PDF, DOCX, TXT, Images — Max 10 Mo</p>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-medium text-slate-700">Titre du document *</label>
                 <Input
@@ -401,8 +491,8 @@ const CoffreFortView = ({ token }) => {
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={createDocument} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="submit-document-btn">
-                Ajouter au coffre-fort
+              <Button onClick={createDocument} className="bg-[#1e3a5f] hover:bg-[#152a45]" disabled={uploading} data-testid="submit-document-btn">
+                {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Upload en cours...</> : "Ajouter au coffre-fort"}
               </Button>
             </div>
           </DialogContent>
@@ -559,6 +649,8 @@ const CoffreFortView = ({ token }) => {
                   document={doc} 
                   onDelete={deleteDocument}
                   onShare={() => { setSelectedDocument(doc); setShareDialogOpen(true); }}
+                  onDownload={() => downloadDocument(doc)}
+                  downloading={downloading === doc.id}
                 />
               ))
             ) : (
@@ -833,11 +925,12 @@ const CoffreFortView = ({ token }) => {
 };
 
 // Document Card Component
-const DocumentCard = ({ document, onDelete, onShare }) => {
+const DocumentCard = ({ document, onDelete, onShare, onDownload, downloading }) => {
   const config = CATEGORY_CONFIG[document.category] || CATEGORY_CONFIG.documents_administratifs;
   const Icon = config.icon;
   const privacyConfig = PRIVACY_LEVELS[document.privacy_level] || PRIVACY_LEVELS.private;
   const PrivacyIcon = privacyConfig.icon;
+  const hasFile = !!document.storage_path;
 
   return (
     <Card className="card-interactive group" data-testid={`document-card-${document.id}`}>
@@ -847,6 +940,11 @@ const DocumentCard = ({ document, onDelete, onShare }) => {
             <Icon className={`w-5 h-5 text-${config.color}-600`} />
           </div>
           <div className="flex items-center gap-1">
+            {hasFile && (
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]">
+                <FileIcon className="w-3 h-3 mr-0.5" />Fichier
+              </Badge>
+            )}
             <Badge variant="outline" className="text-xs">
               <PrivacyIcon className="w-3 h-3 mr-1" />
               {privacyConfig.label}
@@ -877,16 +975,32 @@ const DocumentCard = ({ document, onDelete, onShare }) => {
             )}
           </div>
         )}
+
+        {document.file_name && document.file_size > 0 && (
+          <p className="text-[10px] text-slate-400 mb-2">
+            {document.file_name} — {(document.file_size / 1024).toFixed(0)} Ko
+          </p>
+        )}
         
         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
           <span className="text-xs text-slate-400">
             {document.date_document || new Date(document.created_at).toLocaleDateString('fr-FR')}
           </span>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onShare(document)}>
+          <div className="flex items-center gap-1">
+            {hasFile && (
+              <Button
+                variant="ghost" size="icon" className="h-8 w-8"
+                onClick={() => onDownload && onDownload()}
+                disabled={downloading}
+                data-testid={`download-doc-${document.id}`}
+              >
+                {downloading ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <Download className="w-4 h-4 text-emerald-600" />}
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onShare(document)}>
               <Share2 className="w-4 h-4 text-blue-600" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(document.id)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(document.id)}>
               <Trash2 className="w-4 h-4 text-red-500" />
             </Button>
           </div>
