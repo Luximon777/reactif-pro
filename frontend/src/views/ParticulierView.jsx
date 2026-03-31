@@ -1020,22 +1020,6 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
                   </Button>
                 </div>
               </div>
-              <CardContent className="p-4 bg-indigo-50/50">
-                <div className="grid grid-cols-4 gap-3 text-center">
-                  {[
-                    { label: "MBTI", desc: "Type personnalité", icon: User },
-                    { label: "DISC", desc: "Style comportemental", icon: Target },
-                    { label: "RIASEC", desc: "Intérêts pro", icon: TrendingUp },
-                    { label: "Vertus", desc: "Forces motrices", icon: Award },
-                  ].map((d, i) => (
-                    <div key={i} className="p-2">
-                      <d.icon className="w-5 h-5 mx-auto text-indigo-400 mb-1" />
-                      <p className="text-xs font-bold text-indigo-700">{d.label}</p>
-                      <p className="text-[10px] text-slate-500">{d.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
             </Card>
           )}
 
