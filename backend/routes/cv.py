@@ -670,6 +670,14 @@ Si absents, le champ suggestion_si_absent doit etre un conseil bienveillant et c
         }
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Termine"}})
         logging.info(f"CV analysis job {job_id} completed successfully")
+
+        # Recalculate profile score after CV analysis
+        try:
+            from routes.auth import recalculate_profile_score
+            await recalculate_profile_score(token_id)
+        except Exception as e:
+            logging.warning(f"Could not recalculate profile score: {e}")
+
     except Exception as e:
         logging.error(f"CV analysis job {job_id} failed: {e}")
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e), "step": "Erreur"}})

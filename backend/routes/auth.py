@@ -15,6 +15,57 @@ import re
 router = APIRouter()
 
 
+async def recalculate_profile_score(token_id: str):
+    """Recalculate profile_score based on all available data (skills, CV, passport, D'CLIC)"""
+    profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+    if not profile:
+        return 0
+
+    score = 0
+
+    # Base profile data (max 30)
+    skills = profile.get("skills", [])
+    sectors = profile.get("sectors", [])
+    exp = profile.get("experience_years", 0)
+    score += min(15, len(skills) * 3)
+    score += min(5, len(sectors) * 2)
+    score += 5 if exp > 0 else 0
+    score += 5 if profile.get("real_first_name") and profile.get("real_last_name") else 0
+
+    # CV analysis (max 25)
+    cv_count = await db.cv_analyses.count_documents({"token_id": token_id})
+    if cv_count == 0:
+        cv_count = await db.cv_jobs.count_documents({"token_id": token_id, "status": "completed"})
+    if cv_count > 0:
+        score += 25
+
+    # Passport (max 20)
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
+    if passport:
+        score += 5
+        if passport.get("professional_summary"):
+            score += 5
+        if passport.get("career_project"):
+            score += 5
+        if len(passport.get("competences", [])) > 0:
+            score += 5
+
+    # D'CLIC (max 25)
+    dclic = await db.dclic_results.find_one({"token_id": token_id}, {"_id": 0})
+    if dclic:
+        score += 25
+
+    final_score = min(100, score)
+
+    # Update in DB
+    await db.profiles.update_one(
+        {"token_id": token_id},
+        {"$set": {"profile_score": final_score}}
+    )
+
+    return final_score
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -235,6 +286,11 @@ async def get_profile(token: str):
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not profile:
         raise HTTPException(status_code=404, detail="Profil non trouvé")
+    # Recalculate profile_score if it seems stale (0 but user has data)
+    if profile.get("profile_score", 0) == 0:
+        new_score = await recalculate_profile_score(token_doc["id"])
+        if new_score > 0:
+            profile["profile_score"] = new_score
     # Never return password_hash to frontend
     profile.pop("password_hash", None)
     return profile
@@ -245,14 +301,8 @@ async def update_profile(token: str, request: UpdateProfileRequest):
     token_doc = await get_current_token(token)
     update_data = {k: v for k, v in request.model_dump().items() if v is not None}
     if update_data:
-        profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-        if profile:
-            skills_count = len(update_data.get("skills", profile.get("skills", [])))
-            sectors_count = len(update_data.get("sectors", profile.get("sectors", [])))
-            exp = update_data.get("experience_years", profile.get("experience_years", 0))
-            score = min(100, skills_count * 10 + sectors_count * 5 + (10 if exp > 0 else 0) + 30)
-            update_data["profile_score"] = score
         await db.profiles.update_one({"token_id": token_doc["id"]}, {"$set": update_data})
+        await recalculate_profile_score(token_doc["id"])
     result = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if result:
         result.pop("password_hash", None)
@@ -731,10 +781,11 @@ async def import_dclic_pro(token: str, data: DclicProImport):
             await db.evidences.insert_one(evidence.model_dump())
             imported_evidences += 1
 
-    # Recalculate completion
+    # Recalculate completion and profile score
     profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
     completion = _calc_profile_completion(profile) if profile else 0
     await db.profiles.update_one({"token_id": token_id}, {"$set": {"profile_completion": completion}})
+    await recalculate_profile_score(token_id)
 
     return {
         "message": "Profil D'CLIC PRO importé avec succès",

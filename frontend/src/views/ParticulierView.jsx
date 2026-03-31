@@ -115,8 +115,8 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
   const metrics = [
     { title: "Identité Professionnelle", value: `${displayProfile.profile_score ?? 0}%`, icon: Target, color: "blue", subtitle: "Complétude de votre profil" },
-    { title: "Job Matching", value: jobs.filter(j => j.match_score >= 60).length.toString(), icon: Briefcase, color: "emerald", subtitle: "Offres compatibles" },
-    { title: "Parcours Formation", value: learningModules.filter(m => m.progress > 0 && m.progress < 100).length.toString(), icon: BookOpen, color: "amber", subtitle: "Modules en cours" },
+    { title: "Job Matching", value: jobs.length > 0 ? (jobs.filter(j => (j.match_score || j.matching_score || 0) >= 60).length || jobs.length).toString() : "0", icon: Briefcase, color: "emerald", subtitle: jobs.filter(j => (j.match_score || j.matching_score || 0) >= 60).length > 0 ? "Offres compatibles" : "Offres disponibles" },
+    { title: "Parcours Formation", value: learningModules.length > 0 ? (learningModules.filter(m => m.progress > 0 && m.progress < 100).length || learningModules.length).toString() : "0", icon: BookOpen, color: "amber", subtitle: learningModules.filter(m => m.progress > 0 && m.progress < 100).length > 0 ? "Modules en cours" : "Formations suggérées" },
     { title: "Compétences Valorisées", value: allSkills.length.toString(), icon: Zap, color: "violet", subtitle: "Toutes sources confondues" }
   ];
 

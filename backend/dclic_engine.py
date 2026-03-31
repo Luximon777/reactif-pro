@@ -194,8 +194,8 @@ VISUAL_QUESTIONS = [
                 "id": "v1a",
                 "value": "E",
                 "label": "Retrouver des amis",
-                "image": "https://images.pexels.com/photos/5414003/pexels-photo-5414003.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "alt": "Groupe d'amis qui discutent"
+                "image": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80",
+                "alt": "Groupe d'amis qui rient ensemble"
             },
             {
                 "id": "v1b",
