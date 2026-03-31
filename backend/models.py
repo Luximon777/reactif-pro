@@ -154,6 +154,26 @@ class CandidateSearchProfile(BaseModel):
     salaire_minimum: Optional[CandidateSearchCriterion] = None
 
 
+class TrajectoryStep(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token_id: str = ""
+    step_type: str = "emploi"  # emploi, formation, stage, interim, reconversion, recherche, pause, benevolat, creation, mobilite, certification
+    title: str
+    organization: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    is_ongoing: bool = False
+    description: str = ""
+    missions: List[str] = []
+    competences: List[str] = []
+    acquis: str = ""
+    personal_note: str = ""
+    visibility: str = "private"  # private, accompagnateur, recruteur, public
+    order: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
 class CoffreDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
