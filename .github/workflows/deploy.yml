@@ -87,7 +87,13 @@ jobs:
             cat /etc/systemd/system/backend.service | head -15
             echo "EnvironmentFile check:"
             grep -c "EMERGENT_LLM_KEY" /data/app/backend/.env && echo "Key present in .env"
+            echo "=== Nginx upload & timeout fix ==="
+            echo 'client_max_body_size 20m;' > /etc/nginx/conf.d/upload_limit.conf
+            echo 'proxy_connect_timeout 120s;' > /etc/nginx/conf.d/proxy_timeout.conf
+            echo 'proxy_send_timeout 120s;' >> /etc/nginx/conf.d/proxy_timeout.conf
+            echo 'proxy_read_timeout 120s;' >> /etc/nginx/conf.d/proxy_timeout.conf
             nginx -t && systemctl reload nginx
+            echo "Nginx updated: client_max_body_size=20m, proxy_timeout=120s"
             echo "=== Test API post-deploy ==="
             sleep 3
             curl -s http://localhost:8000/api/ || echo "API test failed"
@@ -96,6 +102,4 @@ jobs:
             ps aux | grep uvicorn | grep -v grep || echo "No uvicorn process!"
             echo "=== Code version check ==="
             cd /data/app && git log --oneline -1
-            grep "override" /data/app/backend/db.py
-            grep "max_retries" /data/app/backend/helpers.py | head -1
             echo "=== DEPLOIEMENT TERMINE ==="
