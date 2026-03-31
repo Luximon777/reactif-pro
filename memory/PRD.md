@@ -58,6 +58,12 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 ### Identifiant France Travail (31/03/2026)
 - Inscription + confidentialite + recherche partenaire
 
+### Mode Compact CvAnalysisSection dans Trajectoire (31/03/2026)
+- Prop `compact` dans CvAnalysisSection: bouton upload seul, progression, resultat bref
+- Onglet Trajectoire: upload CV en haut, frise chronologique en dessous
+- Onglet Competences: mode complet inchange (audit, centres d'interet, generation CV)
+- Teste avec bob23 (5 etapes) et testboost (0 etapes)
+
 ## Backlog
 - P2: Narratif IA D'CLIC PRO
 - P2: FranceConnect
@@ -70,4 +76,4 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Iteration 51: Coffre-fort + Object Storage (Backend 19/19, Frontend 100%)
 - Iteration 52: Espace Personnel 4 onglets (Backend 33/33, Frontend 100%)
 - Iteration 53: Partage trajectoire + QR code + Carte telechargeable (Backend 14/14, Frontend 100%)
-- Iteration 54: Boost visual + Auto-fill frise CV + Audit/Centres/URL (Backend 15/15, Frontend 100%)
+- Iteration 55: Compact CV mode dans Trajectoire (Frontend 100%)
