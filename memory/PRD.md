@@ -4,7 +4,7 @@
 RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoires professionnelles, concue pour agir en complementarite des services publics, prives et des acteurs de l'accompagnement.
 
 ## Architecture
-- Frontend: React + Tailwind + Shadcn/UI + Recharts + qrcode.react + html-to-image
+- Frontend: React + Tailwind + Shadcn/UI + Recharts + qrcode.react + html-to-image + framer-motion
 - Backend: FastAPI + MongoDB (Motor async)
 - Auth: Pseudonyme anonyme (JWT) + Login pro (email/password)
 - LLM: OpenAI GPT-4o via Emergent LLM Key (emergentintegrations)
@@ -58,6 +58,18 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 ### Identifiant France Travail (31/03/2026)
 - Inscription + confidentialite + recherche partenaire
 
+### Refonte Trajectoire 2 colonnes + Insights IA (31/03/2026)
+- Header dark gradient: titre, badge, stats (coherence/etapes), boutons CV et partage
+- Layout 2 colonnes: gauche (viewers + frise), droite (sidebar insights)
+- Viewers cards: Moi/Conseiller/Recruteurs avec switches et onglets Frise/Acces
+- Frise enrichie: cartes avec gradient par type, competences, acquis, selecteur visibilite
+- Sidebar IA: narrative, competences dominantes, 5 scores coherence (progress bars)
+- Partage 3 versions: accompagnement, recrutement, publique
+- Carte confiance: "Votre parcours vous appartient"
+- Backend synthesis enrichi: scores (coherence, adaptabilite, transferabilite, continuite, alignement), competences_dominantes, analyse_narrative
+- Auto-chargement synthese IA quand etapes existent
+- Animations framer-motion
+
 ### Mode Compact CvAnalysisSection dans Trajectoire (31/03/2026)
 - Prop `compact` dans CvAnalysisSection: bouton upload seul, progression, resultat bref
 - Onglet Trajectoire: upload CV en haut, frise chronologique en dessous
@@ -77,3 +89,4 @@ RE'ACTIF PRO est une plateforme de valorisation et de securisation des trajectoi
 - Iteration 52: Espace Personnel 4 onglets (Backend 33/33, Frontend 100%)
 - Iteration 53: Partage trajectoire + QR code + Carte telechargeable (Backend 14/14, Frontend 100%)
 - Iteration 55: Compact CV mode dans Trajectoire (Frontend 100%)
+- Iteration 56: Refonte Trajectoire 2 colonnes + Insights IA (Frontend 100%)
