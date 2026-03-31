@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import axios from "axios";
 import { API } from "@/App";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +18,15 @@ import {
   ExternalLink, Upload, CheckCircle, Bell, CheckCircle2, Loader2,
   Route, Eye, EyeOff, Users, Building2, Handshake, GraduationCap,
   Trash2, Edit3, ChevronDown, ChevronUp, Lock, History, RefreshCw,
-  Lightbulb, Compass, Heart, Brain, ArrowRight
+  Lightbulb, Compass, Heart, Brain, ArrowRight, Share2, Link2, Copy,
+  Check, QrCode, Download, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
+import { QRCodeSVG } from "qrcode.react";
+import { toPng } from "html-to-image";
 
 // ===== STEP TYPE CONFIG =====
 const STEP_TYPES = {
@@ -438,6 +441,186 @@ const SynthesisSection = ({ synthesis, loading }) => {
   );
 };
 
+// ===== SHARE DIALOG =====
+const ShareDialog = ({ open, onOpenChange, token }) => {
+  const [audience, setAudience] = useState("accompagnateur");
+  const [durationDays, setDurationDays] = useState("30");
+  const [includeSynthesis, setIncludeSynthesis] = useState(true);
+  const [includeCard, setIncludeCard] = useState(true);
+  const [shareLink, setShareLink] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [existingShares, setExistingShares] = useState([]);
+
+  useEffect(() => {
+    if (open) {
+      loadShares();
+      setShareLink(null);
+      setCopied(false);
+    }
+  }, [open]);
+
+  const loadShares = async () => {
+    try {
+      const res = await axios.get(`${API}/trajectory/shares?token=${token}`);
+      setExistingShares(res.data.filter(s => s.is_active));
+    } catch {}
+  };
+
+  const generateLink = async () => {
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/trajectory/share?token=${token}`, {
+        audience,
+        duration_days: parseInt(durationDays),
+        include_synthesis: includeSynthesis,
+        include_card: includeCard
+      });
+      const baseUrl = window.location.origin;
+      setShareLink(`${baseUrl}/trajectoire/${res.data.share_id}`);
+      loadShares();
+      toast.success("Lien de partage créé !");
+    } catch (e) {
+      toast.error("Erreur lors de la création du lien");
+    }
+    setGenerating(false);
+  };
+
+  const copyLink = () => {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      toast.success("Lien copié !");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const revokeShare = async (shareId) => {
+    try {
+      await axios.delete(`${API}/trajectory/shares/${shareId}?token=${token}`);
+      toast.success("Lien désactivé");
+      loadShares();
+    } catch { toast.error("Erreur"); }
+  };
+
+  const audienceOpts = [
+    { value: "accompagnateur", label: "Accompagnateur / Conseiller", desc: "Vue complète du suivi", icon: Handshake },
+    { value: "recruteur", label: "Recruteur / Employeur", desc: "Vue adaptée candidature", icon: Building2 },
+    { value: "public", label: "Version synthétique", desc: "Vue minimale publique", icon: Eye },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Share2 className="w-5 h-5 text-[#1e3a5f]" />Partager ma trajectoire</DialogTitle>
+          <DialogDescription>Créez un lien unique adapté à votre interlocuteur</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {/* Audience selection */}
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Destinataire</label>
+            <div className="space-y-2">
+              {audienceOpts.map(opt => {
+                const OI = opt.icon;
+                const active = audience === opt.value;
+                return (
+                  <div key={opt.value}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${active ? "border-[#1e3a5f] bg-blue-50" : "border-slate-200 hover:border-slate-300"}`}
+                    onClick={() => setAudience(opt.value)}
+                    data-testid={`audience-${opt.value}`}
+                  >
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${active ? "bg-[#1e3a5f] text-white" : "bg-slate-100 text-slate-500"}`}>
+                      <OI className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-800">{opt.label}</p>
+                      <p className="text-xs text-slate-500">{opt.desc}</p>
+                    </div>
+                    {active && <CheckCircle className="w-5 h-5 text-[#1e3a5f]" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Options */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Durée de validité</label>
+              <Select value={durationDays} onValueChange={setDurationDays}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 jours</SelectItem>
+                  <SelectItem value="30">30 jours</SelectItem>
+                  <SelectItem value="90">90 jours</SelectItem>
+                  <SelectItem value="365">1 an</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-3 pt-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Switch checked={includeCard} onCheckedChange={setIncludeCard} />
+                <span className="text-xs text-slate-600">Inclure carte D'CLIC</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Switch checked={includeSynthesis} onCheckedChange={setIncludeSynthesis} />
+                <span className="text-xs text-slate-600">Inclure compétences</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Generate button */}
+          <Button onClick={generateLink} disabled={generating} className="w-full bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="generate-share-link-btn">
+            {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link2 className="w-4 h-4 mr-2" />}
+            Générer le lien de partage
+          </Button>
+
+          {/* Share Link Result */}
+          {shareLink && (
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-3 animate-in fade-in slide-in-from-top-2" data-testid="share-link-result">
+              <div className="flex items-center gap-2">
+                <Input value={shareLink} readOnly className="flex-1 text-xs bg-white" data-testid="share-link-input" />
+                <Button size="icon" variant="outline" onClick={copyLink} data-testid="copy-share-link-btn">
+                  {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <div className="flex justify-center">
+                <div className="bg-white p-3 rounded-xl shadow-sm" data-testid="qr-code-container">
+                  <QRCodeSVG value={shareLink} size={160} level="M" includeMargin={false}
+                    fgColor="#1e3a5f" bgColor="#ffffff"
+                  />
+                  <p className="text-[10px] text-center text-slate-400 mt-2">Scannez pour accéder</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Existing shares */}
+          {existingShares.length > 0 && (
+            <div className="pt-3 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-500 mb-2">Liens actifs ({existingShares.length})</p>
+              <div className="space-y-2">
+                {existingShares.slice(0, 5).map(share => (
+                  <div key={share.share_id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg text-xs">
+                    <div>
+                      <span className="font-medium text-slate-700">{share.audience === "accompagnateur" ? "Accompagnateur" : share.audience === "recruteur" ? "Recruteur" : "Public"}</span>
+                      <span className="text-slate-400 ml-2">{share.view_count} vue(s)</span>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => revokeShare(share.share_id)}>
+                      <X className="w-3 h-3 text-red-400" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // ===== ACCESS REQUESTS NOTIFICATIONS =====
 const AccessRequestsNotifications = ({ token }) => {
   const [requests, setRequests] = useState([]);
@@ -522,6 +705,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
   const [stepDialogOpen, setStepDialogOpen] = useState(false);
   const [editingStep, setEditingStep] = useState(null);
   const [autoPopulating, setAutoPopulating] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
 
@@ -746,11 +930,14 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
           </div>
 
           {/* Timeline Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
               <Route className="w-4 h-4 text-[#1e3a5f]" /> Mon parcours en étapes
             </h3>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setShareDialogOpen(true)} data-testid="share-trajectory-btn">
+                <Share2 className="w-3.5 h-3.5 mr-1.5" />Partager
+              </Button>
               <Button variant="outline" size="sm" onClick={autoPopulate} disabled={autoPopulating} data-testid="auto-populate-btn">
                 {autoPopulating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
                 Importer depuis mes données
@@ -1021,6 +1208,7 @@ const ParticulierView = ({ token, section, onOpenDclic }) => {
 
       {/* Step Form Dialog */}
       <StepFormDialog open={stepDialogOpen} onOpenChange={setStepDialogOpen} step={editingStep} token={token} onSaved={loadTrajectory} />
+      <ShareDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} token={token} />
     </div>
   );
 };

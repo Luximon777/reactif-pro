@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "@/App";
-import { ArrowLeft, ArrowRight, CheckCircle, Copy, Check, Home, ChevronRight, Calendar, GraduationCap, BookOpen, Sparkles, Info, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Copy, Check, Home, ChevronRight, Calendar, GraduationCap, BookOpen, Sparkles, Info, AlertTriangle, Download, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { QRCodeSVG } from "qrcode.react";
+import { toPng } from "html-to-image";
 
 // ============================================================================
 // TOOLTIP COMPONENT (survol pour définitions)
@@ -519,6 +521,8 @@ const OfmanSection = ({ profile }) => {
 };
 
 const CarteSection = ({ profile, accessCode }) => {
+  const cardRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
   const vp = profile.vertus_profile || {};
   const rp = profile.riasec_profile || {};
   const ia = profile.integrated_analysis || {};
@@ -527,10 +531,44 @@ const CarteSection = ({ profile, accessCode }) => {
   const n3 = ia.niveau_3_regulation || {};
   const compass = profile.compass || {};
   const today = new Date().toLocaleDateString("fr-FR");
+  const shareUrl = `${window.location.origin}/dashboard`;
+
+  const downloadCard = async () => {
+    if (!cardRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: "#1e1b4b"
+      });
+      const link = document.createElement("a");
+      link.download = `carte-dclic-pro-${accessCode || "profil"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.error("Download error:", e);
+    }
+    setDownloading(false);
+  };
+
   return (
     <div className="space-y-6">
-      <div><h3 className="text-lg font-bold text-white">Carte d'Identité Professionnelle</h3><p className="text-sm text-slate-400">Synthèse de votre profil - 4 dimensions</p></div>
-      <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl overflow-hidden shadow-xl text-white">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-white">Carte d'Identité Professionnelle</h3>
+          <p className="text-sm text-slate-400">Synthèse de votre profil - 4 dimensions</p>
+        </div>
+        <button onClick={downloadCard} disabled={downloading}
+          className="flex items-center gap-2 bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-[#4f6df5]/25 transition-all disabled:opacity-50"
+          data-testid="download-card-btn">
+          {downloading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
+          Télécharger la carte
+        </button>
+      </div>
+
+      {/* Downloadable Card */}
+      <div ref={cardRef} className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl overflow-hidden shadow-xl text-white" data-testid="identity-card">
         <div className="px-6 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-wide">PROFIL D'CLIC PRO</h2>
           <div className="text-right text-xs"><p className="font-bold text-indigo-300">RE'ACTIF PRO</p></div>
@@ -571,7 +609,12 @@ const CarteSection = ({ profile, accessCode }) => {
             <div className="flex gap-1">{[...Array(4)].map((_, i) => <div key={i} className="w-2.5 h-2.5 rounded-full bg-indigo-400" />)}</div>
             <div><p className="text-[10px] text-slate-400">PROFIL</p><p className="text-sm font-bold">{profile.mbti || "?"} - {profile.disc_label || profile.disc || "?"}</p></div>
           </div>
-          <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold">Profil vérifié</p><p className="text-[10px] text-slate-400">ID {accessCode || "---"} - {today}</p></div>
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-1.5 rounded-lg">
+              <QRCodeSVG value={shareUrl} size={48} level="M" fgColor="#1e1b4b" bgColor="#ffffff" />
+            </div>
+            <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold">Profil vérifié</p><p className="text-[10px] text-slate-400">ID {accessCode || "---"} - {today}</p></div>
+          </div>
         </div>
       </div>
       {compass.summary && (

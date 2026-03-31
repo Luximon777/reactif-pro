@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 import logging
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timezone, timedelta
 from models import TrajectoryStep
 from db import db, EMERGENT_LLM_KEY
 from helpers import get_current_token
@@ -225,3 +226,138 @@ async def get_visibility_settings(token: str):
         "partenaire": False,
         "duree_acces": "30j"
     })
+
+
+
+@router.post("/trajectory/share")
+async def create_share(token: str, share_config: dict):
+    token_doc = await get_current_token(token)
+    share_id = secrets.token_urlsafe(16)
+    audience = share_config.get("audience", "accompagnateur")
+    duration_days = share_config.get("duration_days", 30)
+    include_synthesis = share_config.get("include_synthesis", True)
+    include_card = share_config.get("include_card", True)
+
+    share_doc = {
+        "share_id": share_id,
+        "token_id": token_doc["id"],
+        "audience": audience,
+        "include_synthesis": include_synthesis,
+        "include_card": include_card,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=duration_days)).isoformat(),
+        "view_count": 0,
+        "is_active": True
+    }
+    await db.trajectory_shares.insert_one(share_doc)
+
+    return {"share_id": share_id, "expires_at": share_doc["expires_at"]}
+
+
+@router.get("/trajectory/shared/{share_id}")
+async def get_shared_trajectory(share_id: str):
+    share = await db.trajectory_shares.find_one({"share_id": share_id}, {"_id": 0})
+    if not share:
+        raise HTTPException(status_code=404, detail="Lien non trouvé ou expiré")
+    if not share.get("is_active", True):
+        raise HTTPException(status_code=410, detail="Ce lien a été désactivé")
+    if share.get("expires_at") and share["expires_at"] < datetime.now(timezone.utc).isoformat():
+        raise HTTPException(status_code=410, detail="Ce lien a expiré")
+
+    await db.trajectory_shares.update_one(
+        {"share_id": share_id}, {"$inc": {"view_count": 1}}
+    )
+
+    token_id = share["token_id"]
+    audience = share.get("audience", "accompagnateur")
+    profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+
+    vis_filter = [audience, "public"]
+    steps = await db.trajectory_steps.find(
+        {"token_id": token_id, "visibility": {"$in": vis_filter}},
+        {"_id": 0, "personal_note": 0}
+    ).sort("order", 1).to_list(200)
+
+    display_name = profile.get("real_first_name", "")
+    if profile.get("real_last_name"):
+        display_name += f" {profile['real_last_name'][0]}."
+
+    result = {
+        "display_name": display_name or profile.get("pseudo", "Utilisateur"),
+        "audience": audience,
+        "steps": steps,
+        "step_count": len(steps),
+        "created_at": share.get("created_at"),
+        "skills_count": len(profile.get("skills", [])),
+    }
+
+    if share.get("include_card") and profile.get("dclic_imported"):
+        result["card"] = {
+            "mbti": profile.get("dclic_mbti"),
+            "disc": profile.get("dclic_disc_label"),
+            "riasec": profile.get("dclic_riasec_major"),
+            "vertu": profile.get("dclic_vertu_dominante"),
+            "competences": profile.get("dclic_competences", [])[:8],
+        }
+
+    if share.get("include_synthesis"):
+        skills = [s.get("name", "") for s in profile.get("skills", [])[:10]]
+        result["skills_preview"] = skills
+        result["strengths"] = profile.get("strengths", [])
+        result["sectors"] = profile.get("sectors", [])
+
+    await db.trajectory_access_log.insert_one({
+        "token_id": token_id,
+        "share_id": share_id,
+        "audience": audience,
+        "accessed_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    return result
+
+
+@router.get("/trajectory/shares")
+async def list_shares(token: str):
+    token_doc = await get_current_token(token)
+    shares = await db.trajectory_shares.find(
+        {"token_id": token_doc["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return shares
+
+
+@router.delete("/trajectory/shares/{share_id}")
+async def revoke_share(token: str, share_id: str):
+    token_doc = await get_current_token(token)
+    result = await db.trajectory_shares.update_one(
+        {"share_id": share_id, "token_id": token_doc["id"]},
+        {"$set": {"is_active": False}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Partage non trouvé")
+    return {"message": "Lien désactivé"}
+
+
+@router.get("/trajectory/card-data")
+async def get_card_data(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+
+    dclic_result = await db.dclic_results.find_one(
+        {"claimed_by": token_doc["id"]},
+        {"_id": 0, "profile": 1, "access_code": 1}
+    )
+    if not dclic_result:
+        dclic_result = await db.dclic_results.find_one(
+            {"is_claimed": False},
+            {"_id": 0, "profile": 1, "access_code": 1}
+        )
+
+    return {
+        "profile": profile,
+        "dclic_profile": dclic_result.get("profile") if dclic_result else None,
+        "access_code": dclic_result.get("access_code") if dclic_result else None
+    }

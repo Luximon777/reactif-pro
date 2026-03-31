@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import SharedPassportPage from "@/pages/SharedPassportPage";
+import SharedTrajectoryPage from "@/pages/SharedTrajectoryPage";
 import DclicTestPage from "@/pages/DclicTestPage";
 import UbuntooPage from "@/pages/UbuntooPage";
 
@@ -229,6 +230,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/passport/shared/:shareId" element={<SharedPassportPage />} />
+            <Route path="/trajectoire/:shareId" element={<SharedTrajectoryPage />} />
             <Route path="/test-dclic" element={<DclicTestPage />} />
             <Route path="/ubuntoo" element={<UbuntooPage />} />
             <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
