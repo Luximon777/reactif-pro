@@ -31,7 +31,7 @@ import {
   User, Briefcase, GraduationCap, Sparkles, Target, Plus, RefreshCw,
   Shield, FolderLock, Brain, MessageCircle, Compass, TrendingUp,
   ChevronRight, Star, Award, BookOpen, Share2, Trash2, Zap, Edit3,
-  Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot, Link2, Copy, X
+  Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot, Link2, Copy, X, Play
 } from "lucide-react";
 import EmergingCompetenceCard from "@/components/Passport/EmergingCompetenceCard";
 import EmergingTab from "@/components/Passport/EmergingTab";
@@ -72,6 +72,7 @@ const PassportView = ({ token, viewMode }) => {
   const [shareLinks, setShareLinks] = useState([]);
   const [sharingOpen, setSharingOpen] = useState(false);
   const [creatingShare, setCreatingShare] = useState(false);
+  const [dclicProfile, setDclicProfile] = useState(null);
 
   const loadPassport = useCallback(async () => {
     try {
@@ -94,7 +95,13 @@ const PassportView = ({ token, viewMode }) => {
     setLoadingEmerging(false);
   }, [token]);
 
-  useEffect(() => { loadPassport(); loadEmerging(); }, [loadPassport, loadEmerging]);
+  useEffect(() => {
+    loadPassport();
+    loadEmerging();
+    if (viewMode === "profil") {
+      axios.get(`${API}/profile?token=${token}`).then(r => setDclicProfile(r.data)).catch(() => {});
+    }
+  }, [loadPassport, loadEmerging, token, viewMode]);
 
   const loadShareLinks = async () => {
     try {
@@ -345,6 +352,38 @@ const PassportView = ({ token, viewMode }) => {
           </Button>
         </div>
       </div>
+
+      {/* D'CLIC PRO Banner - only in profil viewMode */}
+      {viewMode === "profil" && !dclicProfile?.dclic_imported && (
+        <Card className="border-0 shadow-lg overflow-hidden" data-testid="dclic-boost-invite-profil">
+          <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-5 relative">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
+            <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                  <Zap className="w-6 h-6 text-yellow-300" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>Boostez votre profil avec D'CLIC PRO</h3>
+                  <p className="text-indigo-100 text-sm mt-1 max-w-lg">
+                    Découvrez votre personnalité professionnelle (DISC, RIASEC) et valorisez vos compétences avec un profil crédibilisé.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1 bg-white/15 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"><User className="w-3 h-3" />Personnalité</span>
+                    <span className="inline-flex items-center gap-1 bg-white/15 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"><Target className="w-3 h-3" />Orientation</span>
+                    <span className="inline-flex items-center gap-1 bg-white/15 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"><Award className="w-3 h-3" />Compétences validées</span>
+                    <span className="inline-flex items-center gap-1 bg-white/15 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"><Sparkles className="w-3 h-3" />Carte Pro</span>
+                  </div>
+                </div>
+              </div>
+              <Button className="bg-white text-indigo-700 hover:bg-indigo-50 shrink-0 text-sm font-bold shadow-lg px-6 py-3 h-auto" data-testid="dclic-test-btn-profil"
+                onClick={() => window.open('/test-dclic', '_blank', 'noopener,noreferrer')}>
+                <Play className="w-5 h-5 mr-2" />Passer le test
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Completeness + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
