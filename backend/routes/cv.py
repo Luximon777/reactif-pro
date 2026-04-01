@@ -9,7 +9,7 @@ import io
 from datetime import datetime, timezone
 from models import CvTextPayload, CvBase64Payload, PassportCompetence, PassportExperience, CoffreDocument
 from db import db, EMERGENT_LLM_KEY
-from helpers import get_current_token, _llm_call_with_retry, _extract_text_from_bytes
+from helpers import get_current_token, _llm_call_with_retry, _extract_text_from_bytes, _ocr_pdf_with_vision
 from routes.passport import calculate_completeness
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from pydantic import BaseModel
@@ -450,6 +450,10 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
             cv_text = file_content.decode("utf-8", errors="ignore")
         else:
             cv_text = _extract_text_from_bytes(file_content, filename)
+        # OCR fallback for scanned PDFs
+        if (not cv_text or len(cv_text) < 50) and filename.lower().endswith(".pdf"):
+            await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "PDF scanné détecté — OCR en cours..."}})
+            cv_text = await _ocr_pdf_with_vision(file_content, filename)
         if not cv_text or len(cv_text) < 50:
             await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
             return

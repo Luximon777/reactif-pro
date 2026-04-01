@@ -63,15 +63,17 @@ def _extract_text_from_bytes(content: bytes, filename: str) -> str:
             for page in reader.pages:
                 text += (page.extract_text() or "") + "\n"
         except Exception as e:
-            logging.warning(f"PyPDF2 failed for {filename}: {e}, trying pdfplumber")
+            logging.warning(f"PyPDF2 failed for {filename}: {e}")
+        # Fallback: try PyMuPDF text extraction
+        if not text.strip():
             try:
-                import pdfplumber
-                with pdfplumber.open(io.BytesIO(content)) as pdf:
-                    for page in pdf.pages:
-                        text += (page.extract_text() or "") + "\n"
+                import fitz
+                doc = fitz.open(stream=content, filetype="pdf")
+                for page in doc:
+                    text += (page.get_text() or "") + "\n"
+                doc.close()
             except Exception as e2:
-                logging.warning(f"pdfplumber also failed for {filename}: {e2}")
-                text = content.decode("utf-8", errors="ignore")
+                logging.warning(f"PyMuPDF text also failed: {e2}")
     elif filename.lower().endswith((".docx", ".doc")):
         try:
             import docx
@@ -84,6 +86,32 @@ def _extract_text_from_bytes(content: bytes, filename: str) -> str:
     else:
         text = content.decode("utf-8", errors="ignore")
     return text.strip()
+
+
+async def _ocr_pdf_with_vision(content: bytes, filename: str) -> str:
+    """OCR fallback for scanned PDFs using GPT-5.2 with PDF file input."""
+    import base64
+    from emergentintegrations.llm.chat import FileContent
+    if not EMERGENT_LLM_KEY:
+        logging.warning("No LLM key for OCR")
+        return ""
+    try:
+        pdf_b64 = base64.b64encode(content).decode("utf-8")
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"ocr-{uuid.uuid4()}",
+            system_message="Tu es un expert en OCR et extraction de texte. Extrais TOUT le texte visible de ce CV PDF. Retranscris fidèlement le contenu texte, en conservant la structure (titres, dates, postes, compétences, formations, coordonnées). Ne commente pas, retourne uniquement le texte brut extrait."
+        ).with_model("openai", "gpt-5.2")
+        response = await chat.send_message(UserMessage(
+            text="Extrais tout le texte de ce CV PDF scanné. Retranscris fidèlement tout le contenu visible :",
+            file_contents=[FileContent(content_type="application/pdf", file_content_base64=pdf_b64)]
+        ))
+        result_text = response.strip() if isinstance(response, str) else response.text.strip()
+        logging.info(f"OCR PDF extraction for {filename}: {len(result_text)} chars extracted")
+        return result_text
+    except Exception as e:
+        logging.error(f"OCR vision failed for {filename}: {e}")
+        return ""
 
 
 async def calculate_match_with_ai(profile_skills: List[str], job_requirements: List[str], profile_sectors: List[str], job_sector: str) -> Dict[str, Any]:
