@@ -1105,7 +1105,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode }) => {
 
   const metrics = [
     { title: "Identité Pro", value: `${displayProfile.profile_score ?? 0}%`, icon: Target, color: "blue", subtitle: "Complétude profil" },
-    { title: "Job Matching", value: jobs.length > 0 ? (jobs.filter(j => (j.match_score || j.matching_score || 0) >= 60).length || jobs.length).toString() : "0", icon: Briefcase, color: "emerald", subtitle: "Offres disponibles" },
+    { title: "Job Matching", value: jobs.filter(j => (j.match_score || j.matching_score || 0) >= 60).length.toString(), icon: Briefcase, color: "emerald", subtitle: "Offres compatibles" },
     { title: "Compétences", value: allSkills.length.toString(), icon: Zap, color: "violet", subtitle: "Toutes sources" },
     { title: "Parcours", value: steps.length.toString(), icon: Route, color: "amber", subtitle: "Étapes tracées" }
   ];
@@ -1179,7 +1179,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode }) => {
               { title: "Mon Profil", desc: "Identité professionnelle, personnalité, passerelles métiers", icon: Shield, path: "/dashboard/profil", color: "bg-blue-600", stat: `${displayProfile.profile_score ?? 0}% complété` },
               { title: "Mes Compétences", desc: "Inventaire, évaluation, archéologie et compétences émergentes", icon: Zap, path: "/dashboard/competences", color: "bg-emerald-600", stat: `${allSkills.length} compétences` },
               { title: "Le Marché", desc: "Observatoire, évolution des métiers et explorateur", icon: Brain, path: "/dashboard/marche", color: "bg-amber-600" },
-              { title: "Opportunités", desc: "Offres d'emploi compatibles et formations recommandées", icon: Briefcase, path: "/dashboard/opportunites", color: "bg-violet-600", stat: `${jobs.length} offres` },
+              { title: "Opportunités", desc: "Offres d'emploi compatibles et formations recommandées", icon: Briefcase, path: "/dashboard/opportunites", color: "bg-violet-600", stat: `${jobs.filter(j => (j.match_score || j.matching_score || 0) >= 60).length} offres` },
               { title: "Mon Coffre-fort", desc: "Documents sécurisés, candidatures et partages", icon: FolderLock, path: "/dashboard/coffre-fort", color: "bg-rose-600" },
             ].map((item) => {
               const NavIcon = item.icon;

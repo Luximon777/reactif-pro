@@ -42,7 +42,9 @@ async def recalculate_profile_score(token_id: str):
     # Passport (max 20)
     passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0})
     if passport:
-        score += 5
+        has_content = bool(passport.get("professional_summary") or passport.get("career_project") or len(passport.get("competences", [])) > 0 or len(passport.get("experiences", [])) > 0)
+        if has_content:
+            score += 5
         if passport.get("professional_summary"):
             score += 5
         if passport.get("career_project"):
