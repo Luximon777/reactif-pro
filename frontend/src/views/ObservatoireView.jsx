@@ -813,9 +813,9 @@ const ObservatoireView = ({ token, embedded }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {sector_trends.flatMap(trend => 
+                    {sector_trends.flatMap((trend, ti) => 
                       (trend.predicted_skills_demand || []).map((pred, idx) => (
-                        <PredictionCard key={`${trend.sector_name}-${idx}`} prediction={pred} sector={trend.sector_name} />
+                        <PredictionCard key={`ref-${ti}-${idx}`} prediction={pred} sector={trend.sector_name} />
                       ))
                     )}
                   </div>
@@ -852,9 +852,9 @@ const ObservatoireView = ({ token, embedded }) => {
 
                 {/* Global predictions as fallback */}
                 <div className="space-y-3">
-                  {sector_trends.flatMap(trend => 
+                  {sector_trends.flatMap((trend, ti) => 
                     (trend.predicted_skills_demand || []).map((pred, idx) => (
-                      <PredictionCard key={`${trend.sector_name}-${idx}`} prediction={pred} sector={trend.sector_name} />
+                      <PredictionCard key={`global-${ti}-${idx}`} prediction={pred} sector={trend.sector_name} />
                     ))
                   )}
                 </div>
