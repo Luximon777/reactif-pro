@@ -727,32 +727,140 @@ const ObservatoireView = ({ token, embedded }) => {
           <UbuntooIntelligenceTab data={ubuntooDashboard} />
         </TabsContent>
 
-        {/* Predictions Tab */}
+        {/* Predictions Tab - Personalized */}
         <TabsContent value="predictions" className="space-y-4">
-          <Card className="card-base">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Compass className="w-5 h-5 text-[#1e3a5f]" />
-                Prévisions de Demande en Compétences
-              </CardTitle>
-              <CardDescription>
-                Anticipez les besoins futurs du marché du travail
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {sector_trends.flatMap(trend => 
-                  (trend.predicted_skills_demand || []).map((pred, idx) => (
-                    <PredictionCard 
-                      key={`${trend.sector_name}-${idx}`} 
-                      prediction={pred} 
-                      sector={trend.sector_name} 
-                    />
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {personalizedData?.sector_relevance?.length > 0 ? (
+            <>
+              {/* Personalized predictions based on user profile */}
+              <Card className="card-base border-indigo-200 bg-indigo-50/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-indigo-600" />
+                    Prédictions personnalisées pour votre profil
+                  </CardTitle>
+                  <CardDescription>
+                    Basées sur vos {personalizedData.user_skills_count} compétences analysées et {personalizedData.sector_relevance.length} secteurs identifiés
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* User's relevant sectors with their emerging skills */}
+                  {personalizedData.sector_relevance.map((sr, idx) => (
+                    <div key={idx} className="p-4 rounded-lg border border-indigo-100 bg-white space-y-3" data-testid={`personalized-sector-${idx}`}>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-slate-900 text-sm">{sr.sector}</h4>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`text-[10px] ${sr.hiring_trend === "croissance" ? "bg-emerald-100 text-emerald-700" : sr.hiring_trend === "stable" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
+                            {sr.hiring_trend === "croissance" ? "Embauches en hausse" : sr.hiring_trend === "stable" ? "Stable" : "Recul"}
+                          </Badge>
+                          {sr.skill_gap_alert && (
+                            <Badge className="text-[10px] bg-rose-100 text-rose-700">Alerte compétences</Badge>
+                          )}
+                        </div>
+                      </div>
+                      {(sr.your_emerging_skills || []).length > 0 && (
+                        <div>
+                          <p className="text-xs text-emerald-600 font-medium mb-1">Vos compétences émergentes dans ce secteur :</p>
+                          <div className="flex flex-wrap gap-1">
+                            {sr.your_emerging_skills.map((sk, j) => (
+                              <Badge key={j} className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">{sk}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {(sr.your_declining_skills || []).length > 0 && (
+                        <div>
+                          <p className="text-xs text-rose-600 font-medium mb-1">Compétences en déclin :</p>
+                          <div className="flex flex-wrap gap-1">
+                            {sr.your_declining_skills.map((sk, j) => (
+                              <Badge key={j} className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200">{sk}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Skill gaps with high priority */}
+                  {personalizedData.skill_gaps?.filter(g => g.priority === "haute").length > 0 && (
+                    <div className="mt-4 p-4 rounded-lg border border-amber-200 bg-amber-50/50">
+                      <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Compétences prioritaires à acquérir
+                      </h4>
+                      <div className="space-y-2">
+                        {personalizedData.skill_gaps.filter(g => g.priority === "haute").slice(0, 5).map((gap, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border border-amber-100">
+                            <div>
+                              <span className="text-sm font-medium text-slate-800">{gap.skill_name}</span>
+                              <span className="text-xs text-slate-500 ml-2">{(gap.related_sectors || []).slice(0, 2).join(", ")}</span>
+                            </div>
+                            <Badge className="bg-amber-100 text-amber-700 text-xs">Priorité haute</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Global market predictions as reference */}
+              <Card className="card-base">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Compass className="w-4 h-4 text-slate-500" />
+                    Tendances globales du marché (référence)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {sector_trends.flatMap(trend => 
+                      (trend.predicted_skills_demand || []).map((pred, idx) => (
+                        <PredictionCard key={`${trend.sector_name}-${idx}`} prediction={pred} sector={trend.sector_name} />
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card className="card-base">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-[#1e3a5f]" />
+                  Prévisions de Demande en Compétences
+                </CardTitle>
+                <CardDescription>
+                  Anticipez les besoins futurs du marché du travail
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Prompt to load personalized predictions */}
+                <Card className="border-dashed border-2 border-indigo-200 bg-indigo-50/30">
+                  <CardContent className="p-4 flex flex-col items-center gap-3">
+                    <Sparkles className="w-8 h-8 text-indigo-400" />
+                    <p className="text-sm text-slate-600 text-center">Chargez vos prédictions personnalisées pour voir les tendances adaptées à votre profil</p>
+                    <Button
+                      onClick={loadPersonalized}
+                      disabled={loadingPersonalized}
+                      className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+                      data-testid="load-predictions-personalized-btn"
+                    >
+                      {loadingPersonalized ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyse en cours...</> : "Personnaliser mes prédictions"}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Global predictions as fallback */}
+                <div className="space-y-3">
+                  {sector_trends.flatMap(trend => 
+                    (trend.predicted_skills_demand || []).map((pred, idx) => (
+                      <PredictionCard key={`${trend.sector_name}-${idx}`} prediction={pred} sector={trend.sector_name} />
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* My Contributions Tab */}

@@ -78,37 +78,8 @@ async def validate_competence(token: str, comp_id: str, request: ValidateCompete
     return {"status": "ok", "decision": request.decision}
 
 
-@router.get("/emerging/observatory")
-async def get_observatory_data(token: str):
-    """Dashboard data for emerging competences observatory"""
-    await get_current_token(token)
-
-    pipeline_top = [
-        {"$match": {"score_emergence": {"$gte": 31}}},
-        {"$sort": {"score_emergence": -1}},
-        {"$limit": 20},
-        {"$project": {"_id": 0, "nom_principal": 1, "categorie": 1, "score_emergence": 1, "niveau_emergence": 1, "secteurs_porteurs": 1}}
-    ]
-    top = await db.emerging_competences.aggregate(pipeline_top).to_list(20)
-
-    pipeline_cat = [
-        {"$match": {"score_emergence": {"$gte": 31}}},
-        {"$group": {"_id": "$categorie", "count": {"$sum": 1}, "avg_score": {"$avg": "$score_emergence"}}},
-        {"$sort": {"count": -1}}
-    ]
-    by_category = await db.emerging_competences.aggregate(pipeline_cat).to_list(10)
-
-    pipeline_level = [
-        {"$group": {"_id": "$niveau_emergence", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}}
-    ]
-    by_level = await db.emerging_competences.aggregate(pipeline_level).to_list(10)
-
-    return {
-        "top_emerging": top,
-        "by_category": [{"categorie": r["_id"], "count": r["count"], "avg_score": round(r.get("avg_score", 0))} for r in by_category],
-        "by_level": [{"level": r["_id"], "count": r["count"]} for r in by_level],
-    }
+# NOTE: /emerging/observatory route is defined in observatoire.py (personalized version)
+# It cross-references user CV skills with market trends for a personalized response
 
 
 @router.get("/emerging/market-correlation")

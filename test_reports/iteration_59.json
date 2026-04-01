@@ -1,0 +1,86 @@
+{
+  "summary": "Tested Observatoire personalized features (Prédictions and Détectées CV tabs). All features working correctly. Backend APIs return personalized data. Frontend displays personalized predictions with sectors, emerging/declining skills, and global market trends reference section.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Prédictions tab",
+        "issues": ["React key warning: duplicate keys for sector predictions (Informatique-0, Administration-0, Commerce-0) - minor code quality issue, doesn't affect functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_observatoire_personalized.py",
+    "/app/test_reports/pytest/pytest_observatoire_personalized.xml"
+  ],
+  "action_items": [
+    "MINOR: Fix React key warning in ObservatoireView.jsx - use unique keys for PredictionCard components (lines 816-820, 855-858)"
+  ],
+  "critical_code_review_comments": [
+    "Prédictions tab correctly shows 'Personnaliser mes prédictions' button by default",
+    "After clicking button, personalized predictions load with sectors, emerging skills (green badges), and declining skills (red badges)",
+    "'Tendances globales du marché (référence)' section appears below personalized predictions as expected",
+    "Détectées CV tab correctly shows 4 personalized emerging skills for testboost user with scores and categories",
+    "GET /api/emerging/observatory returns top_emerging, by_category, by_level - all personalized to user's CV",
+    "GET /api/observatoire/personalized returns sector_relevance with your_emerging_skills and your_declining_skills"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_observatoire_personalized.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": "testboost / Solerys777!, bob30 / Solerys777!",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Observatoire personalized features fully tested. testboost user has 28 skills analyzed, 4 CV-detected emerging skills, 6 sector relevance entries. bob30 user has 3 CV-detected emerging skills. Both endpoints /api/emerging/observatory and /api/observatoire/personalized working correctly with GPT-5.2 AI analysis.",
+  "features_tested": {
+    "backend": {
+      "GET /api/observatoire/dashboard": "PASS - Returns emerging_skills, sector_trends, indicators",
+      "GET /api/emerging/observatory?token=TOKEN": "PASS - Returns personalized top_emerging (4 for testboost), by_category, by_level",
+      "GET /api/observatoire/personalized?token=TOKEN": "PASS - Returns sector_relevance with your_emerging_skills, your_declining_skills, matches, skill_gaps",
+      "GET /api/observatoire/predictions": "PASS - Returns global predictions list",
+      "GET /api/observatoire/sector-trends": "PASS - Returns sector trends with transformation_index"
+    },
+    "frontend": {
+      "Prédictions tab initial state": "PASS - Shows 'Personnaliser mes prédictions' button with global predictions below",
+      "Prédictions tab after personalization": "PASS - Shows personalized sectors with emerging/declining skills, hiring trends, alerts",
+      "Tendances globales du marché section": "PASS - Appears below personalized predictions as reference",
+      "Détectées CV tab": "PASS - Shows 4 personalized emerging skills with scores (65, 58, 57, 54), categories, and levels",
+      "Navigation to Le Marché > Observatoire": "PASS - All 7 inner tabs visible (Vue d'ensemble, Compétences, Secteurs, Signaux Ubuntoo, Prédictions, Contributions, Détectées CV)"
+    }
+  },
+  "personalized_data_verified": {
+    "testboost_user": {
+      "user_skills_count": 28,
+      "cv_detected_emerging": 4,
+      "sector_relevance_count": 6,
+      "matches": 6,
+      "skill_gaps": 10,
+      "declining_alerts": 2,
+      "top_emerging_skills": [
+        "Social Selling (score: 65, category: technique)",
+        "Conception de parcours d'insertion personnalisés (score: 58, category: methodologique)",
+        "Orientation vers l'offre de formation (score: 57, category: sectorielle)",
+        "Animation et facilitation de dynamiques de groupe (score: 54, category: soft_skill_avancee)"
+      ],
+      "sectors_with_personalized_data": [
+        "Insertion professionnelle (France Travail, Missions Locales, PLIE, IAE) - Embauches en hausse",
+        "Collectivités territoriales / guichets de proximité - Stable",
+        "Action sociale / médico-social - Embauches en hausse"
+      ]
+    },
+    "bob30_user": {
+      "cv_detected_emerging": 3,
+      "sector_relevance_count": 6,
+      "matches": 5
+    }
+  }
+}
