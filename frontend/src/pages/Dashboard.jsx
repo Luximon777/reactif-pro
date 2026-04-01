@@ -48,6 +48,7 @@ import ExplorateurView from "@/views/ExplorateurView";
 import LeMarcheView from "@/views/LeMarcheView";
 import OpportunitesView from "@/views/OpportunitesView";
 import PrivacySettingsView from "@/views/PrivacySettingsView";
+import CoachVirtuel from "@/components/CoachVirtuel";
 
 const Dashboard = () => {
   const { token, role, profileId, switchRole, logout, authMode, pseudo } = useAuth();
@@ -528,6 +529,11 @@ const Dashboard = () => {
           </Routes>
         </div>
       </main>
+
+      {/* Coach Virtuel - only for particulier role */}
+      {role === "particulier" && token && (
+        <CoachVirtuel token={token} onOpenDclic={() => setDclicOpen(true)} />
+      )}
     </div>
   );
 };

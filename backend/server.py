@@ -20,6 +20,7 @@ from routes.dclic import router as dclic_router
 from routes.partenaires import router as partenaires_router
 from routes.workflow import router as workflow_router
 from routes.trajectory import router as trajectory_router
+from routes.coach import router as coach_router
 
 app = FastAPI(title="Re'Actif Pro API")
 
@@ -55,6 +56,7 @@ api_router.include_router(dclic_router)
 api_router.include_router(partenaires_router)
 api_router.include_router(workflow_router)
 api_router.include_router(trajectory_router)
+api_router.include_router(coach_router)
 
 app.include_router(api_router)
 
