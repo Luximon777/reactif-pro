@@ -2206,11 +2206,15 @@ Structure exacte:
   "profile": {"professional_summary": "2-3 phrases", "career_project": "string", "motivations": [], "compatible_environments": [], "target_sectors": []},
   "savoir_faire": [{"name": "string", "category": "technique|transversale|transferable|sectorielle", "level": "debutant|intermediaire|avance|expert", "ccsp_pole": "realisation|interaction|initiative", "ccsp_degree": "imitation|adaptation|transposition"}],
   "savoir_etre": [{"name": "string", "category": "transversale|transferable", "level": "debutant|intermediaire|avance|expert", "linked_qualites": [], "linked_valeurs": [], "linked_vertus": []}],
-  "competences_transversales": [],
-  "competences_transferables": [],
+  "competences_transversales": ["liste de compétences transversales identifiées"],
+  "competences_transferables": ["liste de compétences transférables identifiées"],
   "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "skills_used": [], "achievements": []}],
-  "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}]
+  "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
+  "offres_emploi": [{"title": "string", "company_type": "string", "sector": "string", "contract_type": "CDI|CDD|Freelance", "salary_range": "string", "location": "France", "required_skills": [], "match_score": 75, "description": "courte description du poste"}],
+  "strengths": ["points forts du candidat"],
+  "gaps": ["lacunes ou axes d'amélioration"]
 }
+Pour offres_emploi: génère 5-8 offres d'emploi réalistes et pertinentes correspondant au profil du CV. Inclus des postes variés (même métier dans différents contextes, évolutions possibles, reconversions accessibles).
 Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
 Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
             user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
@@ -2289,9 +2293,43 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
         if profile_data.get("target_sectors") and not passport.get("target_sectors"):
             update_fields["target_sectors"] = profile_data["target_sectors"]
 
+        # Save competences transversales and transferables to passport
+        ct = analysis.get("competences_transversales", [])
+        ctf = analysis.get("competences_transferables", [])
+        if ct:
+            update_fields["competences_transversales"] = ct
+        if ctf:
+            update_fields["competences_transferables"] = ctf
+
+        # Save offres d'emploi to passport
+        offres = analysis.get("offres_emploi", [])
+        if offres:
+            update_fields["offres_emploi"] = offres
+
         merged = {**passport, **update_fields}
         update_fields["completeness_score"] = calculate_completeness(merged)
         await db.passports.update_one({"token_id": token_id}, {"$set": update_fields})
+
+        # Update user profile with strengths, gaps, and skills from analysis
+        profile_update = {}
+        strengths = analysis.get("strengths", ct)
+        gaps = analysis.get("gaps", [])
+        if strengths:
+            profile_update["strengths"] = strengths
+        if gaps:
+            profile_update["gaps"] = gaps
+        # Build skills list from savoir_faire
+        skills_from_cv = []
+        for sf in analysis.get("savoir_faire", []):
+            level_map = {"debutant": 30, "intermediaire": 55, "avance": 75, "expert": 90}
+            skills_from_cv.append({"name": sf.get("name", ""), "level": level_map.get(sf.get("level", "intermediaire"), 55)})
+        if skills_from_cv:
+            profile_update["skills"] = skills_from_cv
+        if profile_data.get("target_sectors"):
+            profile_update["sectors"] = profile_data["target_sectors"]
+        if profile_update:
+            profile_update["profile_score"] = update_fields.get("completeness_score", 0)
+            await db.profiles.update_one({"token_id": token_id}, {"$set": profile_update})
 
         # Store result in job
         result = {
@@ -2303,6 +2341,9 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             "formations_suggestions": analysis.get("formations_suggestions", []),
             "competences_transversales": analysis.get("competences_transversales", []),
             "competences_transferables": analysis.get("competences_transferables", []),
+            "offres_emploi": analysis.get("offres_emploi", []),
+            "strengths": analysis.get("strengths", analysis.get("competences_transversales", [])),
+            "gaps": analysis.get("gaps", []),
             "cv_models_generated": list(cv_models.keys()),
             "completeness_score": update_fields.get("completeness_score", 0),
         }
@@ -2433,6 +2474,20 @@ async def get_cv_models(token: str):
         "analyzed_at": cv_data.get("analyzed_at"),
         "original_filename": cv_data.get("original_filename"),
     }
+
+
+@api_router.get("/cv/last-analysis")
+async def get_last_cv_analysis(token: str):
+    """Get the most recent completed CV analysis result for this user"""
+    token_doc = await get_current_token(token)
+    job = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    if not job or not job.get("result"):
+        return {"has_analysis": False, "result": None}
+    return {"has_analysis": True, "result": job["result"]}
 
 
 # ============== REFERENTIEL & ARCHÉOLOGIE DES COMPÉTENCES ==============

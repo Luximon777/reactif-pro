@@ -507,6 +507,7 @@ const CvAnalysisSection = ({ token, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadError, setUploadError] = useState(null);
   const [serverStep, setServerStep] = useState("");
+  const [loadingPrevious, setLoadingPrevious] = useState(true);
 
   const STEPS = [
     { at: 0, label: "Envoi du fichier...", icon: FileText },
@@ -515,12 +516,13 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     { at: 15, label: "Détection des savoir-être...", icon: Star },
     { at: 22, label: "Analyse des compétences transversales...", icon: Target },
     { at: 30, label: "Identification des besoins de formation...", icon: BookOpen },
-    { at: 40, label: "Génération du CV Classique...", icon: FileText },
-    { at: 50, label: "Génération du CV Compétences...", icon: Zap },
-    { at: 58, label: "Génération du CV Fonctionnel...", icon: Target },
-    { at: 65, label: "Génération du CV Mixte...", icon: Briefcase },
-    { at: 72, label: "Remplissage du Passeport...", icon: Award },
-    { at: 80, label: "Finalisation de l'analyse...", icon: CheckCircle2 },
+    { at: 38, label: "Génération des offres d'emploi...", icon: Briefcase },
+    { at: 45, label: "Génération du CV Classique...", icon: FileText },
+    { at: 53, label: "Génération du CV Compétences...", icon: Zap },
+    { at: 60, label: "Génération du CV Fonctionnel...", icon: Target },
+    { at: 67, label: "Génération du CV Mixte...", icon: Briefcase },
+    { at: 75, label: "Remplissage du Passeport...", icon: Award },
+    { at: 85, label: "Finalisation de l'analyse...", icon: CheckCircle2 },
   ];
 
   useEffect(() => {
@@ -540,12 +542,26 @@ const CvAnalysisSection = ({ token, onComplete }) => {
     return () => clearInterval(timer);
   }, [uploading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load previous analysis and CV models on mount
   useEffect(() => {
-    axios.get(`${API}/cv/models?token=${token}`).then(res => {
-      if (res.data.models && Object.keys(res.data.models).length > 0) {
-        setCvModels(res.data);
+    const loadPreviousData = async () => {
+      try {
+        const [modelsRes, analysisRes] = await Promise.all([
+          axios.get(`${API}/cv/models?token=${token}`),
+          axios.get(`${API}/cv/last-analysis?token=${token}`)
+        ]);
+        if (modelsRes.data.models && Object.keys(modelsRes.data.models).length > 0) {
+          setCvModels(modelsRes.data);
+        }
+        if (analysisRes.data.has_analysis && analysisRes.data.result) {
+          setAnalysisResult(analysisRes.data.result);
+        }
+      } catch (err) {
+        console.error("Error loading previous CV data:", err);
       }
-    }).catch(() => {});
+      setLoadingPrevious(false);
+    };
+    loadPreviousData();
   }, [token]);
 
   const pollForResult = async (jobId) => {
@@ -699,6 +715,12 @@ const CvAnalysisSection = ({ token, onComplete }) => {
 
   return (
     <div className="space-y-4">
+      {loadingPrevious && (
+        <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          Chargement des analyses précédentes...
+        </div>
+      )}
       {/* Upload Zone */}
       <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
         {!uploading && (
@@ -808,8 +830,8 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               <p className="text-[10px] text-slate-500">Expériences</p>
             </div>
             <div className="bg-white rounded-lg p-2">
-              <p className="text-xl font-bold text-emerald-600">{analysisResult.formations_suggestions?.length || 0}</p>
-              <p className="text-[10px] text-slate-500">Formations suggérées</p>
+              <p className="text-xl font-bold text-emerald-600">{analysisResult.offres_emploi?.length || analysisResult.formations_suggestions?.length || 0}</p>
+              <p className="text-[10px] text-slate-500">Offres d'emploi</p>
             </div>
           </div>
           {/* Transversal competences */}
@@ -819,6 +841,60 @@ const CvAnalysisSection = ({ token, onComplete }) => {
               <div className="flex flex-wrap gap-1">
                 {analysisResult.competences_transversales.map((c, i) => (
                   <span key={i} className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Transferable competences */}
+          {analysisResult.competences_transferables?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-blue-700 mb-1">Compétences transférables :</p>
+              <div className="flex flex-wrap gap-1">
+                {analysisResult.competences_transferables.map((c, i) => (
+                  <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Strengths */}
+          {analysisResult.strengths?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-green-700 mb-1">Points forts :</p>
+              <div className="flex flex-wrap gap-1">
+                {analysisResult.strengths.map((s, i) => (
+                  <span key={i} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Gaps */}
+          {analysisResult.gaps?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-amber-700 mb-1">Axes d'amélioration :</p>
+              <div className="flex flex-wrap gap-1">
+                {analysisResult.gaps.map((g, i) => (
+                  <span key={i} className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{g}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Job offers */}
+          {analysisResult.offres_emploi?.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-indigo-700 mb-1">Offres d'emploi correspondantes :</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {analysisResult.offres_emploi.slice(0, 6).map((o, i) => (
+                  <div key={i} className="bg-white rounded-lg p-2 border border-indigo-100">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-semibold text-slate-800">{o.title}</p>
+                      <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">{o.match_score}%</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">{o.company_type} — {o.sector}</p>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                      {o.contract_type && <span>{o.contract_type}</span>}
+                      {o.salary_range && <span>{o.salary_range}</span>}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
