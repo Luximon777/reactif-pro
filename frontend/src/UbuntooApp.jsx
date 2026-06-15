@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 
-const API = process.env.REACT_APP_API_URL || "https://reactif.pro/api";
+const API = process.env.REACT_APP_BACKEND_URL + "/api";
 
 // ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
