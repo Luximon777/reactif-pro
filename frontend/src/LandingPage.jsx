@@ -1,16 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { Settings, Code, Eye, Compass, Building2, MapPin, Lightbulb, Users, Rocket, Briefcase, HeartHandshake } from "lucide-react";
 
-/* ─── Logo SVG (people silhouettes in blue circle) ─── */
+/* ─── Logo SVG (person icon in blue circle — matching reactif.pro) ─── */
 const LogoSvg = ({ size = 40 }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-    <circle cx="50" cy="50" r="48" fill="#E8F0FE" stroke="#C5D9F5" strokeWidth="1"/>
-    <circle cx="50" cy="30" r="10" fill="#5B8DD9"/>
-    <path d="M30 68 C30 52 70 52 70 68" stroke="#5B8DD9" strokeWidth="4" fill="none" strokeLinecap="round"/>
-    <circle cx="27" cy="44" r="7" fill="#5B8DD9" opacity="0.6"/>
-    <path d="M14 72 C14 60 40 60 40 72" stroke="#5B8DD9" strokeWidth="3" fill="none" opacity="0.6" strokeLinecap="round"/>
-    <circle cx="73" cy="44" r="7" fill="#5B8DD9" opacity="0.6"/>
-    <path d="M60 72 C60 60 86 60 86 72" stroke="#5B8DD9" strokeWidth="3" fill="none" opacity="0.6" strokeLinecap="round"/>
+    <circle cx="50" cy="50" r="48" fill="#4B83D6"/>
+    <circle cx="50" cy="35" r="12" fill="white"/>
+    <rect x="30" y="54" rx="10" width="40" height="22" fill="white"/>
+    <circle cx="26" cy="48" r="7" fill="white" opacity="0.6"/>
+    <rect x="14" y="58" rx="6" width="24" height="14" fill="white" opacity="0.6"/>
+    <circle cx="74" cy="48" r="7" fill="white" opacity="0.6"/>
+    <rect x="62" y="58" rx="6" width="24" height="14" fill="white" opacity="0.6"/>
   </svg>
 );
 
@@ -38,10 +38,10 @@ const AccessCard = ({ icon: Icon, iconBg, title, desc, items, onClick }) => (
       ))}
     </ul>
     <button
-      className="w-full py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mt-auto"
-      style={{ borderColor: "#D4A843", color: "#D4A843", background: "transparent" }}
-      onMouseEnter={(e) => { e.target.style.background = "#D4A843"; e.target.style.color = "#fff"; }}
-      onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = "#D4A843"; }}
+      className="w-full py-2.5 rounded-lg text-sm font-semibold border transition-colors mt-auto"
+      style={{ borderColor: "#CBD5E1", color: "#64748B", background: "transparent" }}
+      onMouseEnter={(e) => { e.target.style.background = "#3B82F6"; e.target.style.color = "#fff"; e.target.style.borderColor = "#3B82F6"; }}
+      onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = "#64748B"; e.target.style.borderColor = "#CBD5E1"; }}
     >
       Accéder
     </button>
