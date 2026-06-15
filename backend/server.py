@@ -4135,6 +4135,122 @@ async def set_gate_state(body: GateStateRequest):
     )
     return {"spaces_open": body.spaces_open}
 
+# ============== COACH PROGRESS ==============
+
+@api_router.get("/coach/progress")
+async def get_coach_progress(token: str):
+    token_doc = await get_current_token(token)
+    progress = await db.coach_progress.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not progress:
+        # Return default progress with 4 steps
+        return {
+            "completed": 0, "total": 4,
+            "steps": [
+                {"id": "cv", "label": "Importer votre CV", "description": "Rendez-vous dans Trajectoire > Mon CV pour déposer votre fichier.",
+                 "completed": False, "action_type": "navigate", "action_path": "/dashboard", "action_label": "Aller dans Trajectoire > Mon CV",
+                 "badge": "En cours"},
+                {"id": "valoriser", "label": "Me valoriser — Prouver mes Soft Skills", "description": "Documentez vos compétences comportementales avec des exemples concrets.",
+                 "completed": False, "action_type": "navigate", "action_path": "/dashboard"},
+                {"id": "boost", "label": "Booster avec D'CLIC PRO", "description": "Passez le test D'CLIC PRO pour identifier vos forces cachées.",
+                 "completed": False, "action_type": "dclic"},
+                {"id": "trajectoire", "label": "Tracer votre trajectoire", "description": "Construisez votre frise de parcours professionnel.",
+                 "completed": False, "action_type": "navigate", "action_path": "/dashboard"},
+            ],
+            "message": "Bienvenue ! Pour commencer, rendez-vous dans l'onglet Trajectoire puis cliquez sur le sous-onglet Mon CV pour déposer votre fichier. L'IA analysera vos expériences et construira automatiquement votre profil."
+        }
+    return progress
+
+@api_router.post("/coach/chat")
+async def coach_chat(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    user_msg = body.get("message", "")
+    return {
+        "response": f"Je suis le Coach RE'ACTIF. Vous avez demandé : \"{user_msg}\". Pour commencer votre parcours, je vous recommande d'importer votre CV dans l'onglet Trajectoire. Cela permettra à l'IA d'analyser vos compétences automatiquement.",
+        "suggestions": ["Importer mon CV", "Comprendre les étapes", "Voir mes compétences"]
+    }
+
+# ============== TRAJECTORY ==============
+
+@api_router.get("/trajectory/steps")
+async def get_trajectory_steps(token: str):
+    token_doc = await get_current_token(token)
+    steps = await db.trajectory_steps.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(500)
+    return steps
+
+@api_router.post("/trajectory/steps")
+async def create_trajectory_step(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    step = {
+        "id": str(uuid.uuid4()), "token_id": token_doc["id"],
+        "title": body.get("title", ""), "description": body.get("description", ""),
+        "type": body.get("type", "experience"), "start_date": body.get("start_date"),
+        "end_date": body.get("end_date"), "organization": body.get("organization", ""),
+        "skills": body.get("skills", []), "visibility": body.get("visibility", "private"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.trajectory_steps.insert_one(step)
+    return step
+
+@api_router.put("/trajectory/steps/{step_id}")
+async def update_trajectory_step(step_id: str, token: str, body: dict):
+    token_doc = await get_current_token(token)
+    update_fields = {k: v for k, v in body.items() if k not in ["id", "token_id", "_id"]}
+    await db.trajectory_steps.update_one(
+        {"id": step_id, "token_id": token_doc["id"]},
+        {"$set": update_fields}
+    )
+    return {"status": "ok"}
+
+@api_router.delete("/trajectory/steps/{step_id}")
+async def delete_trajectory_step(step_id: str, token: str):
+    token_doc = await get_current_token(token)
+    await db.trajectory_steps.delete_one({"id": step_id, "token_id": token_doc["id"]})
+    return {"status": "ok"}
+
+@api_router.get("/trajectory/visibility-settings")
+async def get_visibility_settings(token: str):
+    token_doc = await get_current_token(token)
+    settings = await db.visibility_settings.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not settings:
+        return {"default_visibility": "private", "share_with_coach": False, "share_with_recruiter": False}
+    return settings
+
+@api_router.put("/trajectory/visibility-settings")
+async def update_visibility_settings(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    body["token_id"] = token_doc["id"]
+    await db.visibility_settings.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": body},
+        upsert=True
+    )
+    return {"status": "ok"}
+
+# ============== NOTIFICATIONS ==============
+
+@api_router.get("/notifications")
+async def get_notifications(token: str, limit: int = 15):
+    token_doc = await get_current_token(token)
+    notifs = await db.notifications.find(
+        {"token_id": token_doc["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    return notifs
+
+@api_router.get("/notifications/access-requests")
+async def get_access_requests(token: str):
+    token_doc = await get_current_token(token)
+    requests = await db.access_requests.find(
+        {"token_id": token_doc["id"]}, {"_id": 0}
+    ).to_list(50)
+    return requests
+
+# ============== PASSPORT ENRICH ==============
+
+@api_router.get("/passport/enrich")
+async def passport_enrich(token: str):
+    token_doc = await get_current_token(token)
+    return {"status": "ok", "enriched": False, "message": "Aucune donnée à enrichir pour le moment"}
+
 # ============== ROUTES RE'ACTIF PRO ==============
 
 class ContactRequest(BaseModel):
