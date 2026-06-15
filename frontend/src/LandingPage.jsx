@@ -30,10 +30,10 @@ const AccessCard = ({ icon: Icon, iconBg, title, desc, items, onClick }) => (
       ))}
     </ul>
     <button
-      className="w-full py-2.5 rounded-lg text-sm font-semibold border transition-colors mt-auto"
-      style={{ borderColor: "#CBD5E1", color: "#64748B", background: "transparent" }}
-      onMouseEnter={(e) => { e.target.style.background = "#3B82F6"; e.target.style.color = "#fff"; e.target.style.borderColor = "#3B82F6"; }}
-      onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = "#64748B"; e.target.style.borderColor = "#CBD5E1"; }}
+      className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-auto text-white"
+      style={{ background: "linear-gradient(90deg, #5f47ff, #4776ff)" }}
+      onMouseEnter={(e) => { e.target.style.opacity = "0.9"; e.target.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={(e) => { e.target.style.opacity = "1"; e.target.style.transform = "none"; }}
     >
       Accéder
     </button>
@@ -122,7 +122,7 @@ export default function LandingPage() {
       </header>
 
       {/* ═══════ HERO ═══════ */}
-      <section className="flex flex-col items-center justify-center py-16 px-4" style={{ background: "#2D3A5C", minHeight: "380px" }} data-testid="hero-section">
+      <section className="flex flex-col items-center justify-center py-16 px-4" style={{ background: "linear-gradient(135deg, #1a4ba8 0%, #1E2A4F 100%)", minHeight: "380px" }} data-testid="hero-section">
         {/* White logo card */}
         <div className="bg-white rounded-2xl shadow-xl px-10 py-6 flex items-center justify-center mb-8">
           <LogoImg height={90} />
