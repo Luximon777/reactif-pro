@@ -8,7 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
@@ -19,7 +18,6 @@ import {
   Briefcase,
   BookOpen,
   LogOut,
-  ChevronDown,
   Sparkles,
   Menu,
   X,
@@ -28,10 +26,18 @@ import {
   Brain,
   Gauge,
   Shield,
-  Layers
+  Layers,
+  Upload,
+  CheckCircle2,
+  CheckCircle,
+  CalendarDays,
+  Eye,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 // Dashboard Views
 import ParticulierView from "@/views/ParticulierView";
@@ -39,18 +45,42 @@ import EntrepriseView from "@/views/EntrepriseView";
 import PartenaireView from "@/views/PartenaireView";
 import CoffreFortView from "@/views/CoffreFortView";
 import ObservatoireView from "@/views/ObservatoireView";
+import OpcView from "@/views/OpcView";
 import EvolutionIndexView from "@/views/EvolutionIndexView";
 import PassportView from "@/views/PassportView";
 import ExplorateurView from "@/views/ExplorateurView";
+import LeMarcheView from "@/views/LeMarcheView";
+import OpportunitesView from "@/views/OpportunitesView";
+import JobDatingView from "@/views/JobDatingView";
+import PrivacySettingsView from "@/views/PrivacySettingsView";
+import NotificationsHistoryView from "@/views/NotificationsHistoryView";
+import VsiView from "@/views/VsiView";
+import CoachVirtuel from "@/components/CoachVirtuel";
+import NotificationBell from "@/components/NotificationBell";
 
 const Dashboard = () => {
-  const { token, role, switchRole, logout } = useAuth();
+  const { token, role, profileId, switchRole, logout, authMode, pseudo, adminStatus, isReadOnly } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [dataSeeded, setDataSeeded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [dclicImported, setDclicImported] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      axios.get(`${API}/profile?token=${token}`).then(r => {
+        setDclicImported(!!r.data?.dclic_imported);
+      }).catch(() => {});
+      // Post-auth redirect (e.g. from Observatoire card)
+      const postRedirect = localStorage.getItem("reactif_post_redirect");
+      if (postRedirect) {
+        localStorage.removeItem("reactif_post_redirect");
+        navigate(postRedirect);
+      }
+    }
+  }, [token, refreshKey, navigate]);
 
   useEffect(() => {
     // Seed database on first load
@@ -60,7 +90,6 @@ const Dashboard = () => {
         try {
           await axios.post(`${API}/seed`);
           sessionStorage.setItem('reactif_seeded', 'true');
-          setRefreshKey(prev => prev + 1);
         } catch (error) {
           console.log("Seed completed or already seeded");
         }
@@ -83,7 +112,135 @@ const Dashboard = () => {
     toast.info("Déconnexion réussie");
   };
 
+  const [dclicOpen, setDclicOpen] = useState(false);
+  const [dclicImporting, setDclicImporting] = useState(false);
+  const [dclicCode, setDclicCode] = useState("");
+  const [dclicPreview, setDclicPreview] = useState(null);
+  const [dclicProgress, setDclicProgress] = useState(0);
+  const [dclicProgressLabel, setDclicProgressLabel] = useState("");
+
+  const handleDclicRetrieve = async () => {
+    if (!dclicCode.trim()) return;
+    setDclicImporting(true);
+    setDclicPreview(null);
+    try {
+      const res = await axios.post(`${API}/dclic/retrieve`, { access_code: dclicCode.trim() });
+      setDclicPreview(res.data.profile);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Code introuvable");
+    }
+    setDclicImporting(false);
+  };
+
+  const handleDclicImport = async () => {
+    if (isReadOnly) { toast.info("Mode lecture seule — action non disponible pour les invités"); return; }
+    if (!dclicPreview) return;
+
+    setDclicImporting(true);
+    setDclicProgress(0);
+    setDclicProgressLabel("Analyse du profil D'CLIC PRO...");
+
+    const steps = [
+      { pct: 15, label: "Lecture du profil comportemental...", delay: 800 },
+      { pct: 30, label: "Import des compétences RIASEC...", delay: 700 },
+      { pct: 45, label: "Intégration du profil (version inspirée du MBTI) / DISC...", delay: 600 },
+      { pct: 60, label: "Chargement des vertus et valeurs...", delay: 700 },
+      { pct: 75, label: "Enrichissement de l'espace personnel...", delay: 800 },
+      { pct: 85, label: "Mise à jour du diagnostic...", delay: 600 },
+    ];
+
+    for (const step of steps) {
+      await new Promise(r => setTimeout(r, step.delay));
+      setDclicProgress(step.pct);
+      setDclicProgressLabel(step.label);
+    }
+
+    const payload = {
+      target_job: "",
+      city: "",
+      summary: "",
+      mobility: "departement",
+      contract_types: [],
+      work_modes: [],
+      skills:
+        dclicPreview.competences_fortes?.map((c) => ({
+          name: c,
+          category: "comportementale",
+          declared_level: 4,
+          status: "declaree",
+        })) || [],
+      experiences: [],
+      evidences: [
+        {
+          title: "Test D'CLIC PRO",
+          kind: "attestation",
+          source: `Code: ${dclicCode.trim()}`,
+        },
+      ],
+      dclic_profile: dclicPreview,
+    };
+
+    try {
+      setDclicProgress(90);
+      setDclicProgressLabel("Sauvegarde des données...");
+
+      const importRes = await axios.post(
+        `${API}/profile/import-dclic?token=${encodeURIComponent(token)}`,
+        payload
+      );
+
+      setDclicProgress(95);
+      setDclicProgressLabel("Validation du code...");
+
+      let claimError = null;
+
+      try {
+        await axios.post(
+          `${API}/dclic/claim?access_code=${encodeURIComponent(dclicCode.trim())}&user_id=${encodeURIComponent(profileId || "")}`
+        );
+      } catch (e) {
+        claimError = e?.response?.data?.detail || e.message || "Erreur de validation du code";
+        console.error("Erreur claim D'CLIC PRO:", e);
+      }
+
+      setDclicProgress(100);
+      setDclicProgressLabel("Import terminé !");
+      await new Promise(r => setTimeout(r, 800));
+
+      if (claimError) {
+        toast.success(
+          `Profil importé avec succès. Complétion : ${importRes.data.profile_completion}%`
+        );
+        toast.error(`Le profil a bien été importé, mais le code n'a pas pu être validé : ${claimError}`);
+      } else {
+        toast.success(
+          `Profil D'CLIC PRO importé avec succès ! Complétion : ${importRes.data.profile_completion}%`
+        );
+      }
+
+      setDclicOpen(false);
+      setDclicCode("");
+      setDclicPreview(null);
+      setRefreshKey((prev) => prev + 1);
+    } catch (e) {
+      console.error("Erreur import D'CLIC PRO:", e);
+
+      const detail =
+        e?.response?.data?.detail ||
+        e?.response?.data?.message ||
+        e.message ||
+        "Erreur lors de l'import";
+
+      toast.error(detail);
+    } finally {
+      setDclicImporting(false);
+      setDclicProgress(0);
+      setDclicProgressLabel("");
+    }
+  };
+
   const handleSeedDatabase = async () => {
+    if (isReadOnly) { toast.info("Mode lecture seule — action non disponible pour les invités"); return; }
     setIsSeeding(true);
     try {
       await axios.post(`${API}/seed`);
@@ -98,6 +255,7 @@ const Dashboard = () => {
   const getRoleLabel = (r) => {
     const labels = {
       particulier: "Espace Personnel",
+      vsi: "Parcours VSI",
       entreprise: "Espace Employeurs",
       partenaire: "Espace Partenaires"
     };
@@ -107,6 +265,7 @@ const Dashboard = () => {
   const getRoleIcon = (r) => {
     const icons = {
       particulier: Users,
+      vsi: Sparkles,
       entreprise: Building2,
       partenaire: Handshake
     };
@@ -116,6 +275,7 @@ const Dashboard = () => {
   const getRoleColor = (r) => {
     const colors = {
       particulier: "bg-blue-100 text-blue-700 border-blue-200",
+      vsi: "bg-amber-100 text-amber-700 border-amber-200",
       entreprise: "bg-emerald-100 text-emerald-700 border-emerald-200",
       partenaire: "bg-violet-100 text-violet-700 border-violet-200"
     };
@@ -125,14 +285,21 @@ const Dashboard = () => {
   const RoleIcon = getRoleIcon(role);
 
   const navItems = [
-    { label: "Tableau de bord", icon: Home, path: "/dashboard" },
-    { label: "Passeport", icon: Shield, path: "/dashboard/passeport", roles: ["particulier"] },
-    { label: "Coffre-fort", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
-    { label: "Observatoire", icon: Brain, path: "/dashboard/observatoire" },
-    { label: "Explorateur", icon: Layers, path: "/dashboard/explorateur" },
-    { label: "Indice Évolution", icon: Gauge, path: "/dashboard/evolution" },
-    { label: "Emplois", icon: Briefcase, path: "/dashboard/jobs", roles: ["particulier", "entreprise"] },
-    { label: "Formations", icon: BookOpen, path: "/dashboard/learning", roles: ["particulier"] },
+    { label: "Accueil", shortLabel: "Accueil", icon: Home, path: "/dashboard" },
+    { label: "Mon Profil", shortLabel: "Profil", icon: Shield, path: "/dashboard/profil", roles: ["particulier"] },
+    { label: "Ma Trajectoire", shortLabel: "Trajectoire", icon: Upload, path: "/dashboard/trajectoire", roles: ["particulier"] },
+    { label: "Mes Compétences", shortLabel: "Compétences", icon: Sparkles, path: "/dashboard/competences", roles: ["particulier"] },
+    // VSI nav
+    { label: "Mon Parcours VSI", shortLabel: "Parcours", icon: Sparkles, path: "/dashboard/vsi", roles: ["vsi"] },
+    { label: "Mon Diagnostic", shortLabel: "Diagnostic", icon: Brain, path: "/dashboard/vsi/diagnostic", roles: ["vsi"] },
+    { label: "Plan d'Action", shortLabel: "Plan", icon: CheckCircle, path: "/dashboard/vsi/plan", roles: ["vsi"] },
+    { label: "Portefeuille Certifié", shortLabel: "Portefeuille", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["vsi"] },
+    // Shared
+    { label: "Le Marché", shortLabel: "Marché", icon: Brain, path: "/dashboard/marche" },
+    { label: "Opportunités", shortLabel: "Opportunités", icon: Briefcase, path: "/dashboard/opportunites", roles: ["particulier", "entreprise", "vsi"] },
+    { label: "Job Dating", shortLabel: "Job Dating", icon: CalendarDays, path: "/dashboard/job-dating", roles: ["particulier", "vsi"] },
+    { label: "Portefeuille Certifié", shortLabel: "Portefeuille", icon: FolderLock, path: "/dashboard/coffre-fort", roles: ["particulier"] },
+    { label: "Confidentialité", shortLabel: "Confidentialité", icon: Settings, path: "/dashboard/confidentialite" },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.roles || item.roles.includes(role));
@@ -142,88 +309,149 @@ const Dashboard = () => {
       {/* Top Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo & Nav */}
-            <div className="flex items-center gap-8">
-              <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
-                <LogoReactifPro size="md" />
-              </div>
-              
-              {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-1">
-                {filteredNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className={`px-4 ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:text-slate-900"}`}
-                      onClick={() => navigate(item.path)}
-                      data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                    >
-                      <Icon className="w-4 h-4 mr-2" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </nav>
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => navigate("/dashboard")}>
+              <LogoReactifPro size="md" />
             </div>
 
             {/* Right Side */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* User pseudo */}
+              {pseudo && (
+                <span className="hidden sm:inline text-sm font-medium text-slate-700" data-testid="user-pseudo-display">
+                  {pseudo}
+                </span>
+              )}
+
+              {/* Auth Mode Badge */}
+              {adminStatus && adminStatus !== "user" && (
+                <Badge className={`hidden sm:inline-flex text-xs ${
+                  adminStatus === "admin" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                  adminStatus === "programmeur" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                  "bg-amber-50 text-amber-700 border-amber-200"
+                }`} data-testid="admin-status-badge">
+                  {adminStatus === "admin" ? <Shield className="w-3 h-3 mr-1" /> : adminStatus === "programmeur" ? <Layers className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {adminStatus === "admin" ? "Admin" : adminStatus === "programmeur" ? "Dev" : ""}
+                </Badge>
+              )}
+
               {/* Ubuntoo Link */}
-              <a
-                href="https://cv-analyzer-53.preview.emergentagent.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:flex"
-                data-testid="ubuntoo-link"
-              >
-                <Button variant="outline" className="border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 hover:border-teal-300 gap-2">
-                  <img
-                    src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
-                    alt="Ubuntoo"
-                    className="h-5 w-auto"
-                  />
-                  <span className="hidden lg:inline">Espace Ubuntoo</span>
-                </Button>
-              </a>
+              {role === "particulier" && <NotificationBell token={token} />}
+              <Button variant="outline" size="sm"
+                className="hidden sm:flex border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 gap-1.5 text-xs"
+                onClick={() => window.open("/ubuntoo", "_blank")}
+                data-testid="ubuntoo-link">
+                <img src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
+                  alt="Ubuntoo" className="h-4 w-auto" />
+                <span className="hidden lg:inline">Ubuntoo</span>
+              </Button>
 
-              {/* Role Switcher */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className={`${getRoleColor(role)} border`} data-testid="role-switcher">
-                    <RoleIcon className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">{getRoleLabel(role)}</span>
-                    <ChevronDown className="w-4 h-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => handleSwitchRole("particulier")} data-testid="switch-particulier">
-                    <Users className="w-4 h-4 mr-2 text-[#1e3a5f]" />
-                    Espace Personnel
-                    {role === "particulier" && <Badge className="ml-auto bg-blue-100 text-[#1e3a5f]">Actif</Badge>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSwitchRole("entreprise")} data-testid="switch-entreprise">
-                    <Building2 className="w-4 h-4 mr-2 text-emerald-600" />
-                    Espace Employeurs
-                    {role === "entreprise" && <Badge className="ml-auto bg-emerald-100 text-emerald-700">Actif</Badge>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSwitchRole("partenaire")} data-testid="switch-partenaire">
-                    <Handshake className="w-4 h-4 mr-2 text-violet-600" />
-                    Espace Partenaires
-                    {role === "partenaire" && <Badge className="ml-auto bg-violet-100 text-violet-700">Actif</Badge>}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSeedDatabase} disabled={isSeeding} data-testid="seed-data-btn">
-                    <Settings className="w-4 h-4 mr-2" />
-                    {isSeeding ? "Chargement..." : "Recharger données démo"}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* D'CLIC PRO Import - Mise en valeur */}
+              <Dialog open={dclicOpen} onOpenChange={(o) => { setDclicOpen(o); if (!o) { setDclicPreview(null); setDclicCode(""); } }}>
+                {role === "particulier" && !dclicImported && (
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white shadow-lg shadow-[#4f6df5]/20 animate-pulse hover:animate-none text-xs font-semibold" data-testid="dclic-import-btn">
+                      <Upload className="w-4 h-4 mr-1.5" />
+                      <span className="hidden md:inline">Boost mon profil avec D'CLIC PRO</span>
+                      <span className="md:hidden">D'CLIC PRO</span>
+                    </Button>
+                  </DialogTrigger>
+                )}
+                {role === "particulier" && dclicImported && (
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-xs font-semibold" data-testid="dclic-imported-badge">
+                      <CheckCircle className="w-4 h-4 mr-1.5" />
+                      <span className="hidden md:inline">Profil boosté</span>
+                      <span className="md:hidden">Boosté</span>
+                    </Button>
+                  </DialogTrigger>
+                )}
+                <DialogContent className="sm:max-w-[500px]" data-testid="dclic-dialog">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-[#1e3a5f]">
+                      <Upload className="w-5 h-5" />Boost mon profil avec D'CLIC PRO
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-500">Saisissez le code d'accès généré à la fin de votre test D'CLIC PRO pour importer votre profil personnalité et compétences.</p>
 
-              {/* Logout */}
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="XXXX-XXXX" 
+                        className="text-center text-lg font-mono tracking-widest uppercase" 
+                        value={dclicCode} 
+                        onChange={e => setDclicCode(e.target.value.toUpperCase())} 
+                        maxLength={9} 
+                        data-testid="dclic-code-input" 
+                      />
+                      <Button onClick={handleDclicRetrieve} disabled={dclicImporting || dclicCode.length < 9} data-testid="dclic-retrieve-btn">
+                        {dclicImporting && !dclicPreview ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Vérifier"}
+                      </Button>
+                    </div>
+
+                    {dclicPreview && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-3" data-testid="dclic-preview">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                          <span className="font-semibold text-emerald-800">Profil trouvé !</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">Version inspirée du MBTI</p>
+                            <p className="font-bold text-violet-700">{dclicPreview.mbti}</p>
+                          </div>
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">DISC</p>
+                            <p className="font-bold text-blue-700">{dclicPreview.disc_dominant_name}</p>
+                          </div>
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">Vertu</p>
+                            <p className="font-bold text-emerald-700">{dclicPreview.vertu_dominante_name}</p>
+                          </div>
+                          <div className="bg-white rounded p-2 text-center">
+                            <p className="text-xs text-slate-500">RIASEC</p>
+                            <p className="font-bold text-amber-700">{dclicPreview.riasec_major_name}</p>
+                          </div>
+                        </div>
+                        {dclicPreview.competences_fortes?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-600 mb-1">Compétences :</p>
+                            <div className="flex flex-wrap gap-1">
+                              {dclicPreview.competences_fortes.map((c, i) => (
+                                <Badge key={i} className="bg-indigo-100 text-indigo-700 text-xs">{c}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <Button className="w-full bg-[#1e3a5f] hover:bg-[#2d4a6f]" onClick={handleDclicImport} disabled={dclicImporting} data-testid="dclic-submit-btn">
+                          {!dclicImporting && <Upload className="w-4 h-4 mr-2" />}
+                          {!dclicImporting && "Importer dans mon profil Re'Actif Pro"}
+                        </Button>
+                        {dclicImporting && (
+                          <div className="mt-4 space-y-3" data-testid="dclic-progress">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-600 font-medium">{dclicProgressLabel}</span>
+                              <span className="text-indigo-600 font-bold">{dclicProgress}%</span>
+                            </div>
+                            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] rounded-full transition-all duration-500 ease-out" style={{ width: `${dclicProgress}%` }} />
+                            </div>
+                            <div className="flex justify-center">
+                              <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <div className="w-3 h-3 border-2 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin" />
+                                Veuillez patienter...
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-400 text-center">Pas encore de code ? <a href="/test-dclic" className="text-indigo-600 underline font-medium">Passez le test D'CLIC PRO</a></p>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -244,6 +472,33 @@ const Dashboard = () => {
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Desktop Sub-Nav Bar */}
+        <div className="hidden md:block border-t border-slate-100 bg-slate-50/80">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+            <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide py-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {filteredNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                      isActive 
+                        ? "bg-[#1e3a5f] text-white" 
+                        : "text-slate-600 hover:bg-white hover:text-slate-900"
+                    }`}
+                    onClick={() => navigate(item.path)}
+                    data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {item.shortLabel}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
         </div>
 
@@ -269,57 +524,82 @@ const Dashboard = () => {
                   </Button>
                 );
               })}
-              <a
-                href="https://cv-analyzer-53.preview.emergentagent.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-                data-testid="ubuntoo-link-mobile"
-              >
-                <Button variant="ghost" className="w-full justify-start text-teal-700 hover:bg-teal-50">
-                  <img
-                    src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
-                    alt="Ubuntoo"
-                    className="h-4 w-auto mr-2"
-                  />
-                  Espace Ubuntoo
-                </Button>
-              </a>
+              <Button variant="ghost"
+                className="w-full justify-start text-teal-700 hover:bg-teal-50"
+                onClick={() => { window.open("/ubuntoo", "_blank"); setMobileMenuOpen(false); }}
+                data-testid="ubuntoo-link-mobile">
+                <img
+                  src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
+                  alt="Ubuntoo"
+                  className="h-4 w-auto mr-2"
+                />
+                Espace Ubuntoo
+              </Button>
             </nav>
           </div>
         )}
       </header>
 
       {/* Main Content */}
-      <main className="pt-24 pb-8">
+      <main className="pt-28 pb-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+          {/* ParticulierView persists across routes to avoid remount/loading issues */}
+          {role === "particulier" && (
+            <div style={{ display: (location.pathname === "/dashboard" || location.pathname === "/dashboard/trajectoire") ? "block" : "none" }}>
+              <ParticulierView
+                token={token}
+                pseudo={pseudo}
+                viewMode={location.pathname === "/dashboard/trajectoire" ? "trajectoire" : "accueil"}
+                onOpenDclic={() => setDclicOpen(true)}
+              />
+            </div>
+          )}
           <Routes>
-            <Route path="/" element={<DashboardHome role={role} token={token} refreshKey={refreshKey} />} />
-            <Route path="/passeport" element={<PassportView token={token} key={`passport-${refreshKey}`} />} />
-            <Route path="/coffre-fort" element={<CoffreFortView token={token} key={`coffre-${refreshKey}`} />} />
-            <Route path="/observatoire" element={<ObservatoireView token={token} key={`observatoire-${refreshKey}`} />} />
-            <Route path="/explorateur" element={<ExplorateurView token={token} key={`explorateur-${refreshKey}`} />} />
-            <Route path="/evolution" element={<EvolutionIndexView token={token} key={`evolution-${refreshKey}`} />} />
-            <Route path="/jobs" element={role === "particulier" ? <ParticulierView token={token} section="jobs" key={`jobs-${refreshKey}`} /> : <EntrepriseView token={token} section="jobs" key={`rh-jobs-${refreshKey}`} />} />
-            <Route path="/learning" element={<ParticulierView token={token} section="learning" key={`learning-${refreshKey}`} />} />
+            <Route path="/" element={role === "particulier" ? null : role === "vsi" ? <VsiView token={token} section="accueil" /> : <DashboardHome role={role} token={token} refreshKey={refreshKey} onOpenDclic={() => setDclicOpen(true)} />} />
+            <Route path="/trajectoire" element={null} />
+            <Route path="/profil" element={<PassportView token={token} viewMode="profil" />} />
+            <Route path="/competences" element={<PassportView token={token} viewMode="competences" />} />
+            <Route path="/vsi" element={<VsiView token={token} section="parcours" />} />
+            <Route path="/vsi/diagnostic" element={<VsiView token={token} section="diagnostic" />} />
+            <Route path="/vsi/plan" element={<VsiView token={token} section="plan" />} />
+            <Route path="/marche" element={<LeMarcheView token={token} />} />
+            <Route path="/opportunites" element={<OpportunitesView token={token} />} />
+            <Route path="/job-dating" element={<JobDatingView token={token} />} />
+            <Route path="/coffre-fort" element={<CoffreFortView token={token} />} />
+            <Route path="/confidentialite" element={<PrivacySettingsView token={token} />} />
+            <Route path="/notifications" element={<NotificationsHistoryView token={token} />} />
+            {/* Legacy routes for backward compat */}
+            <Route path="/passeport" element={<Navigate to="/dashboard/profil" replace />} />
+            <Route path="/observatoire" element={<OpcView token={token} />} />
+            <Route path="/evolution" element={<Navigate to="/dashboard/marche" replace />} />
+            <Route path="/explorateur" element={<Navigate to="/dashboard/marche" replace />} />
+            <Route path="/jobs" element={<Navigate to="/dashboard/opportunites" replace />} />
+            <Route path="/learning" element={<Navigate to="/dashboard/opportunites" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </main>
+
+      {/* Coach Virtuel - for particulier and vsi roles */}
+      {(role === "particulier" || role === "vsi") && token && (
+        <CoachVirtuel token={token} onOpenDclic={() => setDclicOpen(true)} refreshKey={refreshKey} />
+      )}
     </div>
   );
 };
 
-const DashboardHome = ({ role, token, refreshKey }) => {
+const DashboardHome = ({ role, token, pseudo, refreshKey, onOpenDclic }) => {
   switch (role) {
     case "particulier":
-      return <ParticulierView token={token} key={`particulier-${refreshKey}`} />;
+      return <ParticulierView token={token} pseudo={pseudo} onOpenDclic={onOpenDclic} viewMode="accueil" key={`particulier-${refreshKey}`} />;
     case "entreprise":
       return <EntrepriseView token={token} key={`entreprise-${refreshKey}`} />;
     case "partenaire":
       return <PartenaireView token={token} key={`partenaire-${refreshKey}`} />;
+    case "vsi":
+      return <VsiView token={token} section="accueil" key={`vsi-${refreshKey}`} />;
     default:
-      return <ParticulierView token={token} key={`default-${refreshKey}`} />;
+      return <ParticulierView token={token} pseudo={pseudo} onOpenDclic={onOpenDclic} viewMode="accueil" key={`default-${refreshKey}`} />;
   }
 };
 

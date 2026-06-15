@@ -23,34 +23,37 @@ import {
   Eye,
   Heart,
   Scale,
-  FileCheck
+  FileCheck,
+  UserPlus,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
+import AuthModal from "@/components/AuthModal";
+import ProRegisterModal from "@/components/ProRegisterModal";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [proModalRole, setProModalRole] = useState("entreprise");
 
-  const handleRoleSelect = async (role) => {
-    setSelectedRole(role);
-    setIsLoading(true);
-    
-    const success = await login(role);
-    
-    if (success) {
-      toast.success("Connexion réussie !");
-      navigate("/dashboard");
-    } else {
-      toast.error("Erreur de connexion");
-    }
-    
-    setIsLoading(false);
+  const handlePersonalAuth = () => {
+    setAuthModalOpen(true);
   };
 
-  // Ne pas rediriger automatiquement - laisser l'utilisateur choisir
+  const handleProAuth = (role) => {
+    setProModalRole(role);
+    setProModalOpen(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setAuthModalOpen(false);
+    setProModalOpen(false);
+    navigate("/dashboard");
+  };
+
   const handleGoToDashboard = () => {
     if (isAuthenticated) {
       navigate("/dashboard");
@@ -64,7 +67,7 @@ const Landing = () => {
       description: "Révélez et valorisez vos compétences réelles pour construire des trajectoires professionnelles durables",
       icon: Users,
       color: "blue",
-      features: ["Coffre-fort numérique des compétences", "Identité professionnelle sécurisée", "Orientation personnalisée"]
+      features: ["Portefeuille de Compétences Certifiées", "Identité professionnelle sécurisée", "Orientation personnalisée"]
     },
     {
       id: "entreprise",
@@ -76,11 +79,19 @@ const Landing = () => {
     },
     {
       id: "partenaire",
-      title: "Espace Partenaires",
-      description: "Accompagnez les transitions professionnelles avec des outils d'intelligence collective",
+      title: "Appui aux parcours",
+      description: "Interface de coordination pour les acteurs de l'accompagnement — en complémentarité des dispositifs existants",
       icon: Handshake,
       color: "violet",
-      features: ["Suivi des parcours", "Observatoire des compétences", "Intelligence territoriale"]
+      features: ["Diagnostic enrichi", "Coordination des parcours", "Contribution territoriale"]
+    },
+    {
+      id: "observatoire",
+      title: "Observatoire Prédictif",
+      description: "Intelligence opérationnelle pour orienter, recruter et anticiper les mutations de l'emploi",
+      icon: BarChart3,
+      color: "indigo",
+      features: ["Tendances compétences", "Métiers en tension", "Prédictions IA"]
     }
   ];
 
@@ -212,27 +223,37 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto stagger-children" data-testid="role-selection">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 max-w-6xl mx-auto stagger-children" data-testid="role-selection">
             {roles.map((role) => {
               const Icon = role.icon;
-              const isSelected = selectedRole === role.id;
-              const colorClasses = {
-                blue: "border-[#1e3a5f] bg-blue-50/50",
-                emerald: "border-emerald-300 bg-emerald-50/50",
-                violet: "border-violet-300 bg-violet-50/50"
-              };
               const iconColorClasses = {
                 blue: "bg-[#1e3a5f] text-white",
                 emerald: "bg-emerald-600 text-white",
-                violet: "bg-violet-600 text-white"
+                violet: "bg-violet-600 text-white",
+                amber: "bg-amber-600 text-white",
+                indigo: "bg-indigo-600 text-white"
               };
+              
+              const handleClick = () => {
+                if (role.id === "particulier") handlePersonalAuth();
+                else if (role.id === "observatoire") handlePersonalAuth();
+                else handleProAuth(role.id);
+              };
+
+              const btnLabel = role.id === "particulier"
+                ? "Compte confidentiel"
+                : role.id === "entreprise"
+                  ? "Inscription employeur"
+                  : role.id === "observatoire"
+                    ? "Accéder à l'observatoire"
+                    : "Inscription partenaire";
               
               return (
                 <Card 
                   key={role.id}
                   data-testid={`role-card-${role.id}`}
-                  className={`card-interactive cursor-pointer ${isSelected ? colorClasses[role.color] : ""}`}
-                  onClick={() => !isLoading && handleRoleSelect(role.id)}
+                  className="card-interactive cursor-pointer hover:border-[#1e3a5f]/30 transition-all flex flex-col"
+                  onClick={handleClick}
                 >
                   <CardHeader>
                     <div className={`w-14 h-14 rounded-2xl ${iconColorClasses[role.color]} flex items-center justify-center mb-4`}>
@@ -245,8 +266,8 @@ const Landing = () => {
                       {role.description}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 mb-6">
+                  <CardContent className="flex flex-col flex-1">
+                    <ul className="space-y-2 mb-6 flex-1">
                       {role.features.map((feature, idx) => (
                         <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
                           <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -255,18 +276,12 @@ const Landing = () => {
                       ))}
                     </ul>
                     <Button 
-                      className="w-full bg-[#1e3a5f] hover:bg-[#152a45] text-white group"
-                      disabled={isLoading && selectedRole === role.id}
-                      data-testid={`login-btn-${role.id}`}
+                      className="w-full bg-[#1e3a5f] hover:bg-[#152a45] text-white group mt-auto"
+                      onClick={(e) => { e.stopPropagation(); handleClick(); }}
+                      data-testid={`register-btn-${role.id}`}
                     >
-                      {isLoading && selectedRole === role.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <>
-                          Accéder
-                          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </>
-                      )}
+                      {btnLabel}
+                      <ArrowRight className="w-4 h-4 ml-1 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </CardContent>
                 </Card>
@@ -309,14 +324,14 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Coffre-fort numérique */}
+      {/* Portefeuille de Compétences Certifiées */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <Card className="overflow-hidden">
             <div className="grid md:grid-cols-2">
               <div className="p-8 bg-[#1e3a5f] text-white">
                 <h3 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  Coffre-fort numérique des compétences
+                  Portefeuille de Compétences Certifiées
                 </h3>
                 <p className="text-blue-100 mb-6">
                   Chaque utilisateur dispose d'un espace personnel sécurisé dans lequel il peut conserver et gérer l'ensemble de ses informations professionnelles.
@@ -403,7 +418,7 @@ const Landing = () => {
             <Button 
               size="lg"
               className="bg-white text-[#1e3a5f] hover:bg-blue-50 font-semibold px-8"
-              onClick={() => handleRoleSelect("particulier")}
+              onClick={() => handlePersonalAuth()}
               data-testid="cta-start-btn"
             >
               Accéder à mon espace
@@ -432,6 +447,22 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Auth Modal (Personal) */}
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        defaultRole="particulier"
+        onSuccess={handleAuthSuccess}
+      />
+
+      {/* Pro Register Modal (Entreprise/Partenaire) */}
+      <ProRegisterModal
+        open={proModalOpen}
+        onOpenChange={setProModalOpen}
+        roleType={proModalRole}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 };

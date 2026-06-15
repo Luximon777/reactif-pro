@@ -644,7 +644,13 @@ async def create_anonymous_token(request: CreateTokenRequest):
 async def verify_token(token: str):
     """Verify token validity"""
     token_doc = await get_current_token(token)
-    return {"valid": True, "role": token_doc["role"], "profile_id": token_doc.get("profile_id")}
+    return {
+        "valid": True, "role": token_doc["role"],
+        "profile_id": token_doc.get("profile_id"),
+        "auth_mode": token_doc.get("auth_mode", "anonymous"),
+        "pseudo": token_doc.get("pseudo"),
+        "identity_level": token_doc.get("identity_level", "none")
+    }
 
 @api_router.post("/auth/switch-role")
 async def switch_role(token: str, new_role: str):
@@ -3949,41 +3955,185 @@ async def seed_database():
         "ubuntoo_insights": len(demo_ubuntoo_insights)
     }
 
-# ============== AUTH PSEUDONYME (Espace Personnel) ==============
+# ============== AUTH PSEUDONYME (Production-compatible) ==============
 
 import hashlib
-
-class AuthRegister(BaseModel):
-    pseudonyme: str
-    password: str
-
-class AuthLogin(BaseModel):
-    pseudonyme: str
-    password: str
 
 def _hash_pw(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
 
-@api_router.post("/auth/register")
-async def auth_register(body: AuthRegister):
-    existing = await db.users.find_one({"pseudonyme": body.pseudonyme})
-    if existing:
-        raise HTTPException(status_code=400, detail="Pseudonyme déjà utilisé")
-    user = {
-        "id": str(uuid.uuid4()),
-        "pseudonyme": body.pseudonyme,
-        "password": _hash_pw(body.password),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+class PseudoRegisterRequest(BaseModel):
+    pseudo: str
+    password: str
+    role: str = "particulier"
+    email_recovery: Optional[str] = None
+    identifiant_france_travail: Optional[str] = None
+    consent_cgu: bool = True
+    consent_privacy: bool = True
+    consent_marketing: bool = False
+
+class PseudoLoginRequest(BaseModel):
+    pseudo: str
+    password: str
+
+class UpgradeRequest(BaseModel):
+    pseudo: str
+    password: str
+    email_recovery: Optional[str] = None
+    consent_cgu: bool = True
+    consent_privacy: bool = True
+
+class EntrepriseRegisterRequest(BaseModel):
+    email: str
+    password: str
+    nom_entreprise: str = ""
+    siret: str = ""
+    secteur: str = ""
+    taille: str = ""
+    role: str = "entreprise"
+
+class PartenaireRegisterRequest(BaseModel):
+    email: str
+    password: str
+    nom_structure: str = ""
+    type_structure: str = ""
+    territoire: str = ""
+    role: str = "partenaire"
+
+async def _create_token_and_profile(role: str, pseudo: str = None, auth_mode: str = "anonymous"):
+    """Helper: create token + profile and return auth response"""
+    token_obj = AnonymousToken(role=role)
+    token_dict = token_obj.model_dump()
+    token_dict["auth_mode"] = auth_mode
+    token_dict["pseudo"] = pseudo
+    token_dict["identity_level"] = "pseudo" if pseudo else "none"
+    await db.tokens.insert_one(token_dict)
+
+    profile = Profile(token_id=token_obj.id, role=role, name=pseudo or f"Utilisateur {token_obj.id[:8].upper()}")
+    await db.profiles.insert_one(profile.model_dump())
+    await db.tokens.update_one({"id": token_obj.id}, {"$set": {"profile_id": profile.id}})
+
+    return {
+        "token": token_obj.token, "role": role, "profile_id": profile.id,
+        "pseudo": pseudo, "auth_mode": auth_mode, "identity_level": "pseudo" if pseudo else "none"
     }
-    await db.users.insert_one({**user, "_id": user["id"]})
-    return {"id": user["id"], "pseudonyme": user["pseudonyme"], "created_at": user["created_at"]}
+
+@api_router.post("/auth/register")
+async def auth_register(body: PseudoRegisterRequest):
+    existing = await db.users.find_one({"pseudo": body.pseudo})
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce pseudonyme est déjà utilisé")
+    user_id = str(uuid.uuid4())
+    await db.users.insert_one({
+        "_id": user_id, "id": user_id, "pseudo": body.pseudo,
+        "password": _hash_pw(body.password), "role": body.role,
+        "email_recovery": body.email_recovery,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return await _create_token_and_profile(body.role, body.pseudo, "pseudo")
 
 @api_router.post("/auth/login")
-async def auth_login(body: AuthLogin):
-    user = await db.users.find_one({"pseudonyme": body.pseudonyme, "password": _hash_pw(body.password)}, {"_id": 0, "password": 0})
+async def auth_login(body: PseudoLoginRequest):
+    user = await db.users.find_one({"pseudo": body.pseudo, "password": _hash_pw(body.password)})
     if not user:
-        raise HTTPException(status_code=401, detail="Identifiants incorrects")
-    return user
+        raise HTTPException(status_code=401, detail="Pseudo ou mot de passe incorrect")
+    # Find existing token for this user or create new one
+    existing_token = await db.tokens.find_one({"pseudo": body.pseudo, "auth_mode": "pseudo"})
+    if existing_token:
+        return {
+            "token": existing_token["token"], "role": existing_token["role"],
+            "profile_id": existing_token.get("profile_id"),
+            "pseudo": body.pseudo, "auth_mode": "pseudo", "identity_level": "pseudo"
+        }
+    return await _create_token_and_profile(user.get("role", "particulier"), body.pseudo, "pseudo")
+
+@api_router.post("/auth/upgrade")
+async def auth_upgrade(token: str, body: UpgradeRequest):
+    token_doc = await get_current_token(token)
+    existing = await db.users.find_one({"pseudo": body.pseudo})
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce pseudonyme est déjà utilisé")
+    user_id = str(uuid.uuid4())
+    await db.users.insert_one({
+        "_id": user_id, "id": user_id, "pseudo": body.pseudo,
+        "password": _hash_pw(body.password), "email_recovery": body.email_recovery,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    await db.tokens.update_one({"id": token_doc["id"]}, {"$set": {
+        "auth_mode": "pseudo", "pseudo": body.pseudo, "identity_level": "pseudo"
+    }})
+    return {"status": "ok", "pseudo": body.pseudo}
+
+@api_router.post("/auth/register-entreprise")
+async def auth_register_entreprise(body: EntrepriseRegisterRequest):
+    existing = await db.users.find_one({"pseudo": body.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    user_id = str(uuid.uuid4())
+    await db.users.insert_one({
+        "_id": user_id, "id": user_id, "pseudo": body.email,
+        "password": _hash_pw(body.password), "role": "entreprise",
+        "nom_entreprise": body.nom_entreprise, "siret": body.siret,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return await _create_token_and_profile("entreprise", body.email, "pseudo")
+
+@api_router.post("/auth/register-partenaire")
+async def auth_register_partenaire(body: PartenaireRegisterRequest):
+    existing = await db.users.find_one({"pseudo": body.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    user_id = str(uuid.uuid4())
+    await db.users.insert_one({
+        "_id": user_id, "id": user_id, "pseudo": body.email,
+        "password": _hash_pw(body.password), "role": "partenaire",
+        "nom_structure": body.nom_structure,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return await _create_token_and_profile("partenaire", body.email, "pseudo")
+
+@api_router.post("/auth/login-pro")
+async def auth_login_pro(body: PseudoLoginRequest):
+    """Login for entreprise/partenaire accounts (by email as pseudo)"""
+    user = await db.users.find_one({"pseudo": body.pseudo, "password": _hash_pw(body.password)})
+    if not user:
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    existing_token = await db.tokens.find_one({"pseudo": body.pseudo, "auth_mode": "pseudo"})
+    if existing_token:
+        return {
+            "token": existing_token["token"], "role": existing_token["role"],
+            "profile_id": existing_token.get("profile_id"),
+            "pseudo": body.pseudo, "auth_mode": "pseudo", "identity_level": "pseudo",
+            "company_name": user.get("nom_entreprise", user.get("nom_structure", ""))
+        }
+    result = await _create_token_and_profile(user.get("role", "particulier"), body.pseudo, "pseudo")
+    result["company_name"] = user.get("nom_entreprise", user.get("nom_structure", ""))
+    return result
+
+# ============== ADMIN GATE ==============
+
+class GateStateRequest(BaseModel):
+    password: str
+    spaces_open: bool
+
+@api_router.get("/admin/gate-state")
+async def get_gate_state():
+    state = await db.admin_config.find_one({"key": "gate_state"}, {"_id": 0})
+    if not state:
+        return {"spaces_open": True}
+    return {"spaces_open": state.get("spaces_open", True)}
+
+@api_router.post("/admin/gate-state")
+async def set_gate_state(body: GateStateRequest):
+    ADMIN_PASSWORD = "Choukette@777"
+    if body.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="Mot de passe administrateur incorrect")
+    await db.admin_config.update_one(
+        {"key": "gate_state"},
+        {"$set": {"key": "gate_state", "spaces_open": body.spaces_open}},
+        upsert=True
+    )
+    return {"spaces_open": body.spaces_open}
 
 # ============== ROUTES RE'ACTIF PRO ==============
 
@@ -4057,14 +4207,20 @@ async def on_startup():
         await opc_create_indexes()
         await seed_if_empty()
         # Seed default users
-        for pseudo, pwd in [("marc19", "Solerys777!"), ("mike7", "Solerys777!")]:
-            existing = await db.users.find_one({"pseudonyme": pseudo})
+        for pseudo, pwd, role in [
+            ("marc19", "Solerys777!", "particulier"),
+            ("mike7", "Solerys777!", "particulier"),
+            ("rh@reactifpro.fr", "Reactif@pro2026!", "entreprise"),
+            ("admin@reactifpro.fr", "Choukette@777", "partenaire"),
+        ]:
+            existing = await db.users.find_one({"pseudo": pseudo})
             if not existing:
                 await db.users.insert_one({
                     "_id": str(uuid.uuid4()),
                     "id": str(uuid.uuid4()),
-                    "pseudonyme": pseudo,
+                    "pseudo": pseudo,
                     "password": _hash_pw(pwd),
+                    "role": role,
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 })
                 logger.info(f"[Seed] Utilisateur {pseudo} créé")

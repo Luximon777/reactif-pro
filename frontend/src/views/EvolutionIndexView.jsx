@@ -26,7 +26,8 @@ import {
   Clock,
   BarChart3,
   PieChart,
-  Info
+  Info,
+  RefreshCw
 } from "lucide-react";
 
 const INDEX_LEVELS = {
@@ -76,7 +77,7 @@ const INDEX_LEVELS = {
   }
 };
 
-const EvolutionIndexView = ({ token }) => {
+const EvolutionIndexView = ({ token, embedded }) => {
   const [dashboard, setDashboard] = useState(null);
   const [userAnalysis, setUserAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -104,17 +105,67 @@ const EvolutionIndexView = ({ token }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e3a5f]"></div>
+        <p className="text-sm text-slate-500">Analyse de l'évolution de vos compétences...</p>
+        <p className="text-xs text-slate-400">Première analyse : quelques secondes</p>
       </div>
     );
   }
 
   const { summary = {}, distribution = {}, top_transforming_jobs = [], most_stable_jobs = [], sectors = [] } = dashboard || {};
 
+  // Personalized summary: prefer user data over global data
+  const hasUserData = userAnalysis && (userAnalysis.relevant_jobs?.length > 0 || userAnalysis.has_cv);
+  const personalSummary = hasUserData ? {
+    total_jobs_analyzed: userAnalysis.relevant_jobs?.length || 0,
+    total_sectors_analyzed: userAnalysis.profile_sectors?.length || 0,
+    average_job_evolution_index: userAnalysis.evolution_exposure || 0,
+    average_sector_evolution_index: userAnalysis.relevant_jobs?.length > 0
+      ? Math.round(userAnalysis.relevant_jobs.reduce((s, j) => s + (j.evolution_index || 0), 0) / userAnalysis.relevant_jobs.length)
+      : 0
+  } : summary;
+
+  // Personalized distribution when user has relevant jobs
+  const personalDistribution = hasUserData && userAnalysis.relevant_jobs?.length > 0
+    ? (() => {
+        const jobs = userAnalysis.relevant_jobs;
+        const total = jobs.length;
+        const stable = jobs.filter(j => (j.evolution_index || 0) < 20).length;
+        const evolving = jobs.filter(j => (j.evolution_index || 0) >= 20 && (j.evolution_index || 0) < 50).length;
+        const transforming = jobs.filter(j => (j.evolution_index || 0) >= 50 && (j.evolution_index || 0) < 80).length;
+        const highly_impacted = jobs.filter(j => (j.evolution_index || 0) >= 80).length;
+        return {
+          stable: { count: stable, percentage: total ? Math.round(stable / total * 100) : 0 },
+          evolving: { count: evolving, percentage: total ? Math.round(evolving / total * 100) : 0 },
+          transforming: { count: transforming, percentage: total ? Math.round(transforming / total * 100) : 0 },
+          highly_impacted: { count: highly_impacted, percentage: total ? Math.round(highly_impacted / total * 100) : 0 },
+        };
+      })()
+    : distribution;
+
+  // Personalized jobs for overview tab
+  const personalTopTransforming = hasUserData && userAnalysis.relevant_jobs?.length > 0
+    ? [...userAnalysis.relevant_jobs].sort((a, b) => (b.evolution_index || 0) - (a.evolution_index || 0))
+    : top_transforming_jobs;
+  const personalMostStable = hasUserData && userAnalysis.relevant_jobs?.length > 0
+    ? [...userAnalysis.relevant_jobs].sort((a, b) => (a.evolution_index || 0) - (b.evolution_index || 0))
+    : most_stable_jobs;
+
+  const handleRefresh = async () => {
+    try {
+      await axios.post(`${API}/evolution-index/refresh?token=${token}`);
+      setLoading(true);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="evolution-index-view">
       {/* Header */}
+      {!embedded && (
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -125,14 +176,28 @@ const EvolutionIndexView = ({ token }) => {
             Mesurez la vitesse à laquelle les compétences d'un métier ou d'un secteur évoluent
           </p>
         </div>
+        <button
+          onClick={handleRefresh}
+          className="flex items-center gap-2 text-sm text-[#1e3a5f] hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-blue-200"
+          data-testid="evolution-refresh-btn"
+        >
+          <RefreshCw className="w-4 h-4" /> Actualiser l'analyse
+        </button>
       </div>
+      )}
 
       {/* Personal Exposure Alert */}
       {userAnalysis && (
         <EvolutionExposureCard analysis={userAnalysis} />
       )}
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Personalized when user has data */}
+      {hasUserData && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+          <Sparkles className="w-4 h-4 text-blue-600" />
+          <p className="text-xs text-blue-700 font-medium">Données personnalisées basées sur votre CV et profil</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="evolution-summary">
         <Card className="card-metric">
           <CardContent className="p-4">
@@ -141,8 +206,8 @@ const EvolutionIndexView = ({ token }) => {
                 <Briefcase className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.total_jobs_analyzed || 0}</p>
-                <p className="text-xs text-slate-500">Métiers analysés</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.total_jobs_analyzed || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Métiers liés à votre profil" : "Métiers analysés"}</p>
               </div>
             </div>
           </CardContent>
@@ -154,8 +219,8 @@ const EvolutionIndexView = ({ token }) => {
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.total_sectors_analyzed || 0}</p>
-                <p className="text-xs text-slate-500">Secteurs analysés</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.total_sectors_analyzed || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Vos secteurs d'activité" : "Secteurs analysés"}</p>
               </div>
             </div>
           </CardContent>
@@ -167,8 +232,8 @@ const EvolutionIndexView = ({ token }) => {
                 <Gauge className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.average_job_evolution_index || 0}</p>
-                <p className="text-xs text-slate-500">Indice moyen métiers</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.average_job_evolution_index || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Votre indice d'évolution" : "Indice moyen métiers"}</p>
               </div>
             </div>
           </CardContent>
@@ -180,8 +245,8 @@ const EvolutionIndexView = ({ token }) => {
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{summary.average_sector_evolution_index || 0}</p>
-                <p className="text-xs text-slate-500">Indice moyen secteurs</p>
+                <p className="text-2xl font-bold text-slate-900">{personalSummary.average_sector_evolution_index || 0}</p>
+                <p className="text-xs text-slate-500">{hasUserData ? "Indice moyen vos secteurs" : "Indice moyen secteurs"}</p>
               </div>
             </div>
           </CardContent>
@@ -199,7 +264,7 @@ const EvolutionIndexView = ({ token }) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {Object.entries(INDEX_LEVELS).map(([key, config]) => {
-              const data = distribution[key === "stable" ? "stable" : key === "evolutif" ? "evolving" : key === "en_transformation" ? "transforming" : "highly_impacted"] || { count: 0, percentage: 0 };
+              const data = personalDistribution[key === "stable" ? "stable" : key === "evolutif" ? "evolving" : key === "en_transformation" ? "transforming" : "highly_impacted"] || { count: 0, percentage: 0 };
               const Icon = config.icon;
               return (
                 <div key={key} className={`p-4 rounded-xl ${config.bgLight} border ${config.borderColor}`}>
@@ -248,13 +313,13 @@ const EvolutionIndexView = ({ token }) => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-rose-600" />
-                  Métiers en forte mutation
+                  {hasUserData ? "Métiers en mutation liés à votre profil" : "Métiers en forte mutation"}
                 </CardTitle>
-                <CardDescription>Les métiers les plus impactés par les transformations</CardDescription>
+                <CardDescription>{hasUserData ? "Les métiers proches de votre profil les plus impactés" : "Les métiers les plus impactés par les transformations"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {top_transforming_jobs.map((job, idx) => (
+                  {personalTopTransforming.map((job, idx) => (
                     <JobIndexCard key={idx} job={job} />
                   ))}
                 </div>
@@ -266,13 +331,13 @@ const EvolutionIndexView = ({ token }) => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  Métiers les plus stables
+                  {hasUserData ? "Métiers les plus stables de votre profil" : "Métiers les plus stables"}
                 </CardTitle>
-                <CardDescription>Les métiers dont les compétences évoluent peu</CardDescription>
+                <CardDescription>{hasUserData ? "Les métiers proches de votre profil avec le moins de transformations" : "Les métiers dont les compétences évoluent peu"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {most_stable_jobs.map((job, idx) => (
+                  {personalMostStable.map((job, idx) => (
                     <JobIndexCard key={idx} job={job} />
                   ))}
                 </div>
@@ -418,9 +483,10 @@ const EvolutionExposureCard = ({ analysis }) => {
   const interpretation = analysis.exposure_interpretation || {};
   const levelConfig = INDEX_LEVELS[interpretation.level] || INDEX_LEVELS.evolutif;
   const Icon = levelConfig.icon;
+  const hasCv = analysis.has_cv;
 
   return (
-    <Card className={`${levelConfig.bgLight} border ${levelConfig.borderColor}`}>
+    <Card className={`${levelConfig.bgLight} border ${levelConfig.borderColor}`} data-testid="evolution-exposure-card">
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           <div className="flex items-center gap-4">
@@ -443,24 +509,98 @@ const EvolutionExposureCard = ({ analysis }) => {
           <div className="flex-1 md:border-l md:pl-6 border-slate-200">
             <p className="text-sm text-slate-700 mb-3">{interpretation.description}</p>
             <p className="text-sm font-medium text-slate-900">
-              💡 {interpretation.recommendation}
+              {interpretation.recommendation}
             </p>
+            {!hasCv && (
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Analysez votre CV pour une évaluation personnalisée basée sur vos compétences réelles
+              </p>
+            )}
+            {hasCv && analysis.data_sources && (
+              <div className="flex gap-2 mt-2">
+                {analysis.data_sources.cv_analysis && <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-600">CV analysé</Badge>}
+                {analysis.data_sources.passport && <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-600">Passeport enrichi</Badge>}
+              </div>
+            )}
           </div>
 
-          {analysis.skills_at_risk?.length > 0 && (
-            <div className="md:border-l md:pl-6 border-slate-200">
-              <p className="text-xs font-medium text-rose-600 mb-2 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" />
-                Compétences à risque
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {analysis.skills_at_risk.slice(0, 3).map((s, idx) => (
-                  <Badge key={idx} className="bg-rose-100 text-rose-700">{s.skill}</Badge>
-                ))}
+          <div className="flex flex-col gap-3 md:border-l md:pl-6 border-slate-200">
+            {analysis.skills_at_risk?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-rose-600 mb-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Compétences à risque
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {analysis.skills_at_risk.slice(0, 3).map((s, idx) => (
+                    <Badge key={idx} className="bg-rose-100 text-rose-700">{s.skill}</Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {analysis.skills_in_demand?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  Compétences en demande
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {analysis.skills_in_demand.slice(0, 3).map((s, idx) => (
+                    <Badge key={idx} className="bg-emerald-100 text-emerald-700">{s.skill}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {analysis.recommended_skills_to_acquire?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                  <Target className="w-3 h-3" />
+                  À acquérir
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {analysis.recommended_skills_to_acquire.slice(0, 3).map((s, idx) => (
+                    <Badge key={idx} className="bg-blue-100 text-blue-700">{s}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* CV Emerging competences section */}
+        {analysis.emerging_from_cv?.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-violet-500" />
+              Compétences émergentes détectées dans votre CV
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {analysis.emerging_from_cv.slice(0, 5).map((ec, idx) => (
+                <Badge key={idx} className="bg-violet-100 text-violet-700 border border-violet-200">
+                  {ec.name} <span className="opacity-60 ml-1">({ec.score})</span>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recommended trainings */}
+        {analysis.recommended_trainings?.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
+              <BookOpen className="w-3 h-3 text-blue-500" />
+              Formations recommandées
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {analysis.recommended_trainings.map((t, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">{t}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

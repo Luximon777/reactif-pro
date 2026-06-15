@@ -1,931 +1,625 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API } from "@/App";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
-  FolderLock,
-  FileText,
-  Upload,
-  Search,
-  Filter,
-  Plus,
-  Eye,
-  Share2,
-  Trash2,
-  Clock,
-  Shield,
-  AlertTriangle,
-  CheckCircle2,
-  Award,
-  Briefcase,
-  GraduationCap,
-  Users,
-  Target,
-  BookOpen,
-  FileCheck,
-  X,
-  Link,
-  Calendar,
-  Lock,
-  Unlock,
-  ChevronRight
+import {
+  Shield, Lock, Share2, FileText, GraduationCap, Briefcase, Award, Target,
+  Users, BookOpen, Search, Upload, Download, Trash2, Plus, Eye, FolderLock,
+  CheckCircle2, Clock, AlertTriangle, QrCode, ArrowRight, Sparkles, Brain,
+  TrendingUp, Loader2, X, Zap, FileIcon, ExternalLink, History, Compass
 } from "lucide-react";
 import { toast } from "sonner";
-
-const CATEGORY_CONFIG = {
-  identite_professionnelle: { 
-    label: "Identité professionnelle", 
-    icon: Users, 
-    color: "blue",
-    description: "CV, lettres de motivation, présentations"
-  },
-  diplomes_certifications: { 
-    label: "Diplômes et certifications", 
-    icon: GraduationCap, 
-    color: "emerald",
-    description: "Diplômes, titres, habilitations"
-  },
-  experiences_professionnelles: { 
-    label: "Expériences professionnelles", 
-    icon: Briefcase, 
-    color: "violet",
-    description: "Contrats, attestations, recommandations"
-  },
-  competences_preuves: { 
-    label: "Compétences et preuves", 
-    icon: Award, 
-    color: "amber",
-    description: "Réalisations, projets, badges"
-  },
-  accompagnement_insertion: { 
-    label: "Accompagnement", 
-    icon: Target, 
-    color: "rose",
-    description: "Bilans, diagnostics, plans d'action"
-  },
-  recherche_emploi: { 
-    label: "Recherche d'emploi", 
-    icon: Search, 
-    color: "cyan",
-    description: "Candidatures, entretiens, offres"
-  },
-  formation_apprentissages: { 
-    label: "Formation", 
-    icon: BookOpen, 
-    color: "indigo",
-    description: "Attestations, certificats, badges"
-  },
-  documents_administratifs: { 
-    label: "Documents administratifs", 
-    icon: FileCheck, 
-    color: "slate",
-    description: "Permis, justificatifs, conventions"
-  }
-};
-
-const PRIVACY_LEVELS = {
-  private: { label: "Privé", icon: Lock, color: "slate", description: "Visible uniquement par vous" },
-  shared_conseiller: { label: "Partagé conseiller", icon: Users, color: "blue", description: "Visible par votre conseiller" },
-  shared_recruteur: { label: "Partagé recruteur", icon: Briefcase, color: "emerald", description: "Visible temporairement par un recruteur" },
-  public: { label: "Public", icon: Unlock, color: "amber", description: "Intégré à votre profil public" }
-};
+import { QRCodeSVG } from "qrcode.react";
 
 const CoffreFortView = ({ token }) => {
   const [documents, setDocuments] = useState([]);
-  const [categories, setCategories] = useState({});
-  const [stats, setStats] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [passport, setPassport] = useState(null);
+  const [scores, setScores] = useState(null);
   const [shares, setShares] = useState([]);
+  const [illustrations, setIllustrations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("documents");
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [activeTab, setActiveTab] = useState("wallet");
 
-  const [newDocument, setNewDocument] = useState({
-    title: "",
-    category: "identite_professionnelle",
-    document_type: "",
-    file_name: "",
-    date_document: "",
-    metier_associe: "",
-    secteur: "",
-    competences_liees: "",
-    description: "",
-    privacy_level: "private",
-    date_expiration: "",
-    is_sensitive: false
-  });
+  // Share form
+  const [showShareForm, setShowShareForm] = useState(false);
+  const [shareForm, setShareForm] = useState({ recipient_name: "", recipient_type: "employeur", sections: ["identite", "competences"], duration_days: 30 });
+  const [creatingShare, setCreatingShare] = useState(false);
+  const [generatedShareUrl, setGeneratedShareUrl] = useState(null);
 
-  useEffect(() => {
-    loadData();
+  // Upload
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [newDoc, setNewDoc] = useState({ title: "", category: "identite_professionnelle", document_type: "cv", description: "", trust_level: "auto_declare", source_type: "utilisateur", issued_by: "", date_expiration: "", competences_liees: "" });
+  const [uploading, setUploading] = useState(false);
+
+  const loadAll = useCallback(async () => {
+    try {
+      const [docsRes, profRes, passRes, scoreRes, sharesRes, illusRes] = await Promise.all([
+        axios.get(`${API}/coffre/documents?token=${token}`),
+        axios.get(`${API}/profile?token=${token}`),
+        axios.get(`${API}/passport?token=${token}`),
+        axios.get(`${API}/profile/confidence-scores/simple?token=${token}`).catch(() => ({ data: null })),
+        axios.get(`${API}/shares?token=${token}`).catch(() => ({ data: { shares: [] } })),
+        axios.get(`${API}/passport/illustrations?token=${token}`).catch(() => ({ data: { illustrations: [] } })),
+      ]);
+      setDocuments(docsRes.data || []);
+      setProfile(profRes.data);
+      setPassport(passRes.data);
+      setScores(scoreRes.data);
+      setShares(sharesRes.data.shares || []);
+      setIllustrations(illusRes.data.illustrations || []);
+    } catch { /* silent */ }
+    setLoading(false);
   }, [token]);
 
-  const loadData = async () => {
-    setLoading(true);
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const handleUpload = async () => {
+    if (!newDoc.title) { toast.error("Titre requis"); return; }
+    setUploading(true);
     try {
-      const [docsRes, catsRes, statsRes, sharesRes] = await Promise.all([
-        axios.get(`${API}/coffre/documents?token=${token}`),
-        axios.get(`${API}/coffre/categories`),
-        axios.get(`${API}/coffre/stats?token=${token}`),
-        axios.get(`${API}/coffre/shares?token=${token}`)
-      ]);
-      setDocuments(docsRes.data);
-      setCategories(catsRes.data);
-      setStats(statsRes.data);
-      setShares(sharesRes.data);
-    } catch (error) {
-      console.error("Error loading coffre-fort:", error);
-    }
-    setLoading(false);
+      if (uploadFile) {
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const params = new URLSearchParams({ token, title: newDoc.title, category: newDoc.category, document_type: newDoc.document_type, description: newDoc.description, competences_liees: newDoc.competences_liees, trust_level: newDoc.trust_level, source_type: newDoc.source_type });
+        await axios.post(`${API}/coffre/upload?${params.toString()}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+      } else {
+        await axios.post(`${API}/coffre/documents?token=${token}`, { ...newDoc, competences_liees: newDoc.competences_liees.split(",").map(c => c.trim()).filter(Boolean) });
+      }
+      toast.success("Document ajouté");
+      setUploadOpen(false);
+      setUploadFile(null);
+      setNewDoc({ title: "", category: "identite_professionnelle", document_type: "cv", description: "", trust_level: "auto_declare", source_type: "utilisateur", issued_by: "", date_expiration: "", competences_liees: "" });
+      loadAll();
+    } catch { toast.error("Erreur"); }
+    setUploading(false);
   };
 
-  const createDocument = async () => {
-    if (!newDocument.title || !newDocument.document_type) {
-      toast.error("Veuillez remplir les champs obligatoires");
-      return;
-    }
-
-    try {
-      const docData = {
-        ...newDocument,
-        competences_liees: newDocument.competences_liees.split(",").map(c => c.trim()).filter(Boolean)
-      };
-      
-      await axios.post(`${API}/coffre/documents?token=${token}`, docData);
-      toast.success("Document ajouté au coffre-fort !");
-      setCreateDialogOpen(false);
-      setNewDocument({
-        title: "",
-        category: "identite_professionnelle",
-        document_type: "",
-        file_name: "",
-        date_document: "",
-        metier_associe: "",
-        secteur: "",
-        competences_liees: "",
-        description: "",
-        privacy_level: "private",
-        date_expiration: "",
-        is_sensitive: false
-      });
-      loadData();
-    } catch (error) {
-      toast.error("Erreur lors de l'ajout du document");
-    }
+  const handleDelete = async (id) => {
+    if (!window.confirm("Supprimer ce document ?")) return;
+    try { await axios.delete(`${API}/coffre/documents/${id}?token=${token}`); loadAll(); toast.success("Supprimé"); } catch { toast.error("Erreur"); }
   };
 
-  const deleteDocument = async (docId) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce document ?")) return;
-    
+  const handleCreateShare = async () => {
+    if (!shareForm.recipient_name) { toast.error("Nom du destinataire requis"); return; }
+    setCreatingShare(true);
     try {
-      await axios.delete(`${API}/coffre/documents/${docId}?token=${token}`);
-      toast.success("Document supprimé");
-      loadData();
-    } catch (error) {
-      toast.error("Erreur lors de la suppression");
-    }
+      const res = await axios.post(`${API}/shares/create?token=${token}`, shareForm);
+      if (res.data.share_id) {
+        setGeneratedShareUrl(`${window.location.origin}/shared/${res.data.share_id}`);
+        toast.success("Lien de partage créé");
+        loadAll();
+      }
+    } catch { toast.error("Erreur"); }
+    setCreatingShare(false);
   };
 
-  const shareDocument = async (docId) => {
-    try {
-      const response = await axios.post(`${API}/coffre/documents/${docId}/share?token=${token}&expires_in_days=7`);
-      toast.success("Lien de partage créé !");
-      setShareDialogOpen(false);
-      loadData();
-    } catch (error) {
-      toast.error("Erreur lors du partage");
-    }
+  const handleRevoke = async (id) => {
+    try { await axios.delete(`${API}/shares/${id}?token=${token}`); loadAll(); toast.success("Partage révoqué"); } catch { toast.error("Erreur"); }
   };
 
-  const revokeShare = async (shareId) => {
-    try {
-      await axios.delete(`${API}/coffre/shares/${shareId}?token=${token}`);
-      toast.success("Partage révoqué");
-      loadData();
-    } catch (error) {
-      toast.error("Erreur lors de la révocation");
-    }
-  };
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
 
-  const filteredDocuments = documents.filter(doc => {
-    if (selectedCategory && doc.category !== selectedCategory) return false;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return doc.title.toLowerCase().includes(query) ||
-             doc.description?.toLowerCase().includes(query) ||
-             doc.competences_liees?.some(c => c.toLowerCase().includes(query));
-    }
-    return true;
-  });
+  const displayName = profile?.real_first_name || profile?.pseudo || "Utilisateur";
+  const totalDocs = documents.length;
+  const totalSkillsProved = illustrations.length;
+  const activeShares = shares.filter(s => s.active).length;
+  const expiringDocs = documents.filter(d => d.date_expiration && ((new Date(d.date_expiration) - new Date()) / 86400000) < 90 && ((new Date(d.date_expiration) - new Date()) / 86400000) > -30).length;
+  const trustPct = scores?.global_pct || 0;
+  const trustLevel = scores?.level || "faible";
+  const trustColor = trustLevel === "eleve" ? "emerald" : trustLevel === "moyen" ? "amber" : "rose";
 
-  const expiringDocs = documents.filter(d => d.is_expiring_soon);
-  const sensitiveDocs = documents.filter(d => d.is_sensitive);
-  const sharedDocs = documents.filter(d => d.privacy_level !== "private");
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e3a5f]"></div>
-      </div>
-    );
-  }
+  const sectionLabels = { identite: "Identité", experiences: "Expériences", competences: "Compétences", formations: "Formations", soft_skills: "Soft Skills prouvés", adn_pro: "ADN Pro" };
 
   return (
-    <div className="space-y-6 animate-fade-in" data-testid="coffre-fort-view">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            <FolderLock className="w-8 h-8 text-[#1e3a5f]" />
-            Mon Coffre-Fort Professionnel
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Conservez, structurez et valorisez vos documents professionnels en toute sécurité
-          </p>
+    <div className="space-y-6" data-testid="portefeuille-view">
+      {/* === HEADER === */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f2744] via-[#1e3a5f] to-[#0f2744] p-6" data-testid="wallet-header">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/3 rounded-full -translate-y-20 translate-x-20" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <FolderLock className="w-6 h-6 text-cyan-400" />
+              <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>Portefeuille de Compétences Certifiées</h1>
+            </div>
+            <p className="text-blue-200 text-sm">EUDI vérifie qui vous êtes — RE'ACTIF PRO révèle ce que vous pouvez devenir</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px]"><Shield className="w-3 h-3 mr-1" />Conforme EUDI</Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px]"><Lock className="w-3 h-3 mr-1" />Chiffré</Badge>
+              <Badge className="bg-violet-500/20 text-violet-300 border border-violet-400/30 text-[10px]"><Share2 className="w-3 h-3 mr-1" />Partage sélectif</Badge>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className={`text-center px-4 py-2 rounded-xl bg-${trustColor}-500/20 border border-${trustColor}-400/30`}>
+              <p className={`text-2xl font-bold text-${trustColor}-300`}>{trustPct}%</p>
+              <p className="text-[10px] text-blue-200">Score confiance</p>
+            </div>
+            <img src="/eudi_wallet_logo.png" alt="EUDI Wallet" className="h-16 w-auto rounded-xl" />
+            <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-white text-[#1e3a5f] hover:bg-blue-50 font-semibold" data-testid="add-doc-btn"><Plus className="w-4 h-4 mr-1" />Ajouter une preuve</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Ajouter une preuve au portefeuille</DialogTitle>
+                  <DialogDescription>Chaque document est une preuve qui renforce votre identité professionnelle</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 mt-3">
+                  <div className="border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-[#1e3a5f] hover:bg-slate-50" onClick={() => document.getElementById("vault-file").click()} data-testid="file-upload-area">
+                    <input id="vault-file" type="file" className="hidden" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.xlsx,.csv" onChange={e => { const f = e.target.files[0]; if (f) { if (f.size > 10485760) { toast.error("Max 10 Mo"); return; } setUploadFile(f); if (!newDoc.title) setNewDoc(p => ({ ...p, title: f.name.replace(/\.[^.]+$/, "") })); } }} />
+                    {uploadFile ? (
+                      <div className="flex items-center justify-center gap-2"><FileIcon className="w-4 h-4 text-emerald-600" /><span className="text-sm text-emerald-700">{uploadFile.name}</span><Button variant="ghost" size="icon" className="h-5 w-5" onClick={e => { e.stopPropagation(); setUploadFile(null); }}><X className="w-3 h-3" /></Button></div>
+                    ) : (<div><Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" /><p className="text-xs text-slate-500">Cliquez pour sélectionner un fichier</p></div>)}
+                  </div>
+                  <Input placeholder="Titre de la preuve *" value={newDoc.title} onChange={e => setNewDoc({ ...newDoc, title: e.target.value })} data-testid="doc-title-input" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={newDoc.trust_level} onValueChange={v => setNewDoc({ ...newDoc, trust_level: v })}>
+                      <SelectTrigger className="text-xs" data-testid="doc-trust-select"><SelectValue placeholder="Niveau de fiabilité" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto_declare">Auto-déclaré</SelectItem>
+                        <SelectItem value="verifie">Vérifié</SelectItem>
+                        <SelectItem value="valide">Validé</SelectItem>
+                        <SelectItem value="certifie">Certifié</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={newDoc.source_type} onValueChange={v => setNewDoc({ ...newDoc, source_type: v })}>
+                      <SelectTrigger className="text-xs" data-testid="doc-source-select"><SelectValue placeholder="Source" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="utilisateur">Utilisateur</SelectItem>
+                        <SelectItem value="organisme">Organisme</SelectItem>
+                        <SelectItem value="employeur">Employeur</SelectItem>
+                        <SelectItem value="conseiller">Conseiller</SelectItem>
+                        <SelectItem value="systeme">Système</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={newDoc.category} onValueChange={v => setNewDoc({ ...newDoc, category: v })}>
+                      <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="identite_professionnelle">Identité professionnelle</SelectItem>
+                        <SelectItem value="diplomes_certifications">Diplômes & certifications</SelectItem>
+                        <SelectItem value="experiences_professionnelles">Expériences professionnelles</SelectItem>
+                        <SelectItem value="competences_preuves">Compétences & preuves</SelectItem>
+                        <SelectItem value="formation_apprentissages">Formation & apprentissages</SelectItem>
+                        <SelectItem value="accompagnement_insertion">Accompagnement & bilans</SelectItem>
+                        <SelectItem value="documents_administratifs">Documents administratifs</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input type="date" placeholder="Expiration" value={newDoc.date_expiration} onChange={e => setNewDoc({ ...newDoc, date_expiration: e.target.value })} className="text-xs" />
+                  </div>
+                  <Input placeholder="Émis par (organisme, employeur...)" value={newDoc.issued_by} onChange={e => setNewDoc({ ...newDoc, issued_by: e.target.value })} className="text-xs" />
+                  <Input placeholder="Compétences liées (séparées par virgules)" value={newDoc.competences_liees} onChange={e => setNewDoc({ ...newDoc, competences_liees: e.target.value })} className="text-xs" />
+                  <Textarea placeholder="Description..." rows={2} value={newDoc.description} onChange={e => setNewDoc({ ...newDoc, description: e.target.value })} className="text-xs" />
+                  <Button className="w-full bg-[#1e3a5f]" onClick={handleUpload} disabled={uploading} data-testid="submit-doc-btn">
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}Ajouter au portefeuille
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="add-document-btn">
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter un document
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Ajouter un document au coffre-fort</DialogTitle>
-              <DialogDescription>
-                Indexez votre document pour faciliter sa recherche et sa valorisation
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-slate-700">Titre du document *</label>
-                <Input
-                  placeholder="Ex: CV Marketing Digital 2024"
-                  value={newDocument.title}
-                  onChange={(e) => setNewDocument({ ...newDocument, title: e.target.value })}
-                  data-testid="doc-title-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Catégorie *</label>
-                <Select 
-                  value={newDocument.category} 
-                  onValueChange={(v) => setNewDocument({ ...newDocument, category: v, document_type: "" })}
-                >
-                  <SelectTrigger data-testid="doc-category-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        <span className="flex items-center gap-2">
-                          <config.icon className="w-4 h-4" />
-                          {config.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Type de document *</label>
-                <Select 
-                  value={newDocument.document_type} 
-                  onValueChange={(v) => setNewDocument({ ...newDocument, document_type: v })}
-                >
-                  <SelectTrigger data-testid="doc-type-select">
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories[newDocument.category]?.types.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Date du document</label>
-                <Input
-                  type="date"
-                  value={newDocument.date_document}
-                  onChange={(e) => setNewDocument({ ...newDocument, date_document: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Date d'expiration</label>
-                <Input
-                  type="date"
-                  value={newDocument.date_expiration}
-                  onChange={(e) => setNewDocument({ ...newDocument, date_expiration: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Métier associé</label>
-                <Input
-                  placeholder="Ex: Assistant administratif"
-                  value={newDocument.metier_associe}
-                  onChange={(e) => setNewDocument({ ...newDocument, metier_associe: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Secteur</label>
-                <Input
-                  placeholder="Ex: Administration, Commerce..."
-                  value={newDocument.secteur}
-                  onChange={(e) => setNewDocument({ ...newDocument, secteur: e.target.value })}
-                />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-slate-700">Compétences liées</label>
-                <Input
-                  placeholder="Séparez par des virgules: Excel, Communication, Gestion de projet"
-                  value={newDocument.competences_liees}
-                  onChange={(e) => setNewDocument({ ...newDocument, competences_liees: e.target.value })}
-                />
-                <p className="text-xs text-slate-500">Ces compétences seront ajoutées à votre profil comme compétences prouvées</p>
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-slate-700">Description</label>
-                <Textarea
-                  placeholder="Décrivez brièvement le contenu du document..."
-                  rows={3}
-                  value={newDocument.description}
-                  onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Niveau de confidentialité</label>
-                <Select 
-                  value={newDocument.privacy_level} 
-                  onValueChange={(v) => setNewDocument({ ...newDocument, privacy_level: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PRIVACY_LEVELS).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        <span className="flex items-center gap-2">
-                          <config.icon className="w-4 h-4" />
-                          {config.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 flex items-end">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newDocument.is_sensitive}
-                    onChange={(e) => setNewDocument({ ...newDocument, is_sensitive: e.target.checked })}
-                    className="rounded border-slate-300"
-                  />
-                  <span className="text-sm text-slate-700">Document sensible (accès renforcé)</span>
-                </label>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button onClick={createDocument} className="bg-[#1e3a5f] hover:bg-[#152a45]" data-testid="submit-document-btn">
-                Ajouter au coffre-fort
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="coffre-stats">
-        <Card className="card-metric">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1e3a5f] text-white flex items-center justify-center">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{stats?.total_documents || 0}</p>
-                <p className="text-xs text-slate-500">Documents</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="card-metric">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-                <Award className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{stats?.competences_prouvees?.length || 0}</p>
-                <p className="text-xs text-slate-500">Compétences prouvées</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="card-metric">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-                <Share2 className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{stats?.documents_partages || 0}</p>
-                <p className="text-xs text-slate-500">Documents partagés</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="card-metric">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{stats?.documents_expirants || 0}</p>
-                <p className="text-xs text-slate-500">À renouveler</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Tabs */}
+      {/* === 3 LAYERS TABS === */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 lg:grid-cols-7 gap-1 h-auto p-1 bg-slate-100">
-          <TabsTrigger value="documents" className="text-xs sm:text-sm py-2" data-testid="tab-documents">
-            <FileText className="w-4 h-4 mr-1 hidden sm:inline" />
-            Documents
+        <TabsList className="grid grid-cols-3 h-auto p-1 bg-slate-100">
+          <TabsTrigger value="wallet" className="py-2.5 text-xs sm:text-sm gap-1.5" data-testid="tab-wallet">
+            <Shield className="w-4 h-4" /><span className="hidden sm:inline">Couche 1 :</span> Confiance
           </TabsTrigger>
-          <TabsTrigger value="competences" className="text-xs sm:text-sm py-2" data-testid="tab-competences">
-            <Award className="w-4 h-4 mr-1 hidden sm:inline" />
-            Compétences
+          <TabsTrigger value="intelligence" className="py-2.5 text-xs sm:text-sm gap-1.5" data-testid="tab-intelligence">
+            <Brain className="w-4 h-4" /><span className="hidden sm:inline">Couche 2 :</span> Intelligence
           </TabsTrigger>
-          <TabsTrigger value="parcours" className="text-xs sm:text-sm py-2" data-testid="tab-parcours">
-            <Briefcase className="w-4 h-4 mr-1 hidden sm:inline" />
-            Parcours
-          </TabsTrigger>
-          <TabsTrigger value="candidatures" className="text-xs sm:text-sm py-2" data-testid="tab-candidatures">
-            <Search className="w-4 h-4 mr-1 hidden sm:inline" />
-            Candidatures
-          </TabsTrigger>
-          <TabsTrigger value="partages" className="text-xs sm:text-sm py-2" data-testid="tab-partages">
-            <Share2 className="w-4 h-4 mr-1 hidden sm:inline" />
-            Partages
-          </TabsTrigger>
-          <TabsTrigger value="sensibles" className="text-xs sm:text-sm py-2" data-testid="tab-sensibles">
-            <Shield className="w-4 h-4 mr-1 hidden sm:inline" />
-            Sensibles
-          </TabsTrigger>
-          <TabsTrigger value="expirants" className="text-xs sm:text-sm py-2" data-testid="tab-expirants">
-            <Clock className="w-4 h-4 mr-1 hidden sm:inline" />
-            Expirants
+          <TabsTrigger value="actions" className="py-2.5 text-xs sm:text-sm gap-1.5" data-testid="tab-actions">
+            <Zap className="w-4 h-4" /><span className="hidden sm:inline">Couche 3 :</span> Actions
           </TabsTrigger>
         </TabsList>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Rechercher par titre, compétence, métier..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                data-testid="search-documents"
-              />
-            </div>
-            <Select value={selectedCategory || "all"} onValueChange={(v) => setSelectedCategory(v === "all" ? null : v)}>
-              <SelectTrigger className="w-full sm:w-60" data-testid="filter-category">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Toutes catégories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes catégories</SelectItem>
-                {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="flex items-center gap-2">
-                      <config.icon className="w-4 h-4" />
-                      {config.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* ============ COUCHE 1 : CONFIANCE (Wallet) ============ */}
+        <TabsContent value="wallet" className="space-y-4">
+          {/* Identity card */}
+          <Card className="border-0 bg-gradient-to-r from-blue-50 to-cyan-50 overflow-hidden" data-testid="identity-card">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-[#1e3a5f] flex items-center justify-center text-white text-xl font-bold">{(profile?.real_first_name || profile?.pseudo || "?")[0].toUpperCase()}</div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-slate-900">{profile?.real_first_name} {profile?.real_last_name}</h3>
+                  <p className="text-xs text-slate-500">Identifiant RE'ACTIF PRO : {profile?.pseudo}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className={`bg-${trustColor}-50 text-${trustColor}-700 border border-${trustColor}-200 text-[10px]`}>
+                      <Shield className="w-3 h-3 mr-0.5" />Confiance : {trustPct}%
+                    </Badge>
+                    {profile?.dclic_imported && <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]"><Sparkles className="w-3 h-3 mr-0.5" />D'CLIC PRO</Badge>}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Category Quick Filters */}
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-              const count = stats?.by_category?.[key] || 0;
-              const Icon = config.icon;
+          {/* Score de confiance 4D */}
+          {scores && (
+            <Card data-testid="trust-scores">
+              <CardContent className="p-4">
+                <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><Shield className="w-4 h-4 text-blue-600" />Niveaux de confiance</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {scores.dimensions.map(dim => (
+                    <div key={dim.key} className="bg-slate-50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-slate-500">{dim.label}</p>
+                      <p className="text-xl font-bold text-slate-800 my-1">{dim.pct}%</p>
+                      <Progress value={dim.pct} className="h-1" />
+                    </div>
+                  ))}
+                </div>
+                {scores.tips.length > 0 && (
+                  <div className="mt-3 space-y-1">{scores.tips.map((t, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-500"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />{t}</div>
+                  ))}</div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Mes preuves */}
+          <Card data-testid="proofs-section">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-blue-600" />Mes preuves ({totalDocs})</CardTitle>
+              <CardDescription className="text-xs">Documents certifiés qui fondent votre identité professionnelle</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {documents.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-6">Aucune preuve déposée. Ajoutez vos diplômes, attestations et certificats.</p>
+              ) : documents.map(doc => {
+                const trustLabels = { auto_declare: { l: "Auto-déclaré", c: "slate" }, verifie: { l: "Vérifié", c: "blue" }, valide: { l: "Validé RE'ACTIF PRO", c: "amber" }, certifie: { l: "Certifié", c: "emerald" } };
+                const sourceLabels = { utilisateur: "Utilisateur", organisme: "Organisme", employeur: "Employeur", conseiller: "Conseiller", systeme: "RE'ACTIF PRO" };
+                const tl = trustLabels[doc.trust_level] || trustLabels.auto_declare;
+                return (
+                  <div key={doc.id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow" data-testid={`proof-${doc.id}`}>
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0"><FileText className="w-4 h-4 text-blue-600" /></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{doc.title}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <Badge className={`bg-${tl.c}-50 text-${tl.c}-700 border border-${tl.c}-200 text-[9px]`}>
+                          {doc.trust_level === "valide" && <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />}
+                          {tl.l}
+                        </Badge>
+                        <Badge variant="outline" className="text-[9px]">{sourceLabels[doc.source_type] || "Utilisateur"}</Badge>
+                        {doc.storage_path && <Badge className="bg-emerald-50 text-emerald-700 text-[9px]">Fichier</Badge>}
+                        {doc.issued_by && <Badge className="bg-blue-50 text-blue-700 text-[9px]"><Shield className="w-2.5 h-2.5 mr-0.5" />{doc.issued_by}</Badge>}
+                        {doc.competences_liees?.length > 0 && doc.competences_liees.slice(0, 2).map((c, i) => <span key={i} className="text-[9px] text-blue-600 bg-blue-50 px-1 py-0.5 rounded">{c}</span>)}
+                      </div>
+                      {doc.description && doc.trust_level === "valide" && (
+                        <p className="text-[10px] text-emerald-600 mt-1">{doc.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {doc.storage_path && <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`download-doc-${doc.id}`} onClick={async () => {
+                        try {
+                          const res = await axios.get(`${API}/coffre/download/${doc.id}?token=${token}`, { responseType: 'blob' });
+                          const url = window.URL.createObjectURL(new Blob([res.data]));
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = doc.file_name || doc.title?.split(' — ')[1] || 'document';
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(url);
+                        } catch (e) {
+                          toast.error("Erreur lors du téléchargement");
+                        }
+                      }}><Download className="w-3.5 h-3.5 text-emerald-600" /></Button>}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`share-doc-${doc.id}`} onClick={async () => {
+                        try {
+                          const shareUrl = `${window.location.origin}/shared/proof/${doc.id}`;
+                          await navigator.clipboard.writeText(shareUrl);
+                          toast.success("Lien de partage copié dans le presse-papier");
+                        } catch {
+                          toast.error("Impossible de copier le lien");
+                        }
+                      }}><Share2 className="w-3.5 h-3.5 text-blue-600" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => handleDelete(doc.id)}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Roadmap EUDI */}
+          <Card className="border-dashed border-2 border-blue-200 bg-blue-50/30" data-testid="eudi-roadmap">
+            <CardContent className="p-4">
+              <h4 className="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-600" />Évolution : connexion au wallet européen (EUDI)
+              </h4>
+              <p className="text-[10px] text-slate-500 mb-3">RE'ACTIF PRO se prépare à devenir compatible avec l'identité numérique européenne</p>
+              <div className="space-y-2">
+                {[
+                  { step: "1", label: "Architecture prête", desc: "Modèle compatible credentials, logique consentement, API ready", status: "done" },
+                  { step: "2", label: "Intégration sandbox EUDI", desc: "Connexion pilote via OpenID4VP + Verifiable Credentials (W3C)", status: "next" },
+                  { step: "3", label: "Connexion wallet officielle", desc: "Bouton 'Se connecter avec mon identité européenne' + vérification automatique", status: "future" },
+                  { step: "4", label: "Interopérabilité Europass", desc: "Import/export de credentials certifiés, compatibilité multi-pays", status: "future" },
+                ].map(item => (
+                  <div key={item.step} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${item.status === "done" ? "bg-emerald-50 border border-emerald-200" : item.status === "next" ? "bg-amber-50 border border-amber-200" : "bg-slate-50 border border-slate-200"}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${item.status === "done" ? "bg-emerald-200 text-emerald-700" : item.status === "next" ? "bg-amber-200 text-amber-700" : "bg-slate-200 text-slate-500"}`}>{item.status === "done" ? "✓" : item.step}</div>
+                    <div className="flex-1">
+                      <p className={`text-xs font-medium ${item.status === "future" ? "text-slate-500" : "text-slate-800"}`}>{item.label}</p>
+                      <p className="text-[10px] text-slate-400">{item.desc}</p>
+                    </div>
+                    <Badge className={`text-[9px] ${item.status === "done" ? "bg-emerald-100 text-emerald-700" : item.status === "next" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                      {item.status === "done" ? "Fait" : item.status === "next" ? "Prochaine étape" : "À venir"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ============ COUCHE 2 : INTELLIGENCE (RE'ACTIF PRO) ============ */}
+        <TabsContent value="intelligence" className="space-y-4">
+          {/* Profil augmenté */}
+          <Card className="border-0 bg-gradient-to-r from-violet-50 to-purple-50" data-testid="augmented-profile">
+            <CardContent className="p-5">
+              <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><Brain className="w-4 h-4 text-violet-600" />Profil augmenté RE'ACTIF PRO</h4>
+              <p className="text-xs text-slate-600 mb-3">L'UE vérifie qui vous êtes. RE'ACTIF PRO révèle ce que vous pouvez devenir.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white rounded-lg p-3 text-center border border-violet-100">
+                  <Award className="w-5 h-5 text-violet-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-900">{passport?.competences?.length || 0}</p>
+                  <p className="text-[10px] text-slate-500">Compétences</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center border border-violet-100">
+                  <Sparkles className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-900">{totalSkillsProved}</p>
+                  <p className="text-[10px] text-slate-500">Soft skills prouvés</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center border border-violet-100">
+                  <Briefcase className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-900">{passport?.experiences?.length || 0}</p>
+                  <p className="text-[10px] text-slate-500">Expériences</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center border border-violet-100">
+                  <GraduationCap className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-900">{passport?.formations?.length || 0}</p>
+                  <p className="text-[10px] text-slate-500">Formations</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ADN Pro */}
+          {passport?.identity_adn && (
+            <Card data-testid="adn-pro-wallet">
+              <CardContent className="p-4">
+                <h4 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2"><Compass className="w-4 h-4 text-[#1e3a5f]" />ADN Professionnel</h4>
+                <p className="text-xs text-slate-600 italic mb-3">{passport.identity_adn.synthese_adn}</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Forces</p>
+                    {(passport.identity_adn.forces_principales || []).slice(0, 4).map((f, i) => (
+                      <div key={i} className="flex items-center gap-1 text-[10px] text-slate-700"><CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />{f}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Environnements</p>
+                    {(passport.identity_adn.environnements_favorables || []).slice(0, 3).map((e, i) => (
+                      <div key={i} className="flex items-center gap-1 text-[10px] text-slate-700"><Target className="w-3 h-3 text-blue-500 shrink-0" />{e}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Projection</p>
+                    {(passport.identity_adn.axes_projection || []).slice(0, 3).map((a, i) => (
+                      <div key={i} className="flex items-center gap-1 text-[10px] text-slate-700"><TrendingUp className="w-3 h-3 text-violet-500 shrink-0" />{a}</div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Vertus & Valeurs */}
+          {profile?.dclic_imported && (
+            <Card data-testid="vertus-values">
+              <CardContent className="p-4">
+                <h4 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-600" />Vertus et valeurs (D'CLIC PRO)</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {(() => {
+                    const dp = profile.dclic_profile || {};
+                    const vp = dp.vertus_profile || {};
+                    const vd = dp.vertu_data || {};
+                    return (
+                      <>
+                        {(vp.dominant_name || vd.name) && <div className="bg-amber-50 rounded-lg p-3"><p className="text-[10px] text-slate-500">Vertu dominante</p><p className="text-sm font-bold text-slate-900">{vp.dominant_name || vd.name}</p></div>}
+                        {vp.secondary_name && <div className="bg-rose-50 rounded-lg p-3"><p className="text-[10px] text-slate-500">Vertu secondaire</p><p className="text-sm font-bold text-slate-900">{vp.secondary_name}</p></div>}
+                        {(vd.valeurs_schwartz || []).length > 0 && <div className="bg-violet-50 rounded-lg p-3 col-span-2"><p className="text-[10px] text-slate-500">Valeurs clés</p><p className="text-sm font-bold text-slate-900">{vd.valeurs_schwartz.join(", ")}</p></div>}
+                      </>
+                    );
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Soft Skills prouvés — Preuves S.A.R.E complètes */}
+          {illustrations.length > 0 && (
+            <Card data-testid="proved-skills">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Award className="w-4 h-4 text-emerald-600" />Mes preuves S.A.R.E ({illustrations.length})</h4>
+                  <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">{illustrations.length} soft skill{illustrations.length > 1 ? "s" : ""} prouvé{illustrations.length > 1 ? "s" : ""}</Badge>
+                </div>
+                <p className="text-[10px] text-slate-500">Vos savoir-être illustrés par des exemples concrets selon la méthode S.A.R.E (Situation, Action, Résultat, Enseignement)</p>
+                <div className="space-y-3">
+                  {illustrations.map(il => (
+                    <div key={il.id} className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 space-y-2" data-testid={`proof-${il.id}`}>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-100 text-emerald-700 text-[10px] font-bold">{il.soft_skill}</Badge>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      </div>
+                      {/* Show structured S.A.R.E */}
+                      {(il.sare_situation || il.sare_action) ? (
+                        <div className="space-y-1.5 text-xs">
+                          {il.sare_situation && (
+                            <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">S</span><p className="text-slate-700">{il.sare_situation}</p></div>
+                          )}
+                          {il.sare_action && (
+                            <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">A</span><p className="text-slate-700">{il.sare_action}</p></div>
+                          )}
+                          {il.sare_resultat && (
+                            <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">R</span><p className="text-slate-700">{il.sare_resultat}</p></div>
+                          )}
+                          {il.sare_enseignement && (
+                            <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">E</span><p className="text-slate-700">{il.sare_enseignement}</p></div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-600">{il.situation_text}</p>
+                      )}
+                      {/* AI reformulation */}
+                      {(il.sare_text || il.star_text) && (
+                        <div className="bg-white/60 rounded-lg p-2 border border-emerald-100">
+                          <p className="text-[10px] font-semibold text-emerald-700 mb-0.5 flex items-center gap-1"><Award className="w-3 h-3" />Reformulation S.A.R.E par l'IA</p>
+                          <p className="text-[10px] text-emerald-800 leading-relaxed">{il.sare_text || il.star_text}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ============ COUCHE 3 : ACTIONS ============ */}
+        <TabsContent value="actions" className="space-y-4">
+          {/* Partager en 1 clic */}
+          <Card className="border-0 bg-gradient-to-r from-amber-50 to-orange-50" data-testid="share-section">
+            <CardContent className="p-5">
+              <h4 className="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-2"><Share2 className="w-4 h-4 text-amber-600" />Partager mon profil en 1 clic</h4>
+              <p className="text-xs text-slate-500 mb-3">Choisissez quoi partager, avec qui et pour combien de temps</p>
+
+              {generatedShareUrl && (
+                <div className="bg-white border border-amber-200 rounded-xl p-4 mb-3 flex items-center gap-4" data-testid="share-qr">
+                  <QRCodeSVG value={generatedShareUrl} size={80} />
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-slate-800">Lien de partage créé</p>
+                    <p className="text-[10px] text-slate-500 break-all mt-1">{generatedShareUrl}</p>
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] mt-2" onClick={() => { navigator.clipboard.writeText(generatedShareUrl); toast.success("Lien copié"); }}>Copier le lien</Button>
+                  </div>
+                </div>
+              )}
+
+              {!showShareForm ? (
+                <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { setShowShareForm(true); setGeneratedShareUrl(null); }} data-testid="new-share-btn">
+                  <QrCode className="w-4 h-4 mr-1" />Créer un partage sélectif
+                </Button>
+              ) : (
+                <div className="bg-white border border-amber-200 rounded-xl p-4 space-y-2" data-testid="share-form">
+                  <Input placeholder="Nom du destinataire *" value={shareForm.recipient_name} onChange={e => setShareForm({ ...shareForm, recipient_name: e.target.value })} className="h-8 text-xs" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={shareForm.recipient_type} onValueChange={v => setShareForm({ ...shareForm, recipient_type: v })}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employeur">Employeur</SelectItem>
+                        <SelectItem value="conseiller">Conseiller</SelectItem>
+                        <SelectItem value="formation">Formation</SelectItem>
+                        <SelectItem value="autre">Autre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={String(shareForm.duration_days)} onValueChange={v => setShareForm({ ...shareForm, duration_days: parseInt(v) })}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">7 jours</SelectItem>
+                        <SelectItem value="30">30 jours</SelectItem>
+                        <SelectItem value="90">90 jours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-slate-600 mb-1">Sections à partager :</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(sectionLabels).map(([k, v]) => (
+                        <button key={k} onClick={() => setShareForm({ ...shareForm, sections: shareForm.sections.includes(k) ? shareForm.sections.filter(x => x !== k) : [...shareForm.sections, k] })}
+                          className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${shareForm.sections.includes(k) ? "bg-amber-100 text-amber-700 border-amber-300" : "bg-white text-slate-500 border-slate-200"}`}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="h-7 text-xs flex-1 bg-amber-600 hover:bg-amber-700" onClick={handleCreateShare} disabled={creatingShare}>
+                      {creatingShare ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <QrCode className="w-3 h-3 mr-1" />}Générer le lien + QR Code
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowShareForm(false)}>Annuler</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Partages actifs */}
+          <Card data-testid="active-shares">
+            <CardContent className="p-4">
+              <h4 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2"><Eye className="w-4 h-4 text-blue-600" />Partages actifs ({activeShares})</h4>
+              {activeShares === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-3">Aucun partage actif. Vous contrôlez qui voit vos données.</p>
+              ) : shares.filter(s => s.active).map(s => (
+                <div key={s.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 mb-1.5" data-testid={`active-share-${s.id}`}>
+                  <div>
+                    <p className="text-xs font-medium text-slate-800">{s.recipient_name} <span className="text-slate-400">({s.recipient_type})</span></p>
+                    <p className="text-[10px] text-slate-500">{(s.sections || []).map(sec => sectionLabels[sec] || sec).join(", ")} — {s.views || 0} vue{(s.views || 0) > 1 ? "s" : ""}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] text-rose-500" onClick={() => handleRevoke(s.id)}>Révoquer</Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Actions rapides */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="quick-actions">
+            {[
+              { label: "Générer mon CV", icon: FileText, path: "/dashboard/trajectoire", color: "blue" },
+              { label: "Prouver mes soft skills", icon: Award, path: "/dashboard/profil", color: "emerald" },
+              { label: "Voir mes opportunités", icon: Briefcase, path: "/dashboard/opportunites", color: "violet" },
+              { label: "Rejoindre Ubuntoo", icon: Users, action: () => window.open("/ubuntoo", "_blank"), color: "amber" },
+            ].map((a, i) => {
+              const AIcon = a.icon;
               return (
-                <Badge
-                  key={key}
-                  variant={selectedCategory === key ? "default" : "outline"}
-                  className={`cursor-pointer transition-all ${selectedCategory === key ? 'bg-[#1e3a5f]' : 'hover:bg-slate-100'}`}
-                  onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
-                >
-                  <Icon className="w-3 h-3 mr-1" />
-                  {config.label} ({count})
-                </Badge>
+                <button key={i} onClick={() => a.action ? a.action() : (window.location.href = a.path)}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border border-transparent bg-${a.color}-50 hover:bg-${a.color}-100 text-${a.color}-700 transition-all`} data-testid={`action-${i}`}>
+                  <AIcon className="w-5 h-5" /><span className="text-[10px] font-medium text-center">{a.label}</span>
+                </button>
               );
             })}
           </div>
 
-          {/* Documents Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDocuments.length > 0 ? (
-              filteredDocuments.map((doc) => (
-                <DocumentCard 
-                  key={doc.id} 
-                  document={doc} 
-                  onDelete={deleteDocument}
-                  onShare={() => { setSelectedDocument(doc); setShareDialogOpen(true); }}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <FolderLock className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-600 mb-2">Aucun document</h3>
-                <p className="text-slate-500 mb-4">Commencez par ajouter vos premiers documents professionnels</p>
-                <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#1e3a5f]">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un document
-                </Button>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Competences Tab */}
-        <TabsContent value="competences" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-[#1e3a5f]" />
-                Compétences prouvées par vos documents
-              </CardTitle>
-              <CardDescription>
-                Chaque document lié à une compétence renforce votre profil professionnel
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {stats?.competences_prouvees?.length > 0 ? (
-                <div className="space-y-4">
-                  {stats.competences_prouvees.map((comp, idx) => {
-                    const relatedDocs = documents.filter(d => d.competences_liees?.includes(comp));
-                    return (
-                      <div key={idx} className="p-4 rounded-lg border border-slate-200 hover:border-[#1e3a5f] transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-slate-900">{comp}</h4>
-                          <Badge className="bg-emerald-100 text-emerald-700">
-                            {relatedDocs.length} preuve(s)
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {relatedDocs.slice(0, 3).map((doc, didx) => (
-                            <Badge key={didx} variant="secondary" className="text-xs">
-                              <FileText className="w-3 h-3 mr-1" />
-                              {doc.title}
-                            </Badge>
-                          ))}
-                          {relatedDocs.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{relatedDocs.length - 3} autres
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Award className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                  <p>Aucune compétence prouvée pour l'instant</p>
-                  <p className="text-sm">Ajoutez des documents et liez-les à vos compétences</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Parcours Tab */}
-        <TabsContent value="parcours" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-[#1e3a5f]" />
-                Mon parcours professionnel
-              </CardTitle>
-              <CardDescription>
-                Documents classés par expériences et périodes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {["experiences_professionnelles", "diplomes_certifications", "formation_apprentissages"].map(cat => {
-                  const catDocs = documents.filter(d => d.category === cat);
-                  const config = CATEGORY_CONFIG[cat];
-                  const Icon = config.icon;
+          {/* À renouveler */}
+          {expiringDocs > 0 && (
+            <Card className="border-amber-200" data-testid="expiring-docs">
+              <CardContent className="p-4">
+                <h4 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-amber-600" />Preuves à renouveler ({expiringDocs})</h4>
+                {documents.filter(d => d.date_expiration && ((new Date(d.date_expiration) - new Date()) / 86400000) < 90).map(d => {
+                  const days = Math.ceil((new Date(d.date_expiration) - new Date()) / 86400000);
                   return (
-                    <div key={cat} className="border-l-4 border-[#1e3a5f] pl-4 py-2">
-                      <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-2">
-                        <Icon className="w-4 h-4" />
-                        {config.label}
-                      </h4>
-                      {catDocs.length > 0 ? (
-                        <div className="space-y-2">
-                          {catDocs.map((doc, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded">
-                              <span className="text-sm text-slate-700">{doc.title}</span>
-                              <span className="text-xs text-slate-500">{doc.date_document || "Non daté"}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-500">Aucun document dans cette catégorie</p>
-                      )}
+                    <div key={d.id} className={`flex items-center justify-between rounded-lg px-3 py-2 mb-1 ${days < 0 ? "bg-rose-50 border border-rose-200" : "bg-amber-50 border border-amber-200"}`}>
+                      <span className="text-xs text-slate-700">{d.title}</span>
+                      <Badge className={days < 0 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}>{days < 0 ? `Expiré ${Math.abs(days)}j` : `${days}j restants`}</Badge>
                     </div>
                   );
                 })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Candidatures Tab */}
-        <TabsContent value="candidatures" className="space-y-4">
-          <DocumentCategoryView 
-            documents={documents.filter(d => d.category === "recherche_emploi")}
-            title="Recherche d'emploi et candidatures"
-            description="Suivez vos candidatures et conservez vos échanges"
-            icon={Search}
-            onDelete={deleteDocument}
-            onShare={(doc) => { setSelectedDocument(doc); setShareDialogOpen(true); }}
-          />
-        </TabsContent>
-
-        {/* Partages Tab */}
-        <TabsContent value="partages" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Share2 className="w-5 h-5 text-[#1e3a5f]" />
-                Mes partages actifs
-              </CardTitle>
-              <CardDescription>
-                Gérez qui a accès à vos documents et révoquez les partages à tout moment
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {shares.length > 0 ? (
-                <div className="space-y-3">
-                  {shares.map((share, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 rounded-lg border border-slate-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <Link className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900">{share.document_title}</p>
-                          <p className="text-xs text-slate-500">
-                            Expire le {new Date(share.expires_at).toLocaleDateString('fr-FR')}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => revokeShare(share.id)}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Révoquer
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Share2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                  <p>Aucun partage actif</p>
-                  <p className="text-sm">Vous gardez le contrôle total de vos documents</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Sensibles Tab */}
-        <TabsContent value="sensibles" className="space-y-4">
-          <DocumentCategoryView 
-            documents={sensitiveDocs}
-            title="Documents sensibles"
-            description="Accès renforcé pour vos documents confidentiels"
-            icon={Shield}
-            onDelete={deleteDocument}
-            onShare={(doc) => { setSelectedDocument(doc); setShareDialogOpen(true); }}
-          />
-        </TabsContent>
-
-        {/* Expirants Tab */}
-        <TabsContent value="expirants" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-amber-600" />
-                Documents à renouveler
-              </CardTitle>
-              <CardDescription>
-                Documents expirant dans les 30 prochains jours
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {expiringDocs.length > 0 ? (
-                <div className="space-y-3">
-                  {expiringDocs.map((doc, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 rounded-lg border border-amber-200 bg-amber-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                          <AlertTriangle className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900">{doc.title}</p>
-                          <p className="text-xs text-amber-700">
-                            Expire dans {doc.days_until_expiry} jour(s)
-                          </p>
-                        </div>
-                      </div>
-                      <Badge className="bg-amber-100 text-amber-700">
-                        {new Date(doc.date_expiration).toLocaleDateString('fr-FR')}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-400" />
-                  <p>Aucun document expirant prochainement</p>
-                  <p className="text-sm">Vos documents sont à jour !</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
-
-      {/* Share Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Partager ce document</DialogTitle>
-            <DialogDescription>
-              Créez un lien de partage sécurisé avec une durée limitée
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="font-medium text-slate-900">{selectedDocument?.title}</p>
-              <p className="text-sm text-slate-500">{CATEGORY_CONFIG[selectedDocument?.category]?.label}</p>
-            </div>
-            <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-700">
-                <Shield className="w-4 h-4 inline mr-1" />
-                Le lien sera valide 7 jours et vous pourrez le révoquer à tout moment.
-              </p>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShareDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button 
-                className="bg-[#1e3a5f] hover:bg-[#152a45]"
-                onClick={() => selectedDocument && shareDocument(selectedDocument.id)}
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Créer le lien de partage
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
-
-// Document Card Component
-const DocumentCard = ({ document, onDelete, onShare }) => {
-  const config = CATEGORY_CONFIG[document.category] || CATEGORY_CONFIG.documents_administratifs;
-  const Icon = config.icon;
-  const privacyConfig = PRIVACY_LEVELS[document.privacy_level] || PRIVACY_LEVELS.private;
-  const PrivacyIcon = privacyConfig.icon;
-
-  return (
-    <Card className="card-interactive group" data-testid={`document-card-${document.id}`}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className={`w-10 h-10 rounded-lg bg-${config.color}-100 flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 text-${config.color}-600`} />
-          </div>
-          <div className="flex items-center gap-1">
-            <Badge variant="outline" className="text-xs">
-              <PrivacyIcon className="w-3 h-3 mr-1" />
-              {privacyConfig.label}
-            </Badge>
-          </div>
-        </div>
-        
-        <h3 className="font-semibold text-slate-900 mb-1 line-clamp-2 group-hover:text-[#1e3a5f] transition-colors">
-          {document.title}
-        </h3>
-        <p className="text-xs text-slate-500 mb-3">{document.document_type}</p>
-        
-        {document.description && (
-          <p className="text-sm text-slate-600 mb-3 line-clamp-2">{document.description}</p>
-        )}
-        
-        {document.competences_liees?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {document.competences_liees.slice(0, 3).map((comp, idx) => (
-              <Badge key={idx} variant="secondary" className="text-xs">
-                {comp}
-              </Badge>
-            ))}
-            {document.competences_liees.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{document.competences_liees.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
-        
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-          <span className="text-xs text-slate-400">
-            {document.date_document || new Date(document.created_at).toLocaleDateString('fr-FR')}
-          </span>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onShare(document)}>
-              <Share2 className="w-4 h-4 text-blue-600" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(document.id)}>
-              <Trash2 className="w-4 h-4 text-red-500" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Document Category View Component
-const DocumentCategoryView = ({ documents, title, description, icon: Icon, onDelete, onShare }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Icon className="w-5 h-5 text-[#1e3a5f]" />
-        {title}
-      </CardTitle>
-      <CardDescription>{description}</CardDescription>
-    </CardHeader>
-    <CardContent>
-      {documents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {documents.map((doc) => (
-            <DocumentCard 
-              key={doc.id} 
-              document={doc} 
-              onDelete={onDelete}
-              onShare={onShare}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-slate-500">
-          <Icon className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-          <p>Aucun document dans cette catégorie</p>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
 
 export default CoffreFortView;

@@ -39,7 +39,20 @@ const MetierFiche = ({ data, onBack, onSelectMetier }) => {
           <Layers className="w-3.5 h-3.5" />
           <span>{secteur}</span>
         </div>
-        <h2 className="text-2xl font-bold capitalize">{metier.name}</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold capitalize">{metier.name}</h2>
+          {data.code_isco && (
+            <div className="flex items-center gap-2" data-testid="isco-code-badge">
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-white/15 font-mono text-white">ISCO {data.code_isco}</span>
+              {data.isco_info?.groupe && (
+                <span className="text-xs text-slate-300 hidden md:inline">{data.isco_info.groupe}</span>
+              )}
+            </div>
+          )}
+        </div>
+        {data.isco_info?.libelle_f && data.isco_info.libelle_f !== metier.name && (
+          <p className="text-xs text-slate-400 mt-1">Forme féminine : {data.isco_info.libelle_f}</p>
+        )}
       </div>
 
       {/* 2. Mission */}
@@ -163,7 +176,7 @@ const MetierFiche = ({ data, onBack, onSelectMetier }) => {
 };
 
 /* ====== VUE PRINCIPALE ====== */
-const ExplorateurView = ({ token }) => {
+const ExplorateurView = ({ token, embedded }) => {
   const [stats, setStats] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -195,19 +208,29 @@ const ExplorateurView = ({ token }) => {
     setSearchQuery(q);
     if (q.length < 2) { setSuggestions([]); return; }
     const qLow = q.toLowerCase();
-    // Search in all metiers + also search via API
+    // Search locally first for instant results
     const local = allMetiers.filter(m => {
       const name = typeof m === "string" ? m : m.name;
       return name.toLowerCase().includes(qLow);
-    }).slice(0, 8);
+    }).slice(0, 5);
 
-    if (local.length > 0) {
-      setSuggestions(local);
-    } else {
-      axios.get(`${API}/referentiel/explorer/search?q=${encodeURIComponent(q)}`).then(r => {
-        setSuggestions(r.data.metiers?.slice(0, 8) || []);
-      }).catch(() => {});
-    }
+    // Always also search via API (includes ISCO 5853 métiers)
+    axios.get(`${API}/referentiel/explorer/search?q=${encodeURIComponent(q)}`).then(r => {
+      const apiResults = r.data.metiers?.slice(0, 12) || [];
+      // Merge local + API, deduplicate
+      const seen = new Set();
+      const merged = [];
+      for (const m of [...local, ...apiResults]) {
+        const name = (typeof m === "string" ? m : m.name).toLowerCase();
+        if (!seen.has(name)) {
+          seen.add(name);
+          merged.push(typeof m === "string" ? { name: m } : m);
+        }
+      }
+      setSuggestions(merged.slice(0, 10));
+    }).catch(() => {
+      if (local.length > 0) setSuggestions(local);
+    });
   };
 
   const selectMetier = async (name) => {
@@ -271,6 +294,7 @@ const ExplorateurView = ({ token }) => {
   return (
     <div className="space-y-6" data-testid="explorateur-view">
       {/* Header */}
+      {!embedded && (
       <div className="text-center pt-4">
         <h2 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
           <Layers className="w-5 h-5 text-blue-600" /> Explorateur des Métiers
@@ -279,19 +303,33 @@ const ExplorateurView = ({ token }) => {
           Saisissez un métier pour découvrir sa filière, ses missions, ses compétences et remonter toute la chaîne archéologique jusqu'aux vertus fondamentales.
         </p>
       </div>
+      )}
 
       {/* Search bar - Primary entry point */}
       <form onSubmit={handleSearchSubmit} className="relative max-w-2xl mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => handleSearch(e.target.value)}
-          placeholder="Saisissez un métier : cariste, développeur, infirmier..."
-          className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 shadow-sm"
-          data-testid="explorer-search-input"
-          autoFocus
-        />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              placeholder="Saisissez un métier : cariste, développeur, infirmier..."
+              className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 shadow-sm"
+              data-testid="explorer-search-input"
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searchQuery.trim().length < 2 || loading}
+            className="px-6 py-4 rounded-xl bg-[#1e3a5f] text-white font-medium text-sm hover:bg-[#2d5a8f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2 whitespace-nowrap"
+            data-testid="explorer-search-btn"
+          >
+            <Search className="w-4 h-4" />
+            Rechercher
+          </button>
+        </div>
 
         {/* Suggestions dropdown */}
         {suggestions.length > 0 && (
@@ -299,15 +337,24 @@ const ExplorateurView = ({ token }) => {
             {suggestions.map((s, i) => {
               const name = typeof s === "string" ? s : s.name;
               const filiere = typeof s === "object" ? s.filiere : "";
+              const codeIsco = typeof s === "object" ? s.code_isco : "";
+              const groupeIsco = typeof s === "object" ? s.groupe_isco : "";
+              const isIsco = typeof s === "object" && s.source === "isco";
               return (
                 <button key={i} onClick={() => selectMetier(name)}
                   className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0"
                   data-testid={`suggestion-${i}`}>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-medium text-slate-700 capitalize">{name}</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <span className="text-sm font-medium text-slate-700 capitalize truncate">{name}</span>
                   </div>
-                  {filiere && <span className="text-xs text-slate-400">{filiere}</span>}
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    {codeIsco && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono">{codeIsco}</span>
+                    )}
+                    {filiere && <span className="text-xs text-slate-400 hidden sm:inline">{filiere}</span>}
+                    {isIsco && groupeIsco && !filiere && <span className="text-xs text-slate-400 hidden sm:inline truncate max-w-[200px]">{groupeIsco}</span>}
+                  </div>
                 </button>
               );
             })}
@@ -327,13 +374,12 @@ const ExplorateurView = ({ token }) => {
       {!loading && !selectedMetier && (
         <>
           {stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-3xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
               {[
                 { icon: Building2, label: "Filières", value: stats.filieres, c: "blue" },
                 { icon: Layers, label: "Secteurs", value: stats.secteurs, c: "indigo" },
-                { icon: Briefcase, label: "Métiers", value: stats.metiers, c: "slate" },
-                { icon: Target, label: "Savoir-faire", value: stats.savoirs_faire, c: "emerald" },
-                { icon: Heart, label: "Savoir-être", value: stats.savoirs_etre, c: "purple" },
+                { icon: Briefcase, label: "Métiers ISCO", value: stats.isco_metiers || stats.metiers, c: "slate" },
+                { icon: Target, label: "Codes ISCO", value: stats.isco_codes || stats.savoirs_faire, c: "emerald" },
               ].map(({ icon: Icon, label, value, c }, i) => (
                 <div key={i} className="flex items-center gap-2 bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
                   <Icon className={`w-4 h-4 text-${c}-600`} />
