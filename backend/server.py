@@ -4142,21 +4142,102 @@ async def get_coach_progress(token: str):
     token_doc = await get_current_token(token)
     progress = await db.coach_progress.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not progress:
-        # Return default progress with 4 steps
+        # Check what the user has done
+        profile_id = token_doc.get("profile_id")
+        has_cv = False
+        cv_skills_count = 0
+        cv_savoir_etre_count = 0
+        experiences_count = 0
+        has_dclic = False
+
+        if profile_id:
+            profile = await db.profiles.find_one({"id": profile_id})
+            if profile:
+                has_cv = bool(profile.get("cv_analyzed"))
+                cv_skills_count = len(profile.get("skills", []))
+                cv_savoir_etre_count = len(profile.get("savoir_etre", []))
+                experiences_count = len(profile.get("experiences", []))
+                has_dclic = bool(profile.get("dclic_result"))
+
+        # Check CV analysis status
+        last_analysis = await db.cv_jobs.find_one(
+            {"token_id": token_doc["id"], "status": "completed"},
+            sort=[("created_at", -1)]
+        )
+        if last_analysis:
+            has_cv = True
+            result = last_analysis.get("result", {})
+            cv_skills_count = len(result.get("competences", []))
+            cv_savoir_etre_count = len(result.get("savoir_etre", []))
+            experiences_count = len(result.get("experiences", []))
+
+        step1_complete = has_cv
+        step2_complete = cv_savoir_etre_count >= 3
+        step3_complete = has_dclic
+        step4_complete = experiences_count >= 3
+
+        completed = sum([step1_complete, step2_complete, step3_complete, step4_complete])
+        current_step = 1
+        if step1_complete: current_step = 2
+        if step2_complete: current_step = 3
+        if step3_complete: current_step = 4
+        if step4_complete: current_step = 4
+
+        # Build message based on state
+        if not has_cv:
+            message = "Bienvenue ! Pour commencer, rendez-vous dans l'onglet Trajectoire puis cliquez sur le sous-onglet Mon CV pour déposer votre fichier. L'IA analysera vos expériences et construira automatiquement votre profil."
+            emoji = "wave"
+        elif not step2_complete:
+            message = f"Bravo ! Votre CV a été analysé — {cv_skills_count} savoir-faire, {cv_savoir_etre_count} savoir-être détectés et {experiences_count} expériences ajoutées à votre frise. Passez maintenant à l'étape 2 pour valoriser vos soft skills."
+            emoji = "star"
+        elif not step3_complete:
+            message = "Excellent progrès ! Vos soft skills sont documentés. Passez le test D'CLIC PRO pour révéler votre personnalité et générer votre Portfolio PDF."
+            emoji = "rocket"
+        else:
+            message = "Vous avancez bien ! Continuez à tracer votre trajectoire professionnelle."
+            emoji = "target"
+
+        if completed == 4:
+            emoji = "trophy"
+            message = "Félicitations ! Vous avez complété les 4 étapes de votre parcours. Votre profil est complet !"
+
         return {
-            "completed": 0, "total": 4,
+            "completed": completed, "total": 4,
+            "current_step": current_step,
+            "progress_pct": round((completed / 4) * 100),
+            "emoji": emoji,
+            "message": message,
             "steps": [
-                {"id": "cv", "label": "Importer votre CV", "description": "Rendez-vous dans Trajectoire > Mon CV pour déposer votre fichier.",
-                 "completed": False, "action_type": "navigate", "action_path": "/dashboard", "action_label": "Aller dans Trajectoire > Mon CV",
-                 "badge": "En cours"},
-                {"id": "valoriser", "label": "Me valoriser — Prouver mes Soft Skills", "description": "Documentez vos compétences comportementales avec des exemples concrets.",
-                 "completed": False, "action_type": "navigate", "action_path": "/dashboard"},
-                {"id": "boost", "label": "Booster avec D'CLIC PRO", "description": "Passez le test D'CLIC PRO pour identifier vos forces cachées.",
-                 "completed": False, "action_type": "dclic"},
-                {"id": "trajectoire", "label": "Tracer votre trajectoire", "description": "Construisez votre frise de parcours professionnel.",
-                 "completed": False, "action_type": "navigate", "action_path": "/dashboard"},
-            ],
-            "message": "Bienvenue ! Pour commencer, rendez-vous dans l'onglet Trajectoire puis cliquez sur le sous-onglet Mon CV pour déposer votre fichier. L'IA analysera vos expériences et construira automatiquement votre profil."
+                {
+                    "id": 1, "title": "Importer votre CV",
+                    "complete": step1_complete,
+                    "action_label": "Mon CV" if not step1_complete else None,
+                    "action_path": "/dashboard",
+                    "action_type": "navigate",
+                    "details": {"skills": cv_skills_count, "savoir_etre": cv_savoir_etre_count} if step1_complete else None,
+                },
+                {
+                    "id": 2, "title": "Me valoriser — Soft Skills",
+                    "complete": step2_complete,
+                    "action_label": "Valoriser" if not step2_complete else None,
+                    "action_path": "/dashboard",
+                    "action_type": "navigate",
+                },
+                {
+                    "id": 3, "title": "Booster avec D'CLIC PRO",
+                    "complete": step3_complete,
+                    "action_label": "D'CLIC PRO" if not step3_complete else None,
+                    "action_path": "dclic",
+                    "action_type": "dclic",
+                },
+                {
+                    "id": 4, "title": "Tracer votre trajectoire",
+                    "complete": step4_complete,
+                    "action_label": "Trajectoire" if not step4_complete else None,
+                    "action_path": "/dashboard",
+                    "action_type": "navigate",
+                },
+            ]
         }
     return progress
 
