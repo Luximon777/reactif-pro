@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Code, Eye, Compass as CompassIcon, Building2, MapPin, Lightbulb, Users, Handshake } from "lucide-react";
+import { ShieldCheck, Code, Eye, Compass as CompassIcon, Building2, MapPin, Lightbulb, Users, Handshake, X, LogIn } from "lucide-react";
+import axios from "axios";
+
+const API = process.env.REACT_APP_BACKEND_URL + "/api";
 
 /* ─── Logo SVG — exact DOM from reactif.pro ─── */
 const LogoSvg = ({ size = 28 }) => (
@@ -127,9 +131,79 @@ const ConnectingLines = () => (
   </svg>
 );
 
+/* ─── Login Modal — exact copy from reactif.pro ─── */
+const LoginModal = ({ open, onClose, onSuccess }) => {
+  const [tab, setTab] = useState("login");
+  const [pseudo, setPseudo] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (!open) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const endpoint = tab === "login" ? "/auth/login" : "/auth/register";
+      const res = await axios.post(`${API}${endpoint}`, { pseudonyme: pseudo, password });
+      localStorage.setItem("user", JSON.stringify(res.data));
+      onSuccess(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Erreur de connexion");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 relative" onClick={(e) => e.stopPropagation()} data-testid="login-modal">
+        <button className="absolute top-3 right-3 text-slate-400 hover:text-slate-600" onClick={onClose}><X className="w-5 h-5" /></button>
+        <h2 className="text-xl font-bold text-[#1e3a5f] mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Connexion</h2>
+        <p className="text-xs text-slate-500 mb-5">Espace personnel confidentiel sous pseudonyme</p>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-5 bg-slate-100 rounded-lg p-1">
+          <button onClick={() => setTab("login")} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${tab === "login" ? "bg-white text-[#1e3a5f] shadow-sm" : "text-slate-400"}`}>Se connecter</button>
+          <button onClick={() => setTab("register")} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${tab === "register" ? "bg-white text-[#1e3a5f] shadow-sm" : "text-slate-400"}`}>Créer un compte</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-slate-600">Pseudonyme</label>
+            <input type="text" value={pseudo} onChange={(e) => setPseudo(e.target.value)} required
+              className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4f6df5]/30 focus:border-[#4f6df5]"
+              placeholder="Votre pseudonyme" data-testid="login-pseudo" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600">Mot de passe</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
+              className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4f6df5]/30 focus:border-[#4f6df5]"
+              placeholder="Votre mot de passe" data-testid="login-password" />
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <button type="submit" disabled={loading} data-testid="login-submit"
+            className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: "linear-gradient(135deg, #1e3a5f, #20215c)" }}>
+            <LogIn className="w-4 h-4" />
+            {loading ? "Connexion..." : tab === "login" ? "Se connecter" : "Créer mon compte"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 /* ═══════ MAIN LANDING PAGE — exact copy from reactif.pro DOM ═══════ */
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [showLogin, setShowLogin] = useState(false);
+
+  const handleLoginSuccess = (user) => {
+    setShowLogin(false);
+    navigate("/espace-personnel");
+  };
 
   return (
     <div className="min-h-screen bg-white" data-testid="admin-gate">
@@ -213,7 +287,7 @@ export default function LandingPage() {
                 desc="Révélez et valorisez vos compétences réelles pour construire des trajectoires professionnelles durables"
                 items={["Portefeuille de Compétences Certifiées", "Identité professionnelle sécurisée", "Orientation personnalisée"]}
                 ctaTestId="access-cta-personnel"
-                onClick={() => navigate("/observatoire?tab=particulier")}
+                onClick={() => setShowLogin(true)}
               />
               <AccessCard
                 testId="space-vsi"
@@ -261,6 +335,9 @@ export default function LandingPage() {
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-100">
         RE'ACTIF PRO v2.0 — Accès sécurisé
       </footer>
+
+      {/* ═══ LOGIN MODAL ═══ */}
+      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} />
     </div>
   );
 }

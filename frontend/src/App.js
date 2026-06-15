@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import LandingPage from "@/LandingPage";
 import Observatoire from "@/components/opc/Observatoire";
 import UbuntooApp from "@/UbuntooApp";
+import EspacePersonnel from "@/EspacePersonnel";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/observatoire" element={<Observatoire />} />
           <Route path="/ubuntoo" element={<UbuntooApp />} />
+          <Route path="/espace-personnel" element={<EspacePersonnel />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </BrowserRouter>
