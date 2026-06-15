@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck, Code, Eye, Compass as CompassIcon, Building2, MapPin, Lightbulb, Users, Handshake, X, LogIn } from "lucide-react";
-import axios from "axios";
-
-const API = process.env.REACT_APP_BACKEND_URL + "/api";
+import { useAuth, API } from "@/App";
 
 /* ─── Logo SVG — exact DOM from reactif.pro ─── */
 const LogoSvg = ({ size = 28 }) => (
@@ -132,7 +130,7 @@ const ConnectingLines = () => (
 );
 
 /* ─── Login Modal — exact from reactif.pro (uses Shadcn Dialog) ─── */
-const LoginModal = ({ open, onClose, onSuccess }) => {
+const LoginModal = ({ open, onClose, onSuccess, loginWithPseudonyme }) => {
   const [tab, setTab] = useState("login");
   const [pseudo, setPseudo] = useState("");
   const [password, setPassword] = useState("");
@@ -147,10 +145,16 @@ const LoginModal = ({ open, onClose, onSuccess }) => {
     setError("");
     setLoading(true);
     try {
-      const endpoint = tab === "login" ? "/auth/login" : "/auth/register";
-      const res = await axios.post(`${API}${endpoint}`, { pseudonyme: pseudo, password });
-      localStorage.setItem("user", JSON.stringify(res.data));
-      onSuccess(res.data);
+      if (tab === "register") {
+        const { default: axios } = await import("axios");
+        await axios.post(`${API}/auth/register`, { pseudonyme: pseudo, password });
+      }
+      const result = await loginWithPseudonyme(pseudo, password);
+      if (result.success) {
+        onSuccess(result.user);
+      } else {
+        setError(result.error || "Erreur de connexion");
+      }
     } catch (err) {
       setError(err.response?.data?.detail || "Erreur de connexion");
     }
@@ -226,11 +230,22 @@ const LoginModal = ({ open, onClose, onSuccess }) => {
 /* ═══════ MAIN LANDING PAGE — exact copy from reactif.pro DOM ═══════ */
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { loginWithPseudonyme, login } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   const handleLoginSuccess = (user) => {
     setShowLogin(false);
-    navigate("/observatoire?vue=particulier");
+    navigate("/dashboard");
+  };
+
+  const handleEmployeurAccess = async () => {
+    const success = await login("entreprise");
+    if (success) navigate("/dashboard");
+  };
+
+  const handlePartenaireAccess = async () => {
+    const success = await login("partenaire");
+    if (success) navigate("/dashboard");
   };
 
   return (
@@ -342,7 +357,7 @@ export default function LandingPage() {
                 desc="Identifiez les talents et compétences en adéquation avec vos besoins économiques"
                 items={["Cockpit RH complet", "Matching & opportunités", "Baromètre QVCT"]}
                 ctaTestId="access-cta-employeur"
-                onClick={() => navigate("/observatoire?vue=rh")}
+                onClick={() => handleEmployeurAccess()}
               />
               <AccessCard
                 testId="space-partenaire"
@@ -352,7 +367,7 @@ export default function LandingPage() {
                 desc="Interface de coordination pour les acteurs de l'accompagnement — en complémentarité des dispositifs existants"
                 items={["Diagnostic enrichi", "Coordination des parcours", "Contribution territoriale"]}
                 ctaTestId="access-cta-partenaire"
-                onClick={() => navigate("/observatoire?vue=conseiller")}
+                onClick={() => handlePartenaireAccess()}
               />
             </div>
           </div>
@@ -365,7 +380,7 @@ export default function LandingPage() {
       </footer>
 
       {/* ═══ LOGIN MODAL ═══ */}
-      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} />
+      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} loginWithPseudonyme={loginWithPseudonyme} />
     </div>
   );
 }
