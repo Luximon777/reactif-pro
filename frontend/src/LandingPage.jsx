@@ -1,17 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Settings, Code, Eye, Compass, Building2, MapPin, Lightbulb, Users, Rocket, Briefcase, HeartHandshake } from "lucide-react";
 
-/* ─── Logo SVG (person icon in blue circle — matching reactif.pro) ─── */
-const LogoSvg = ({ size = 40 }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-    <circle cx="50" cy="50" r="48" fill="#4B83D6"/>
-    <circle cx="50" cy="35" r="12" fill="white"/>
-    <rect x="30" y="54" rx="10" width="40" height="22" fill="white"/>
-    <circle cx="26" cy="48" r="7" fill="white" opacity="0.6"/>
-    <rect x="14" y="58" rx="6" width="24" height="14" fill="white" opacity="0.6"/>
-    <circle cx="74" cy="48" r="7" fill="white" opacity="0.6"/>
-    <rect x="62" y="58" rx="6" width="24" height="14" fill="white" opacity="0.6"/>
-  </svg>
+/* ─── Logo image (original from reactif.pro) ─── */
+const LogoImg = ({ size = 40 }) => (
+  <img src="/logo-reactif-pro-hd.png" alt="RE'ACTIF PRO" width={size} height={size} style={{ objectFit: "contain" }} />
 );
 
 /* ─── Access Card Component ─── */
@@ -110,7 +102,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-2.5 bg-white border-b border-slate-100" data-testid="landing-header">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <LogoSvg size={36} />
+            <LogoImg size={36} />
             <div className="leading-none">
               <span className="text-[15px] font-bold" style={{ color: "#1E293B" }}>
                 RE'<span className="font-black">ACTIF</span> PRO
@@ -143,7 +135,7 @@ export default function LandingPage() {
       <section className="flex flex-col items-center justify-center py-16 px-4" style={{ background: "#2D3A5C", minHeight: "380px" }} data-testid="hero-section">
         {/* White logo card */}
         <div className="bg-white rounded-2xl shadow-xl px-10 py-6 flex items-center gap-5 mb-8">
-          <LogoSvg size={72} />
+          <LogoImg size={72} />
           <div>
             <h1 className="text-[40px] font-bold leading-tight" style={{ color: "#1E293B" }}>
               RE'<span className="font-black">ACTIF</span> PRO
