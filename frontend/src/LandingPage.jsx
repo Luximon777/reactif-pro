@@ -230,7 +230,7 @@ export default function LandingPage() {
 
   const handleLoginSuccess = (user) => {
     setShowLogin(false);
-    navigate("/espace-personnel");
+    navigate("/observatoire?vue=particulier");
   };
 
   return (
@@ -342,7 +342,7 @@ export default function LandingPage() {
                 desc="Identifiez les talents et compétences en adéquation avec vos besoins économiques"
                 items={["Cockpit RH complet", "Matching & opportunités", "Baromètre QVCT"]}
                 ctaTestId="access-cta-employeur"
-                onClick={() => navigate("/reactif/services-rh")}
+                onClick={() => navigate("/observatoire?vue=rh")}
               />
               <AccessCard
                 testId="space-partenaire"
@@ -352,7 +352,7 @@ export default function LandingPage() {
                 desc="Interface de coordination pour les acteurs de l'accompagnement — en complémentarité des dispositifs existants"
                 items={["Diagnostic enrichi", "Coordination des parcours", "Contribution territoriale"]}
                 ctaTestId="access-cta-partenaire"
-                onClick={() => navigate("/reactif/partenaires")}
+                onClick={() => navigate("/observatoire?vue=conseiller")}
               />
             </div>
           </div>

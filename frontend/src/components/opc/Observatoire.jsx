@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -35,6 +36,8 @@ const CONFIANCE_LABELS = [
     { key: "fraicheur_donnees_pct", label: "Fraîcheur données" },
 ];
 
+const VUE_MAP = { particulier: PUBLIC_TYPES.PARTICULIER, rh: PUBLIC_TYPES.RH, conseiller: PUBLIC_TYPES.CONSEILLER, institution: PUBLIC_TYPES.INSTITUTION };
+
 export default function Observatoire({
     userId: initialUserId = "user_demo_001",
     entrepriseId: initialEntrepriseId = "ent_demo_001",
@@ -42,8 +45,18 @@ export default function Observatoire({
     defaultPublicType = PUBLIC_TYPES.CONSEILLER,
     defaultMetier = "Développeur Full-Stack Python/React",
 }) {
-    const [publicType, setPublicType] = useState(defaultPublicType);
+    const [searchParams] = useSearchParams();
+    const vueParam = searchParams.get("vue");
+    const initialTab = (vueParam && VUE_MAP[vueParam]) || defaultPublicType;
+
+    const [publicType, setPublicType] = useState(initialTab);
     const [territoire, setTerritoire] = useState(initialTerritoire);
+
+    useEffect(() => {
+        if (vueParam && VUE_MAP[vueParam]) {
+            setPublicType(VUE_MAP[vueParam]);
+        }
+    }, [vueParam]);
     const [userId, setUserId] = useState(initialUserId);
     const [metier, setMetier] = useState(defaultMetier);
     const [filiereFocus, setFiliereFocus] = useState(null);
