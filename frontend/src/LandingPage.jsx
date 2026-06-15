@@ -1,9 +1,36 @@
 import { useNavigate } from "react-router-dom";
 import { Settings, Code, Eye, Compass, Building2, MapPin, Lightbulb, Users, Rocket, Briefcase, HeartHandshake } from "lucide-react";
 
-/* ─── Logo image (original from reactif.pro — contains icon + text) ─── */
-const LogoImg = ({ height = 40 }) => (
-  <img src="/logo-reactif-pro-hd.png" alt="RE'ACTIF PRO" style={{ height, objectFit: "contain" }} />
+/* ─── Logo SVG (exact copy from reactif.pro DOM) ─── */
+const LogoSvg = ({ size = 28 }) => (
+  <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+    <circle cx="40" cy="40" r="38" stroke="#1e3a5f" strokeWidth="2" fill="#eef2f7"/>
+    <circle cx="40" cy="40" r="28" fill="#1e3a5f" opacity="0.08"/>
+    <circle cx="40" cy="30" r="8" fill="#4f6df5"/>
+    <path d="M26 56 C26 44 34 40 40 40 C46 40 54 44 54 56" fill="#4f6df5" opacity="0.85"/>
+    <circle cx="18" cy="28" r="4" fill="#6c5ce7" opacity="0.7"/>
+    <circle cx="62" cy="28" r="4" fill="#6c5ce7" opacity="0.7"/>
+    <circle cx="18" cy="54" r="3.5" fill="#4f6df5" opacity="0.5"/>
+    <circle cx="62" cy="54" r="3.5" fill="#4f6df5" opacity="0.5"/>
+    <line x1="24" y1="30" x2="32" y2="30" stroke="#6c5ce7" strokeWidth="1.5" opacity="0.4"/>
+    <line x1="48" y1="30" x2="58" y2="30" stroke="#6c5ce7" strokeWidth="1.5" opacity="0.4"/>
+    <line x1="20" y1="34" x2="28" y2="42" stroke="#4f6df5" strokeWidth="1" opacity="0.3"/>
+    <line x1="60" y1="34" x2="52" y2="42" stroke="#4f6df5" strokeWidth="1" opacity="0.3"/>
+  </svg>
+);
+
+/* ─── Logo Text (exact from reactif.pro — font Outfit) ─── */
+const LogoText = ({ size = "sm" }) => (
+  <div className="flex flex-col leading-none">
+    <span className={`font-bold tracking-tight ${size === "lg" ? "text-5xl" : "text-sm"}`} style={{ fontFamily: "Outfit, sans-serif" }}>
+      <span style={{ color: "#1e3a5f" }}>RE'</span>
+      <span style={{ color: "#4f6df5" }}>ACTIF</span>
+      <span style={{ color: "#1e3a5f" }}> PRO</span>
+    </span>
+    <span className={`font-semibold uppercase mt-0.5 ${size === "lg" ? "text-base tracking-[0.35em] text-[#d4a843]" : "text-[6px] tracking-[0.2em] text-[#6c5ce7]"}`}>
+      Intelligence Professionnelle
+    </span>
+  </div>
 );
 
 /* ─── Access Card Component ─── */
@@ -99,33 +126,40 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white" data-testid="landing-page">
 
       {/* ═══════ HEADER ═══════ */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-2.5 bg-white border-b border-slate-100" data-testid="landing-header">
-        <div className="flex items-center gap-3">
-          <LogoImg height={36} />
-          <span className="ml-2 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded-full border"
-            style={{ color: "#D97706", borderColor: "#FCD34D", background: "#FFFBEB" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            En construction
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition" data-testid="admin-btn">
-            <Settings className="w-4 h-4" /> Admin
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition" data-testid="dev-btn">
-            <Code className="w-4 h-4" /> Dev
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition" data-testid="invite-btn">
-            <Eye className="w-4 h-4" /> Invité
-          </button>
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-100" data-testid="landing-header">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5" data-testid="logo-reactif-pro">
+                <LogoSvg size={28} />
+                <LogoText size="sm" />
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[10px] font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                En construction
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition" data-testid="admin-btn">
+                <Settings className="w-3.5 h-3.5" /> Admin
+              </button>
+              <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition" data-testid="dev-btn">
+                <Code className="w-3.5 h-3.5" /> Dev
+              </button>
+              <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition" data-testid="invite-btn">
+                <Eye className="w-3.5 h-3.5" /> Invité
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
       {/* ═══════ HERO ═══════ */}
       <section className="flex flex-col items-center justify-center py-16 px-4" style={{ background: "linear-gradient(135deg, #1a4ba8 0%, #1E2A4F 100%)", minHeight: "380px" }} data-testid="hero-section">
         {/* White logo card */}
-        <div className="bg-white rounded-2xl shadow-xl px-10 py-6 flex items-center justify-center mb-8">
-          <LogoImg height={90} />
+        <div className="bg-white/95 backdrop-blur rounded-2xl shadow-xl px-10 py-6 flex items-center gap-5 mb-8">
+          <LogoSvg size={80} />
+          <LogoText size="lg" />
         </div>
 
         {/* Tagline */}
