@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Settings, Code, Eye, Compass, Building2, MapPin, Lightbulb, Users, Rocket, Briefcase, HeartHandshake } from "lucide-react";
 
-/* ─── Logo image (original from reactif.pro) ─── */
-const LogoImg = ({ size = 40 }) => (
-  <img src="/logo-reactif-pro-hd.png" alt="RE'ACTIF PRO" width={size} height={size} style={{ objectFit: "contain" }} />
+/* ─── Logo image (original from reactif.pro — contains icon + text) ─── */
+const LogoImg = ({ height = 40 }) => (
+  <img src="/logo-reactif-pro-hd.png" alt="RE'ACTIF PRO" style={{ height, objectFit: "contain" }} />
 );
 
 /* ─── Access Card Component ─── */
@@ -101,17 +101,7 @@ export default function LandingPage() {
       {/* ═══════ HEADER ═══════ */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-2.5 bg-white border-b border-slate-100" data-testid="landing-header">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <LogoImg size={36} />
-            <div className="leading-none">
-              <span className="text-[15px] font-bold" style={{ color: "#1E293B" }}>
-                RE'<span className="font-black">ACTIF</span> PRO
-              </span>
-              <p className="text-[8px] tracking-[0.18em] font-semibold -mt-0.5" style={{ color: "#5B8DD9" }}>
-                INTELLIGENCE PROFESSIONNELLE
-              </p>
-            </div>
-          </div>
+          <LogoImg height={36} />
           <span className="ml-2 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded-full border"
             style={{ color: "#D97706", borderColor: "#FCD34D", background: "#FFFBEB" }}>
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -134,16 +124,8 @@ export default function LandingPage() {
       {/* ═══════ HERO ═══════ */}
       <section className="flex flex-col items-center justify-center py-16 px-4" style={{ background: "#2D3A5C", minHeight: "380px" }} data-testid="hero-section">
         {/* White logo card */}
-        <div className="bg-white rounded-2xl shadow-xl px-10 py-6 flex items-center gap-5 mb-8">
-          <LogoImg size={72} />
-          <div>
-            <h1 className="text-[40px] font-bold leading-tight" style={{ color: "#1E293B" }}>
-              RE'<span className="font-black">ACTIF</span> PRO
-            </h1>
-            <p className="text-[13px] tracking-[0.35em] font-bold mt-0.5" style={{ color: "#D4A843" }}>
-              INTELLIGENCE PROFESSIONNELLE
-            </p>
-          </div>
+        <div className="bg-white rounded-2xl shadow-xl px-10 py-6 flex items-center justify-center mb-8">
+          <LogoImg height={90} />
         </div>
 
         {/* Tagline */}
