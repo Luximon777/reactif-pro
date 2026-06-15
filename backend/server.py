@@ -89,6 +89,33 @@ async def auth_login(body: AuthLogin):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
     return user
 
+# ─── Routes RE'ACTIF PRO ──────────────────────────────────────────────────
+
+class ContactRequest(BaseModel):
+    type: str = ""
+    nom: str = ""
+    email: str = ""
+    telephone: str = ""
+    organisation: str = ""
+    message: str = ""
+
+@api_router.post("/reactif/contact")
+async def reactif_contact(body: ContactRequest):
+    doc = body.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.reactif_contacts.insert_one(doc)
+    return {"status": "ok", "id": doc["id"]}
+
+@api_router.get("/reactif/impact")
+async def reactif_impact():
+    return {
+        "taux_clarification": 87,
+        "taux_mise_en_action_30j": 72,
+        "progression_posture": 65,
+        "satisfaction": 92
+    }
+
 # ─── Inclusion des routers OPC ────────────────────────────────────────────
 from opc.routes_ingestion import router as opc_ingestion_router
 from opc.routes_vues import router as opc_vues_router

@@ -131,11 +131,12 @@ const ConnectingLines = () => (
   </svg>
 );
 
-/* ─── Login Modal — exact copy from reactif.pro ─── */
+/* ─── Login Modal — exact from reactif.pro (uses Shadcn Dialog) ─── */
 const LoginModal = ({ open, onClose, onSuccess }) => {
   const [tab, setTab] = useState("login");
   const [pseudo, setPseudo] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -157,41 +158,68 @@ const LoginModal = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 relative" onClick={(e) => e.stopPropagation()} data-testid="login-modal">
-        <button className="absolute top-3 right-3 text-slate-400 hover:text-slate-600" onClick={onClose}><X className="w-5 h-5" /></button>
-        <h2 className="text-xl font-bold text-[#1e3a5f] mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Connexion</h2>
-        <p className="text-xs text-slate-500 mb-5">Espace personnel confidentiel sous pseudonyme</p>
-
-        {/* Tabs */}
-        <div className="flex gap-1 mb-5 bg-slate-100 rounded-lg p-1">
-          <button onClick={() => setTab("login")} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${tab === "login" ? "bg-white text-[#1e3a5f] shadow-sm" : "text-slate-400"}`}>Se connecter</button>
-          <button onClick={() => setTab("register")} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${tab === "register" ? "bg-white text-[#1e3a5f] shadow-sm" : "text-slate-400"}`}>Créer un compte</button>
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" data-state="open" onClick={onClose} />
+      {/* Dialog */}
+      <div role="dialog" data-state="open" data-testid="auth-modal"
+        className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-0 border bg-background shadow-lg sm:rounded-lg sm:max-w-[460px] p-0 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}>
+        {/* Blue header */}
+        <div className="bg-[#1e3a5f] px-6 pt-6 pb-5">
+          <h2 className="font-semibold tracking-tight text-white text-xl" style={{ fontFamily: "Outfit, sans-serif" }}>Connexion</h2>
+          <p className="text-blue-200 text-sm mt-1">Espace personnel confidentiel sous pseudonyme</p>
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => setTab("login")} data-testid="auth-tab-login"
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${tab === "login" ? "bg-white text-[#1e3a5f]" : "bg-white/15 text-blue-100 hover:bg-white/25"}`}>
+              Se connecter
+            </button>
+            <button onClick={() => setTab("register")} data-testid="auth-tab-register"
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${tab === "register" ? "bg-white text-[#1e3a5f]" : "bg-white/15 text-blue-100 hover:bg-white/25"}`}>
+              Créer un compte
+            </button>
+          </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-slate-600">Pseudonyme</label>
-            <input type="text" value={pseudo} onChange={(e) => setPseudo(e.target.value)} required
-              className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4f6df5]/30 focus:border-[#4f6df5]"
-              placeholder="Votre pseudonyme" data-testid="login-pseudo" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-slate-600">Mot de passe</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-              className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4f6df5]/30 focus:border-[#4f6df5]"
-              placeholder="Votre mot de passe" data-testid="login-password" />
-          </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <button type="submit" disabled={loading} data-testid="login-submit"
-            className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            style={{ background: "linear-gradient(135deg, #1e3a5f, #20215c)" }}>
-            <LogIn className="w-4 h-4" />
-            {loading ? "Connexion..." : tab === "login" ? "Se connecter" : "Créer mon compte"}
-          </button>
-        </form>
+        {/* Form */}
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm leading-none text-slate-700 font-medium" htmlFor="login-pseudo">Pseudonyme</label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input id="login-pseudo" value={pseudo} onChange={(e) => setPseudo(e.target.value)} required
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-10"
+                  placeholder="Votre pseudonyme" data-testid="login-pseudo-input" autoComplete="username" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm leading-none text-slate-700 font-medium" htmlFor="login-password">Mot de passe</label>
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} required
+                  type={showPw ? "text" : "password"}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-10 pr-10"
+                  placeholder="Votre mot de passe" data-testid="login-password-input" autoComplete="current-password" />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <Eye className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+            <button type="submit" disabled={loading} data-testid="login-submit"
+              className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: "linear-gradient(to right, #1e3a5f, #20215c)" }}>
+              {loading ? "Connexion..." : tab === "login" ? "Se connecter" : "Créer mon compte"}
+              <span>→</span>
+            </button>
+          </form>
+        </div>
+        {/* Close button */}
+        <button onClick={onClose} className="absolute right-4 top-4 rounded-sm opacity-70 text-white hover:opacity-100 transition-opacity">
+          <X className="h-4 w-4" />
+        </button>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -314,7 +342,7 @@ export default function LandingPage() {
                 desc="Identifiez les talents et compétences en adéquation avec vos besoins économiques"
                 items={["Cockpit RH complet", "Matching & opportunités", "Baromètre QVCT"]}
                 ctaTestId="access-cta-employeur"
-                onClick={() => navigate("/observatoire?tab=rh")}
+                onClick={() => navigate("/reactif/services-rh")}
               />
               <AccessCard
                 testId="space-partenaire"
@@ -324,7 +352,7 @@ export default function LandingPage() {
                 desc="Interface de coordination pour les acteurs de l'accompagnement — en complémentarité des dispositifs existants"
                 items={["Diagnostic enrichi", "Coordination des parcours", "Contribution territoriale"]}
                 ctaTestId="access-cta-partenaire"
-                onClick={() => navigate("/observatoire?tab=conseiller")}
+                onClick={() => navigate("/reactif/partenaires")}
               />
             </div>
           </div>
