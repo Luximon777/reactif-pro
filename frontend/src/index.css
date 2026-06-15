@@ -1,40 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+    margin: 0;
+    background: #F8F9FA;
+}
+
+body {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    color: #0F172A;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "tnum" 0;
+}
+
+.font-display {
+    font-family: "Cabinet Grotesk", "IBM Plex Sans", system-ui, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+.font-mono {
+    font-family: "IBM Plex Mono", monospace;
+}
+
+.tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+::selection {
+    background: #26215C;
+    color: #fff;
+}
+
 @layer base {
     :root {
-        --background: 0 0% 100%;
+        --background: 210 17% 98%;
         --foreground: 222 47% 11%;
         --card: 0 0% 100%;
         --card-foreground: 222 47% 11%;
         --popover: 0 0% 100%;
         --popover-foreground: 222 47% 11%;
-        --primary: 215 100% 45%;
+        --primary: 247 47% 25%;
         --primary-foreground: 0 0% 100%;
         --secondary: 210 40% 96%;
         --secondary-foreground: 222 47% 11%;
         --muted: 210 40% 96%;
         --muted-foreground: 215 16% 47%;
-        --accent: 199 89% 48%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 84% 60%;
+        --accent: 210 40% 96%;
+        --accent-foreground: 222 47% 11%;
+        --destructive: 15 71% 52%;
         --destructive-foreground: 0 0% 100%;
         --border: 214 32% 91%;
         --input: 214 32% 91%;
-        --ring: 215 100% 45%;
-        --radius: 0.75rem;
-        --chart-1: 215 100% 45%;
-        --chart-2: 142 71% 45%;
-        --chart-3: 38 92% 50%;
-        --chart-4: 199 89% 48%;
-        --chart-5: 0 84% 60%;
-        
-        --success: 142 71% 45%;
-        --warning: 38 92% 50%;
-        --error: 0 84% 60%;
+        --ring: 247 47% 25%;
+        --chart-1: 247 47% 25%;
+        --chart-2: 208 71% 54%;
+        --chart-3: 159 70% 37%;
+        --chart-4: 33 79% 41%;
+        --chart-5: 15 71% 52%;
+        --radius: 0.625rem;
     }
 }
 
@@ -43,105 +69,37 @@
         @apply border-border;
     }
     body {
-        @apply bg-background text-foreground font-sans antialiased;
-        font-family: 'Inter', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Outfit', sans-serif;
+        @apply bg-background text-foreground;
     }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: hsl(210 40% 98%);
-}
-
-::-webkit-scrollbar-thumb {
-    background: hsl(214 32% 85%);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: hsl(215 100% 45%);
-}
-
-/* Animations */
-@keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slide-in {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes pulse-soft {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-.animate-fade-in {
-    animation: fade-in 0.5s ease-out forwards;
-}
-
-.animate-slide-in {
-    animation: slide-in 0.4s ease-out forwards;
-}
-
-.animate-pulse-soft {
-    animation: pulse-soft 2s ease-in-out infinite;
-}
-
-/* Staggered children animations */
-.stagger-children > * {
-    opacity: 0;
-    animation: fade-in 0.4s ease-out forwards;
-}
-
-.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
-.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
-.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
-.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
-.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
-.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
-
-/* Glass effect */
-.glass {
-    backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Gradient text */
-.gradient-text {
-    background: linear-gradient(135deg, hsl(215 100% 45%) 0%, hsl(199 89% 48%) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* Card hover effects */
-.card-hover {
-    transition: all 0.3s ease;
-}
-
-.card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.2);
-}
-
-/* Progress ring */
-.progress-ring {
-    transform: rotate(-90deg);
-}
-
-/* Focus visible */
-.focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit;
+        margin-right: inherit;
+        margin-top: inherit;
+        margin-bottom: inherit;
+        padding-left: inherit;
+        padding-right: inherit;
+        padding-top: inherit;
+        padding-bottom: inherit;
+        column-gap: inherit;
+        row-gap: inherit;
+        gap: inherit;
+        border-left-width: inherit;
+        border-right-width: inherit;
+        border-top-width: inherit;
+        border-bottom-width: inherit;
+        border-left-style: inherit;
+        border-right-style: inherit;
+        border-top-style: inherit;
+        border-bottom-style: inherit;
+        border-left-color: inherit;
+        border-right-color: inherit;
+        border-top-color: inherit;
+        border-bottom-color: inherit;
+    }
 }
