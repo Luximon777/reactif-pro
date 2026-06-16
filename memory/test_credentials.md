@@ -1,26 +1,14 @@
-# Test Credentials
+# Test Credentials — RE'ACTIF PRO
 
-## Espace Personnel (Pseudonyme Login)
-- **Pseudonyme**: marc19
-- **Password**: Solerys777!
-- **Pseudonyme**: mike7
-- **Password**: Solerys777!
+## Admin Gate
+- **Mot de passe admin** : `Choukette@777`
 
-## Espace Employeurs (Admin bypass)
-- **Email**: rh@reactifpro.fr
-- **Password**: Reactif@pro2026!
+## Espace Personnel (Particulier)
+- **Pseudo** : `mike7` | **Mot de passe** : `Solerys777!`
+- **Pseudo** : `marc19` | **Mot de passe** : `Solerys777!`
 
-## Appui aux parcours (Admin bypass)
-- **Email**: admin@reactifpro.fr
-- **Password**: Choukette@777
+## Espace Employeurs (auto-login admin)
+- **Pseudo** : `rh@reactifpro.fr` | **Mot de passe** : `Reactif@pro2026!`
 
-## Admin Gate Passwords
-- **Admin**: Choukette@777
-- **Dev/Programmeur**: Reactif@pro2026!
-- **Invité**: Reactif@pro2026!
-
-## Notes
-- Login via the "Espace Personnel" card → "Accéder" button → AuthModal
-- After login, redirects to /dashboard with full features
-- Users are auto-seeded on backend startup
-- Admin gate spaces are open by default (GET /api/admin/gate-state returns spaces_open: true)
+## Appui aux Parcours (auto-login admin)
+- **Pseudo** : `admin@reactifpro.fr` | **Mot de passe** : `Choukette@777`

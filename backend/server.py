@@ -2214,13 +2214,30 @@ Structure exacte:
   "savoir_etre": [{"name": "string", "category": "transversale|transferable", "level": "debutant|intermediaire|avance|expert", "linked_qualites": [], "linked_valeurs": [], "linked_vertus": []}],
   "competences_transversales": ["liste de compétences transversales identifiées"],
   "competences_transferables": ["liste de compétences transférables identifiées"],
-  "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "skills_used": [], "achievements": []}],
+  "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "start_date": "YYYY-MM", "end_date": "YYYY-MM", "is_ongoing": false, "skills_used": [], "achievements": []}],
   "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
   "offres_emploi": [{"title": "string", "company_type": "string", "sector": "string", "contract_type": "CDI|CDD|Freelance", "salary_range": "string", "location": "France", "required_skills": [], "match_score": 75, "description": "courte description du poste"}],
   "strengths": ["points forts du candidat"],
-  "gaps": ["lacunes ou axes d'amélioration"]
+  "gaps": ["lacunes ou axes d'amélioration"],
+  "audit_cv": [
+    {"rule": "Résumé professionnel", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Expériences détaillées", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Compétences techniques", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Soft skills identifiés", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Mots-clés ATS", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Cohérence chronologique", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Quantification des résultats", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Lisibilité et structure", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Formations et certifications", "status": "ok|warning|error", "note": "évaluation"},
+    {"rule": "Objectif professionnel clair", "status": "ok|warning|error", "note": "évaluation"}
+  ],
+  "score_global_cv": 65,
+  "modele_suggere": "cv_classique|cv_competences|cv_fonctionnel|cv_mixte"
 }
-Pour offres_emploi: génère 5-8 offres d'emploi réalistes et pertinentes correspondant au profil du CV. Inclus des postes variés (même métier dans différents contextes, évolutions possibles, reconversions accessibles).
+Pour experiences: inclure start_date (YYYY-MM) et end_date (YYYY-MM) quand disponibles dans le CV. Mettre is_ongoing=true si le poste est actuel.
+Pour audit_cv: évalue rigoureusement chaque critère (ok=bon, warning=améliorable, error=absent/insuffisant). score_global_cv = note sur 100.
+Pour modele_suggere: recommande le format de CV le plus adapté au profil.
+Pour offres_emploi: génère 5-8 offres réalistes et pertinentes.
 Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
 Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
             user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
@@ -2352,8 +2369,81 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             "gaps": analysis.get("gaps", []),
             "cv_models_generated": list(cv_models.keys()),
             "completeness_score": update_fields.get("completeness_score", 0),
+            "audit_cv": analysis.get("audit_cv", []),
+            "score_global_cv": analysis.get("score_global_cv", 0),
+            "modele_suggere": analysis.get("modele_suggere", "cv_classique"),
+            "savoir_faire": analysis.get("savoir_faire", []),
+            "savoir_etre": analysis.get("savoir_etre", []),
+            "experiences": analysis.get("experiences", []),
+            "profile": analysis.get("profile", {}),
         }
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Terminé"}})
+
+        # ── Auto-populate trajectory steps from CV experiences ──
+        try:
+            type_map = {"professionnel": "emploi", "personnel": "projet", "benevole": "benevolat", "projet": "projet", "formation": "formation"}
+            existing_steps = await db.trajectory_steps.find({"token_id": token_id}).to_list(500)
+            existing_titles = {s.get("title", "").lower() for s in existing_steps}
+
+            new_steps = []
+            for exp in analysis.get("experiences", []):
+                exp_title = exp.get("title", "").strip()
+                if not exp_title or exp_title.lower() in existing_titles:
+                    continue
+                step = {
+                    "id": str(uuid.uuid4()),
+                    "token_id": token_id,
+                    "step_type": type_map.get(exp.get("experience_type", "professionnel"), "emploi"),
+                    "title": exp_title,
+                    "organization": exp.get("organization", ""),
+                    "description": exp.get("description", ""),
+                    "start_date": exp.get("start_date", ""),
+                    "end_date": exp.get("end_date", ""),
+                    "is_ongoing": exp.get("is_ongoing", False),
+                    "skills": exp.get("skills_used", []),
+                    "achievements": exp.get("achievements", []),
+                    "visibility": "private",
+                    "source": "ia_detectee",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                new_steps.append(step)
+                existing_titles.add(exp_title.lower())
+
+            # Also add formations from suggestions
+            for fs in analysis.get("formations_suggestions", []):
+                fs_title = fs.get("title", "").strip()
+                if fs_title and fs_title.lower() not in existing_titles:
+                    new_steps.append({
+                        "id": str(uuid.uuid4()),
+                        "token_id": token_id,
+                        "step_type": "formation",
+                        "title": fs_title,
+                        "organization": fs.get("provider", "Suggestion IA"),
+                        "description": fs.get("reason", ""),
+                        "start_date": "",
+                        "end_date": "",
+                        "is_ongoing": False,
+                        "skills": fs.get("skills_to_gain", []),
+                        "achievements": [],
+                        "visibility": "private",
+                        "source": "ia_suggeree",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    })
+                    existing_titles.add(fs_title.lower())
+
+            if new_steps:
+                await db.trajectory_steps.insert_many(new_steps)
+                logging.info(f"[CV→Trajectoire] {len(new_steps)} étapes créées pour token {token_id[:12]}")
+
+            # Update profile with cv_analyzed flag and experience count
+            await db.profiles.update_one({"token_id": token_id}, {"$set": {
+                "cv_analyzed": True,
+                "savoir_etre": [se.get("name", "") for se in analysis.get("savoir_etre", [])],
+                "experiences_count": len(analysis.get("experiences", [])),
+            }})
+        except Exception as traj_err:
+            logging.error(f"[CV→Trajectoire] Erreur sync: {traj_err}")
+
         logging.info(f"CV analysis job {job_id} completed successfully")
 
     except Exception as e:
@@ -2493,7 +2583,125 @@ async def get_last_cv_analysis(token: str):
     )
     if not job or not job.get("result"):
         return {"has_analysis": False, "result": None}
-    return {"has_analysis": True, "result": job["result"]}
+
+    result = job["result"]
+
+    # Enrich from passport if audit/details missing
+    if not result.get("audit_cv") or not result.get("savoir_faire"):
+        passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+        if passport:
+            if not result.get("savoir_faire"):
+                result["savoir_faire"] = passport.get("savoir_faire", [])
+            if not result.get("savoir_etre"):
+                result["savoir_etre"] = passport.get("savoir_etre", [])
+            if not result.get("experiences") or len(result.get("experiences", [])) == 0:
+                result["experiences"] = passport.get("experiences", [])
+            if not result.get("profile"):
+                result["profile"] = {
+                    "professional_summary": passport.get("professional_summary", ""),
+                    "career_project": passport.get("career_project", ""),
+                    "target_sectors": passport.get("target_sectors", []),
+                }
+            result["savoir_faire_count"] = len(result.get("savoir_faire", []))
+            result["savoir_etre_count"] = len(result.get("savoir_etre", []))
+            result["experiences_count"] = len(result.get("experiences", []))
+
+        # Generate audit retroactively if missing
+        if not result.get("audit_cv"):
+            sf_count = result.get("savoir_faire_count", 0)
+            se_count = result.get("savoir_etre_count", 0)
+            exp_count = result.get("experiences_count", 0)
+            has_summary = bool(result.get("profile", {}).get("professional_summary"))
+            has_formations = len(result.get("formations_suggestions", [])) > 0
+            trans_count = len(result.get("competences_transversales", []))
+
+            def _audit(regle, ok_cond, warn_cond, diag_ok, diag_warn, diag_absent, reco, score_ok=8, score_warn=5, score_absent=2):
+                if ok_cond:
+                    return {"regle": regle, "statut": "ok", "score": score_ok, "diagnostic": diag_ok, "recommandation": ""}
+                if warn_cond:
+                    return {"regle": regle, "statut": "ameliorable", "score": score_warn, "diagnostic": diag_warn, "recommandation": reco}
+                return {"regle": regle, "statut": "absent", "score": score_absent, "diagnostic": diag_absent, "recommandation": reco}
+
+            rules = [
+                _audit("Résumé professionnel", has_summary, False,
+                       "Résumé détecté et analysé", "", "Aucun résumé professionnel détecté",
+                       "Ajoutez un résumé professionnel percutant en haut de votre CV", 9, 5, 2),
+                _audit("Expériences détaillées", exp_count >= 3, exp_count >= 1,
+                       f"{exp_count} expérience(s) bien détaillée(s)", f"{exp_count} expérience(s) — enrichir les descriptions",
+                       "Aucune expérience détectée", "Décrivez vos missions et résultats pour chaque poste", 8, 5, 1),
+                _audit("Compétences techniques", sf_count >= 5, sf_count >= 1,
+                       f"{sf_count} savoir-faire identifiés — bonne couverture", f"{sf_count} savoir-faire — à compléter",
+                       "Aucun savoir-faire technique détecté", "Listez vos compétences techniques clés", 9, 5, 1),
+                _audit("Savoir-être", se_count >= 3, se_count >= 1,
+                       f"{se_count} savoir-être identifiés", f"{se_count} savoir-être — ajoutez-en",
+                       "Aucun savoir-être détecté", "Intégrez vos qualités relationnelles et comportementales", 8, 5, 2),
+                _audit("Mots-clés ATS", sf_count >= 10, sf_count >= 3,
+                       "Bonne densité de mots-clés pour les filtres ATS", "Densité moyenne — enrichir le vocabulaire métier",
+                       "Peu de mots-clés détectés", "Ajoutez des mots-clés métier pour passer les filtres automatisés", 8, 5, 2),
+                _audit("Cohérence chronologique", exp_count >= 2, exp_count >= 1,
+                       "Chronologie cohérente et lisible", "Chronologie partielle",
+                       "Impossible d'évaluer sans expériences", "Vérifiez les dates et l'ordre de vos expériences", 7, 4, 2),
+                _audit("Quantification résultats", False, exp_count >= 1,
+                       "", "Ajoutez des chiffres concrets à vos réalisations",
+                       "Aucune donnée chiffrée détectée", "Intégrez des métriques : CA, %, nb de projets, etc.", 8, 4, 2),
+                _audit("Lisibilité et structure", exp_count > 0, False,
+                       "Structure claire et bien organisée", "", "Structure à revoir",
+                       "Structurez votre CV avec des sections claires", 8, 5, 2),
+                _audit("Formations et certifications", has_formations, True,
+                       "Formations et certifications détectées", "Section formations à enrichir",
+                       "", "Ajoutez vos diplômes et certifications", 7, 5, 3),
+                _audit("Compétences transversales", trans_count >= 3, trans_count >= 1,
+                       f"{trans_count} compétences transversales identifiées", f"{trans_count} compétence(s) transversale(s)",
+                       "Aucune compétence transversale détectée", "Mettez en avant vos compétences transférables", 8, 5, 2),
+            ]
+            total_score = sum(r["score"] for r in rules)
+            result["audit_cv"] = rules
+            result["score_global_cv"] = total_score
+            result["modele_suggere"] = "cv_competences" if sf_count > 10 else "cv_classique"
+
+            await db.cv_jobs.update_one(
+                {"token_id": token_doc["id"], "status": "completed"},
+                {"$set": {"result": result}},
+            )
+
+    return {"has_analysis": True, "result": result}
+
+
+# Alias: frontend calls /cv/latest-analysis
+@api_router.get("/cv/latest-analysis")
+async def get_latest_cv_analysis(token: str):
+    return await get_last_cv_analysis(token)
+
+
+@api_router.get("/cv/centres-interet")
+async def get_cv_centres_interet(token: str):
+    token_doc = await get_current_token(token)
+    ci_doc = await db.cv_centres_interet.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not ci_doc:
+        return {"centres": [], "analyses": []}
+    return {"centres": ci_doc.get("centres", []), "analyses": ci_doc.get("analyses", [])}
+
+
+@api_router.post("/cv/centres-interet")
+async def save_cv_centres_interet(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    centres = body.get("centres", [])
+    await db.cv_centres_interet.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"token_id": token_doc["id"], "centres": centres, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"status": "ok", "centres": centres}
+
+
+@api_router.delete("/cv/delete-all")
+async def delete_all_cv_data(token: str):
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+    await db.cv_jobs.delete_many({"token_id": token_id})
+    await db.cv_centres_interet.delete_one({"token_id": token_id})
+    await db.cv_models.delete_one({"token_id": token_id})
+    return {"status": "ok"}
 
 
 # ============== REFERENTIEL & ARCHÉOLOGIE DES COMPÉTENCES ==============
@@ -4256,6 +4464,51 @@ async def coach_chat(token: str, body: dict):
 async def get_trajectory_steps(token: str):
     token_doc = await get_current_token(token)
     steps = await db.trajectory_steps.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(500)
+
+    # If no steps, try to auto-populate from last CV analysis
+    if not steps:
+        last_analysis = await db.cv_jobs.find_one(
+            {"token_id": token_doc["id"], "status": "completed"},
+            sort=[("created_at", -1)]
+        )
+        if last_analysis and last_analysis.get("result"):
+            # Also check passport for experiences
+            passport = await db.passports.find_one({"token_id": token_doc["id"]})
+            experiences = []
+            if passport:
+                experiences = passport.get("experiences", [])
+            if not experiences:
+                result = last_analysis.get("result", {})
+                # Get raw analysis from original job
+                raw = last_analysis.get("analysis", {})
+
+            # Create steps from passport experiences
+            type_map = {"professionnel": "emploi", "personnel": "projet", "benevole": "benevolat", "projet": "projet", "formation": "formation"}
+            new_steps = []
+            for exp in experiences:
+                step = {
+                    "id": str(uuid.uuid4()),
+                    "token_id": token_doc["id"],
+                    "step_type": type_map.get(exp.get("experience_type", "professionnel"), "emploi"),
+                    "title": exp.get("title", ""),
+                    "organization": exp.get("organization", ""),
+                    "description": exp.get("description", ""),
+                    "start_date": exp.get("start_date", ""),
+                    "end_date": exp.get("end_date", ""),
+                    "is_ongoing": exp.get("is_ongoing", False),
+                    "skills": exp.get("skills_used", []),
+                    "achievements": exp.get("achievements", []),
+                    "visibility": "private",
+                    "source": "ia_detectee",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                new_steps.append(step)
+
+            if new_steps:
+                await db.trajectory_steps.insert_many(new_steps)
+                steps = new_steps
+                logging.info(f"[Trajectoire] Auto-sync {len(new_steps)} étapes pour token {token_doc['id'][:12]}")
+
     return steps
 
 @api_router.post("/trajectory/steps")
@@ -4306,6 +4559,190 @@ async def update_visibility_settings(token: str, body: dict):
         upsert=True
     )
     return {"status": "ok"}
+
+# ============== TRAJECTORY SYNTHESIS ==============
+
+@api_router.get("/trajectory/synthesis")
+async def get_trajectory_synthesis(token: str):
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+
+    # Check cache first
+    cached = await db.trajectory_synthesis.find_one({"token_id": token_id}, {"_id": 0})
+    if cached:
+        return {"has_data": True, "synthesis": cached.get("synthesis", {})}
+
+    # Get trajectory steps
+    steps = await db.trajectory_steps.find({"token_id": token_id}, {"_id": 0}).to_list(200)
+    if not steps:
+        return {"has_data": False, "synthesis": None}
+
+    # Build synthesis from steps data
+    all_skills = []
+    organizations = []
+    step_types = []
+    for s in steps:
+        skills = s.get("skills") or s.get("competences") or []
+        if isinstance(skills, list):
+            all_skills.extend(skills)
+        org = s.get("organization") or s.get("organisme") or ""
+        if org:
+            organizations.append(org)
+        st = s.get("step_type") or s.get("type") or ""
+        if st:
+            step_types.append(st)
+
+    # Count skill frequency
+    from collections import Counter
+    skill_counts = Counter(all_skills)
+    dominant_skills = [s for s, _ in skill_counts.most_common(8)]
+    forces = [s for s, c in skill_counts.most_common(5) if c > 1] or dominant_skills[:3]
+    transferable = [s for s in dominant_skills if s not in forces][:5]
+
+    nb_steps = len(steps)
+    has_variety = len(set(step_types)) > 1
+    nb_skills = len(set(all_skills))
+
+    coherence = min(95, 50 + nb_steps * 5 + nb_skills * 2)
+    adaptabilite = min(90, 40 + (10 if has_variety else 0) + nb_skills * 3)
+    transferabilite = min(85, 35 + len(transferable) * 10)
+    continuite = min(90, 45 + nb_steps * 6)
+    alignement = min(88, 40 + nb_skills * 3 + nb_steps * 3)
+
+    synthesis = {
+        "analyse_narrative": f"Votre parcours comprend {nb_steps} étape(s) et mobilise {nb_skills} compétence(s) distincte(s). "
+                             f"{'Une diversité de contextes enrichit votre profil.' if has_variety else 'Votre trajectoire montre une spécialisation cohérente.'}",
+        "fil_conducteur": f"Un fil conducteur se dessine autour de vos compétences clés : {', '.join(dominant_skills[:4]) if dominant_skills else 'en cours de construction'}.",
+        "competences_dominantes": dominant_skills,
+        "forces_recurrentes": forces,
+        "competences_transferables": transferable,
+        "axes_evolution": [
+            "Approfondir vos compétences transférables dans de nouveaux contextes",
+            "Valider vos acquis via des certifications ou des illustrations concrètes",
+            "Explorer des passerelles métiers compatibles avec votre profil"
+        ],
+        "message_valorisant": "Votre parcours témoigne d'une richesse d'expériences et de compétences. Continuez à valoriser vos acquis !",
+        "scores": {
+            "coherence": coherence,
+            "adaptabilite": adaptabilite,
+            "transferabilite": transferabilite,
+            "continuite": continuite,
+            "alignement_metier": alignement
+        }
+    }
+
+    # Cache it
+    await db.trajectory_synthesis.update_one(
+        {"token_id": token_id},
+        {"$set": {"token_id": token_id, "synthesis": synthesis, "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+
+    return {"has_data": True, "synthesis": synthesis}
+
+
+@api_router.delete("/trajectory/synthesis/cache")
+async def delete_trajectory_synthesis_cache(token: str):
+    token_doc = await get_current_token(token)
+    await db.trajectory_synthesis.delete_one({"token_id": token_doc["id"]})
+    return {"status": "ok"}
+
+
+# ============== TRAJECTORY SHARE ==============
+
+@api_router.post("/trajectory/share")
+async def create_trajectory_share(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    import uuid as _uuid
+    share_id = str(_uuid.uuid4())[:12]
+    share_doc = {
+        "id": share_id,
+        "token_id": token_doc["id"],
+        "audience": body.get("audience", "accompagnateur"),
+        "duration_days": int(body.get("duration_days", 30)),
+        "include_synthesis": body.get("include_synthesis", True),
+        "include_card": body.get("include_card", True),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.trajectory_shares.insert_one(share_doc)
+    return {"share_id": share_id, "link": f"/trajectoire/{share_id}"}
+
+
+@api_router.get("/trajectory/shares")
+async def get_trajectory_shares(token: str):
+    token_doc = await get_current_token(token)
+    shares = await db.trajectory_shares.find({"token_id": token_doc["id"]}, {"_id": 0}).to_list(50)
+    return shares
+
+
+@api_router.delete("/trajectory/shares/{share_id}")
+async def delete_trajectory_share(share_id: str, token: str):
+    token_doc = await get_current_token(token)
+    await db.trajectory_shares.delete_one({"id": share_id, "token_id": token_doc["id"]})
+    return {"status": "ok"}
+
+
+@api_router.get("/trajectory/shared/{share_id}")
+async def get_shared_trajectory(share_id: str):
+    share = await db.trajectory_shares.find_one({"id": share_id}, {"_id": 0})
+    if not share:
+        raise HTTPException(status_code=404, detail="Lien de partage introuvable")
+    steps = await db.trajectory_steps.find({"token_id": share["token_id"]}, {"_id": 0}).to_list(200)
+    result = {"steps": steps, "share": share}
+    if share.get("include_synthesis"):
+        cached = await db.trajectory_synthesis.find_one({"token_id": share["token_id"]}, {"_id": 0})
+        result["synthesis"] = cached.get("synthesis") if cached else None
+    return result
+
+
+@api_router.post("/trajectory/auto-populate")
+async def auto_populate_trajectory(token: str):
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+    # Import from passport experiences
+    passport = await db.passport_competences.find_one({"token_id": token_id})
+    if not passport:
+        return {"imported": 0}
+    experiences = passport.get("experiences", [])
+    existing = await db.trajectory_steps.find({"token_id": token_id, "source": "auto-populate"}).to_list(200)
+    existing_titles = {e.get("title") for e in existing}
+    imported = 0
+    for exp in experiences:
+        title = exp.get("title") or exp.get("titre") or exp.get("poste") or ""
+        if not title or title in existing_titles:
+            continue
+        step = {
+            "id": str(uuid.uuid4()),
+            "token_id": token_id,
+            "step_type": "experience",
+            "title": title,
+            "organization": exp.get("company") or exp.get("entreprise") or "",
+            "start_date": exp.get("start_date") or exp.get("debut") or "",
+            "end_date": exp.get("end_date") or exp.get("fin") or "",
+            "skills": exp.get("skills") or exp.get("competences") or [],
+            "source": "auto-populate",
+            "visibility": "private",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.trajectory_steps.insert_one(step)
+        imported += 1
+    return {"imported": imported}
+
+
+@api_router.post("/trajectory/access-log")
+async def log_trajectory_access(body: dict):
+    body["accessed_at"] = datetime.now(timezone.utc).isoformat()
+    await db.trajectory_access_logs.insert_one(body)
+    return {"status": "ok"}
+
+
+@api_router.post("/trajectory/refresh")
+async def refresh_trajectory(token: str):
+    token_doc = await get_current_token(token)
+    # Delete synthesis cache to force regeneration
+    await db.trajectory_synthesis.delete_one({"token_id": token_doc["id"]})
+    return {"status": "ok"}
+
 
 # ============== NOTIFICATIONS ==============
 
