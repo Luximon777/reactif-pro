@@ -5191,6 +5191,9 @@ from opc.seed import seed_if_empty
 # ─── Inclusion du router Ubuntoo ──────────────────────────────────────────
 from ubuntoo_routes import ubuntoo_router
 
+# ─── Inclusion du router IA Observatory (Analyser/Anticiper/Orienter) ─────
+from observatory_ia_routes import router as observatory_ia_router
+
 # Include all routers
 app.include_router(api_router)
 app.include_router(opc_ingestion_router)
@@ -5198,6 +5201,7 @@ app.include_router(opc_vues_router)
 app.include_router(opc_ia_router)
 app.include_router(opc_admin_router)
 app.include_router(ubuntoo_router)
+app.include_router(observatory_ia_router)
 
 app.add_middleware(
     CORSMiddleware,
