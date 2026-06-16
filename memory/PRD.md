@@ -5,32 +5,34 @@ Plateforme full-stack "Ré'Actif Pro" basée sur l'analyse de compétences, avec
 
 ## Architecture
 - Frontend: React + Tailwind + Shadcn (code extrait de prod via source maps)
-- Backend: FastAPI (server.py ~5200 lignes) + MongoDB (db: test_database)
+- Backend: FastAPI (server.py ~5250 lignes) + MongoDB (db: test_database)
 - IA: OpenAI GPT-5.2 via Emergent LLM Key
-- BDD Référentiel: **20 filières, 289 métiers**, compétences, qualités humaines
+- **API France Travail** : ROME 4.0 (1 911 fiches métiers, 14 grands domaines)
+- BDD Référentiel interne: 20 filières, 289 métiers
 
 ## Ce qui est implémenté
 - [x] Landing Page (réplique exacte de prod)
-- [x] AdminGate (gestion des accès admin/dev/invité)
+- [x] AdminGate (accès admin/dev/invité)
 - [x] Auth par pseudonyme (login/register)
 - [x] Dashboard Espace Personnel
-- [x] Analyse CV par IA (upload, extraction texte, analyse structurée)
-- [x] Auto-remplissage Passeport de Compétences depuis CV
-- [x] Frise Trajectoire (création auto des étapes depuis CV)
-- [x] Audit CV 10 critères avec score global
-- [x] Synthèse Trajectoire (/trajectory/synthesis)
+- [x] Analyse CV par IA + auto-remplissage Passeport + Trajectoire + Audit CV
 - [x] Coach RE'ACTIF virtuel avec suivi des étapes
-- [x] **OPC complet avec BDD pyramidale** (16 juin 2026)
-  - 20 filières × secteurs → 289 métiers avec missions, SF, SE, CT
-  - Recherche cascade: Filière → Secteur → Métier → Résultats pyramidaux
-  - Recherche textuelle: "comptable" → 33 résultats (filières, métiers, savoir-être, capacités)
-  - Seed scripts: seed_filieres.py (ODS import) + seed_all_metiers.py (métiers détaillés)
+- [x] **OPC complet** (16 juin 2026)
+  - BDD pyramidale interne: 20 filières × secteurs → 289 métiers (SF, SE, CT)
+  - **API France Travail ROME 4.0** : 1 911 fiches officielles importées (14 grands domaines A-N)
+  - Recherche en cascade: Filière → Secteur → Métier → Résultats pyramidaux
+  - Onglet ROME : Grand domaine → Fiches ROME avec codes M1203, M1211, etc.
+  - Recherche textuelle multi-source ("comptable" → 40 résultats interne+ROME)
 - [x] Espace Employeurs (Cockpit RH)
 - [x] Appui aux Parcours (Interface partenaires)
-- [x] 20+ endpoints backend OPC/Observatoire/Entreprise/Partenaires
+- [x] Synthèse Trajectoire + 20+ endpoints backend
+
+## Intégrations 3rd Party
+- OpenAI GPT-5.2 via Emergent LLM Key (analyse CV)
+- **France Travail API** (ROME 4.0) — Client ID + Secret dans .env
 
 ## Backlog
-- P1: Refactoring server.py (monolithe > 5200 lignes)
+- P1: Refactoring server.py (monolithe > 5250 lignes)
 - P2: Export PDF des 4 modèles de CV
 - P2: Tableau de bord Admin avec statistiques d'usage
 - P3: Soft Skills (CSE), Valeurs (VIA), Diagnostic CCSP

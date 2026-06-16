@@ -2920,13 +2920,26 @@ async def referentiel_search(token: str = None, q: str = None, filiere: str = No
                 seen_ct.add(sf)
                 results_capacites.append({"nom": sf})
 
-    total = len(results_filieres) + len(results_metiers) + len(results_savoir_etre) + len(results_capacites)
+    # Also search ROME France Travail
+    results_rome = []
+    if q:
+        rome_regex = {"$regex": q, "$options": "i"}
+        rome_found = await db.rome_metiers.find({"libelle": rome_regex}, {"_id": 0}).to_list(20)
+        for r in rome_found:
+            results_rome.append({
+                "code_rome": r["code_rome"],
+                "nom": r["libelle"],
+                "grand_domaine": r.get("grand_domaine_nom", ""),
+            })
+
+    total = len(results_filieres) + len(results_metiers) + len(results_savoir_etre) + len(results_capacites) + len(results_rome)
     return {
         "total": total,
         "filieres": results_filieres,
         "metiers": results_metiers,
         "savoir_etre": results_savoir_etre,
         "capacites_techniques": results_capacites,
+        "rome": results_rome,
     }
 
 
@@ -5061,55 +5074,72 @@ async def entreprise_seed_demo(token: str):
 
 @api_router.get("/referentiel/rome/domaines")
 async def get_rome_domaines():
-    # Use real OPC filières as grand domaines
-    filieres_docs = await db.opc_filieres.find({}, {"_id": 0}).sort("numero", 1).to_list(50)
+    # Use real ROME data from France Travail
+    ROME_GD = {
+        "A": "Agriculture et Pêche, Espaces naturels et Espaces verts",
+        "B": "Arts et Façonnage d'ouvrages d'art",
+        "C": "Banque, Assurance, Immobilier",
+        "D": "Commerce, Vente et Grande distribution",
+        "E": "Communication, Média et Multimédia",
+        "F": "Construction, Bâtiment et Travaux publics",
+        "G": "Hôtellerie-Restauration, Tourisme, Loisirs et Animation",
+        "H": "Industrie",
+        "I": "Installation et Maintenance",
+        "J": "Santé",
+        "K": "Services à la personne et à la collectivité",
+        "L": "Spectacle",
+        "M": "Support à l'entreprise",
+        "N": "Transport et Logistique",
+    }
     grand_domaines = []
+    for code, nom in ROME_GD.items():
+        count = await db.rome_metiers.count_documents({"grand_domaine_code": code})
+        grand_domaines.append({"code": code, "nom": nom, "metiers_count": count, "domaines": []})
+    # Also add OPC filières
+    filieres_docs = await db.opc_filieres.find({}, {"_id": 0}).sort("numero", 1).to_list(50)
+    opc_domaines = []
     for f in filieres_docs:
         metier_count = await db.opc_metiers.count_documents({"filiere_code": f["code"]})
-        grand_domaines.append({
+        opc_domaines.append({
             "code": f["code"],
             "nom": f["nom"],
             "metiers_count": metier_count,
             "domaines": [{"code": f"{f['code']}_{i}", "nom": s} for i, s in enumerate(f.get("secteurs", []))]
         })
-    return {"grand_domaines": grand_domaines, "domaines": [f["nom"] for f in filieres_docs]}
+    return {"grand_domaines": grand_domaines, "opc_filieres": opc_domaines, "domaines": [gd["nom"] for gd in grand_domaines]}
 
 
 @api_router.get("/referentiel/rome/metiers")
 async def get_rome_metiers(domaine: str = None, grand_domaine: str = None, q: str = None):
     query = {}
     if grand_domaine:
-        query["filiere_code"] = grand_domaine
-    if domaine:
-        # domaine is "CODE_index" format, extract sector name
-        parts = domaine.split("_", 1)
-        if len(parts) == 2:
-            filiere_code = parts[0]
-            idx = int(parts[1]) if parts[1].isdigit() else 0
-            f_doc = await db.opc_filieres.find_one({"code": filiere_code})
-            if f_doc and idx < len(f_doc.get("secteurs", [])):
-                query["sector_name"] = f_doc["secteurs"][idx]
+        # Single letter = ROME grand domaine, multi-char = OPC filière
+        if len(grand_domaine) == 1:
+            query["grand_domaine_code"] = grand_domaine
+        else:
+            # Fallback to OPC metiers
+            opc_query = {"filiere_code": grand_domaine}
+            if q:
+                opc_query["$or"] = [{"metier": {"$regex": q, "$options": "i"}}, {"mission": {"$regex": q, "$options": "i"}}]
+            metiers = await db.opc_metiers.find(opc_query, {"_id": 0}).to_list(100)
+            return {"metiers": [{"nom": m["metier"], "code_rome": m.get("sector_code", ""), "domaine_nom": m.get("sector_name", ""), "grand_domaine_nom": m.get("filiere_nom", "")} for m in metiers]}
     if q:
-        regex = {"$regex": q, "$options": "i"}
-        query["$or"] = [
-            {"metier": regex},
-            {"mission": regex},
-            {"sector_name": regex},
-        ]
-    metiers = await db.opc_metiers.find(query, {"_id": 0}).to_list(100)
-    result = []
-    for m in metiers:
-        result.append({
-            "nom": m["metier"],
-            "code_rome": m.get("sector_code", ""),
-            "domaine_nom": m.get("sector_name", ""),
-            "grand_domaine_nom": m.get("filiere_nom", ""),
-            "transition_ecologique": "",
-            "transition_numerique": "",
-            "transition_demographique": "",
-            "emploi_cadre": False,
-        })
-    return {"metiers": result}
+        query["$text"] = {"$search": q}
+    metiers = await db.rome_metiers.find(query, {"_id": 0}).to_list(200)
+    return {"metiers": [{"nom": m["libelle"], "code_rome": m["code_rome"], "domaine_nom": "", "grand_domaine_nom": m.get("grand_domaine_nom", "")} for m in metiers]}
+
+
+@api_router.get("/referentiel/rome/search")
+async def rome_search(q: str = ""):
+    """Search ROME métiers from France Travail database"""
+    if not q:
+        return {"metiers": [], "total": 0}
+    regex = {"$regex": q, "$options": "i"}
+    metiers = await db.rome_metiers.find({"libelle": regex}, {"_id": 0}).to_list(50)
+    return {
+        "metiers": [{"code_rome": m["code_rome"], "nom": m["libelle"], "grand_domaine": m.get("grand_domaine_nom", "")} for m in metiers],
+        "total": len(metiers)
+    }
 
 
 @api_router.get("/referentiel/actualisation/status")
@@ -5194,6 +5224,15 @@ async def on_startup():
             from seed_filieres import seed_filieres
             await seed_filieres()
             logger.info("[Seed] Filières professionnelles importées")
+        # Seed ROME if empty
+        rome_count = await db.rome_metiers.count_documents({})
+        if rome_count == 0:
+            try:
+                from seed_rome import seed_rome
+                await seed_rome()
+                logger.info("[Seed] ROME France Travail importé")
+            except Exception as e:
+                logger.warning(f"[Seed] ROME non importé: {e}")
         # Seed default users
         for pseudo, pwd, role in [
             ("marc19", "Solerys777!", "particulier"),
