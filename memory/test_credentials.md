@@ -1,14 +1,18 @@
 # Test Credentials — RE'ACTIF PRO
 
 ## Admin Gate
-- **Mot de passe admin** : `Choukette@777`
+- Password: `Choukette@777`
+- Dev Password: `Reactif@pro2026!`
+- Invité Password: `Reactif@pro2026!`
 
-## Espace Personnel (Particulier)
-- **Pseudo** : `mike7` | **Mot de passe** : `Solerys777!`
-- **Pseudo** : `marc19` | **Mot de passe** : `Solerys777!`
+## User Login (Espace Personnel)
+- Pseudo: `mike7`
+- Password: `Solerys777!`
 
-## Espace Employeurs (auto-login admin)
-- **Pseudo** : `rh@reactifpro.fr` | **Mot de passe** : `Reactif@pro2026!`
+## Admin Login (Pro)
+- Pseudo: `admin@reactifpro.fr`
+- Password: `Choukette@777`
 
-## Appui aux Parcours (auto-login admin)
-- **Pseudo** : `admin@reactifpro.fr` | **Mot de passe** : `Choukette@777`
+## RH Login
+- Pseudo: `rh@reactifpro.fr`
+- Password: `Reactif@pro2026!`
