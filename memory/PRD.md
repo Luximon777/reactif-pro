@@ -25,10 +25,18 @@ Développement d'une plateforme full-stack "Ré'Actif Pro" basée sur l'analyse 
 ### Phase 5 — Page OPC dédiée (DONE - 16/06/2026)
 - **Page autonome à `/opc`** avec sidebar dédiée (8 modules du cahier des charges)
 - Modules : Tableau de bord, Référentiel vivant, Cartographie métiers, Transitions, Compétences émergentes, Certifications RNCP, Intelligence territoriale, Moteur prédictif
-- **Bug fix** : Référentiel vivant affichait 0 résultat (mapping API incorrect), Cartographie métiers crashait (format données filières)
+- Bug fixes : Référentiel vivant, Cartographie métiers, AdminGate, flèches IA, erreur 500 recommandation
+
+### Phase 6 — Cartographie exhaustive des métiers IA (DONE - 16/06/2026)
+- **Nouveau endpoint** : `POST /api/observatory/ia/cartographie-exhaustive`
+- Croise TOUTES les données ROME (50 max), OPC (30 max) et RNCP (60+ certifs) pour un domaine
+- Génère via Claude une arborescence catégorisée de 35-50+ métiers (ex: 47 métiers en 7-8 catégories pour "commercial")
+- Inclut : métiers émergents (3-5), certifications clés (5-8), stats sources
+- **Frontend** : Composant `CartographieExhaustiveDisplay` avec catégories dépliables, badges de tension, flèches de tendance, stats
+- **Performance** : ~55-90s de temps de réponse (LLM-bound)
 
 ## Backlog
-- **P1** : Refactoring `server.py` (>5200 lignes)
+- **P1** : Refactoring `server.py` (>5200 lignes) — extraire routes /api/cv, /api/trajectory, /api/coach
 - **P2** : Export PDF des 4 modèles de CV
 - **P3** : Soft Skills (CSE), Valeurs (VIA), diagnostic CCSP, Codéveloppement, micro-titres
 - **P3** : Connecteur ESCO européen, intelligence territoriale réelle par bassin
