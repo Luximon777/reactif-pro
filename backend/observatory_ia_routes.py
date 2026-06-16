@@ -34,8 +34,8 @@ class IaRequest(BaseModel):
 
 # ─── Helper: fetch metier context from DB ─────────────────────────────────────
 async def _get_metier_context(query: str) -> Dict[str, Any]:
-    """Fetch metier data from opc_metiers and rome_metiers to enrich IA prompts."""
-    ctx: Dict[str, Any] = {"query": query, "metier": None, "rome": None, "filiere": None}
+    """Fetch metier data from opc_metiers, rome_metiers, and RNCP to enrich IA prompts."""
+    ctx: Dict[str, Any] = {"query": query, "metier": None, "rome": None, "filiere": None, "rncp": []}
     if not query:
         return ctx
 
@@ -59,6 +59,27 @@ async def _get_metier_context(query: str) -> Dict[str, Any]:
             {"code": metier.get("filiere_code")}, {"_id": 0}
         )
         ctx["filiere"] = filiere
+
+    # Search RNCP certifications linked to this métier
+    rncp_certs = []
+    if rome and rome.get("code_rome"):
+        # Find RNCP via ROME mapping
+        mappings = await _db.opc_rncp_rome.find(
+            {"code_rome": rome["code_rome"]}, {"_id": 0}
+        ).limit(10).to_list(10)
+        cert_codes = [m["code_certification"] for m in mappings]
+        if cert_codes:
+            certs = await _db.opc_certifications.find(
+                {"code": {"$in": cert_codes}, "statut": "ACTIVE"}, {"_id": 0}
+            ).limit(5).to_list(5)
+            rncp_certs = certs
+    if not rncp_certs:
+        # Fallback: search by intitulé
+        certs = await _db.opc_certifications.find(
+            {"intitule": q_re, "statut": "ACTIVE"}, {"_id": 0}
+        ).limit(5).to_list(5)
+        rncp_certs = certs
+    ctx["rncp"] = rncp_certs
 
     return ctx
 
@@ -85,6 +106,12 @@ def _build_metier_prompt_block(ctx: Dict[str, Any]) -> str:
     if r:
         parts.append(f"Code ROME : {r.get('code_rome', 'N/A')} — {r.get('libelle', '')}")
         parts.append(f"Grand domaine ROME : {r.get('grand_domaine_nom', 'N/A')}")
+
+    # RNCP certifications
+    rncp = ctx.get("rncp", [])
+    if rncp:
+        rncp_list = [f"{c.get('code', '')} {c.get('intitule', '')} ({c.get('niveau_libelle', '')})" for c in rncp[:5]]
+        parts.append(f"Certifications RNCP associées : {'; '.join(rncp_list)}")
 
     return "\n".join(parts)
 
@@ -346,6 +373,13 @@ Profil utilisateur :
 - Expériences : {len(user_profile.get('experiences') or [])} postes
 """
 
+    # Fetch RNCP certifications for context
+    rncp_block = ""
+    rncp_certs = ctx.get("rncp", [])
+    if rncp_certs:
+        rncp_lines = [f"- {c.get('code','')} : {c.get('intitule','')} ({c.get('niveau_libelle','')})" for c in rncp_certs[:5]]
+        rncp_block = f"\nCertifications RNCP disponibles pour ce métier :\n" + "\n".join(rncp_lines)
+
     system = (
         "Tu es le conseiller en orientation de l'OPC RE'ACTIF PRO. "
         "Tu génères des recommandations personnalisées d'orientation professionnelle. "
@@ -355,6 +389,7 @@ Profil utilisateur :
     prompt = f"""Contexte métier :
 {context_block}
 {profile_block}
+{rncp_block}
 
 Génère une recommandation complète d'orientation professionnelle.
 
@@ -372,6 +407,9 @@ Réponds avec un objet JSON au format exact :
   ],
   "savoir_etre_a_renforcer": [
     {{"savoir_etre": "Savoir-être", "contexte": "Pourquoi et dans quel contexte"}}
+  ],
+  "certifications_conseillees": [
+    {{"code_rncp": "RNCP12345", "intitule": "Titre de la certification", "niveau": "Niveau X", "pertinence": "Pourquoi cette certification est pertinente (15-20 mots)"}}
   ]
 }}
 
@@ -380,6 +418,7 @@ Règles :
 - 2 à 3 métiers avec montée en compétences
 - 3 à 5 compétences prioritaires
 - 2 à 4 savoir-être à renforcer
+- 2 à 4 certifications RNCP conseillées (si disponibles dans le contexte, utilise les codes fournis)
 - Basé sur le marché français actuel
 - Français uniquement"""
 

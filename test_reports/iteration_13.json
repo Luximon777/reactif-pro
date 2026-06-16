@@ -1,0 +1,94 @@
+{
+  "summary": "Completed testing of RNCP/France Compétences ETL endpoints and IA recommandation enrichment. All 12 backend tests PASSED (7 RNCP endpoints + 1 IA enrichment test). Frontend OPC page loads correctly with all 4 tabs (Observer, Analyser, Anticiper, Orienter) and IA buttons functional.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": {
+    "backend_api_tests": [
+      "GET /api/referentiel/rncp/stats - Returns total_certifications=30022 (>=30000), actives=6766 (>=6000), blocs_competences=53893 (>=50000)",
+      "GET /api/referentiel/rncp/search?q=comptable - Returns 26 results with code, intitule, niveau, statut fields",
+      "GET /api/referentiel/rncp/search?q=comptable&statut=ACTIVE - Filter works correctly",
+      "GET /api/referentiel/rncp/fiche/RNCP42012 - Returns certification with 6 blocs_competences and 3 codes_rome",
+      "GET /api/referentiel/rncp/fiche/RNCP42012/blocs - Returns 6 blocs array",
+      "GET /api/referentiel/rncp/rome/M1608 - Returns 8 certifications linked to 'Secrétariat comptable'",
+      "POST /api/referentiel/rncp/gap-analysis - Returns couverture_pct=50% with comptabilité/gestion competences",
+      "GET /api/referentiel/rncp/tension?limit=5 - Returns certifications_en_tension array with nb_metiers_associes",
+      "POST /api/observatory/ia/recommandation - NOW includes certifications_conseillees with RNCP codes (RNCP35749, RNCP36522, RNCP36434, RNCP36889)"
+    ],
+    "frontend_tests": [
+      "OPC page loads with 4 tabs: Observer, Analyser, Anticiper, Orienter",
+      "Tab navigation works (data-testid: tab-observer, tab-analyser, tab-anticiper, tab-orienter)",
+      "Observer tab shows search functionality 'Rechercher dans le référentiel des compétences'",
+      "Analyser tab shows 'Corrélations compétences techniques ↔ savoir-être' section with confidence indicators",
+      "Anticiper tab shows 4 IA buttons: Compétences émergentes, Trajectoires IA, Prédictions globales, Analyse complète",
+      "Orienter tab shows 'Ma recommandation personnalisée' section with 'Analyser mon profil' button",
+      "Login flow works: Admin gate (Choukette@777) -> Espace Personnel -> mike7/Solerys777!"
+    ]
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_rncp_endpoints.py",
+    "/app/test_reports/pytest/pytest_rncp_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "RNCP routes properly implemented in /app/backend/rncp_routes.py with all 7 endpoints",
+    "Router correctly included in server.py at line 5208: app.include_router(rncp_router)",
+    "ETL data loaded successfully: 30022 certifications, 53893 blocs, 66491 ROME mappings",
+    "IA recommandation endpoint enriched with RNCP data via _get_metier_context() helper",
+    "Gap analysis uses simple keyword matching - works correctly for basic competence matching"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_rncp_endpoints.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (All tabs and buttons functional)"
+  },
+
+  "test_credentials": "Login: pseudo=mike7, password=Solerys777! | Admin gate: Choukette@777",
+
+  "seed_data_creation": "RNCP data loaded via ETL from data.gouv.fr - 30022 certifications, 53893 blocs, 66491 ROME mappings",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All RNCP endpoints working correctly. ETL data from France Compétences loaded into MongoDB collections: opc_certifications (30022), opc_blocs_competences (53893), opc_rncp_rome (66491), opc_certificateurs (40998). IA recommandation endpoint now includes certifications_conseillees field with RNCP codes. Gap analysis uses keyword matching against bloc titles. Frontend OPC tabs all functional with IA buttons.",
+
+  "api_response_samples": {
+    "stats": {
+      "total_certifications": 30022,
+      "actives": 6766,
+      "rncp_actives": 5307,
+      "rs_actives": 1459,
+      "blocs_competences": 53893,
+      "mappings_rome": 66491,
+      "source": "France Compétences (data.gouv.fr)"
+    },
+    "search_comptable": "26 results with RNCP42012 'Assistant administratif commercial et comptable' as first result",
+    "fiche_rncp42012": "6 blocs_competences, 3 codes_rome (M1607, D1401, M1608), 1 certificateur",
+    "rome_m1608": "8 certifications linked to 'Secrétariat comptable'",
+    "gap_analysis": "50% couverture with comptabilité/gestion matching 3/6 blocs",
+    "tension": "3 certifications en tension with nb_metiers_associes=5",
+    "ia_recommandation_certifications": [
+      {"code_rncp": "RNCP35749", "intitule": "Assistant comptable", "niveau": "Niveau 4"},
+      {"code_rncp": "RNCP36522", "intitule": "Comptable", "niveau": "Niveau 5"},
+      {"code_rncp": "RNCP36434", "intitule": "Secrétaire comptable", "niveau": "Niveau 4"},
+      {"code_rncp": "RNCP36889", "intitule": "Responsable comptable", "niveau": "Niveau 6"}
+    ]
+  }
+}
