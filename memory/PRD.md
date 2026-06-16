@@ -24,11 +24,16 @@ Développement d'une plateforme full-stack "Ré'Actif Pro" basée sur l'analyse 
 ### Phase 5 — Page OPC dédiée (DONE)
 - Page autonome `/opc` avec sidebar (8 modules du cahier des charges)
 
-### Phase 6 — Cartographie exhaustive + Améliorations OPC (DONE - 16/06/2026)
-- **Endpoint** `POST /api/observatory/ia/cartographie-exhaustive` : 35-50+ métiers catégorisés via IA
-- **Recommandation personnalisée** enrichie : injecte profil complet (skills, forces, gaps, secteurs, parcours) dans le prompt
-- **Tableau de bord** : bouton "Actualiser les données" + date du jour, compteurs ROME/OPC dynamiques
-- **Fix** : "Lancer l'analyse IA" ne redirige plus vers le Moteur prédictif
+### Phase 6 — Cartographie exhaustive IA (DONE - 16/06/2026)
+- Endpoint `POST /api/observatory/ia/cartographie-exhaustive` : 35-50+ métiers catégorisés via IA
+- Recommandation personnalisée enrichie (profil complet injecté dans le prompt)
+
+### Phase 7 — Synchronisation profil + Actualisation Dashboard (DONE - 16/06/2026)
+- **Header OPC** : Bouton "Synchroniser mon profil" charge le profil utilisateur (compétences, secteurs) comme contexte IA
+- Badge vert affiché post-sync avec nom + nb compétences + bouton ✕ "Annuler la synchronisation"
+- Mode libre conservé ("ou saisir un métier...") quand profil non synchronisé
+- Bouton "Lancer l'analyse IA" actif uniquement si profil synchronisé ou métier saisi
+- **Dashboard** : Bouton "Actualiser les données" avec date/heure du jour, compteurs ROME/OPC dynamiques
 
 ## Backlog
 - **P1** : Refactoring `server.py` (>5200 lignes)

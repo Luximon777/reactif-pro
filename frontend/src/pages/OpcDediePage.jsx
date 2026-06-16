@@ -49,8 +49,41 @@ export default function OpcDediePage({ token, onBack }) {
   const [tensionCerts, setTensionCerts] = useState(null);
   const [metierContext, setMetierContext] = useState("");
   const [cartographie, setCartographie] = useState(null);
+  const [profileSynced, setProfileSynced] = useState(false);
+  const [syncedProfile, setSyncedProfile] = useState(null);
 
   const tokenParam = token ? `token=${token}` : "";
+
+  // Sync profile: fetch user profile and use as IA context
+  const syncProfile = async () => {
+    if (!token) {
+      toast.error("Aucun profil connecté — connectez-vous d'abord");
+      return;
+    }
+    setLoading(l => ({ ...l, syncProfile: true }));
+    try {
+      const res = await axios.get(`${API}/profile?token=${token}`);
+      const p = res.data;
+      setSyncedProfile(p);
+      // Build context from profile: sectors + name
+      const sectors = (p.sectors || []).slice(0, 3);
+      const topSkills = (p.skills || []).slice(0, 3).map(s => typeof s === "string" ? s : s.name);
+      const contextParts = [...sectors, ...topSkills].filter(Boolean);
+      const ctx = contextParts.length > 0 ? contextParts.join(", ") : p.name || "profil utilisateur";
+      setMetierContext(ctx);
+      setProfileSynced(true);
+      toast.success(`Profil de ${p.name || "l'utilisateur"} synchronisé — ${(p.skills || []).length} compétences, ${(p.sectors || []).length} secteurs`);
+    } catch (e) {
+      toast.error("Impossible de charger le profil");
+    }
+    setLoading(l => ({ ...l, syncProfile: false }));
+  };
+
+  const unsyncProfile = () => {
+    setProfileSynced(false);
+    setSyncedProfile(null);
+    setMetierContext("");
+  };
 
   // Load dashboard stats on mount
   useEffect(() => {
@@ -221,28 +254,59 @@ export default function OpcDediePage({ token, onBack }) {
               <p className="text-xs text-slate-500">Observatoire Prédictif des Compétences — RE'ACTIF PRO</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Contexte métier global */}
-            <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-200">
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <input
-                className="bg-transparent text-sm w-40 outline-none placeholder:text-slate-400"
-                placeholder="Contexte métier..."
-                value={metierContext}
-                onChange={e => setMetierContext(e.target.value)}
-                data-testid="opc-metier-context"
-              />
-              {metierContext && (
-                <button onClick={() => setMetierContext("")} className="text-slate-400 hover:text-slate-600">
-                  <X className="w-3 h-3" />
+          <div className="flex items-center gap-2">
+            {/* Synchronisation profil / Saisie métier */}
+            {profileSynced ? (
+              <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-1.5 border border-emerald-300" data-testid="opc-profile-synced">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <div className="text-xs">
+                  <span className="font-semibold text-emerald-800">{syncedProfile?.name || "Profil"}</span>
+                  <span className="text-emerald-600 ml-1">({(syncedProfile?.skills || []).length} comp.)</span>
+                </div>
+                <button
+                  onClick={unsyncProfile}
+                  className="ml-1 text-emerald-500 hover:text-red-500 transition-colors"
+                  title="Annuler la synchronisation"
+                  data-testid="opc-unsync-profile"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={syncProfile}
+                  disabled={loading.syncProfile || !token}
+                  className="text-xs border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                  data-testid="opc-sync-profile"
+                >
+                  {loading.syncProfile ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Target className="w-3 h-3 mr-1" />}
+                  Synchroniser mon profil
+                </Button>
+                <div className="flex items-center gap-1 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-200">
+                  <Search className="w-3 h-3 text-slate-400" />
+                  <input
+                    className="bg-transparent text-xs w-32 outline-none placeholder:text-slate-400"
+                    placeholder="ou saisir un métier..."
+                    value={metierContext}
+                    onChange={e => setMetierContext(e.target.value)}
+                    data-testid="opc-metier-context"
+                  />
+                  {metierContext && (
+                    <button onClick={() => setMetierContext("")} className="text-slate-400 hover:text-slate-600">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
-              className="text-xs text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-              disabled={loading["analyse-complete"]}
+              className={`text-xs ${profileSynced || metierContext ? "text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100" : "text-slate-400 border-slate-200 bg-slate-50"}`}
+              disabled={loading["analyse-complete"] || (!profileSynced && !metierContext)}
               data-testid="opc-ia-predictive-btn"
               onClick={async () => {
                 setLoading(l => ({ ...l, "analyse-complete": true }));
