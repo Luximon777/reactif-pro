@@ -866,7 +866,7 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
       )}
 
       {/* Centres d'interet - Formulaire interactif */}
-      {analysisResult && mode === "full" && (
+      {analysisResult && (mode === "full" || mode === "audit") && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4" data-testid="cv-centres-interet-section">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-rose-500" />

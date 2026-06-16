@@ -2220,22 +2220,22 @@ Structure exacte:
   "strengths": ["points forts du candidat"],
   "gaps": ["lacunes ou axes d'amélioration"],
   "audit_cv": [
-    {"rule": "Résumé professionnel", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Expériences détaillées", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Compétences techniques", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Soft skills identifiés", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Mots-clés ATS", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Cohérence chronologique", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Quantification des résultats", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Lisibilité et structure", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Formations et certifications", "status": "ok|warning|error", "note": "évaluation"},
-    {"rule": "Objectif professionnel clair", "status": "ok|warning|error", "note": "évaluation"}
+    {"regle": "Résumé professionnel", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation détaillée", "recommandation": "conseil si ameliorable/absent"},
+    {"regle": "Expériences détaillées", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Compétences techniques", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Soft skills identifiés", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Mots-clés ATS", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Cohérence chronologique", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Quantification des résultats", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Lisibilité et structure", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Formations et certifications", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"},
+    {"regle": "Objectif professionnel clair", "statut": "ok|ameliorable|absent", "score": 8, "diagnostic": "évaluation", "recommandation": "conseil"}
   ],
   "score_global_cv": 65,
   "modele_suggere": "cv_classique|cv_competences|cv_fonctionnel|cv_mixte"
 }
 Pour experiences: inclure start_date (YYYY-MM) et end_date (YYYY-MM) quand disponibles dans le CV. Mettre is_ongoing=true si le poste est actuel.
-Pour audit_cv: évalue rigoureusement chaque critère (ok=bon, warning=améliorable, error=absent/insuffisant). score_global_cv = note sur 100.
+Pour audit_cv: évalue rigoureusement chaque critère (ok=bon, ameliorable=à améliorer, absent=insuffisant). score de 1 à 10 pour chaque regle. score_global_cv = somme sur 100. Fournis diagnostic détaillé ET recommandation concrète pour chaque critère ameliorable ou absent.
 Pour modele_suggere: recommande le format de CV le plus adapté au profil.
 Pour offres_emploi: génère 5-8 offres réalistes et pertinentes.
 Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
@@ -2586,7 +2586,33 @@ async def get_last_cv_analysis(token: str):
 
     result = job["result"]
 
-    # Enrich from passport if audit/details missing
+    # Normalize audit_cv field names: LLM may return {rule,status,note} instead of {regle,statut,score,diagnostic}
+    if result.get("audit_cv"):
+        status_map = {"ok": "ok", "warning": "ameliorable", "error": "absent"}
+        score_map = {"ok": 8, "ameliorable": 5, "absent": 2}
+        normalized = []
+        needs_normalize = False
+        for item in result["audit_cv"]:
+            if "rule" in item and "regle" not in item:
+                needs_normalize = True
+                statut = status_map.get(item.get("status", ""), item.get("status", "ameliorable"))
+                normalized.append({
+                    "regle": item.get("rule", ""),
+                    "statut": statut,
+                    "score": item.get("score", score_map.get(statut, 5)),
+                    "diagnostic": item.get("note", item.get("diagnostic", "")),
+                    "recommandation": item.get("recommandation", ""),
+                })
+            else:
+                normalized.append(item)
+        if needs_normalize:
+            result["audit_cv"] = normalized
+            if not result.get("score_global_cv"):
+                result["score_global_cv"] = sum(i.get("score", 5) for i in normalized)
+            await db.cv_jobs.update_one(
+                {"token_id": token_doc["id"], "status": "completed"},
+                {"$set": {"result.audit_cv": normalized, "result.score_global_cv": result["score_global_cv"]}},
+            )
     if not result.get("audit_cv") or not result.get("savoir_faire"):
         passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
         if passport:
