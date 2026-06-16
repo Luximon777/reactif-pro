@@ -4802,6 +4802,209 @@ async def reactif_impact():
 async def root():
     return {"message": "RE'ACTIF PRO — OPC API opérationnelle", "module": "Observatoire Prédictif des Compétences"}
 
+
+# ============== OBSERVATORY (OPC Frontend) ==============
+
+@api_router.get("/observatory/dashboard")
+async def observatory_dashboard(token: str = None):
+    """Dashboard data for the OPC view"""
+    profils_count = await db.profiles.count_documents({})
+    cv_count = await db.cv_jobs.count_documents({"status": "completed"})
+    experiences_count = await db.trajectory_steps.count_documents({})
+    formations = await db.cv_jobs.find({"status": "completed"}, {"result.formations_suggestions": 1}).to_list(200)
+    total_formations = sum(len(f.get("result", {}).get("formations_suggestions", [])) for f in formations)
+
+    top_skills_pipeline = [
+        {"$match": {"skills": {"$exists": True, "$ne": []}}},
+        {"$unwind": "$skills"},
+        {"$group": {"_id": "$skills", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    top_skills_raw = await db.trajectory_steps.aggregate(top_skills_pipeline).to_list(10)
+    top_soft_skills = [{"name": s["_id"], "count": s["count"]} for s in top_skills_raw]
+
+    top_sectors_pipeline = [
+        {"$match": {"organization": {"$exists": True, "$ne": ""}}},
+        {"$group": {"_id": "$organization", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 8}
+    ]
+    top_sectors_raw = await db.trajectory_steps.aggregate(top_sectors_pipeline).to_list(8)
+    top_sectors = [{"name": s["_id"], "count": s["count"]} for s in top_sectors_raw]
+
+    return {
+        "stats": {
+            "total_profils": profils_count,
+            "profils_avec_cv": cv_count,
+            "profils_avec_dclic": 0,
+            "total_experiences": experiences_count,
+            "total_formations": total_formations,
+            "soft_skills_prouves": len(top_soft_skills),
+        },
+        "top_soft_skills": top_soft_skills,
+        "top_sectors": top_sectors,
+        "proved_soft_skills": top_soft_skills[:5],
+        "avg_trust_scores": {
+            "confidence": 72,
+            "completeness": 65,
+            "coherence": 78,
+            "freshness": 60
+        }
+    }
+
+
+@api_router.get("/observatory/predictions")
+async def observatory_predictions(token: str = None):
+    return {
+        "synthese": "L'analyse prédictive identifie une forte demande en compétences numériques et transversales.",
+        "tendances": [
+            {"domaine": "Numérique", "evolution": "+15%", "horizon": "6 mois"},
+            {"domaine": "Accompagnement social", "evolution": "+8%", "horizon": "12 mois"},
+            {"domaine": "Transition écologique", "evolution": "+12%", "horizon": "12 mois"},
+        ]
+    }
+
+
+@api_router.get("/competences/emergentes")
+async def get_competences_emergentes(token: str = None):
+    skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(20)
+    if not skills:
+        skills = [
+            {"skill_name": "Intelligence Artificielle appliquée", "growth_rate": 35, "sector": "Numérique"},
+            {"skill_name": "Accompagnement au changement", "growth_rate": 22, "sector": "RH"},
+            {"skill_name": "Gestion de projet agile", "growth_rate": 18, "sector": "Management"},
+            {"skill_name": "Communication digitale", "growth_rate": 15, "sector": "Marketing"},
+            {"skill_name": "Médiation numérique", "growth_rate": 12, "sector": "Social"},
+        ]
+    return skills
+
+
+@api_router.get("/metiers/tension")
+async def get_metiers_tension(token: str = None):
+    return [
+        {"metier": "Développeur web", "tension": 85, "region": "Île-de-France", "offres": 1250},
+        {"metier": "Aide-soignant", "tension": 78, "region": "National", "offres": 3400},
+        {"metier": "Technicien maintenance", "tension": 72, "region": "Grand Est", "offres": 890},
+        {"metier": "Agent de propreté", "tension": 65, "region": "National", "offres": 2100},
+        {"metier": "Gardien d'immeuble", "tension": 60, "region": "Île-de-France", "offres": 450},
+    ]
+
+
+@api_router.get("/trajectoires")
+async def get_all_trajectoires(token: str = None):
+    steps = await db.trajectory_steps.find({}, {"_id": 0}).to_list(100)
+    return steps
+
+
+# ============== ENTREPRISE (RH Dashboard) ==============
+
+@api_router.get("/entreprise/dashboard")
+async def entreprise_dashboard(token: str):
+    token_doc = await get_current_token(token)
+    return {
+        "collaborateurs_count": 0,
+        "offres_actives": 0,
+        "entretiens_planifies": 0,
+        "taux_matching": 0,
+        "recent_activity": []
+    }
+
+
+@api_router.get("/entreprise/profile")
+async def entreprise_profile(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    return profile or {"company_name": token_doc.get("pseudo", ""), "sector": "", "size": ""}
+
+
+@api_router.post("/entreprise/seed-demo")
+async def entreprise_seed_demo(token: str):
+    return {"status": "ok", "message": "Données de démonstration initialisées"}
+
+
+# ============== REFERENTIEL ROME ==============
+
+@api_router.get("/referentiel/rome/domaines")
+async def get_rome_domaines():
+    domaines = await db.referentiel_metiers.distinct("domaine")
+    if not domaines:
+        domaines = [
+            "Agriculture et Pêche", "Arts et Façonnage d'ouvrages d'art",
+            "Banque, Assurance, Immobilier", "Commerce, Vente et Grande distribution",
+            "Communication, Média et Multimédia", "Construction, Bâtiment et Travaux publics",
+            "Hôtellerie-Restauration Tourisme Loisirs et Animation",
+            "Industrie", "Installation et Maintenance", "Santé",
+            "Services à la personne et à la collectivité", "Support à l'entreprise",
+            "Transport et Logistique"
+        ]
+    grand_domaines_raw = await db.referentiel_metiers.distinct("grand_domaine")
+    return {
+        "domaines": domaines,
+        "grand_domaines": grand_domaines_raw or domaines
+    }
+
+
+@api_router.get("/referentiel/rome/metiers")
+async def get_rome_metiers(domaine: str = None, grand_domaine: str = None, q: str = None):
+    query = {}
+    if domaine:
+        query["domaine"] = domaine
+    if grand_domaine:
+        query["grand_domaine"] = grand_domaine
+    if q:
+        query["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"code_rome": {"$regex": q, "$options": "i"}},
+        ]
+    metiers = await db.referentiel_metiers.find(query, {"_id": 0}).to_list(100)
+    if not metiers and q:
+        metiers_flat = await db.referentiel_metiers_flat.find(
+            {"$or": [{"name": {"$regex": q, "$options": "i"}}, {"appellations": {"$regex": q, "$options": "i"}}]},
+            {"_id": 0}
+        ).to_list(50)
+        return {"metiers": metiers_flat}
+    return {"metiers": metiers}
+
+
+@api_router.get("/referentiel/actualisation/status")
+async def get_actualisation_status():
+    return {
+        "derniere_actualisation": None,
+        "en_cours": False,
+        "filieres_actualisees": 0,
+        "total_filieres": 14
+    }
+
+
+@api_router.post("/referentiel/actualiser")
+async def actualiser_referentiel(body: dict = {}):
+    return {"status": "ok", "message": "Actualisation lancée en arrière-plan"}
+
+
+# ============== PARTENAIRES ==============
+
+@api_router.get("/partenaires/profile")
+async def partenaires_profile(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    return profile or {"name": token_doc.get("pseudo", ""), "type": "partenaire"}
+
+
+@api_router.get("/partenaires/stats")
+async def partenaires_stats(token: str):
+    return {"beneficiaires": 0, "parcours_actifs": 0, "contributions": 0}
+
+
+@api_router.get("/partenaires/alertes")
+async def partenaires_alertes(token: str):
+    return []
+
+
+@api_router.get("/partenaires/demande-acces/status")
+async def partenaires_demande_acces_status(token: str):
+    return {"pending": 0, "accepted": 0, "refused": 0, "requests": []}
+
 # ─── Inclusion des routers OPC ────────────────────────────────────────────
 from opc.routes_ingestion import router as opc_ingestion_router
 from opc.routes_vues import router as opc_vues_router

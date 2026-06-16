@@ -163,6 +163,10 @@ const AdminGate = ({ onAuthenticated }) => {
         localStorage.setItem("reactif_profile_id", loginData.profile_id || "");
         localStorage.setItem("reactif_auth_mode", loginData.authMode);
         if (displayName) localStorage.setItem("reactif_pseudo", displayName);
+        if (postAuthRedirect) {
+          localStorage.setItem("reactif_post_redirect", postAuthRedirect);
+          setPostAuthRedirect(null);
+        }
         onAuthenticated({
           token: loginData.token,
           role: loginData.role,
@@ -544,7 +548,7 @@ const AdminGate = ({ onAuthenticated }) => {
                     key={space.key}
                     type="button"
                     onClick={() => {
-                      setPostAuthRedirect("/dashboard/observatoire");
+                      localStorage.setItem("reactif_post_redirect", "/dashboard/observatoire");
                       setOpcSelectorOpen(false);
                       handleSpaceSelect(space);
                     }}
