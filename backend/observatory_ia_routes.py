@@ -358,21 +358,34 @@ async def ia_recommandation(body: IaRequest = IaRequest(), token: str = None):
 
     # Try to get user profile for personalization
     user_profile = None
+    trajectory = []
     if token:
         tok = await _db.tokens.find_one({"token": token})
         if tok:
             user_profile = await _db.profiles.find_one(
                 {"token_id": tok.get("id")}, {"_id": 0}
             )
+            trajectory = await _db.trajectory_steps.find(
+                {"token_id": tok.get("id")}, {"_id": 0}
+            ).limit(10).to_list(10)
 
     profile_block = ""
     if user_profile:
         skills = user_profile.get('skills') or []
-        skills_str = ', '.join(s if isinstance(s, str) else s.get('name', str(s)) for s in skills[:8])
+        skills_str = ', '.join(s if isinstance(s, str) else f"{s.get('name','')} ({s.get('level','')}%)" for s in skills[:10])
+        strengths = user_profile.get('strengths') or []
+        gaps = user_profile.get('gaps') or []
+        sectors = user_profile.get('sectors') or []
+        exp_lines = [f"  - {t.get('title','')} chez {t.get('organization','')}" for t in trajectory[:6]]
         profile_block = f"""
-Profil utilisateur :
+Profil utilisateur connecté :
+- Nom : {user_profile.get('name', 'Anonyme')}
 - Compétences déclarées : {skills_str}
-- Expériences : {len(user_profile.get('experiences') or [])} postes
+- Points forts : {'; '.join(strengths[:5]) if strengths else 'Non renseignés'}
+- Axes de progression : {'; '.join(gaps[:4]) if gaps else 'Non renseignés'}
+- Secteurs visés : {', '.join(sectors[:5]) if sectors else 'Non renseignés'}
+- Parcours professionnel ({len(trajectory)} postes) :
+{chr(10).join(exp_lines) if exp_lines else '  (non renseigné)'}
 """
 
     # Fetch RNCP certifications for context

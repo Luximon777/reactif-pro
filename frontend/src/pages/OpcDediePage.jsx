@@ -254,7 +254,6 @@ export default function OpcDediePage({ token, onBack }) {
                   if (res.data.trajectoires) setTrajectoires(res.data.trajectoires);
                   if (res.data.recommandation) setRecommandation(res.data.recommandation);
                   toast.success("Analyse IA complète terminée — consultez chaque module pour les résultats");
-                  setActiveModule("predictif");
                 } catch { toast.error("Erreur lors de l'analyse IA"); }
                 setLoading(l => ({ ...l, "analyse-complete": false }));
               }}
@@ -267,7 +266,12 @@ export default function OpcDediePage({ token, onBack }) {
 
         {/* Content */}
         <div className="p-6 max-w-7xl mx-auto">
-          {activeModule === "dashboard" && <DashboardModule stats={dashStats} rncpStats={rncpStats} />}
+          {activeModule === "dashboard" && <DashboardModule stats={dashStats} rncpStats={rncpStats} onRefresh={async () => {
+            setLoading(l => ({ ...l, dashRefresh: true }));
+            await Promise.all([loadDashboardStats(), loadRncpStats()]);
+            setLoading(l => ({ ...l, dashRefresh: false }));
+            toast.success("Tableau de bord actualisé");
+          }} refreshLoading={loading.dashRefresh} />}
           {activeModule === "referentiel" && <ReferentielModule query={searchQuery} setQuery={setSearchQuery} results={searchResults} onSearch={searchReferentiel} loading={loading.referentiel} />}
           {activeModule === "cartographie" && <CartographieModule />}
           {activeModule === "transitions" && <TransitionsModule trajectoires={trajectoires} correlations={correlations} loading={loading} metier={metierContext} onRunTrajectoires={() => runIa("trajectoires", setTrajectoires, "Trajectoires")} onRunCorrelations={() => runIa("correlations", setCorrelations, "Corrélations")} />}
@@ -297,7 +301,11 @@ export default function OpcDediePage({ token, onBack }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Module 0: TABLEAU DE BORD
 // ═══════════════════════════════════════════════════════════════════════════════
-function DashboardModule({ stats, rncpStats }) {
+function DashboardModule({ stats, rncpStats, onRefresh, refreshLoading }) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
   const kpis = [
     { label: "Certifications RNCP", value: rncpStats?.rncp_actives || "—", sub: "actives", icon: GraduationCap, color: "text-red-600 bg-red-50" },
     { label: "Certifications RS", value: rncpStats?.rs_actives || "—", sub: "actives", icon: Award, color: "text-amber-600 bg-amber-50" },
@@ -309,6 +317,25 @@ function DashboardModule({ stats, rncpStats }) {
 
   return (
     <div className="space-y-6" data-testid="opc-mod-dashboard">
+      {/* En-tête avec date et bouton Actualiser */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Clock className="w-4 h-4" />
+          <span>Situation au <strong className="text-slate-700">{dateStr}</strong> — {timeStr}</span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          disabled={refreshLoading}
+          className="text-xs border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+          data-testid="opc-dashboard-refresh"
+        >
+          {refreshLoading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+          Actualiser les données
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((kpi, i) => {
           const Icon = kpi.icon;

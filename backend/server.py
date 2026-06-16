@@ -4958,6 +4958,8 @@ async def observatory_dashboard(token: str = None):
     profils_count = await db.profiles.count_documents({})
     cv_count = await db.cv_jobs.count_documents({"status": "completed"})
     experiences_count = await db.trajectory_steps.count_documents({})
+    rome_count = await db.rome_metiers.count_documents({})
+    metiers_count = await db.opc_metiers.count_documents({})
     formations = await db.cv_jobs.find({"status": "completed"}, {"result.formations_suggestions": 1}).to_list(200)
     total_formations = sum(len(f.get("result", {}).get("formations_suggestions", [])) for f in formations)
 
@@ -4981,6 +4983,8 @@ async def observatory_dashboard(token: str = None):
     top_sectors = [{"name": s["_id"], "count": s["count"]} for s in top_sectors_raw]
 
     return {
+        "rome_count": rome_count,
+        "metiers_count": metiers_count,
         "stats": {
             "total_profils": profils_count,
             "profils_avec_cv": cv_count,
