@@ -367,9 +367,11 @@ async def ia_recommandation(body: IaRequest = IaRequest(), token: str = None):
 
     profile_block = ""
     if user_profile:
+        skills = user_profile.get('skills') or []
+        skills_str = ', '.join(s if isinstance(s, str) else s.get('name', str(s)) for s in skills[:8])
         profile_block = f"""
 Profil utilisateur :
-- Compétences déclarées : {', '.join((user_profile.get('skills') or [])[:8])}
+- Compétences déclarées : {skills_str}
 - Expériences : {len(user_profile.get('experiences') or [])} postes
 """
 

@@ -5,7 +5,8 @@ import {
   BarChart3, BookOpen, Map, ArrowRightLeft, TrendingUp, GraduationCap,
   MapPin, Brain, Search, ChevronRight, Loader2, FileText, Target,
   Layers, Building2, AlertTriangle, CheckCircle2, ArrowLeft, RefreshCw,
-  Sparkles, Clock, Award, Filter, X, ExternalLink, Zap
+  Sparkles, Clock, Award, Filter, X, ExternalLink, Zap,
+  ArrowUpRight, ArrowDownRight, Minus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -882,13 +883,20 @@ function PredictifModule({ predictions, recommandation, loading, metier, onRunPr
             {predictions.tendances_competences?.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-slate-600 mb-2">Tendances des compétences</h4>
-                {predictions.tendances_competences.map((t, i) => (
-                  <div key={i} className="flex items-start gap-2 py-2 border-b border-slate-100 last:border-0">
-                    <Badge className={`text-[10px] w-14 justify-center shrink-0 mt-0.5 ${t.direction === "hausse" ? "bg-emerald-100 text-emerald-700" : t.direction === "baisse" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}>{t.direction}</Badge>
-                    <span className="text-sm font-medium text-slate-700 w-1/3 shrink-0">{t.competence}</span>
-                    <span className="text-sm text-slate-500">{t.explication}</span>
-                  </div>
-                ))}
+                {predictions.tendances_competences.map((t, i) => {
+                  const isHausse = t.direction === "hausse";
+                  const isBaisse = t.direction === "baisse";
+                  const DirIcon = isHausse ? ArrowUpRight : isBaisse ? ArrowDownRight : Minus;
+                  const dirColor = isHausse ? "text-emerald-600" : isBaisse ? "text-red-600" : "text-slate-400";
+                  const bgColor = isHausse ? "bg-emerald-50" : isBaisse ? "bg-red-50" : "bg-slate-50";
+                  return (
+                    <div key={i} className={`flex items-start gap-3 py-2.5 px-2 rounded-lg ${bgColor} border-b border-white last:border-0`}>
+                      <DirIcon className={`w-5 h-5 ${dirColor} shrink-0 mt-0.5`} />
+                      <span className="text-sm font-medium text-slate-700 w-1/3 shrink-0">{t.competence}</span>
+                      <span className="text-sm text-slate-500">{t.explication}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
