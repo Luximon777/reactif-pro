@@ -570,7 +570,7 @@ const Dashboard = () => {
             <Route path="/notifications" element={<NotificationsHistoryView token={token} />} />
             {/* Legacy routes for backward compat */}
             <Route path="/passeport" element={<Navigate to="/dashboard/profil" replace />} />
-            <Route path="/observatoire" element={<OpcView token={token} />} />
+            <Route path="/observatoire" element={<Navigate to="/opc" replace />} />
             <Route path="/evolution" element={<Navigate to="/dashboard/marche" replace />} />
             <Route path="/explorateur" element={<Navigate to="/dashboard/marche" replace />} />
             <Route path="/jobs" element={<Navigate to="/dashboard/opportunites" replace />} />

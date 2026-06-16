@@ -11,6 +11,7 @@ import SharedTrajectoryPage from "@/pages/SharedTrajectoryPage";
 import DclicTestPage from "@/pages/DclicTestPage";
 import UbuntooPage from "@/pages/UbuntooPage";
 import OpcPublicPage from "@/pages/OpcPublicPage";
+import OpcDediePage from "@/pages/OpcDediePage";
 import AdminGate from "@/components/AdminGate";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -320,6 +321,7 @@ function AppContent() {
           <Route path="/test-dclic" element={<DclicTestPage />} />
           <Route path="/ubuntoo" element={<UbuntooPage />} />
           <Route path="/observatoire" element={<OpcPublicPage />} />
+          <Route path="/opc" element={<ProtectedRoute><OpcDedieWrapper /></ProtectedRoute>} />
           <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -342,6 +344,12 @@ function App() {
     </AuthProvider>
   );
 }
+
+const OpcDedieWrapper = () => {
+  const { token } = useAuth();
+  const navigate = window.location;
+  return <OpcDediePage token={token} onBack={() => { navigate.href = "/dashboard"; }} />;
+};
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();

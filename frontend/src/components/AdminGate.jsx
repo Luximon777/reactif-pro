@@ -439,7 +439,7 @@ const AdminGate = ({ onAuthenticated }) => {
                   // Already authenticated? Skip the selector modal.
                   const existingToken = typeof window !== "undefined" ? localStorage.getItem("reactif_token") : null;
                   if (existingToken) {
-                    window.location.assign("/dashboard/observatoire");
+                    window.location.assign("/opc");
                     return;
                   }
                   setOpcSelectorOpen(true);
@@ -548,7 +548,7 @@ const AdminGate = ({ onAuthenticated }) => {
                     key={space.key}
                     type="button"
                     onClick={() => {
-                      localStorage.setItem("reactif_post_redirect", "/dashboard/observatoire");
+                      localStorage.setItem("reactif_post_redirect", "/opc");
                       setOpcSelectorOpen(false);
                       handleSpaceSelect(space);
                     }}
