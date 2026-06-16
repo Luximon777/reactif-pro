@@ -225,7 +225,7 @@ export default function OpcDediePage({ token, onBack }) {
         <div className="p-6 max-w-7xl mx-auto">
           {activeModule === "dashboard" && <DashboardModule stats={dashStats} rncpStats={rncpStats} />}
           {activeModule === "referentiel" && <ReferentielModule query={searchQuery} setQuery={setSearchQuery} results={searchResults} onSearch={searchReferentiel} loading={loading.referentiel} />}
-          {activeModule === "cartographie" && <CartographieModule query={searchQuery} setQuery={setSearchQuery} results={searchResults} onSearch={searchReferentiel} loading={loading.referentiel} />}
+          {activeModule === "cartographie" && <CartographieModule />}
           {activeModule === "transitions" && <TransitionsModule trajectoires={trajectoires} correlations={correlations} loading={loading} metier={metierContext} onRunTrajectoires={() => runIa("trajectoires", setTrajectoires, "Trajectoires")} onRunCorrelations={() => runIa("correlations", setCorrelations, "Corrélations")} />}
           {activeModule === "emergentes" && <EmergentesModule emergentes={emergentes} loading={loading["detect-emergentes"]} metier={metierContext} onRun={() => runIa("detect-emergentes", setEmergentes, "Compétences émergentes")} />}
           {activeModule === "certifications" && <CertificationsModule searchQ={rncpSearchQ} setSearchQ={setRncpSearchQ} results={rncpSearchResults} onSearch={searchRncp} loading={loading} selectedCert={selectedCert} onSelectCert={loadCertDetail} onClearCert={() => setSelectedCert(null)} tensionCerts={tensionCerts} onLoadTension={loadTension} />}
@@ -348,6 +348,18 @@ function DashboardModule({ stats, rncpStats }) {
 // Module 1: RÉFÉRENTIEL VIVANT DES COMPÉTENCES
 // ═══════════════════════════════════════════════════════════════════════════════
 function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
+  // Flatten all result categories into sections for display
+  const sections = [];
+  if (results) {
+    if (results.rome?.length > 0) sections.push({ title: "Fiches ROME", badge: "ROME", color: "blue", items: results.rome.map(r => ({ name: r.nom || r.libelle, sub: `${r.code_rome || ""} — ${r.grand_domaine || ""}`, source: "ROME" })) });
+    if (results.metiers?.length > 0) sections.push({ title: "Métiers OPC", badge: "OPC", color: "violet", items: results.metiers.map(m => ({ name: m.nom || m.metier, sub: `${m.filiere_nom || ""} — ${m.sector_name || m.secteur_code || ""}`, detail: m.missions, source: "OPC" })) });
+    if (results.capacites_techniques?.length > 0) sections.push({ title: "Compétences techniques", badge: "Technique", color: "amber", items: results.capacites_techniques.map(c => ({ name: c.nom, sub: c.description || "", source: "Compétence" })) });
+    if (results.savoir_etre?.length > 0) sections.push({ title: "Savoir-être", badge: "Soft Skill", color: "emerald", items: results.savoir_etre.map(s => ({ name: s.nom, sub: s.description || "", source: "Savoir-être" })) });
+    if (results.filieres?.length > 0) sections.push({ title: "Filières", badge: "Filière", color: "cyan", items: results.filieres.map(f => ({ name: f.nom, sub: `${f.secteurs?.length || 0} secteurs`, source: "Filière" })) });
+    // Also check if there's a flat "results" key (from RNCP search)
+    if (results.results?.length > 0) sections.push({ title: "Résultats", badge: "Résultat", color: "slate", items: results.results.map(r => ({ name: r.metier || r.nom || r.libelle || r.intitule, sub: `${r.filiere_nom || r.grand_domaine_nom || r.secteur || ""} ${r.code_rome ? `(${r.code_rome})` : ""}`, detail: r.mission, source: r.source === "france_travail_rome_4" ? "ROME" : "OPC" })) });
+  }
+
   return (
     <div className="space-y-4" data-testid="opc-mod-referentiel">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
@@ -361,22 +373,33 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
         </Button>
       </div>
       {results && (
-        <div className="space-y-2">
-          <div className="text-xs text-slate-500">{results.total ?? results.results?.length ?? 0} résultat(s)</div>
-          {(results.results || []).map((r, i) => (
-            <Card key={i} className="border-slate-200 hover:border-blue-300 transition-colors">
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-semibold text-slate-800">{r.metier || r.nom || r.libelle || r.intitule}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{r.filiere_nom || r.grand_domaine_nom || r.secteur || ""} {r.code_rome ? `(${r.code_rome})` : ""}</div>
-                    {r.mission && <div className="text-xs text-slate-600 mt-1 line-clamp-2">{r.mission}</div>}
-                  </div>
-                  <Badge variant="outline" className="text-[10px] shrink-0">{r.source === "france_travail_rome_4" ? "ROME" : "OPC"}</Badge>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="space-y-4">
+          <div className="text-xs text-slate-500">{results.total ?? 0} résultat(s)</div>
+          {sections.map((sec, si) => (
+            <div key={si}>
+              <h3 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-2">
+                <Badge className={`bg-${sec.color}-100 text-${sec.color}-700 text-[9px]`}>{sec.badge}</Badge>
+                {sec.title} ({sec.items.length})
+              </h3>
+              <div className="space-y-1.5">
+                {sec.items.map((item, i) => (
+                  <Card key={i} className="border-slate-200 hover:border-blue-300 transition-colors">
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800">{item.name}</div>
+                          {item.sub && <div className="text-xs text-slate-500 mt-0.5">{item.sub}</div>}
+                          {item.detail && <div className="text-xs text-slate-600 mt-1 line-clamp-2">{item.detail}</div>}
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">{item.source}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
+          {sections.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
         </div>
       )}
     </div>
@@ -387,21 +410,26 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Module 2: CARTOGRAPHIE DES MÉTIERS
 // ═══════════════════════════════════════════════════════════════════════════════
-function CartographieModule({ query, setQuery, results, onSearch, loading }) {
+function CartographieModule() {
   const [filieres, setFilieres] = useState([]);
   const [selectedFiliere, setSelectedFiliere] = useState(null);
   const [metiers, setMetiers] = useState([]);
+  const [loadingMetiers, setLoadingMetiers] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API}/referentiel/filieres`).then(r => setFilieres(r.data || [])).catch(() => {});
+    axios.get(`${API}/referentiel/filieres`)
+      .then(r => setFilieres(r.data?.filieres || r.data || []))
+      .catch(() => {});
   }, []);
 
   const loadMetiersByFiliere = async (code) => {
     setSelectedFiliere(code);
+    setLoadingMetiers(true);
     try {
       const res = await axios.get(`${API}/referentiel/search?filiere=${code}&limit=50`);
-      setMetiers(res.data?.results || []);
+      setMetiers(res.data?.metiers || res.data?.results || []);
     } catch { setMetiers([]); }
+    setLoadingMetiers(false);
   };
 
   return (
@@ -409,24 +437,29 @@ function CartographieModule({ query, setQuery, results, onSearch, loading }) {
       <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 text-xs text-violet-700">
         <strong>Module 2 — Cartographie des métiers</strong> : Explorez les métiers par filière professionnelle et secteur d'activité. Visualisez les compétences techniques et transversales associées.
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-        {filieres.map((f, i) => (
-          <button key={i} onClick={() => loadMetiersByFiliere(f.code)} className={`p-3 rounded-lg border text-left text-xs transition-colors ${selectedFiliere === f.code ? "bg-violet-100 border-violet-400 text-violet-800" : "bg-white border-slate-200 hover:border-violet-300 text-slate-700"}`}>
-            <div className="font-semibold truncate">{f.nom}</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">{f.secteurs?.length || 0} secteurs</div>
-          </button>
-        ))}
-      </div>
-      {metiers.length > 0 && (
+      {filieres.length === 0 ? (
+        <div className="text-sm text-slate-500 text-center py-4">Chargement des filières...</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {filieres.map((f, i) => (
+            <button key={i} onClick={() => loadMetiersByFiliere(f.code)} className={`p-3 rounded-lg border text-left text-xs transition-colors ${selectedFiliere === f.code ? "bg-violet-100 border-violet-400 text-violet-800" : "bg-white border-slate-200 hover:border-violet-300 text-slate-700"}`}>
+              <div className="font-semibold truncate">{f.nom}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">{f.secteurs?.length || 0} secteurs</div>
+            </button>
+          ))}
+        </div>
+      )}
+      {loadingMetiers && <div className="text-sm text-slate-500 text-center py-4 flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Chargement...</div>}
+      {!loadingMetiers && metiers.length > 0 && (
         <div className="space-y-1">
-          <div className="text-xs text-slate-500 font-medium">{metiers.length} métier(s) trouvé(s)</div>
+          <div className="text-xs text-slate-500 font-medium">{metiers.length} métier(s)</div>
           {metiers.map((m, i) => (
-            <div key={i} className="p-2 bg-white rounded border border-slate-200 text-xs flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-slate-700">{m.metier || m.nom || m.libelle}</span>
-                <span className="text-slate-400 ml-2">{m.sector_name || ""}</span>
+            <div key={i} className="p-2.5 bg-white rounded border border-slate-200 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-700">{m.nom || m.metier || m.libelle}</span>
+                <span className="text-slate-400 text-[10px]">{m.sector_name || m.secteur_code || ""}</span>
               </div>
-              {m.code_rome && <Badge variant="outline" className="text-[9px]">{m.code_rome}</Badge>}
+              {m.missions && <div className="text-[10px] text-slate-500 mt-1 line-clamp-1">{m.missions}</div>}
             </div>
           ))}
         </div>
