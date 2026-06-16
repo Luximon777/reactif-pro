@@ -2822,9 +2822,143 @@ async def get_referentiel_archeologie():
     }
 
 @api_router.get("/referentiel/filieres")
-async def get_referentiel_filieres():
-    """Get all professional sectors/pathways"""
-    return {"filieres": REFERENTIEL_FILIERES}
+async def get_referentiel_filieres(token: str = None):
+    """Get all professional filières from real database"""
+    filieres_docs = await db.opc_filieres.find({}, {"_id": 0}).sort("numero", 1).to_list(50)
+    # Format secteurs as objects {code, nom} for frontend compatibility
+    for f in filieres_docs:
+        f["secteurs"] = [{"code": s, "nom": s} for s in f.get("secteurs", [])]
+    return {"filieres": filieres_docs}
+
+
+@api_router.get("/referentiel/metiers")
+async def get_referentiel_metiers_filtered(token: str = None, filiere: str = None, secteur: str = None):
+    """Get métiers filtered by filière and/or secteur"""
+    query = {}
+    if filiere and filiere != "all":
+        query["filiere_code"] = filiere
+    if secteur and secteur != "all":
+        query["sector_name"] = secteur
+    metiers_docs = await db.opc_metiers.find(query, {"_id": 0}).to_list(200)
+    metiers_list = [{"nom": m["metier"], "mission": m.get("mission", ""), "sector_code": m.get("sector_code", ""), "filiere_code": m.get("filiere_code", "")} for m in metiers_docs]
+    return {"metiers": metiers_list}
+
+
+@api_router.get("/referentiel/search")
+async def referentiel_search(token: str = None, q: str = None, filiere: str = None, secteur: str = None):
+    """Pyramidal search across filières, secteurs, métiers, compétences"""
+    import re
+    results_filieres = []
+    results_metiers = []
+    results_savoir_etre = []
+    results_capacites = []
+
+    metier_query = {}
+    if filiere and filiere != "all":
+        metier_query["filiere_code"] = filiere
+    if secteur and secteur != "all":
+        metier_query["sector_name"] = secteur
+
+    if q:
+        regex = {"$regex": q, "$options": "i"}
+        # Search filières
+        filieres_found = await db.opc_filieres.find(
+            {"$or": [{"nom": regex}, {"code": regex}, {"secteurs": regex}]},
+            {"_id": 0}
+        ).to_list(20)
+        for f in filieres_found:
+            results_filieres.append({
+                "nom": f["nom"],
+                "code": f["code"],
+                "secteurs": [{"nom": s} for s in f.get("secteurs", [])]
+            })
+
+        # Search métiers
+        metier_search = {**metier_query, "$or": [
+            {"metier": regex},
+            {"mission": regex},
+            {"sector_name": regex},
+            {"savoir_faire": regex},
+            {"savoir_etre": regex},
+        ]}
+        metiers_found = await db.opc_metiers.find(metier_search, {"_id": 0}).to_list(50)
+    else:
+        metiers_found = await db.opc_metiers.find(metier_query, {"_id": 0}).to_list(50)
+
+    seen_se = set()
+    seen_ct = set()
+    for m in metiers_found:
+        results_metiers.append({
+            "nom": m["metier"],
+            "missions": m.get("mission", ""),
+            "filiere_code": m.get("filiere_code", ""),
+            "secteur_code": m.get("sector_code", ""),
+            "filiere_nom": m.get("filiere_nom", ""),
+            "secteur_nom": m.get("sector_name", ""),
+        })
+        # Collect savoir-être with qualités humaines
+        for se in m.get("savoir_etre", []):
+            if se and se not in seen_se:
+                seen_se.add(se)
+                qh_list = []
+                for qh_doc in m.get("qualites_humaines", []):
+                    if qh_doc.get("savoir_etre") == se and qh_doc.get("qualite_humaine"):
+                        qh_list.append(qh_doc["qualite_humaine"])
+                results_savoir_etre.append({
+                    "nom": se,
+                    "description": "",
+                    "qualites_humaines": qh_list
+                })
+        # Collect capacités techniques
+        for ct in m.get("capacites_techniques", []):
+            if ct and ct not in seen_ct:
+                seen_ct.add(ct)
+                results_capacites.append({"nom": ct})
+        # Also include savoir-faire as capacités
+        for sf in m.get("savoir_faire", []):
+            if sf and sf not in seen_ct:
+                seen_ct.add(sf)
+                results_capacites.append({"nom": sf})
+
+    total = len(results_filieres) + len(results_metiers) + len(results_savoir_etre) + len(results_capacites)
+    return {
+        "total": total,
+        "filieres": results_filieres,
+        "metiers": results_metiers,
+        "savoir_etre": results_savoir_etre,
+        "capacites_techniques": results_capacites,
+    }
+
+
+@api_router.get("/referentiel/contexte")
+async def referentiel_contexte(token: str = None, q: str = ""):
+    """Context data for a search query"""
+    if not q:
+        return None
+    regex = {"$regex": q, "$options": "i"}
+    metiers = await db.opc_metiers.find(
+        {"$or": [{"metier": regex}, {"sector_name": regex}, {"savoir_faire": regex}]},
+        {"_id": 0}
+    ).to_list(10)
+    if not metiers:
+        return None
+    all_sf = []
+    all_se = []
+    sectors = set()
+    filieres = set()
+    for m in metiers:
+        all_sf.extend(m.get("savoir_faire", []))
+        all_se.extend(m.get("savoir_etre", []))
+        sectors.add(m.get("sector_name", ""))
+        filieres.add(m.get("filiere_nom", ""))
+    return {
+        "query": q,
+        "metiers_count": len(metiers),
+        "filieres": list(filieres),
+        "secteurs": list(sectors),
+        "savoir_faire_sample": all_sf[:10],
+        "savoir_etre_sample": all_se[:10],
+    }
 
 @api_router.get("/referentiel/vertus")
 async def get_referentiel_vertus():
@@ -4927,44 +5061,55 @@ async def entreprise_seed_demo(token: str):
 
 @api_router.get("/referentiel/rome/domaines")
 async def get_rome_domaines():
-    domaines = await db.referentiel_metiers.distinct("domaine")
-    if not domaines:
-        domaines = [
-            "Agriculture et Pêche", "Arts et Façonnage d'ouvrages d'art",
-            "Banque, Assurance, Immobilier", "Commerce, Vente et Grande distribution",
-            "Communication, Média et Multimédia", "Construction, Bâtiment et Travaux publics",
-            "Hôtellerie-Restauration Tourisme Loisirs et Animation",
-            "Industrie", "Installation et Maintenance", "Santé",
-            "Services à la personne et à la collectivité", "Support à l'entreprise",
-            "Transport et Logistique"
-        ]
-    grand_domaines_raw = await db.referentiel_metiers.distinct("grand_domaine")
-    return {
-        "domaines": domaines,
-        "grand_domaines": grand_domaines_raw or domaines
-    }
+    # Use real OPC filières as grand domaines
+    filieres_docs = await db.opc_filieres.find({}, {"_id": 0}).sort("numero", 1).to_list(50)
+    grand_domaines = []
+    for f in filieres_docs:
+        metier_count = await db.opc_metiers.count_documents({"filiere_code": f["code"]})
+        grand_domaines.append({
+            "code": f["code"],
+            "nom": f["nom"],
+            "metiers_count": metier_count,
+            "domaines": [{"code": f"{f['code']}_{i}", "nom": s} for i, s in enumerate(f.get("secteurs", []))]
+        })
+    return {"grand_domaines": grand_domaines, "domaines": [f["nom"] for f in filieres_docs]}
 
 
 @api_router.get("/referentiel/rome/metiers")
 async def get_rome_metiers(domaine: str = None, grand_domaine: str = None, q: str = None):
     query = {}
-    if domaine:
-        query["domaine"] = domaine
     if grand_domaine:
-        query["grand_domaine"] = grand_domaine
+        query["filiere_code"] = grand_domaine
+    if domaine:
+        # domaine is "CODE_index" format, extract sector name
+        parts = domaine.split("_", 1)
+        if len(parts) == 2:
+            filiere_code = parts[0]
+            idx = int(parts[1]) if parts[1].isdigit() else 0
+            f_doc = await db.opc_filieres.find_one({"code": filiere_code})
+            if f_doc and idx < len(f_doc.get("secteurs", [])):
+                query["sector_name"] = f_doc["secteurs"][idx]
     if q:
+        regex = {"$regex": q, "$options": "i"}
         query["$or"] = [
-            {"name": {"$regex": q, "$options": "i"}},
-            {"code_rome": {"$regex": q, "$options": "i"}},
+            {"metier": regex},
+            {"mission": regex},
+            {"sector_name": regex},
         ]
-    metiers = await db.referentiel_metiers.find(query, {"_id": 0}).to_list(100)
-    if not metiers and q:
-        metiers_flat = await db.referentiel_metiers_flat.find(
-            {"$or": [{"name": {"$regex": q, "$options": "i"}}, {"appellations": {"$regex": q, "$options": "i"}}]},
-            {"_id": 0}
-        ).to_list(50)
-        return {"metiers": metiers_flat}
-    return {"metiers": metiers}
+    metiers = await db.opc_metiers.find(query, {"_id": 0}).to_list(100)
+    result = []
+    for m in metiers:
+        result.append({
+            "nom": m["metier"],
+            "code_rome": m.get("sector_code", ""),
+            "domaine_nom": m.get("sector_name", ""),
+            "grand_domaine_nom": m.get("filiere_nom", ""),
+            "transition_ecologique": "",
+            "transition_numerique": "",
+            "transition_demographique": "",
+            "emploi_cadre": False,
+        })
+    return {"metiers": result}
 
 
 @api_router.get("/referentiel/actualisation/status")
@@ -5043,6 +5188,12 @@ async def on_startup():
     try:
         await opc_create_indexes()
         await seed_if_empty()
+        # Seed filières professionnelles if empty
+        count = await db.opc_filieres.count_documents({})
+        if count == 0:
+            from seed_filieres import seed_filieres
+            await seed_filieres()
+            logger.info("[Seed] Filières professionnelles importées")
         # Seed default users
         for pseudo, pwd, role in [
             ("marc19", "Solerys777!", "particulier"),

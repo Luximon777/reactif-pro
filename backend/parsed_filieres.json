@@ -1,0 +1,1271 @@
+{
+  "filieres": [
+    {
+      "numero": 1,
+      "nom": "Filière Industrielle",
+      "code": "SI",
+      "secteurs": [
+        "Mécanique",
+        "Électrotechnique",
+        "Automatisme",
+        "Génie civil",
+        "Chimie",
+        "Métallurgie"
+      ]
+    },
+    {
+      "numero": 2,
+      "nom": "Filière Bâtiment et Travaux Publics (BTP)",
+      "code": "SBTP",
+      "secteurs": [
+        "Maçonnerie",
+        "Menuiserie",
+        "Plomberie",
+        "Électricité du bâtiment",
+        "Charpenterie",
+        "Génie civil"
+      ]
+    },
+    {
+      "numero": 3,
+      "nom": "Filière Services à la Personne et Services à la Communauté",
+      "code": "SPSC",
+      "secteurs": [
+        "Aide à domicile",
+        "Éducation spécialisée",
+        "Animation socio-culturelle",
+        "Petite enfance",
+        "Accompagnement des personnes âgées"
+      ]
+    },
+    {
+      "numero": 4,
+      "nom": "Filière Santé et Social",
+      "code": "SSS",
+      "secteurs": [
+        "Infirmier(e)",
+        "Aide-soignant(e)",
+        "Assistant(e) de service social",
+        "Éducateur(trice) spécialisé(e)",
+        "Psychologue"
+      ]
+    },
+    {
+      "numero": 5,
+      "nom": "Filière Commerce et Vente",
+      "code": "SCV",
+      "secteurs": [
+        "Vente en magasin",
+        "Commerce international",
+        "Négociation commerciale",
+        "Marketing"
+      ]
+    },
+    {
+      "numero": 6,
+      "nom": "Filière Hôtellerie-Restauration",
+      "code": "SHR",
+      "secteurs": [
+        "Cuisine",
+        "Service en salle",
+        "Hébergement",
+        "Gestion hôtelière"
+      ]
+    },
+    {
+      "numero": 7,
+      "nom": "Filière Agriculture et Agroalimentaire",
+      "code": "SAA",
+      "secteurs": [
+        "Production agricole",
+        "Transformation des produits agricoles",
+        "Agroéquipement",
+        "Viticulture"
+      ]
+    },
+    {
+      "numero": 8,
+      "nom": "Filière Informatique et Numérique",
+      "code": "SIN",
+      "secteurs": [
+        "Développement web et mobile",
+        "Administration systèmes et réseaux",
+        "Cybersécurité",
+        "Design numérique"
+      ]
+    },
+    {
+      "numero": 9,
+      "nom": "Filière Transport et Logistique",
+      "code": "STL",
+      "secteurs": [
+        "Conduite routière",
+        "Logistique et gestion des transports",
+        "Manutention"
+      ]
+    },
+    {
+      "numero": 10,
+      "nom": "Filière Artisanat d'Art",
+      "code": "SAAT",
+      "secteurs": [
+        "Ébénisterie",
+        "Poterie",
+        "Ferronnerie",
+        "Joaillerie"
+      ]
+    },
+    {
+      "numero": 11,
+      "nom": "Filière Communication et Médias",
+      "code": "SCM",
+      "secteurs": [
+        "Journalisme",
+        "Communication d'entreprise",
+        "Relations publiques",
+        "Audiovisuel et production multimédia"
+      ]
+    },
+    {
+      "numero": 12,
+      "nom": "Filière Environnement et Développement Durable",
+      "code": "SEDD",
+      "secteurs": [
+        "Gestion des déchets",
+        "Énergies renouvelables",
+        "Gestion de l'eau et de l'assainissement",
+        "Éco-conception et gestion environnementale"
+      ]
+    },
+    {
+      "numero": 13,
+      "nom": "Filière Métiers d'Art",
+      "code": "",
+      "secteurs": [
+        "Restauration d'œuvres d'art",
+        "Dorure et restauration de mobilier",
+        "Tapisserie",
+        "Maroquinerie"
+      ]
+    },
+    {
+      "numero": 14,
+      "nom": "Filière Tourisme",
+      "code": "STL",
+      "secteurs": [
+        "Accueil touristique",
+        "Guide touristique",
+        "Gestion hôtelière",
+        "Animation et promotion touristique"
+      ]
+    },
+    {
+      "numero": 15,
+      "nom": "Filière Sport et Loisirs",
+      "code": "SSL",
+      "secteurs": [
+        "Entraînement sportif",
+        "Animation sportive et socio-culturelle",
+        "Gestion d'infrastructures sportives",
+        "Événementiel sportif"
+      ]
+    },
+    {
+      "numero": 16,
+      "nom": "Filière Gestion et Administration des Entreprises",
+      "code": "SGAE",
+      "secteurs": [
+        "Gestion comptable et financière",
+        "Ressources humaines",
+        "Gestion administrative",
+        "Audit et contrôle de gestion"
+      ]
+    },
+    {
+      "numero": 17,
+      "nom": "Filière Sécurité et Défense",
+      "code": "SSD",
+      "secteurs": [
+        "Sécurité privée",
+        "Sécurité publique",
+        "Sûreté aéroportuaire",
+        "Forces armées"
+      ]
+    },
+    {
+      "numero": 18,
+      "nom": "Filière Mode et Textile",
+      "code": "SMT",
+      "secteurs": [
+        "Stylisme",
+        "Modélisme",
+        "Couture",
+        "Design textile"
+      ]
+    },
+    {
+      "numero": 19,
+      "nom": "Filière Éducation et Formation",
+      "code": "SEF",
+      "secteurs": [
+        "Enseignement primaire et secondaire",
+        "Formation professionnelle",
+        "Formation pour adultes",
+        "Pédagogie spécialisée"
+      ]
+    },
+    {
+      "numero": 20,
+      "nom": "Filière Design et Arts Appliqués",
+      "code": "SDAA",
+      "secteurs": [
+        "Design industriel",
+        "Design graphique",
+        "Design de mode",
+        "Design d'intérieur"
+      ]
+    }
+  ],
+  "metiers": [
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "ingénieur en mécanique",
+      "mission": "Responsable de la conception, du développement et de l'amélioration des produits et des systèmes mécaniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Technicien en bureau d'études",
+      "mission": "Collaborateur des ingénieurs, chargé de réaliser des plans et des schémas techniques, ainsi que de participer à la conception des produits."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Technicien de maintenance industrielle",
+      "mission": "Chargé de l'entretien préventif et curatif des équipements mécaniques dans les entreprises industrielles."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Opérateur sur machines-outils",
+      "mission": "Responsable de la programmation, de l'installation et du fonctionnement des machines-outils pour la production de pièces mécaniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Monteur-assembleur",
+      "mission": "Chargé d'assembler les différentes pièces mécaniques pour la fabrication de produits finis, en suivant des plans et des instructions techniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Soudeur",
+      "mission": "Spécialisé dans l'assemblage de pièces métalliques par soudage, utilisant différentes techniques comme le soudage à l'arc, le soudage par points, etc."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Technicien en qualité",
+      "mission": "Responsable de contrôler la conformité des produits mécaniques aux normes et aux spécifications techniques établies."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Chef de projet industriel",
+      "mission": "Pilote les projets de développement de produits ou d'amélioration des processus de fabrication dans le domaine de la mécanique."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Régleur sur machines de production",
+      "mission": "Réalise le réglage et la mise en service des machines de production mécanique pour garantir leur bon fonctionnement."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Ingénieur en robotique industrielle",
+      "mission": "Conçoit et met en place des solutions robotiques pour automatiser les processus de fabrication dans l'industrie mécanique."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Contrôleur dimensionnel",
+      "mission": "Effectue des mesures précises sur les pièces mécaniques pour garantir leur conformité aux spécifications techniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "1M",
+      "sector_name": "Mécanique",
+      "metier": "Expert en simulation numérique",
+      "mission": "Utilise des logiciels de simulation pour modéliser et optimiser le comportement des produits et des systèmes mécaniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Ingénieur en électrotechnique",
+      "mission": "Responsable de la conception, du développement et de la mise en œuvre de systèmes électriques et électroniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Technicien en électrotechnique  .",
+      "mission": "Assiste les ingénieurs dans la conception, la fabrication, l'installation et la maintenance des équipements électriques"
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Technicien de maintenance électrique industrielle",
+      "mission": "Chargé de la maintenance préventive et corrective des équipements électriques dans les installations industrielles."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Électricien industriel",
+      "mission": "Installe, câble et met en service les équipements électriques dans les installations industrielles et les sites de production."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Automaticien",
+      "mission": "Spécialisé dans la conception, la programmation et la maintenance des systèmes automatisés utilisés dans l'industrie."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Chef de chantier électrotechnique",
+      "mission": "Supervise l'installation et la mise en service des équipements électriques sur les chantiers industriels."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Chef de projet électrotechnique",
+      "mission": "Pilote les projets de conception et de réalisation d'installations électriques, en assurant le respect des délais et des budgets."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Électromécanicien",
+      "mission": "Intervient sur des équipements combinant des composants électriques et mécaniques, assurant leur maintenance et leur réparation."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Technicien en automatismes industriels",
+      "mission": "Spécialisé dans la programmation et la maintenance des systèmes automatisés et des automates programmables."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Contrôleur en électricité",
+      "mission": "Effectue des tests et des mesures pour vérifier la conformité des installations électriques aux normes en vigueur."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Ingénieur en sécurité électrique",
+      "mission": "Conçoit et met en place des mesures de sécurité pour prévenir les risques électriques sur les sites industriels."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "2E",
+      "sector_name": "Electrotechnique",
+      "metier": "Expert en énergie électrique",
+      "mission": "Analyse et optimise la gestion de l'énergie électrique dans les installations industrielles pour réduire la consommation et les coûts."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Ingénieur en automatisme",
+      "mission": "Responsable de la conception, du développement et de l'optimisation des systèmes automatisés, ainsi que de la supervision de leur mise en œuvre."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Technicien en automatisme industriel",
+      "mission": "Chargé de la programmation, de l'installation, de la mise en service et de la maintenance des équipements automatisés dans les installations industrielles."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Programmeur PLC (automates programmables)",
+      "mission": "Spécialisé dans la programmation des automates programmables industriels (API) pour contrôler les processus de production et les machines automatisées."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Technicien en robotique industrielle",
+      "mission": "Responsable de la programmation, de l'installation et de la maintenance des robots industriels utilisés dans les lignes de production automatisées."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Électrotechnicien",
+      "mission": "Assure la mise en place et le câblage des équipements électriques nécessaires au fonctionnement des systèmes automatisés."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Superviseur de ligne de production automatisée",
+      "mission": "Pilote et surveille les lignes de production automatisées pour garantir leur bon fonctionnement et leur efficacité."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Technicien en instrumentation et contrôle",
+      "mission": "Installe et calibre les capteurs et les instruments de mesure utilisés dans les systèmes automatisés pour surveiller et contrôler les processus industriels."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Technicien de maintenance en automatisme",
+      "mission": "Réalise la maintenance préventive et corrective des équipements automatisés, diagnostique les pannes et effectue les réparations nécessaires."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Expert en systèmes SCADA (Supervisory Control and Data Acquisition)",
+      "mission": "Conçoit, configure et met en place des systèmes SCADA pour la supervision et le contrôle à distance des processus industriels automatisés."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Ingénieur en contrôle-commande",
+      "mission": "Spécialisé dans la conception et la mise en œuvre des systèmes de contrôle-commande pour automatiser et réguler les processus industriels."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "3A",
+      "sector_name": "Automatisme",
+      "metier": "Technicien en électronique industrielle",
+      "mission": "Assure la maintenance des composants électroniques des systèmes automatisés, tels que les cartes électroniques, les capteurs et les actionneurs."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Ingénieur en génie civil",
+      "mission": "Responsable de la conception, de la planification, de la coordination et de la supervision des projets de construction et d'infrastructures civiles."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Conducteur de travaux",
+      "mission": "Supervise l'exécution des travaux sur le chantier, coordonne les équipes de travail, assure le respect des délais et des normes de qualité."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Chef de projet en génie civil",
+      "mission": "Pilote les projets de construction, de réhabilitation ou d'extension d'infrastructures, depuis la phase de conception jusqu'à la livraison."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Technicien en génie civil",
+      "mission": "Collabore à la réalisation des études techniques, à la mise en œuvre des plans de construction et à la surveillance des travaux sur le terrain."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Dessinateur-projeteur en génie civil",
+      "mission": "Réalise les plans techniques et les schémas de construction des ouvrages en utilisant des logiciels de CAO (Conception Assistée par Ordinateur)."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Géomètre-topographe",
+      "mission": "Effectue les relevés topographiques du terrain, établit les plans de masse et les profils en long nécessaires à la conception des projets de génie civil."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Chef de chantier",
+      "mission": "Organise et supervise les travaux sur le chantier, assure la coordination des équipes, le suivi des travaux et le respect des normes de sécurité."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Conducteur d'engins de chantier",
+      "mission": "Manipule les engins de terrassement, de levage et de transport sur les chantiers de construction et d'aménagement."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Expert en structures",
+      "mission": "Spécialisé dans le calcul et la conception des structures porteuses (ponts, bâtiments, ouvrages d'art) en tenant compte des contraintes techniques et environnementales."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Inspecteur en génie civil",
+      "mission": "Effectue des inspections régulières des ouvrages existants pour évaluer leur état, détecter d'éventuels défauts et recommander des mesures correctives."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Responsable QHSE (Qualité, Hygiène, Sécurité, Environnement)",
+      "mission": "Garantit le respect des normes de qualité, de sécurité et de protection de l'environnement sur les chantiers de génie civil."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "4G",
+      "sector_name": "Génie Civil",
+      "metier": "Expert en génie parasismique",
+      "mission": "Conçoit des ouvrages résistants aux séismes en effectuant des études de dynamique des structures et en proposant des solutions de renforcement."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Ingénieur chimiste",
+      "mission": "Responsable de la conception, du développement et de l'optimisation des procédés de fabrication des produits chimiques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Technicien de laboratoire",
+      "mission": "Effectue des analyses chimiques pour contrôler la qualité des matières premières, des produits intermédiaires et des produits finis."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Opérateur de production chimique",
+      "mission": "Pilote les installations de production, surveille les paramètres de fabrication et assure le bon fonctionnement des équipements."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Responsable de la sécurité chimique",
+      "mission": "Met en place et supervise les mesures de prévention des risques chimiques, ainsi que les procédures d'intervention en cas d'accident."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Technicien en contrôle qualité",
+      "mission": "Effectue des contrôles sur les matières premières et les produits finis pour garantir leur conformité aux normes et aux spécifications."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Ingénieur procédés",
+      "mission": "Analyse et optimise les procédés de production pour améliorer l'efficacité, la rentabilité et la sécurité des installations chimiques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Technicien en développement analytique",
+      "mission": "Participe à la mise au point de méthodes analytiques pour le contrôle qualité des produits chimiques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Responsable environnement",
+      "mission": "Veille à la conformité réglementaire en matière de protection de l'environnement, participe à la gestion des déchets et à la réduction des impacts environnementaux."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Ingénieur de recherche en chimie",
+      "mission": "Effectue des travaux de recherche pour développer de nouveaux produits, améliorer des procédés existants ou résoudre des problèmes techniques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Technicien de maintenance en chimie",
+      "mission": "Assure la maintenance préventive et corrective des équipements et des installations chimiques pour garantir leur bon fonctionnement."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Responsable assurance qualité",
+      "mission": "Met en place et supervise les systèmes d'assurance qualité pour garantir le respect des normes et des exigences réglementaires."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "5C",
+      "sector_name": "Chimie",
+      "metier": "Expert en chimie analytique",
+      "mission": "Utilise des techniques avancées d'analyse pour caractériser les substances chimiques et étudier leurs propriétés physico-chimiques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Métallurgiste",
+      "mission": "Les métallurgistes étudient les propriétés physiques et chimiques des métaux, développent de nouveaux alliages et processus de fabrication, et supervisent la production pour garantir la qualité des matériaux métalliques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Opérateur de machines-outils",
+      "mission": "Les opérateurs de machines-outils utilisent des équipements tels que les tours, les fraiseuses, les perceuses, etc., pour façonner les métaux selon des spécifications précises."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Soudeur",
+      "mission": "Les soudeurs assemblent des pièces métalliques en utilisant différentes techniques de soudage, telles que le soudage à l'arc, le soudage TIG, le soudage MIG/MAG, etc."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Forgeur",
+      "mission": "Les forgeurs utilisent des techniques de forgeage pour façonner les métaux en pièces utiles, comme les outils, les pièces automobiles, etc."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Fondeur",
+      "mission": "Les fondeurs préparent et font fondre des métaux dans des fours pour produire des pièces moulées, telles que des pièces de moteur, des pièces de machine, etc."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Technicien en traitement thermique",
+      "mission": "Les techniciens en traitement thermique contrôlent les processus de chauffage et de refroidissement des métaux pour améliorer leurs propriétés mécaniques et leurs performances."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Contrôleur qualité",
+      "mission": "Les contrôleurs qualité effectuent des inspections visuelles et dimensionnelles sur les produits métallurgiques pour garantir leur conformité aux spécifications et aux normes de qualité."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Ingénieur en matériaux",
+      "mission": "Les ingénieurs en matériaux conçoivent et développent des matériaux métalliques avec des propriétés spécifiques pour répondre aux besoins des applications industrielles et technologiques."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Technicien de maintenance industrielle",
+      "mission": "Les techniciens de maintenance industrielle assurent la maintenance préventive et corrective des équipements de production dans les installations métallurgiques pour garantir leur bon fonctionnement."
+    },
+    {
+      "filiere_code": "SI",
+      "sector_code": "6M",
+      "sector_name": "Métallurgie",
+      "metier": "Opérateur de contrôle commande",
+      "mission": "Les opérateurs de contrôle commande surveillent et contrôlent les processus de production à l'aide de systèmes informatisés et automatisés dans les usines métallurgiques."
+    }
+  ],
+  "competences_par_metier": {
+    "ingénieur en mécanique": {
+      "savoir_faire": [
+        "Conception mécanique"
+      ],
+      "capacites_techniques": [
+        "Capacité à concevoir et à développer des produits mécaniques en utilisant des logiciels de CAO (Conception Assistée par Ordinateur) tels que SolidWorks, CATIA, ou AutoCAD."
+      ],
+      "savoir_etre": [
+        "Résolution de problèmes"
+      ],
+      "capacites_pro": [
+        "Capacité à analyser des situations complexes, à identifier les problèmes et à élaborer des solutions efficaces."
+      ]
+    },
+    "Technicien en bureau d’étude": {
+      "savoir_faire": [
+        "Maîtrise des logiciels de CAO (Conception Assistée par Ordinateur) : Capacité à utiliser des logiciels de CAO tels que AutoCAD, SolidWorks, CATIA, ou Revit pour réaliser des plans et des dessins techniques."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Technicien de maintenance industrielle": {
+      "savoir_faire": [
+        "Diagnostiquer les pannes : Capacité à analyser les problèmes techniques et à diagnostiquer les pannes sur les équipements industriels, en utilisant des outils de diagnostic appropriés et en appliquant des méthodes de résolution de problèmes."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Opérateur sur machines-outils": {
+      "savoir_faire": [
+        "Connaissance des machines-outils : Maîtrise des différents types de machines-outils utilisés dans la production industrielle, tels que les tours, les fraiseuses, les perceuses, les rectifieuses, etc."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Monteur-assembleur": {
+      "savoir_faire": [
+        "Lecture de plans et de schémas techniques : Capacité à lire et à interpréter les plans, les schémas et les instructions techniques pour assembler les pièces conformément aux spécifications."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Soudeur": {
+      "savoir_faire": [
+        "Maîtrise des techniques de soudage : Compétence dans l'utilisation des différentes techniques de soudage telles que le soudage à l'arc électrique, le soudage TIG (Tungsten Inert Gas), le soudage MIG/MAG (Metal Inert Gas/Metal Active Gas), le soudage oxyacétylénique, etc."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Technicien en qualité": {
+      "savoir_faire": [
+        "Maîtrise des normes qualité : Connaissance des normes et des référentiels qualité tels que la norme ISO 9001, les normes spécifiques à l'industrie (ISO/TS 16949 pour l'automobile, ISO 13485 pour le secteur médical, etc.) et la capacité à les mettre en œuvre."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Chef de projet industriel": {
+      "savoir_faire": [
+        "Gestion de projet : Capacité à planifier, organiser, coordonner et contrôler toutes les étapes d'un projet industriel, depuis la conception jusqu'à la mise en service, en respectant les délais, les budgets et les exigences de qualité."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Régleur sur machines de production": {
+      "savoir_faire": [
+        "Maîtrise des machines-outils : Connaissance approfondie des différents types de machines de production telles que les tours, les fraiseuses, les presses, les machines à injection plastique, etc."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Ingénieur en robotique industrielle": {
+      "savoir_faire": [
+        "Conception et modélisation des systèmes robotiques : Capacité à concevoir et à modéliser des systèmes robotiques en utilisant des logiciels de CAO (Conception Assistée par Ordinateur) et de simulation tels que SolidWorks, CATIA, ou RobotStudio."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Contrôleur dimensionnel": {
+      "savoir_faire": [
+        "Maîtrise des instruments de mesure : Connaissance et utilisation des différents instruments de mesure dimensionnelle tels que les micromètres, les calibres, les jauges de profondeur, les pieds à coulisse, les comparateurs, les machines à mesurer tridimensionnelles (MMT), etc."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    },
+    "Expert en simulation numérique": {
+      "savoir_faire": [
+        "Maîtrise des logiciels de simulation numérique : Expertise dans l'utilisation de logiciels de simulation numérique tels que ANSYS, COMSOL Multiphysics, Abaqus, LS-DYNA, OpenFOAM, etc."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_pro": []
+    }
+  },
+  "qualites_humaines": [
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Résolution de problèmes",
+      "qualite_humaine": ""
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Pensée critique",
+      "qualite_humaine": "Perspicacité : Avoir la capacité de percevoir rapidement les aspects essentiels d'un problème et d'identifier les informations pertinentes."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Créativité",
+      "qualite_humaine": "Créativité : Être capable de penser de manière innovante et de proposer des idées nouvelles pour résoudre les problèmes de manière efficace et originale."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Adaptabilité",
+      "qualite_humaine": "Flexibilité : Être ouvert au changement et capable de s'adapter rapidement à de nouvelles situations ou à des approches différentes pour résoudre les problèmes."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Communication",
+      "qualite_humaine": "Empathie : Être capable de comprendre les perspectives des autres parties impliquées dans le problème et de prendre en compte leurs besoins et leurs préoccupations."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Gestion du temps",
+      "qualite_humaine": ""
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Persévérance",
+      "qualite_humaine": "Courageux : Avoir la détermination et la résilience nécessaires pour persévérer dans la recherche de solutions, même face à des obstacles ou des échecs initiaux. Patience : Avoir la capacité de rester calme et concentré, même lorsque la résolution d'un problème prend du temps ou rencontre des obstacles imprévus."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Leadership",
+      "qualite_humaine": ""
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Curiosité",
+      "qualite_humaine": "Être curieux et avoir soif de comprendre les causes profondes des problèmes rencontrés."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Rigueur",
+      "qualite_humaine": "Esprit analytique : Être capable d'analyser de manière critique les données et les informations pour comprendre la nature du problème et identifier les solutions possibles."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Esprit d’équipe",
+      "qualite_humaine": "Collaboration : Être capable de travailler efficacement en équipe, en écoutant les autres, en partageant des idées et en collaborant pour trouver des solutions conjointes."
+    },
+    {
+      "ref_code": "1M /FISMIM",
+      "savoir_etre": "Autonome",
+      "qualite_humaine": "Confiance en soi : Avoir confiance en ses compétences et en sa capacité à résoudre les problèmes, tout en étant ouvert aux opinions et aux suggestions des autres."
+    }
+  ],
+  "competences_raw": [
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMIM",
+      "metier": "ingénieur en mécanique",
+      "savoir_faire": "Conception mécanique",
+      "capacite_technique": "Capacité à concevoir et à développer des produits mécaniques en utilisant des logiciels de CAO (Conception Assistée par Ordinateur) tels que SolidWorks, CATIA, ou AutoCAD.",
+      "savoir_etre": "Résolution de problèmes",
+      "capacite_professionnelle": "Capacité à analyser des situations complexes, à identifier les problèmes et à élaborer des solutions efficaces."
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMTBE",
+      "metier": "Technicien en bureau d’étude",
+      "savoir_faire": "Maîtrise des logiciels de CAO (Conception Assistée par Ordinateur) : Capacité à utiliser des logiciels de CAO tels que AutoCAD, SolidWorks, CATIA, ou Revit pour réaliser des plans et des dessins techniques.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMTMI",
+      "metier": "Technicien de maintenance industrielle",
+      "savoir_faire": "Diagnostiquer les pannes : Capacité à analyser les problèmes techniques et à diagnostiquer les pannes sur les équipements industriels, en utilisant des outils de diagnostic appropriés et en appliquant des méthodes de résolution de problèmes.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMOMO",
+      "metier": "Opérateur sur machines-outils",
+      "savoir_faire": "Connaissance des machines-outils : Maîtrise des différents types de machines-outils utilisés dans la production industrielle, tels que les tours, les fraiseuses, les perceuses, les rectifieuses, etc.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMMA",
+      "metier": "Monteur-assembleur",
+      "savoir_faire": "Lecture de plans et de schémas techniques : Capacité à lire et à interpréter les plans, les schémas et les instructions techniques pour assembler les pièces conformément aux spécifications.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMSO",
+      "metier": "Soudeur",
+      "savoir_faire": "Maîtrise des techniques de soudage : Compétence dans l'utilisation des différentes techniques de soudage telles que le soudage à l'arc électrique, le soudage TIG (Tungsten Inert Gas), le soudage MIG/MAG (Metal Inert Gas/Metal Active Gas), le soudage oxyacétylénique, etc.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMTQ",
+      "metier": "Technicien en qualité",
+      "savoir_faire": "Maîtrise des normes qualité : Connaissance des normes et des référentiels qualité tels que la norme ISO 9001, les normes spécifiques à l'industrie (ISO/TS 16949 pour l'automobile, ISO 13485 pour le secteur médical, etc.) et la capacité à les mettre en œuvre.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMCPI",
+      "metier": "Chef de projet industriel",
+      "savoir_faire": "Gestion de projet : Capacité à planifier, organiser, coordonner et contrôler toutes les étapes d'un projet industriel, depuis la conception jusqu'à la mise en service, en respectant les délais, les budgets et les exigences de qualité.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMRMP",
+      "metier": "Régleur sur machines de production",
+      "savoir_faire": "Maîtrise des machines-outils : Connaissance approfondie des différents types de machines de production telles que les tours, les fraiseuses, les presses, les machines à injection plastique, etc.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMIRI",
+      "metier": "Ingénieur en robotique industrielle",
+      "savoir_faire": "Conception et modélisation des systèmes robotiques : Capacité à concevoir et à modéliser des systèmes robotiques en utilisant des logiciels de CAO (Conception Assistée par Ordinateur) et de simulation tels que SolidWorks, CATIA, ou RobotStudio.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMCD",
+      "metier": "Contrôleur dimensionnel",
+      "savoir_faire": "Maîtrise des instruments de mesure : Connaissance et utilisation des différents instruments de mesure dimensionnelle tels que les micromètres, les calibres, les jauges de profondeur, les pieds à coulisse, les comparateurs, les machines à mesurer tridimensionnelles (MMT), etc.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    },
+    {
+      "sector_code": "1M",
+      "code_detail": "FISMESN",
+      "metier": "Expert en simulation numérique",
+      "savoir_faire": "Maîtrise des logiciels de simulation numérique : Expertise dans l'utilisation de logiciels de simulation numérique tels que ANSYS, COMSOL Multiphysics, Abaqus, LS-DYNA, OpenFOAM, etc.",
+      "capacite_technique": "",
+      "savoir_etre": "",
+      "capacite_professionnelle": ""
+    }
+  ],
+  "metier_details": [
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMIM",
+      "metier": "ingénieur en mécanique",
+      "savoir_faire": [
+        "Conception mécanique",
+        "Calcul et dimensionnement",
+        "Analyse des systèmes mécaniques",
+        "Connaissance des matériaux",
+        "Fabrication et procédés de production",
+        "Gestion de projet",
+        "Résolution de problèmes techniques",
+        "Normes et réglementations",
+        "Communication et travail d'équipe",
+        "Veille technologique"
+      ],
+      "capacites_techniques": [
+        "Capacité à concevoir et à développer des produits mécaniques en utilisant des logiciels de CAO (Conception Assistée par Ordinateur) tels que SolidWorks, CATIA, ou AutoCAD.",
+        "Maîtrise des techniques de calcul et de dimensionnement des pièces mécaniques en tenant compte des contraintes de résistance, de rigidité et de durabilité.",
+        "Capacité à analyser le comportement des systèmes mécaniques en utilisant des outils d'analyse numérique tels que les simulations par éléments finis (FEA) ou les simulations dynamiques.",
+        "Compréhension des propriétés mécaniques des matériaux (métaux, polymères, composites) et capacité à choisir les matériaux appropriés pour chaque application.",
+        "Connaissance des techniques de fabrication et des procédés de production mécanique tels que l'usinage, la soudure, l'injection plastique, ou l'impression 3D.",
+        "Capacité à gérer efficacement les projets d'ingénierie mécanique en assurant la planification, la coordination des équipes, le suivi des délais et des budgets.",
+        "Aptitude à identifier, analyser et résoudre les problèmes techniques rencontrés lors de la conception, de la fabrication ou de l'utilisation des produits mécaniques.",
+        "Connaissance des normes et des réglementations applicables en matière de sécurité, de qualité et d'environnement dans le domaine de l'ingénierie mécanique.",
+        "Capacité à communiquer efficacement avec les membres de l'équipe multidisciplinaire, ainsi qu'avec les clients et les fournisseurs, et à collaborer de manière constructive.",
+        "Capacité à se tenir informé des dernières avancées technologiques et des tendances du secteur de l'ingénierie mécanique pour maintenir ses compétences à jour."
+      ],
+      "savoir_etre": [
+        "Résolution de problèmes",
+        "Pensée critique",
+        "Créativité",
+        "Adaptabilité",
+        "Collaboration",
+        "Communication",
+        "Gestion du temps",
+        "Persévérance",
+        "Orientation client",
+        "Éthique professionnelle",
+        "Leadership"
+      ],
+      "capacites_professionnelles": [
+        "Capacité à analyser des situations complexes, à identifier les problèmes et à élaborer des solutions efficaces.",
+        "Aptitude à évaluer objectivement les informations et à prendre des décisions éclairées en se basant sur des données et des faits.",
+        "Capacité à penser de manière innovante et à proposer des idées nouvelles pour résoudre les défis techniques.",
+        "Souplesse pour s'adapter aux changements de projets, de technologies ou d'environnements de travail.",
+        "Aptitude à travailler efficacement en équipe, à écouter les autres et à contribuer de manière constructive aux objectifs communs.",
+        "Compétence pour communiquer clairement et efficacement avec des collègues, des clients et d'autres parties prenantes, tant à l'écrit qu'à l'oral.",
+        "Capacité à prioriser les tâches, à planifier efficacement le travail et à respecter les échéances.",
+        "Détermination à surmonter les obstacles et à persévérer face aux défis rencontrés dans les projets.",
+        "Capacité à comprendre les besoins des clients et à concevoir des solutions qui répondent à leurs attentes et à leurs exigences.",
+        "Respect des normes éthiques et professionnelles, intégrité dans toutes les interactions et engagements envers la qualité et la sécurité des produits.",
+        "Capacité à inspirer et à motiver les membres de l'équipe, à prendre des initiatives et à assumer la responsabilité des décisions et des actions."
+      ]
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMTBE",
+      "metier": "Technicien en bureau d’étude",
+      "savoir_faire": [
+        "Maîtrise des logiciels de CAO (Conception Assistée par Ordinateur) : Capacité à utiliser des logiciels de CAO tels que AutoCAD, SolidWorks, CATIA, ou Revit pour réaliser des plans et des dessins techniques.",
+        "Interprétation des plans et des schémas techniques : Capacité à comprendre et à interpréter les plans, les schémas et les spécifications techniques fournis par les ingénieurs et les concepteurs.",
+        "Conception et modélisation 3D : Capacité à créer des modèles 3D et à réaliser des assemblages et des mises en plan à partir de ces modèles pour visualiser et documenter les produits ou les systèmes.",
+        "Analyse et résolution de problèmes techniques : Aptitude à analyser les problèmes techniques rencontrés lors de la conception et à proposer des solutions appropriées en collaboration avec l'équipe d'ingénierie.",
+        "Connaissance des normes et des réglementations : Familiarité avec les normes et les réglementations applicables en matière de conception et de construction dans le domaine spécifique d'activité (bâtiment, mécanique, électronique, etc.).",
+        "Communication technique : Capacité à communiquer de manière claire et précise avec les ingénieurs, les concepteurs, les clients et les autres membres de l'équipe pour échanger des informations techniques et résoudre les problèmes.",
+        "Collaboration multidisciplinaire : Capacité à travailler en étroite collaboration avec les autres membres de l'équipe multidisciplinaire, y compris les ingénieurs, les architectes et les techniciens, pour atteindre les objectifs du projet.",
+        "Veille technologique : Capacité à se tenir informé des dernières avancées technologiques et des nouvelles tendances dans le domaine de la conception et de la modélisation assistées par ordinateur.",
+        "Organisation et gestion du temps : Capacité à organiser son travail de manière efficace, à gérer les priorités et à respecter les délais impartis pour la réalisation des tâches assignées.",
+        "Polyvalence et adaptation : Capacité à s'adapter rapidement à de nouveaux logiciels, à de nouvelles méthodes de travail et à des projets variés dans différents domaines d'activité."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMTMI",
+      "metier": "Technicien de maintenance industrielle",
+      "savoir_faire": [
+        "Diagnostiquer les pannes : Capacité à analyser les problèmes techniques et à diagnostiquer les pannes sur les équipements industriels, en utilisant des outils de diagnostic appropriés et en appliquant des méthodes de résolution de problèmes.",
+        "Maintenance préventive : Connaissance des techniques et des procédures de maintenance préventive pour assurer le bon fonctionnement des équipements et prévenir les pannes.",
+        "Maintenance corrective : Capacité à effectuer des réparations et des interventions correctives sur les équipements industriels pour résoudre les pannes et rétablir leur fonctionnement normal dans les plus brefs délais.",
+        "Connaissances en mécanique : Compréhension des principes de base de la mécanique, des systèmes mécaniques et des composants mécaniques utilisés dans les équipements industriels.",
+        "Connaissances en électricité : Compétence dans le dépannage électrique, la lecture de schémas électriques, la vérification et le remplacement des composants électriques défectueux.",
+        "Connaissances en automatisme : Compréhension des systèmes automatisés et des équipements de contrôle-commande utilisés dans les installations industrielles, ainsi que la capacité à diagnostiquer et à réparer les pannes dans ces systèmes.",
+        "Hydraulique et pneumatique : Connaissance des principes de base de l'hydraulique et de la pneumatique, ainsi que la capacité à dépanner et à entretenir les systèmes hydrauliques et pneumatiques.",
+        "Utilisation d'outils et d'équipements spécialisés : Maîtrise de l'utilisation des outils et des équipements spécialisés nécessaires à la maintenance des équipements industriels, tels que les multimètres, les oscilloscopes, les clés dynamométriques, etc.",
+        "Sécurité : Respect des règles de sécurité et des procédures de travail sécuritaires lors de l'intervention sur les équipements industriels pour prévenir les accidents et les risques professionnels.",
+        "Documentation et reporting : Capacité à documenter les interventions de maintenance réalisées, à tenir à jour les registres de maintenance et à produire des rapports d'intervention pour assurer le suivi des activités de maintenance."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMOMO",
+      "metier": "Opérateur sur machines-outils",
+      "savoir_faire": [
+        "Connaissance des machines-outils : Maîtrise des différents types de machines-outils utilisés dans la production industrielle, tels que les tours, les fraiseuses, les perceuses, les rectifieuses, etc.",
+        "Lecture de plans et de schémas techniques : Capacité à lire et à interpréter les plans, les schémas et les instructions techniques pour fabriquer des pièces conformes aux spécifications.",
+        "Réglage des machines-outils : Compétence dans le réglage et la mise en service des machines-outils pour produire des pièces aux dimensions et aux tolérances requises.",
+        "Choix des outils de coupe : Sélection des outils de coupe appropriés (fraises, forets, tarauds, etc.) en fonction des matériaux à usiner et des opérations à réaliser.",
+        "Programmation des machines à commande numérique : Capacité à utiliser des logiciels de programmation CNC (Commande Numérique par Ordinateur) pour créer des programmes d'usinage et piloter les machines à commande numérique.",
+        "Connaissances en métrologie : Compréhension des principes de base de la métrologie et utilisation d'instruments de mesure (micromètres, pieds à coulisse, jauges, etc.) pour contrôler les dimensions des pièces usinées.",
+        "Gestion des matériaux : Connaissance des propriétés des matériaux utilisés dans la production (métaux, plastiques, composites, etc.) et capacité à sélectionner les paramètres de coupe appropriés.",
+        "Sécurité : Respect des consignes de sécurité et des procédures de travail sécuritaires lors de l'utilisation des machines-outils pour prévenir les accidents et les blessures.",
+        "Maintenance de premier niveau : Capacité à effectuer la maintenance de premier niveau des machines-outils, notamment le nettoyage, la lubrification et le remplacement des pièces d'usure.",
+        "Résolution de problèmes : Aptitude à identifier et à résoudre les problèmes techniques rencontrés lors de l'usinage des pièces, en ajustant les paramètres de coupe ou en modifiant les programmes CNC si nécessaire."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMMA",
+      "metier": "Monteur-assembleur",
+      "savoir_faire": [
+        "Lecture de plans et de schémas techniques : Capacité à lire et à interpréter les plans, les schémas et les instructions techniques pour assembler les pièces conformément aux spécifications.",
+        "Maîtrise des techniques d'assemblage : Connaissance des différentes techniques d'assemblage telles que le vissage, le rivetage, le soudage, le collage, etc., ainsi que la capacité à choisir la méthode appropriée en fonction des matériaux et des exigences de fabrication.",
+        "Utilisation d'outils et d'équipements : Maîtrise de l'utilisation des outils manuels (clés, tournevis, pinces, etc.) et des équipements électriques ou pneumatiques (perceuses, visseuses, riveteuses, etc.) nécessaires à l'assemblage des pièces.",
+        "Connaissances en mécanique : Compréhension des principes de base de la mécanique, des mouvements mécaniques et des systèmes d'assemblage mécanique pour garantir un montage précis et fonctionnel des pièces.",
+        "Connaissances en électrotechnique : Compréhension des principes de base de l'électricité et de l'électronique pour assembler et câbler les composants électriques et électroniques des produits.",
+        "Gestion des matériaux : Connaissance des propriétés des matériaux utilisés dans la fabrication (métaux, plastiques, composites, etc.) et capacité à manipuler et à assembler les matériaux de manière sécuritaire et efficace.",
+        "Métrologie : Utilisation d'instruments de mesure (pieds à coulisse, jauges, micromètres, etc.) pour vérifier les dimensions et les tolérances des pièces assemblées et assurer leur conformité aux spécifications.",
+        "Respect des normes de qualité : Application des procédures de contrôle qualité et des normes de fabrication pour garantir la qualité et la fiabilité des produits finis.",
+        "Sécurité : Respect des consignes de sécurité et des procédures de travail sécuritaires lors de l'utilisation des outils et des équipements, ainsi que lors de la manipulation des matériaux et des composants."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMSO",
+      "metier": "Soudeur",
+      "savoir_faire": [
+        "Maîtrise des techniques de soudage : Compétence dans l'utilisation des différentes techniques de soudage telles que le soudage à l'arc électrique, le soudage TIG (Tungsten Inert Gas), le soudage MIG/MAG (Metal Inert Gas/Metal Active Gas), le soudage oxyacétylénique, etc.",
+        "Connaissance des matériaux : Compréhension des propriétés des différents matériaux utilisés en soudure (acier, aluminium, acier inoxydable, etc.) et capacité à choisir les paramètres de soudage appropriés en fonction du matériau à souder.",
+        "Lecture de plans : Capacité à lire et à interpréter les plans, les schémas et les spécifications techniques pour réaliser des soudures conformes aux exigences du projet.",
+        "Préparation des surfaces : Savoir préparer les surfaces à souder en enlevant les contaminants, en nettoyant et en dégraissant les surfaces de travail pour assurer une adhérence optimale.",
+        "Utilisation des équipements de soudage : Maîtrise de l'utilisation des équipements de soudage tels que les postes à souder, les torches de soudage, les électrodes, les gaz de protection, etc.",
+        "Réglage des paramètres de soudage : Capacité à régler les paramètres de soudage tels que l'intensité du courant, la vitesse d'avance, le type de gaz de protection, etc., pour obtenir des soudures de qualité.",
+        "Sécurité : Respect des consignes de sécurité et des procédures de travail sécuritaires lors de l'utilisation des équipements de soudage, ainsi que lors de la manipulation des matériaux et des pièces à souder.",
+        "Contrôle qualité : Application des techniques de contrôle qualité pour vérifier la qualité des soudures réalisées, notamment l'inspection visuelle, les tests de résistance, les tests non destructifs, etc."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMTQ",
+      "metier": "Technicien en qualité",
+      "savoir_faire": [
+        "Maîtrise des normes qualité : Connaissance des normes et des référentiels qualité tels que la norme ISO 9001, les normes spécifiques à l'industrie (ISO/TS 16949 pour l'automobile, ISO 13485 pour le secteur médical, etc.) et la capacité à les mettre en œuvre.",
+        "Maîtrise des outils qualité : Utilisation des outils et des méthodes qualité tels que les diagrammes de Pareto, les cartes de contrôle, les plans d'échantillonnage, les audits qualité, les analyses de risques (AMDEC), les 5S, etc.",
+        "Gestion de la documentation qualité : Capacité à élaborer, à mettre à jour et à gérer la documentation qualité (procédures, instructions de travail, fiches de contrôle, etc.) conformément aux normes et aux exigences de l'organisation.",
+        "Audit interne : Conduite des audits internes qualité pour évaluer la conformité des processus et des systèmes aux normes qualité établies, ainsi que pour identifier les écarts et proposer des actions correctives.",
+        "Contrôle qualité : Capacité à réaliser des contrôles qualité sur les produits ou les services pour vérifier leur conformité aux spécifications et aux exigences des clients, en utilisant des outils de mesure et des techniques d'inspection appropriées.",
+        "Analyse des non-conformités : Capacité à analyser les non-conformités détectées lors des contrôles qualité, à identifier les causes racines et à proposer des actions correctives et préventives pour éviter leur récurrence.",
+        "Gestion des réclamations clients : Traitement des réclamations clients, suivi des actions correctives et communication avec les clients pour résoudre les problèmes de qualité et garantir leur satisfaction.",
+        "Amélioration continue : Participation à des projets d'amélioration continue pour optimiser les processus, réduire les coûts, améliorer la qualité et accroître la satisfaction des clients.",
+        "Formation et sensibilisation : Formation du personnel aux bonnes pratiques qualité, sensibilisation à l'importance de la qualité et du respect des procédures établies pour garantir la conformité et la fiabilité des produits ou des services."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMCPI",
+      "metier": "Chef de projet industriel",
+      "savoir_faire": [
+        "Gestion de projet : Capacité à planifier, organiser, coordonner et contrôler toutes les étapes d'un projet industriel, depuis la conception jusqu'à la mise en service, en respectant les délais, les budgets et les exigences de qualité.",
+        "Maîtrise des outils de gestion de projet : Utilisation des logiciels de gestion de projet tels que Microsoft Project, Primavera, ou Trello pour planifier les activités, affecter les ressources, suivre les avancements et gérer les risques.",
+        "Connaissance des méthodologies de gestion de projet : Familiarité avec les méthodologies de gestion de projet telles que le modèle en cascade (Waterfall), le modèle en V, la méthode Agile, etc., et capacité à choisir la méthode adaptée au projet.",
+        "Gestion des ressources : Allocation efficace des ressources humaines, matérielles et financières nécessaires à la réalisation du projet, ainsi que suivi et optimisation de leur utilisation tout au long du projet.",
+        "Analyse des risques : Identification, évaluation et gestion des risques potentiels pouvant affecter le déroulement du projet, ainsi que mise en place de plans d'atténuation et de contingence pour y faire face.",
+        "Communication et leadership : Aptitude à communiquer efficacement avec les membres de l'équipe projet, les partenaires, les fournisseurs et les parties prenantes externes, ainsi qu'à motiver et à diriger les membres de l'équipe.",
+        "Gestion de la qualité : Mise en place de processus et de procédures qualité pour assurer la conformité des livrables du projet aux exigences et aux normes spécifiées, ainsi que suivi et contrôle de la qualité tout au long du projet.",
+        "Gestion des changements : Gestion des changements et des modifications éventuelles du scope, des exigences ou des objectifs du projet, en évaluant leur impact sur les délais, les coûts et les ressources, et en prenant les décisions appropriées.",
+        "Connaissance technique : Compréhension des aspects techniques du projet industriel, notamment des processus de fabrication, des technologies utilisées, des normes et des réglementations applicables, pour assurer la pertinence des solutions proposées.",
+        "Résolution de problèmes : Aptitude à identifier et à résoudre les problèmes et les obstacles rencontrés tout au long du projet, en mobilisant les ressources et en prenant des décisions éclairées pour garantir la réussite du projet."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMRMP",
+      "metier": "Régleur sur machines de production",
+      "savoir_faire": [
+        "Maîtrise des machines-outils : Connaissance approfondie des différents types de machines de production telles que les tours, les fraiseuses, les presses, les machines à injection plastique, etc.",
+        "Lecture de plans et de schémas techniques : Capacité à lire et à interpréter les plans, les schémas et les instructions techniques pour configurer les machines de production conformément aux spécifications du produit.",
+        "Réglage des paramètres : Compétence dans le réglage et l'ajustement des paramètres des machines de production tels que la vitesse de rotation, la pression, la température, etc., pour garantir le bon fonctionnement et la qualité des pièces produites.",
+        "Changement d'outils et de réglages : Aptitude à changer les outils de coupe, les matrices, les moules ou d'autres composants des machines de production et à ajuster les réglages en fonction des besoins de production.",
+        "Connaissance des matériaux : Compréhension des propriétés des matériaux utilisés dans la production (métaux, plastiques, composites, etc.) et capacité à adapter les réglages des machines en fonction des caractéristiques des matériaux.",
+        "Maintenance de premier niveau : Capacité à effectuer la maintenance de premier niveau des machines de production, notamment le nettoyage, la lubrification, le remplacement des pièces d'usure, etc., pour assurer leur bon fonctionnement.",
+        "Contrôle qualité : Utilisation d'instruments de mesure et de contrôle pour vérifier la conformité des pièces produites aux spécifications techniques et aux normes de qualité établies.",
+        "Résolution de problèmes : Aptitude à identifier et à résoudre les problèmes techniques rencontrés lors du réglage et de la mise en service des machines de production, en diagnostiquant les causes racines et en apportant des solutions appropriées.",
+        "Sécurité : Respect des consignes de sécurité et des procédures de travail sécuritaires lors de l'utilisation des machines de production, ainsi que lors de la manipulation des matériaux et des pièces produites."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMIRI",
+      "metier": "Ingénieur en robotique industrielle",
+      "savoir_faire": [
+        "Conception et modélisation des systèmes robotiques : Capacité à concevoir et à modéliser des systèmes robotiques en utilisant des logiciels de CAO (Conception Assistée par Ordinateur) et de simulation tels que SolidWorks, CATIA, ou RobotStudio.",
+        "Programmation des robots industriels : Maîtrise des langages de programmation spécifiques aux robots industriels tels que le langage de programmation des robots KUKA, Fanuc, ABB, etc., ainsi que la programmation basée sur la logique PLC (Programmable Logic Controller).",
+        "Intégration des capteurs et des actionneurs : Connaissance des capteurs et des actionneurs utilisés dans les systèmes robotiques, ainsi que la capacité à les intégrer et à les configurer pour assurer le bon fonctionnement des robots.",
+        "Vision par ordinateur : Compétence dans l'utilisation des systèmes de vision par ordinateur pour permettre aux robots de détecter, de reconnaître et de suivre des objets, ainsi que pour réaliser des tâches de guidage et de contrôle de qualité.",
+        "Commande et planification de mouvement : Compréhension des algorithmes de commande et de planification de mouvement pour permettre aux robots d'exécuter des tâches de manière précise, rapide et sécurisée dans des environnements dynamiques.",
+        "Sécurité des robots : Connaissance des normes de sécurité des robots industriels et des dispositifs de sécurité nécessaires pour minimiser les risques d'accidents et assurer la sécurité des opérateurs et des équipements.",
+        "Analyse et optimisation des performances : Capacité à analyser les performances des systèmes robotiques, à identifier les goulots d'étranglement et les sources de dysfonctionnement, ainsi qu'à proposer des solutions d'optimisation pour améliorer l'efficacité et la productivité.",
+        "Gestion de projet : Aptitude à gérer des projets de développement de systèmes robotiques depuis la phase de conception jusqu'à la mise en service, en assurant la planification, le suivi des délais et des budgets, ainsi que la coordination des équipes multidisciplinaires.",
+        "Formation et support technique : Capacité à former les utilisateurs et le personnel de maintenance sur l'utilisation et l'entretien des systèmes robotiques, ainsi qu'à fournir un support technique en cas de besoin.",
+        "Veille technologique : Capacité à se tenir informé des dernières avancées technologiques dans le domaine de la robotique industrielle et à intégrer les innovations pertinentes dans les projets de développement."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMCD",
+      "metier": "Contrôleur dimensionnel",
+      "savoir_faire": [
+        "Maîtrise des instruments de mesure : Connaissance et utilisation des différents instruments de mesure dimensionnelle tels que les micromètres, les calibres, les jauges de profondeur, les pieds à coulisse, les comparateurs, les machines à mesurer tridimensionnelles (MMT), etc.",
+        "Interprétation des plans et des spécifications techniques : Capacité à lire et à interpréter les plans, les schémas et les spécifications techniques pour déterminer les dimensions, les tolérances et les caractéristiques géométriques des pièces à contrôler.",
+        "Métrologie : Compréhension des principes de base de la métrologie et des différentes méthodes de mesure dimensionnelle, ainsi que la capacité à choisir la méthode et l'instrument de mesure appropriés en fonction des exigences de contrôle.",
+        "Techniques de contrôle qualité : Application des techniques de contrôle qualité telles que l'inspection visuelle, les mesures dimensionnelles, les tests fonctionnels, etc., pour vérifier la conformité des pièces aux spécifications et aux normes de qualité.",
+        "Utilisation des logiciels de métrologie : Maîtrise des logiciels de métrologie pour analyser les données de mesure, générer des rapports d'inspection et effectuer des comparaisons avec les modèles CAO (Conception Assistée par Ordinateur).",
+        "Gestion des équipements de mesure : Entretien et calibration réguliers des équipements de mesure pour garantir leur précision et leur fiabilité, ainsi que suivi des fiches de calibration et des certificats de conformité.",
+        "Connaissance des matériaux et des procédés de fabrication : Compréhension des propriétés des matériaux utilisés dans la fabrication des pièces, ainsi que des procédés de fabrication et des méthodes d'usinage susceptibles d'affecter les dimensions et les tolérances des pièces.",
+        "Résolution de problèmes : Aptitude à identifier et à résoudre les problèmes de mesure et les écarts de dimension, en collaborant avec les équipes de production et d'ingénierie pour déterminer les causes racines et mettre en place des actions correctives.",
+        "Sensibilisation à la sécurité : Respect des consignes de sécurité et des procédures de travail sécuritaires lors de l'utilisation des instruments de mesure et lors de l'inspection des pièces, ainsi que la promotion d'une culture de sécurité au sein de l'organisation."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "1M",
+      "detail_code": "FISMESN",
+      "metier": "Expert en simulation numérique",
+      "savoir_faire": [
+        "Maîtrise des logiciels de simulation numérique : Expertise dans l'utilisation de logiciels de simulation numérique tels que ANSYS, COMSOL Multiphysics, Abaqus, LS-DYNA, OpenFOAM, etc.",
+        "Modélisation géométrique : Capacité à créer des modèles géométriques 3D précis et complexes à partir de dessins CAO (Conception Assistée par Ordinateur) ou de scans 3D.",
+        "Définition des matériaux et des propriétés : Connaissance des propriétés des matériaux et de leur comportement mécanique, thermique, électromagnétique, etc., ainsi que la capacité à définir les propriétés matérielles pour la simulation.",
+        "Maîtrise des méthodes de simulation : Compréhension des différentes méthodes de simulation numérique telles que la méthode des éléments finis (FEA), la méthode des volumes finis (CFD), la méthode des différences finies (FDM), etc.",
+        "Analyse des résultats : Capacité à analyser et interpréter les résultats de la simulation numérique pour comprendre le comportement du système étudié, identifier les points critiques et proposer des solutions d'optimisation.",
+        "Optimisation des modèles : Aptitude à optimiser les modèles de simulation pour réduire le temps de calcul, améliorer la précision des résultats et obtenir une meilleure représentation du système réel.",
+        "Validation des modèles : Capacité à valider les modèles de simulation en les comparant à des données expérimentales ou à des résultats analytiques pour garantir leur fiabilité et leur précision.",
+        "Programmation et automatisation : Compétence en programmation informatique (Python, MATLAB, etc.) pour automatiser les tâches de préparation des modèles, d'exécution des simulations et d'analyse des résultats.",
+        "Connaissance des domaines d'application : Compréhension des applications de la simulation numérique dans différents domaines tels que l'ingénierie mécanique, l'aéronautique, l'automobile, l'énergie, la biotechnologie, etc.",
+        "Communication et collaboration : Aptitude à communiquer efficacement avec les autres membres de l'équipe projet, les ingénieurs, les chercheurs et les clients pour comprendre les besoins, partager les résultats et proposer des recommandations.",
+        "Veille technologique : Capacité à se tenir informé des dernières avancées en matière de simulation numérique, des nouveaux logiciels et des meilleures pratiques de modélisation et de simulation."
+      ],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    },
+    {
+      "sector_code": "2E",
+      "detail_code": "FISMESN",
+      "metier": "Ingénieur en électrotechnique",
+      "savoir_faire": [],
+      "capacites_techniques": [],
+      "savoir_etre": [],
+      "capacites_professionnelles": []
+    }
+  ]
+}
