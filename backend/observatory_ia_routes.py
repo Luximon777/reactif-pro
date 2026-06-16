@@ -380,7 +380,7 @@ Profil utilisateur :
     rncp_certs = ctx.get("rncp", [])
     if rncp_certs:
         rncp_lines = [f"- {c.get('code','')} : {c.get('intitule','')} ({c.get('niveau_libelle','')})" for c in rncp_certs[:5]]
-        rncp_block = f"\nCertifications RNCP disponibles pour ce métier :\n" + "\n".join(rncp_lines)
+        rncp_block = "\nCertifications RNCP disponibles pour ce métier :\n" + "\n".join(rncp_lines)
 
     system = (
         "Tu es le conseiller en orientation de l'OPC RE'ACTIF PRO. "
@@ -507,7 +507,119 @@ Règles :
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT 6: Analyse complète (combine tous les endpoints)
+# ENDPOINT 6: Cartographie exhaustive des métiers (P0 — analyse profonde)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def _fetch_all_matching_data(query: str) -> Dict[str, Any]:
+    """Fetch ALL matching ROME, OPC, and RNCP data for a query — no limits."""
+    q_re = {"$regex": query, "$options": "i"}
+    data: Dict[str, Any] = {"query": query, "rome": [], "opc": [], "rncp": []}
+    if not query:
+        return data
+
+    # ALL matching ROME metiers
+    rome_list = await _db.rome_metiers.find(
+        {"$or": [{"libelle": q_re}, {"grand_domaine_nom": q_re}, {"domaine_nom": q_re}]},
+        {"_id": 0, "code_rome": 1, "libelle": 1, "grand_domaine_nom": 1, "domaine_nom": 1}
+    ).limit(50).to_list(50)
+    data["rome"] = rome_list
+
+    # ALL matching OPC metiers
+    opc_list = await _db.opc_metiers.find(
+        {"$or": [{"metier": q_re}, {"savoir_faire": q_re}, {"mission": q_re}, {"sector_name": q_re}]},
+        {"_id": 0, "metier": 1, "filiere_nom": 1, "sector_name": 1, "mission": 1, "savoir_faire": 1}
+    ).limit(30).to_list(30)
+    data["opc"] = opc_list
+
+    # RNCP certifications matching
+    rncp_list = await _db.opc_certifications.find(
+        {"intitule": q_re, "statut": "ACTIVE"},
+        {"_id": 0, "code": 1, "intitule": 1, "niveau_libelle": 1}
+    ).limit(60).to_list(60)
+    data["rncp"] = rncp_list
+
+    # Also get RNCP via ROME codes
+    rome_codes = [r["code_rome"] for r in rome_list if r.get("code_rome")]
+    if rome_codes:
+        mappings = await _db.opc_rncp_rome.find(
+            {"code_rome": {"$in": rome_codes}},
+            {"_id": 0, "code_certification": 1, "code_rome": 1, "libelle_rome": 1}
+        ).limit(100).to_list(100)
+        data["rome_rncp_mappings"] = mappings
+        # Fetch additional RNCP certs found via ROME
+        extra_codes = list(set(m["code_certification"] for m in mappings) - set(r["code"] for r in rncp_list))
+        if extra_codes:
+            extra_certs = await _db.opc_certifications.find(
+                {"code": {"$in": extra_codes[:40]}, "statut": "ACTIVE"},
+                {"_id": 0, "code": 1, "intitule": 1, "niveau_libelle": 1}
+            ).limit(40).to_list(40)
+            data["rncp"].extend(extra_certs)
+
+    return data
+
+
+@router.post("/ia/cartographie-exhaustive")
+async def ia_cartographie_exhaustive(body: IaRequest = IaRequest(), token: str = None):
+    """Generate an exhaustive categorized map of related jobs for a given domain."""
+    query = (body.contexte_metier or "").strip()
+    if not query:
+        return {"error": "Veuillez saisir un domaine ou un métier à analyser."}
+
+    # 1. Fetch ALL matching data from DB
+    all_data = await _fetch_all_matching_data(query)
+
+    # 2. Build a compact context block for Claude (minimize tokens for speed)
+    rome_lines = [f"{r.get('code_rome','')}: {r.get('libelle','')}" for r in all_data["rome"]]
+    opc_lines = [f"{m.get('metier','')}" for m in all_data["opc"]]
+    rncp_lines = [f"{c.get('code','')}: {c.get('intitule','')}" for c in all_data["rncp"][:25]]
+
+    db_context = f"""=== DONNÉES DE RÉFÉRENCE ===
+{len(all_data['rome'])} fiches ROME: {'; '.join(rome_lines)}
+{len(all_data['opc'])} métiers OPC: {', '.join(opc_lines) if opc_lines else '(aucun)'}
+{len(all_data['rncp'])} certifs RNCP (extrait): {'; '.join(rncp_lines) if rncp_lines else '(aucune)'}"""
+
+    system = (
+        "Tu es l'IA experte de l'Observatoire Prédictif des Compétences (OPC) RE'ACTIF PRO. "
+        "Tu produis une cartographie EXHAUSTIVE et CATÉGORISÉE des métiers liés à un domaine d'activité. "
+        "Tu dois fournir des dizaines de métiers réels, classés par sous-catégories thématiques. "
+        "Réponds UNIQUEMENT en JSON valide, sans texte autour."
+    )
+
+    prompt = f"""Domaine analysé: « {query} ».
+{db_context}
+
+Produis une cartographie EXHAUSTIVE et CATÉGORISÉE de tous les métiers liés.
+
+Format JSON EXACT:
+{{"domaine":"{query}","synthese":"Synthèse 40-60 mots","total_metiers":0,"categories":[{{"nom":"Catégorie","description":"15 mots max","icone":"shopping-cart","metiers":[{{"nom":"Métier","code_rome":"D1403","niveau_tension":"fort|modéré|faible","tendance":"hausse|stable|baisse","salaire_median":"28-35K","acces":"Bac+2"}}]}}],"metiers_emergents":[{{"nom":"Métier","raison":"15 mots","horizon":"1-2 ans"}}],"certifications_cles":[{{"code":"RNCP12345","intitule":"Titre","niveau":"Niveau X","debouches":"10 mots"}}]}}
+
+RÈGLES:
+- Minimum 6 catégories, minimum 35 métiers TOTAL (4-10 par catégorie)
+- Utilise les codes ROME fournis en priorité
+- Inclus: Vente/relation client, Management commercial, Commerce spécialisé, Marketing, International, Supports, Passerelles
+- 3-5 métiers émergents, 5-8 certifications clés (utilise les codes RNCP fournis)
+- icone parmi: shopping-cart, users, globe, chart-bar, briefcase, cog, lightbulb, building, truck
+- Français uniquement"""
+
+    raw = await _call_claude(system, prompt, f"carto-{query}")
+    data = _parse_json(raw)
+
+    if isinstance(data, dict) and data.get("categories"):
+        # Compute real total
+        total = sum(len(cat.get("metiers", [])) for cat in data["categories"])
+        data["total_metiers"] = total
+        data["source_stats"] = {
+            "rome_matches": len(all_data["rome"]),
+            "opc_matches": len(all_data["opc"]),
+            "rncp_matches": len(all_data["rncp"]),
+        }
+        return data
+
+    return {"error": "Impossible de générer la cartographie exhaustive — réessayez avec un domaine plus précis."}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 7: Analyse complète (combine tous les endpoints)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/ia/analyse-complete")

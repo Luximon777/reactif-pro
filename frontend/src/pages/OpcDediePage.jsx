@@ -48,6 +48,7 @@ export default function OpcDediePage({ token, onBack }) {
   const [selectedCert, setSelectedCert] = useState(null);
   const [tensionCerts, setTensionCerts] = useState(null);
   const [metierContext, setMetierContext] = useState("");
+  const [cartographie, setCartographie] = useState(null);
 
   const tokenParam = token ? `token=${token}` : "";
 
@@ -135,6 +136,27 @@ export default function OpcDediePage({ token, onBack }) {
       toast.success("Prédictions générées");
     } catch { toast.error("Erreur prédictions"); }
     setLoading(l => ({ ...l, predict: false }));
+  };
+
+  const loadCartographieExhaustive = async () => {
+    if (!metierContext.trim()) {
+      toast.error("Saisissez un domaine métier dans le champ « Contexte métier »");
+      return;
+    }
+    setLoading(l => ({ ...l, cartographie: true }));
+    try {
+      const res = await axios.post(`${API}/observatory/ia/cartographie-exhaustive?${tokenParam}`, { contexte_metier: metierContext }, { timeout: 120000 });
+      if (res.data && !res.data.error) {
+        setCartographie(res.data);
+        toast.success(`Cartographie exhaustive générée : ${res.data.total_metiers || 0} métiers identifiés`);
+        setActiveModule("predictif");
+      } else {
+        toast.error(res.data?.error || "Erreur de génération");
+      }
+    } catch (e) {
+      toast.error(`Erreur: ${e.message}`);
+    }
+    setLoading(l => ({ ...l, cartographie: false }));
   };
 
   const ActiveIcon = MODULES.find(m => m.key === activeModule)?.icon || BarChart3;
@@ -252,7 +274,7 @@ export default function OpcDediePage({ token, onBack }) {
           {activeModule === "emergentes" && <EmergentesModule emergentes={emergentes} loading={loading["detect-emergentes"]} metier={metierContext} onRun={() => runIa("detect-emergentes", setEmergentes, "Compétences émergentes")} />}
           {activeModule === "certifications" && <CertificationsModule searchQ={rncpSearchQ} setSearchQ={setRncpSearchQ} results={rncpSearchResults} onSearch={searchRncp} loading={loading} selectedCert={selectedCert} onSelectCert={loadCertDetail} onClearCert={() => setSelectedCert(null)} tensionCerts={tensionCerts} onLoadTension={loadTension} />}
           {activeModule === "territorial" && <TerritorialModule rncpStats={rncpStats} tensionCerts={tensionCerts} onLoadTension={loadTension} loading={loading.tension} />}
-          {activeModule === "predictif" && <PredictifModule predictions={predictions} recommandation={recommandation} loading={loading} metier={metierContext} onRunPredictions={loadPredictions} onRunRecommandation={() => runIa("recommandation", setRecommandation, "Recommandation")} onRunAnalyseComplete={async () => {
+          {activeModule === "predictif" && <PredictifModule predictions={predictions} recommandation={recommandation} cartographie={cartographie} loading={loading} metier={metierContext} onRunPredictions={loadPredictions} onRunRecommandation={() => runIa("recommandation", setRecommandation, "Recommandation")} onRunCartographie={loadCartographieExhaustive} onRunAnalyseComplete={async () => {
             setLoading(l => ({ ...l, "analyse-complete": true }));
             try {
               const body = metierContext ? { contexte_metier: metierContext } : {};
@@ -853,7 +875,175 @@ function TerritorialModule({ rncpStats, tensionCerts, onLoadTension, loading }) 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Module 7: MOTEUR PRÉDICTIF
 // ═══════════════════════════════════════════════════════════════════════════════
-function PredictifModule({ predictions, recommandation, loading, metier, onRunPredictions, onRunRecommandation, onRunAnalyseComplete }) {
+// ═══════════════════════════════════════════════════════════════════════════════
+// Module 7: MOTEUR PRÉDICTIF + CARTOGRAPHIE EXHAUSTIVE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ICON_MAP = {
+  "shopping-cart": Target, "users": Building2, "globe": MapPin,
+  "chart-bar": BarChart3, "briefcase": FileText, "cog": Layers,
+  "lightbulb": Sparkles, "building": Building2, "truck": ArrowRightLeft,
+  "graduation-cap": GraduationCap, "target": Target, "trending-up": TrendingUp,
+};
+
+function CartographieExhaustiveDisplay({ data }) {
+  const [openCats, setOpenCats] = useState({});
+  const toggleCat = (idx) => setOpenCats(prev => ({ ...prev, [idx]: !prev[idx] }));
+
+  if (!data || !data.categories) return null;
+
+  const catColors = [
+    "border-blue-300 bg-blue-50/40", "border-emerald-300 bg-emerald-50/40",
+    "border-violet-300 bg-violet-50/40", "border-amber-300 bg-amber-50/40",
+    "border-rose-300 bg-rose-50/40", "border-cyan-300 bg-cyan-50/40",
+    "border-indigo-300 bg-indigo-50/40", "border-teal-300 bg-teal-50/40",
+    "border-orange-300 bg-orange-50/40", "border-pink-300 bg-pink-50/40",
+  ];
+  const catTextColors = [
+    "text-blue-800", "text-emerald-800", "text-violet-800", "text-amber-800",
+    "text-rose-800", "text-cyan-800", "text-indigo-800", "text-teal-800",
+    "text-orange-800", "text-pink-800",
+  ];
+  const catBadgeColors = [
+    "bg-blue-100 text-blue-700", "bg-emerald-100 text-emerald-700",
+    "bg-violet-100 text-violet-700", "bg-amber-100 text-amber-700",
+    "bg-rose-100 text-rose-700", "bg-cyan-100 text-cyan-700",
+    "bg-indigo-100 text-indigo-700", "bg-teal-100 text-teal-700",
+    "bg-orange-100 text-orange-700", "bg-pink-100 text-pink-700",
+  ];
+
+  return (
+    <div className="space-y-4" data-testid="cartographie-exhaustive-results">
+      {/* Header with stats */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl px-5 py-4">
+        <div>
+          <h2 className="text-base font-bold">Cartographie exhaustive : {data.domaine}</h2>
+          <p className="text-xs text-purple-200 mt-1 max-w-2xl">{data.synthese}</p>
+        </div>
+        <div className="text-right shrink-0 ml-4">
+          <div className="text-3xl font-black">{data.total_metiers}</div>
+          <div className="text-[10px] text-purple-200">métiers identifiés</div>
+        </div>
+      </div>
+
+      {/* Source stats */}
+      {data.source_stats && (
+        <div className="flex gap-3 text-[10px]">
+          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200">{data.source_stats.rome_matches} fiches ROME</span>
+          <span className="bg-violet-50 text-violet-700 px-2 py-1 rounded-full border border-violet-200">{data.source_stats.opc_matches} métiers OPC</span>
+          <span className="bg-red-50 text-red-700 px-2 py-1 rounded-full border border-red-200">{data.source_stats.rncp_matches} certifications RNCP</span>
+        </div>
+      )}
+
+      {/* Categories */}
+      <div className="space-y-3">
+        {data.categories.map((cat, ci) => {
+          const isOpen = openCats[ci] !== false; // default open
+          const CatIcon = ICON_MAP[cat.icone] || Target;
+          const colorClass = catColors[ci % catColors.length];
+          const textColor = catTextColors[ci % catTextColors.length];
+          const badgeColor = catBadgeColors[ci % catBadgeColors.length];
+
+          return (
+            <div key={ci} className={`border rounded-xl overflow-hidden ${colorClass}`} data-testid={`carto-cat-${ci}`}>
+              <button
+                onClick={() => toggleCat(ci)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/30 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <CatIcon className={`w-5 h-5 ${textColor} shrink-0`} />
+                  <div>
+                    <span className={`font-bold text-sm ${textColor}`}>{cat.nom}</span>
+                    {cat.description && <p className="text-[10px] text-slate-500 mt-0.5">{cat.description}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className={`text-[10px] ${badgeColor}`}>{(cat.metiers || []).length} métiers</Badge>
+                  <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                </div>
+              </button>
+              {isOpen && (
+                <div className="px-4 pb-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                    {(cat.metiers || []).map((m, mi) => {
+                      const tensionColor = m.niveau_tension === "fort" ? "bg-red-100 text-red-700" : m.niveau_tension === "modéré" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600";
+                      const TendIcon = m.tendance === "hausse" ? ArrowUpRight : m.tendance === "baisse" ? ArrowDownRight : Minus;
+                      const tendColor = m.tendance === "hausse" ? "text-emerald-600" : m.tendance === "baisse" ? "text-red-500" : "text-slate-400";
+                      return (
+                        <div key={mi} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 border border-white/80">
+                          <TendIcon className={`w-4 h-4 ${tendColor} shrink-0`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-slate-800 truncate">{m.nom}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {m.code_rome && m.code_rome !== "null" && <span className="text-[9px] font-mono text-slate-400">{m.code_rome}</span>}
+                              {m.salaire_median && <span className="text-[9px] text-slate-500">{m.salaire_median}</span>}
+                              {m.acces && <span className="text-[9px] text-slate-400">{m.acces}</span>}
+                            </div>
+                          </div>
+                          <Badge className={`text-[8px] shrink-0 ${tensionColor}`}>{m.niveau_tension}</Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Métiers émergents */}
+      {data.metiers_emergents?.length > 0 && (
+        <Card className="border-violet-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              Métiers émergents liés à « {data.domaine} »
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.metiers_emergents.map((m, i) => (
+              <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+                <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-slate-800">{m.nom}</div>
+                  <div className="text-[10px] text-slate-500">{m.raison}</div>
+                </div>
+                <Badge variant="outline" className="text-[9px]">{m.horizon}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Certifications clés */}
+      {data.certifications_cles?.length > 0 && (
+        <Card className="border-red-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-red-600" />
+              Certifications clés pour le domaine « {data.domaine} »
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {data.certifications_cles.map((c, i) => (
+              <div key={i} className="flex items-start gap-2 py-1.5 border-b border-slate-100 last:border-0">
+                <Badge variant="outline" className="text-[9px] shrink-0 mt-0.5">{c.code}</Badge>
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-slate-700">{c.intitule}</div>
+                  <div className="text-[10px] text-slate-500">{c.debouches}</div>
+                </div>
+                {c.niveau && <Badge className="bg-blue-100 text-blue-700 text-[9px] shrink-0">{c.niveau}</Badge>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function PredictifModule({ predictions, recommandation, cartographie, loading, metier, onRunPredictions, onRunRecommandation, onRunCartographie, onRunAnalyseComplete }) {
   return (
     <div className="space-y-4" data-testid="opc-mod-predictif">
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-purple-700">
@@ -861,6 +1051,10 @@ function PredictifModule({ predictions, recommandation, loading, metier, onRunPr
         {metier && <span className="font-bold ml-1">Contexte : {metier}</span>}
       </div>
       <div className="flex flex-wrap gap-2">
+        <Button onClick={onRunCartographie} disabled={loading.cartographie} className="bg-purple-700 hover:bg-purple-800" data-testid="opc-run-cartographie">
+          {loading.cartographie ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Map className="w-4 h-4 mr-1" />}
+          {loading.cartographie ? "Cartographie en cours..." : "Cartographie exhaustive"}
+        </Button>
         <Button onClick={onRunPredictions} disabled={loading.predict} className="bg-indigo-600 hover:bg-indigo-700" data-testid="opc-run-predictions">
           {loading.predict ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Brain className="w-4 h-4 mr-1" />}
           Prédictions globales
@@ -874,6 +1068,9 @@ function PredictifModule({ predictions, recommandation, loading, metier, onRunPr
           Analyse complète
         </Button>
       </div>
+
+      {/* Cartographie exhaustive */}
+      <CartographieExhaustiveDisplay data={cartographie} />
 
       {predictions && (
         <Card>
