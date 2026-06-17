@@ -30,9 +30,43 @@ const STEP_NEXT_MESSAGES = {
 };
 
 /* ───── Steps View (compact) ───── */
-const StepsView = ({ progress, onAction }) => (
-  <div className="p-3 space-y-2">
-    {progress.steps.map((step) => {
+const StepsView = ({ progress, onAction }) => {
+  const nextStep = progress.steps.find(s => s.id === progress.current_step && !s.complete);
+  return (
+    <div className="p-3 space-y-2">
+      {/* Proactive Next Step Banner */}
+      {nextStep && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/60 p-3 mb-1"
+          data-testid="next-step-banner"
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <ArrowRight className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-[11px] font-bold text-amber-800">Prochaine étape à réaliser</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {(() => { const Icon = STEP_ICONS[nextStep.id] || Target; return <Icon className="w-4 h-4 text-amber-700" />; })()}
+              <span className="text-xs font-semibold text-slate-800">{nextStep.title}</span>
+            </div>
+            {nextStep.action_label && (
+              <Button
+                size="sm"
+                className="h-7 text-[11px] px-3 bg-amber-500 hover:bg-amber-600 text-white shadow-sm"
+                onClick={() => onAction(nextStep)}
+                data-testid="next-step-action-btn"
+              >
+                {nextStep.action_label}
+                <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {progress.steps.map((step) => {
       const StepIcon = STEP_ICONS[step.id] || Target;
       const colors = STEP_COLORS[step.id] || { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200", accent: "bg-slate-500" };
       const isCurrent = step.id === progress.current_step;
@@ -86,7 +120,8 @@ const StepsView = ({ progress, onAction }) => (
       );
     })}
   </div>
-);
+  );
+};
 
 /* ───── Chat View ───── */
 const ChatView = ({ messages, sending, onSend, onActionClick, inputRef }) => {

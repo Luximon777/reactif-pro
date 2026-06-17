@@ -4650,9 +4650,23 @@ async def get_coach_progress(token: str):
         if last_analysis:
             has_cv = True
             result = last_analysis.get("result", {})
-            cv_skills_count = len(result.get("competences", []))
-            cv_savoir_etre_count = len(result.get("savoir_etre", []))
-            experiences_count = len(result.get("experiences", []))
+            analysis_skills = len(result.get("competences", []))
+            analysis_se = len(result.get("savoir_etre", []))
+            analysis_exp = len(result.get("experiences", []))
+            # Use the max of profile and analysis data
+            cv_skills_count = max(cv_skills_count, analysis_skills)
+            cv_savoir_etre_count = max(cv_savoir_etre_count, analysis_se)
+            experiences_count = max(experiences_count, analysis_exp)
+
+        # Also check passport for additional data
+        passport = await db.passports.find_one({"token_id": token_doc["id"]})
+        if passport:
+            passport_sf = len(passport.get("savoir_faire", []))
+            passport_se = len(passport.get("savoir_etre", []))
+            passport_exp = len(passport.get("experiences", []))
+            cv_skills_count = max(cv_skills_count, passport_sf)
+            cv_savoir_etre_count = max(cv_savoir_etre_count, passport_se)
+            experiences_count = max(experiences_count, passport_exp)
 
         step1_complete = has_cv
         step2_complete = cv_savoir_etre_count >= 3
@@ -4660,29 +4674,50 @@ async def get_coach_progress(token: str):
         step4_complete = experiences_count >= 3
 
         completed = sum([step1_complete, step2_complete, step3_complete, step4_complete])
-        current_step = 1
-        if step1_complete: current_step = 2
-        if step2_complete: current_step = 3
-        if step3_complete: current_step = 4
-        if step4_complete: current_step = 4
 
-        # Build message based on state
+        # Current step = first incomplete step (in order 1→2→3→4)
+        step_statuses = [step1_complete, step2_complete, step3_complete, step4_complete]
+        current_step = 4  # default if all complete
+        for idx, done in enumerate(step_statuses):
+            if not done:
+                current_step = idx + 1
+                break
+
+        # Build proactive "next step" message with clear guidance
+        next_step_hint = ""
+        if completed < 4:
+            next_actions = {
+                1: "Prochaine étape : Rendez-vous dans Trajectoire → Mon CV pour déposer votre fichier.",
+                2: "Prochaine étape : Valorisez vos savoir-être en les documentant dans votre Portefeuille.",
+                3: "Prochaine étape : Passez le test D'CLIC PRO pour révéler votre personnalité.",
+                4: "Prochaine étape : Enrichissez votre trajectoire avec au moins 3 expériences.",
+            }
+            next_step_hint = next_actions.get(current_step, "")
+
         if not has_cv:
-            message = "Bienvenue ! Pour commencer, rendez-vous dans l'onglet Trajectoire puis cliquez sur le sous-onglet Mon CV pour déposer votre fichier. L'IA analysera vos expériences et construira automatiquement votre profil."
+            message = f"Bienvenue ! {next_step_hint} L'IA analysera vos compétences automatiquement."
             emoji = "wave"
-        elif not step2_complete:
-            message = f"Bravo ! Votre CV a été analysé — {cv_skills_count} savoir-faire, {cv_savoir_etre_count} savoir-être détectés et {experiences_count} expériences ajoutées à votre frise. Passez maintenant à l'étape 2 pour valoriser vos soft skills."
-            emoji = "star"
-        elif not step3_complete:
-            message = "Excellent progrès ! Vos soft skills sont documentés. Passez le test D'CLIC PRO pour révéler votre personnalité et générer votre Portfolio PDF."
-            emoji = "rocket"
-        else:
-            message = "Vous avancez bien ! Continuez à tracer votre trajectoire professionnelle."
-            emoji = "target"
-
-        if completed == 4:
+        elif completed == 4:
             emoji = "trophy"
             message = "Félicitations ! Vous avez complété les 4 étapes de votre parcours. Votre profil est complet !"
+        else:
+            summary_parts = []
+            if cv_skills_count > 0:
+                summary_parts.append(f"{cv_skills_count} savoir-faire")
+            if cv_savoir_etre_count > 0:
+                summary_parts.append(f"{cv_savoir_etre_count} savoir-être")
+            if experiences_count > 0:
+                summary_parts.append(f"{experiences_count} expérience(s)")
+            summary = ", ".join(summary_parts) if summary_parts else "profil en cours"
+
+            message = f"Votre profil : {summary}. {next_step_hint}"
+
+            if current_step <= 2:
+                emoji = "star"
+            elif current_step == 3:
+                emoji = "rocket"
+            else:
+                emoji = "target"
 
         return {
             "completed": completed, "total": 4,
@@ -4728,9 +4763,64 @@ async def get_coach_progress(token: str):
 async def coach_chat(token: str, body: dict):
     token_doc = await get_current_token(token)
     user_msg = body.get("message", "")
+
+    # Gather user context — check all data sources
+    profile_id = token_doc.get("profile_id")
+    profile = await db.profiles.find_one({"id": profile_id}) if profile_id else None
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+
+    skills_count = len(passport.get("savoir_faire", [])) if passport else 0
+    se_count = len(passport.get("savoir_etre", [])) if passport else 0
+    exp_count = len(passport.get("experiences", [])) if passport else 0
+    has_cv = bool(profile.get("cv_analyzed")) if profile else False
+    has_dclic = bool(profile.get("dclic_result")) if profile else False
+
+    # Also check cv_jobs for completed analysis
+    last_analysis = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"}, sort=[("created_at", -1)]
+    )
+    if last_analysis:
+        has_cv = True
+        result = last_analysis.get("result", {})
+        skills_count = max(skills_count, len(result.get("competences", [])))
+        se_count = max(se_count, len(result.get("savoir_etre", [])))
+        exp_count = max(exp_count, len(result.get("experiences", [])))
+
+    if profile:
+        skills_count = max(skills_count, len(profile.get("skills", [])))
+        se_count = max(se_count, len(profile.get("savoir_etre", [])))
+        exp_count = max(exp_count, len(profile.get("experiences", [])))
+
+    # Determine next step
+    steps_done = []
+    if has_cv: steps_done.append("CV importé")
+    if se_count >= 3: steps_done.append("Soft skills documentés")
+    if has_dclic: steps_done.append("D'CLIC PRO complété")
+    if exp_count >= 3: steps_done.append("Trajectoire tracée")
+
+    next_action = "importer votre CV dans l'onglet Trajectoire → Mon CV"
+    next_actions_list = [
+        {"label": "Importer mon CV", "path": "/dashboard/trajectoire"},
+    ]
+    if has_cv and se_count < 3:
+        next_action = "valoriser vos savoir-être dans le Portefeuille de compétences"
+        next_actions_list = [{"label": "Valoriser mes soft skills", "path": "/dashboard/competences"}]
+    elif has_cv and not has_dclic:
+        next_action = "passer le test D'CLIC PRO pour révéler votre personnalité"
+        next_actions_list = [{"label": "Lancer D'CLIC PRO", "path": "dclic"}]
+    elif has_cv and exp_count < 3:
+        next_action = "enrichir votre trajectoire avec plus d'expériences"
+        next_actions_list = [{"label": "Ma trajectoire", "path": "/dashboard/trajectoire"}]
+    elif len(steps_done) == 4:
+        next_action = "consulter vos opportunités et votre portefeuille certifié"
+        next_actions_list = [{"label": "Mes opportunités", "path": "/dashboard/opportunites"}]
+
+    context = f"Profil : {skills_count} savoir-faire, {se_count} savoir-être, {exp_count} expérience(s). Étapes complétées : {', '.join(steps_done) if steps_done else 'aucune'}."
+
     return {
-        "response": f"Je suis le Coach RE'ACTIF. Vous avez demandé : \"{user_msg}\". Pour commencer votre parcours, je vous recommande d'importer votre CV dans l'onglet Trajectoire. Cela permettra à l'IA d'analyser vos compétences automatiquement.",
-        "suggestions": ["Importer mon CV", "Comprendre les étapes", "Voir mes compétences"]
+        "response": f"Votre question : \"{user_msg}\"\n\n{context}\n\nJe vous recommande maintenant de {next_action}. N'hésitez pas à me poser d'autres questions !",
+        "suggestions": ["Comment avancer ?", "Quelles compétences améliorer ?", "Voir mon portefeuille"],
+        "actions": next_actions_list,
     }
 
 # ============== TRAJECTORY ==============

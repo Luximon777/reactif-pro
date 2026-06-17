@@ -21,39 +21,28 @@ Développement d'une plateforme full-stack "Ré'Actif Pro" basée sur l'analyse 
 - Synchronisation profil OPC, bouton Actualiser Dashboard
 
 ### Phase 7 — Audit fonctionnel Espace Personnel (DONE - 17/06/2026)
-**13 endpoints manquants créés :**
-1. `POST /coach/step-chat` — Chat interactif IA avec le Coach RE'ACTIF (GPT-5.2)
-2. `POST /cv/generate-models` + `GET /status` — Génération de CV optimisés par IA (background job)
-3. `GET /coffre/cv-files` + `POST /coffre/transfer-cv` — Gestion fichiers CV dans le coffre-fort
-4. `GET /jobs/matching` — Job matching personnalisé avec scores
-5. `GET /jobs/matching/preferences` + `POST` — Préférences de matching
-6. `GET /jobs/matching/search` — Recherche d'offres filtrée
-7. `POST /jobs/apply` + `GET /jobs/applications` — Candidatures
-8. `POST /notifications/mark-read` + `mark-all-read` — Gestion notifications
-9. `GET /emerging/market-correlation` — Corrélation compétences/marché
-10. `GET /learning/recommendations` — Recommandations formation personnalisées
+- 13 endpoints manquants créés et testés (21/21 tests passés)
+- Passport sync, Audit CV normalisation, centres d'intérêt, route wildcard fix
 
-**Bug fixes :**
-- Passport sync : savoir_faire (15) + savoir_etre (6) depuis analyse CV
-- Audit CV : normalisation noms de champs (rule→regle, status→statut)
-- Centres d'intérêt : affichage en mode audit
-- Route wildcard conflict : /jobs/matching AVANT /jobs/{job_id}
+### Phase 8 — Upload Documents Justificatifs (DONE - 17/06/2026)
+- POST/GET/DELETE /api/passport/experiences/(upload-proof|proof-file/{id})
+- GridFS MongoDB pour stockage persistant (PDF/JPG/PNG, max 10 Mo)
+- Frontend: upload + badge Certifié dans ParticulierView et PassportView
+- Tests: Backend 13/13 + Frontend 100%
 
-**Tests : 21/21 passés (100%)**
+### Phase 8b — Coach RE'ACTIF Proactif (DONE - 17/06/2026)
+**Bugs corrigés :**
+- current_step calculait incorrectement (sautait à step 4 si complété avant step 2)
+- Compteurs savoir-faire/savoir-être à 0 (ne consultait pas le passport)
+- Pas de guidance proactive vers la prochaine étape
 
-### Phase 8 — Upload de Documents Justificatifs (DONE - 17/06/2026)
-**Certification officielle des expériences :**
-- `POST /api/passport/experiences/upload-proof` — Upload base64 (PDF/JPG/PNG, max 10 Mo) vers GridFS
-- `GET /api/passport/experiences/proof-file/{file_id}` — Téléchargement/consultation du document
-- `DELETE /api/passport/experiences/proof-file/{file_id}` — Suppression du document + mise à jour passeport
-- Frontend ParticulierView : Bouton "Joindre un document officiel" sous chaque expérience (Trajectoire → Mon CV)
-- Frontend ParticulierView : Affichage "Document officiel joint" + badge "Certifié" + boutons Voir/Supprimer
-- Frontend PassportView : Badge "Certifié" dans l'ExperienceCard + bloc document avec bouton "Consulter"
-- Frontend PassportView : Bouton "Certifier" (upload) pour les expériences non certifiées
-
-**Tests : Backend 13/13 (100%), Frontend 100% (all UI verified)**
+**Améliorations :**
+- Bandeau "Prochaine étape à réaliser" dans le Coach (StepsView) avec bouton action
+- Message contextuel avec résumé du profil + prochaine étape explicite
+- Endpoint /coach/chat enrichi : consulte passport + cv_jobs + profile pour contexte complet
+- Actions cliquables dans le chat menant à la bonne section
 
 ## Backlog
-- **P1** : Refactoring `server.py` (>5900 lignes) en routeurs dédiés
+- **P1** : Refactoring `server.py` (>6000 lignes) en routeurs dédiés
 - **P2** : Export PDF des 4 modèles de CV
 - **P3** : Soft Skills (CSE), Valeurs (VIA), diagnostic CCSP, Codéveloppement, micro-titres
