@@ -2609,6 +2609,117 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e), "step": "Erreur"}})
 
 
+
+@api_router.get("/scrape/job-offer")
+async def scrape_job_offer(url: str):
+    """Scrape job offer content from a URL (supports France Travail and generic pages)."""
+    import httpx
+    from bs4 import BeautifulSoup
+
+    if not url or not url.startswith("http"):
+        raise HTTPException(400, "URL invalide")
+
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        }
+
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client_http:
+            resp = await client_http.get(url, headers=headers)
+            resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Remove script/style/nav/footer
+        for tag in soup(["script", "style", "nav", "footer", "header", "aside", "form", "noscript"]):
+            tag.decompose()
+
+        # France Travail specific extraction
+        is_france_travail = "francetravail.fr" in url or "pole-emploi.fr" in url
+        extracted_text = ""
+
+        if is_france_travail:
+            # Extract structured data from France Travail
+            parts = []
+
+            # Best source: <title> tag — format: "Offre d'emploi TITRE (H/F) - LIEU - REF | France Travail"
+            job_title = ""
+            title_tag = soup.find("title")
+            if title_tag:
+                raw_title = title_tag.get_text(strip=True)
+                # Parse: "Offre d'emploi MANAGER EN RESTAURATION (H/F) - 67 - STRASBOURG - 209BTSX | France Travail"
+                if "Offre d'emploi" in raw_title:
+                    after = raw_title.split("Offre d'emploi", 1)[1]
+                    # Remove everything after " - " (location/ref) or " | "
+                    job_title = after.split(" - ")[0].strip() if " - " in after else after.split("|")[0].strip()
+
+            # Fallback: first h1
+            if not job_title:
+                title_el = soup.find("h1")
+                if title_el:
+                    title_text = title_el.get_text(strip=True)
+                    if "Offre n°" in title_text:
+                        title_text = title_text.split("Offre n°")[1].strip()
+                        title_parts = title_text.split(None, 1)
+                        if len(title_parts) > 1:
+                            title_text = title_parts[1].strip()
+                    job_title = title_text
+
+            if job_title:
+                parts.append(f"POSTE: {job_title}")
+
+            # Main content area
+            main_content = soup.find("div", class_="description") or soup.find("div", {"itemprop": "description"})
+            if main_content:
+                parts.append(f"DESCRIPTION:\n{main_content.get_text(separator=chr(10), strip=True)}")
+
+            # Look for all text blocks that contain job info
+            for section in soup.find_all(["p", "div", "li", "span"]):
+                text = section.get_text(strip=True)
+                # Keywords indicating job-relevant content
+                if any(kw in text.lower() for kw in ["contrat", "salaire", "expérience", "compétence", "profil", "qualification", "secteur", "savoir-être"]):
+                    if text not in "\n".join(parts) and len(text) > 10:
+                        parts.append(text)
+
+            extracted_text = "\n".join(parts)
+
+            # Fallback: get all meaningful text from the page body
+            if len(extracted_text) < 100:
+                body = soup.find("body")
+                if body:
+                    extracted_text = body.get_text(separator="\n", strip=True)
+        else:
+            # Generic scraping
+            body = soup.find("body")
+            if body:
+                extracted_text = body.get_text(separator="\n", strip=True)
+
+        # Clean up: remove excessive whitespace/blank lines
+        lines = [l.strip() for l in extracted_text.split("\n") if l.strip()]
+        # Deduplicate consecutive identical lines
+        clean_lines = []
+        for line in lines:
+            if not clean_lines or line != clean_lines[-1]:
+                clean_lines.append(line)
+        extracted_text = "\n".join(clean_lines)
+
+        # Limit to reasonable size
+        extracted_text = extracted_text[:3000]
+
+        if len(extracted_text) < 30:
+            return {"success": False, "text": "", "error": "Contenu insuffisant extrait de cette page."}
+
+        return {"success": True, "text": extracted_text}
+
+    except httpx.HTTPStatusError as e:
+        return {"success": False, "text": "", "error": f"Erreur HTTP {e.response.status_code}"}
+    except Exception as e:
+        logger.error(f"[Scrape] {e}")
+        return {"success": False, "text": "", "error": "Impossible de lire cette page. Copiez-collez le texte directement."}
+
+
 @api_router.post("/cv/analyze")
 async def analyze_cv(token: str, file: UploadFile = File(...)):
     """Upload CV, start background analysis, return job_id immediately"""
@@ -5987,12 +6098,47 @@ async def _run_cv_generation(job_id: str, token_id: str, model_types: list, job_
             await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Aucune analyse CV trouvée"}})
             return
 
+        # Auto-scrape if job_offer is a URL
+        if job_offer and job_offer.strip().startswith("http"):
+            try:
+                import httpx
+                from bs4 import BeautifulSoup
+                url = job_offer.strip()
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept-Language": "fr-FR,fr;q=0.9"}
+                async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as hc:
+                    resp = await hc.get(url, headers=headers)
+                    resp.raise_for_status()
+                soup = BeautifulSoup(resp.text, "html.parser")
+                for tag in soup(["script", "style", "nav", "footer", "header", "aside", "form", "noscript"]):
+                    tag.decompose()
+                # Extract title from <title> for France Travail
+                title_tag = soup.find("title")
+                title_line = ""
+                if title_tag and "Offre d'emploi" in title_tag.get_text():
+                    raw = title_tag.get_text(strip=True).split("Offre d'emploi", 1)[1]
+                    title_line = "POSTE: " + (raw.split(" - ")[0].strip() if " - " in raw else raw.split("|")[0].strip())
+                body = soup.find("body")
+                body_text = body.get_text(separator="\n", strip=True) if body else ""
+                lines = [l.strip() for l in body_text.split("\n") if l.strip()]
+                clean = []
+                for l in lines:
+                    if not clean or l != clean[-1]:
+                        clean.append(l)
+                scraped = "\n".join(clean)[:2500]
+                if title_line:
+                    scraped = title_line + "\n" + scraped
+                if len(scraped) > 50:
+                    job_offer = scraped
+                    logger.info(f"[CV Gen] Auto-scraped URL, got {len(scraped)} chars")
+            except Exception as e:
+                logger.warning(f"[CV Gen] Auto-scrape failed: {e}")
+
         result = last_cv["result"]
         skills = [s.get('name','') if isinstance(s,dict) else s for s in result.get('competences',result.get('skills',[]))[:10]]
         exps = [e.get('title','') for e in result.get('experiences',[])[:5]]
         formations = [f.get('titre','') for f in result.get('formations',[])[:3]]
         savoir_etre = result.get('savoir_etre',[])[:5]
-        offer_snippet = job_offer[:500].strip() if job_offer else ""
+        offer_snippet = job_offer[:1500].strip() if job_offer else ""
 
         # Build shared context once
         context = f"Compétences: {', '.join(skills)}\nExpériences: {', '.join(exps)}\nFormations: {', '.join(formations)}\nSavoir-être: {', '.join([s.get('name','') if isinstance(s,dict) else str(s) for s in savoir_etre])}"
@@ -6000,9 +6146,11 @@ async def _run_cv_generation(job_id: str, token_id: str, model_types: list, job_
         # Determine target job title from offer
         target_job = ""
         if offer_snippet:
-            # Extract first line or first significant phrase as job title
             first_line = offer_snippet.split('\n')[0].strip()
-            if len(first_line) > 5:
+            # Handle "POSTE: Manager en restauration (H/F)" format from scraper
+            if first_line.upper().startswith("POSTE:"):
+                target_job = first_line.split(":", 1)[1].strip()[:80]
+            elif len(first_line) > 5:
                 target_job = first_line[:80]
 
         async def gen_one(mtype):

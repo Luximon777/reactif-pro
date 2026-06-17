@@ -54,6 +54,12 @@ Developpement d'une plateforme full-stack "Re'Actif Pro" basee sur l'analyse de 
 - Correction dans `ParticulierView.jsx`: appel vers `/api/jobs/matching` + parsing format `{jobs:[...]}`
 - Resultat: 3 offres compatibles (scores >= 60%) correctement affichees sur Trajectoire et Accueil
 
+### Phase 10b — Scraping Offres d'Emploi pour CV (DONE - 17/06/2026)
+- Creation endpoint `GET /api/scrape/job-offer?url=` avec support France Travail (extraction titre via `<title>`)
+- Auto-scrape dans `_run_cv_generation` si le job_offer est une URL (fallback robuste)
+- Extraction titre amelioree: format "POSTE: ..." parse correctement
+- Snippet offre augmente de 500 a 1500 chars pour plus de contexte IA
+
 ## Backlog
 - **P1** : Refactoring `server.py` (>6900 lignes) en routeurs dedies sous /app/backend/routes/
 - **P2** : Soft Skills (CSE), Valeurs (VIA) via modules d'auto-evaluation
