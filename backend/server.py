@@ -2679,6 +2679,172 @@ async def get_cv_models(token: str):
     }
 
 
+@api_router.get("/cv/download/{model_key}")
+async def download_cv_word(model_key: str, token: str):
+    """Download a generated CV model as a Word document."""
+    from docx import Document
+    from docx.shared import Pt, Inches, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    token_doc = await get_current_token(token)
+    cv_data = await db.cv_models.find_one({"token_id": token_doc["id"]})
+    if not cv_data or model_key not in cv_data.get("models", {}):
+        raise HTTPException(status_code=404, detail="Modèle de CV non trouvé")
+
+    model = cv_data["models"][model_key]
+    doc = Document()
+
+    style = doc.styles['Normal']
+    style.font.name = 'Calibri'
+    style.font.size = Pt(10)
+
+    # Title
+    h = doc.add_heading(model.get("titre", "CV Professionnel"), level=0)
+    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in h.runs:
+        run.font.color.rgb = RGBColor(30, 58, 95)
+
+    # Accroche
+    if model.get("accroche"):
+        p = doc.add_paragraph(model["accroche"])
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.italic = True
+            run.font.color.rgb = RGBColor(100, 100, 100)
+
+    # Compétences clés
+    comps = model.get("competences_cles", [])
+    if comps:
+        doc.add_heading("Compétences clés", level=1)
+        for c in comps:
+            doc.add_paragraph(c, style='List Bullet')
+
+    # Expériences
+    exps = model.get("experiences", [])
+    if exps:
+        doc.add_heading("Expériences professionnelles", level=1)
+        for e in exps:
+            if isinstance(e, dict):
+                p = doc.add_paragraph()
+                run = p.add_run(f"{e.get('poste', '')} — {e.get('entreprise', '')}")
+                run.bold = True
+                if e.get('periode'):
+                    p.add_run(f"  ({e['periode']})")
+                for r in e.get('realisations', []):
+                    doc.add_paragraph(r, style='List Bullet')
+
+    # Formations
+    formations = model.get("formations", [])
+    if formations:
+        doc.add_heading("Formations", level=1)
+        for f in formations:
+            if isinstance(f, dict):
+                doc.add_paragraph(f"{f.get('diplome', '')} — {f.get('ecole', '')} ({f.get('annee', '')})")
+
+    # Atouts
+    atouts = model.get("atouts", [])
+    if atouts:
+        doc.add_heading("Atouts", level=1)
+        for a in atouts:
+            doc.add_paragraph(a, style='List Bullet')
+
+    # Langues
+    langues = model.get("langues", [])
+    if langues:
+        doc.add_heading("Langues", level=1)
+        doc.add_paragraph(", ".join(langues))
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    filename = f"CV_{model_key}.docx"
+    return StreamingResponse(
+        buf, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@api_router.get("/cv/download-pdf/{model_key}")
+async def download_cv_pdf(model_key: str, token: str):
+    """Download a generated CV model as a PDF document."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib.colors import HexColor
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+
+    token_doc = await get_current_token(token)
+    cv_data = await db.cv_models.find_one({"token_id": token_doc["id"]})
+    if not cv_data or model_key not in cv_data.get("models", {}):
+        raise HTTPException(status_code=404, detail="Modèle de CV non trouvé")
+
+    model = cv_data["models"][model_key]
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('CVTitle', parent=styles['Title'], fontSize=18, textColor=HexColor('#1e3a5f'), alignment=TA_CENTER, spaceAfter=6)
+    accroche_style = ParagraphStyle('Accroche', parent=styles['Normal'], fontSize=10, textColor=HexColor('#666666'), alignment=TA_CENTER, spaceAfter=12, leading=14)
+    section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=12, textColor=HexColor('#1e3a5f'), spaceBefore=12, spaceAfter=6, borderWidth=0)
+    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, leading=13, spaceAfter=3)
+    bold_style = ParagraphStyle('Bold', parent=body_style, fontName='Helvetica-Bold')
+    bullet_style = ParagraphStyle('Bullet', parent=body_style, leftIndent=15, bulletIndent=5, bulletFontName='Helvetica', bulletText='\u2022')
+
+    story = []
+    story.append(Paragraph(model.get("titre", "CV Professionnel"), title_style))
+    if model.get("accroche"):
+        story.append(Paragraph(model["accroche"], accroche_style))
+    story.append(HRFlowable(width="100%", thickness=1, color=HexColor('#1e3a5f'), spaceAfter=8))
+
+    comps = model.get("competences_cles", [])
+    if comps:
+        story.append(Paragraph("COMPÉTENCES CLÉS", section_style))
+        for c in comps:
+            story.append(Paragraph(str(c), bullet_style))
+
+    exps = model.get("experiences", [])
+    if exps:
+        story.append(Paragraph("EXPÉRIENCES PROFESSIONNELLES", section_style))
+        for e in exps:
+            if isinstance(e, dict):
+                header = f"<b>{e.get('poste','')}</b> — {e.get('entreprise','')}"
+                if e.get('periode'):
+                    header += f"  <i>({e['periode']})</i>"
+                story.append(Paragraph(header, body_style))
+                for r in e.get('realisations', []):
+                    story.append(Paragraph(str(r), bullet_style))
+                story.append(Spacer(1, 4))
+
+    formations = model.get("formations", [])
+    if formations:
+        story.append(Paragraph("FORMATIONS", section_style))
+        for f in formations:
+            if isinstance(f, dict):
+                story.append(Paragraph(f"{f.get('diplome','')} — {f.get('ecole','')} ({f.get('annee','')})", body_style))
+
+    atouts = model.get("atouts", [])
+    if atouts:
+        story.append(Paragraph("ATOUTS", section_style))
+        for a in atouts:
+            story.append(Paragraph(str(a), bullet_style))
+
+    langues = model.get("langues", [])
+    if langues:
+        story.append(Paragraph("LANGUES", section_style))
+        story.append(Paragraph(", ".join(langues), body_style))
+
+    doc.build(story)
+    buf.seek(0)
+
+    filename = f"CV_{model_key}.pdf"
+    return StreamingResponse(
+        buf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 @api_router.get("/cv/last-analysis")
 async def get_last_cv_analysis(token: str):
     """Get the most recent completed CV analysis result for this user"""
@@ -5223,10 +5389,39 @@ async def get_access_requests(token: str):
 
 # ============== PASSPORT ENRICH ==============
 
-@api_router.get("/passport/enrich")
+@api_router.post("/passport/enrich")
 async def passport_enrich(token: str):
     token_doc = await get_current_token(token)
-    return {"status": "ok", "enriched": False, "message": "Aucune donnée à enrichir pour le moment"}
+    token_id = token_doc["id"]
+    profile_id = token_doc.get("profile_id")
+
+    passport = await db.passports.find_one({"token_id": token_id})
+    if not passport:
+        return {"status": "ok", "enriched": False, "enriched_fields": [], "message": "Aucun passeport trouvé"}
+
+    profile = await db.profiles.find_one({"id": profile_id}) if profile_id else None
+    updates = {}
+    enriched_fields = []
+
+    # Sync savoir_faire from profile.skills if passport is empty
+    if not passport.get("savoir_faire") and profile and profile.get("skills"):
+        updates["savoir_faire"] = profile["skills"]
+        enriched_fields.append("savoir_faire")
+
+    # Sync savoir_etre from profile if passport is empty
+    if not passport.get("savoir_etre") and profile and profile.get("savoir_etre"):
+        updates["savoir_etre"] = profile["savoir_etre"]
+        enriched_fields.append("savoir_etre")
+
+    # Sync experiences from profile if passport is empty
+    if not passport.get("experiences") and profile and profile.get("experiences"):
+        updates["experiences"] = profile["experiences"]
+        enriched_fields.append("experiences")
+
+    if updates:
+        await db.passports.update_one({"token_id": token_id}, {"$set": updates})
+
+    return {"status": "ok", "enriched": bool(updates), "enriched_fields": enriched_fields}
 
 # ============== ROUTES RE'ACTIF PRO ==============
 
