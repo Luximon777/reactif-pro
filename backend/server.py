@@ -4666,34 +4666,81 @@ async def get_coach_progress(token: str):
                 current_step = idx + 1
                 break
 
+        # Build rich progression data
+        achievements = []
+        if has_cv:
+            achievements.append(f"{cv_skills_count} savoir-faire identifiés par l'IA")
+        if cv_savoir_etre_count > 0:
+            achievements.append(f"{cv_savoir_etre_count} savoir-être documenté(s)")
+        if experiences_count > 0:
+            achievements.append(f"{experiences_count} expérience(s) dans votre trajectoire")
+        if has_dclic:
+            achievements.append("Profil D'CLIC PRO complété")
+
+        # Build personalized tips based on current state
+        tips = []
+        if has_cv and cv_skills_count > 0 and not step2_complete:
+            tips.append({
+                "icon": "lightbulb",
+                "text": f"Vos {cv_skills_count} savoir-faire sont extraits de votre CV. Ajoutez maintenant vos savoir-être (qualités humaines) pour compléter votre profil : allez dans Portefeuille → Savoir-être.",
+                "priority": "high"
+            })
+        if has_cv and not has_dclic:
+            tips.append({
+                "icon": "rocket",
+                "text": "Le test D'CLIC PRO (5 min) révèle votre profil DISC et MBTI. Ces données boostent la pertinence de vos CV générés et de vos recommandations.",
+                "priority": "medium"
+            })
+        if experiences_count > 0 and experiences_count < 5:
+            tips.append({
+                "icon": "plus",
+                "text": f"Vous avez {experiences_count} expérience(s). Plus vous en ajoutez (bénévolat, stages, missions), plus votre trajectoire professionnelle sera valorisée.",
+                "priority": "low"
+            })
+        if has_cv and cv_skills_count > 5:
+            tips.append({
+                "icon": "target",
+                "text": f"Avec {cv_skills_count} compétences, explorez l'onglet Job Dating pour découvrir des événements emploi ciblés sur votre profil.",
+                "priority": "medium"
+            })
+        if completed >= 3:
+            tips.append({
+                "icon": "download",
+                "text": "Votre profil est suffisamment riche pour générer des CV optimisés ATS. Allez dans Trajectoire → Générer des CV.",
+                "priority": "medium"
+            })
+
         # Build proactive "next step" message with clear guidance
-        next_step_hint = ""
-        if completed < 4:
-            next_actions = {
-                1: "Prochaine étape : Rendez-vous dans Trajectoire → Mon CV pour déposer votre fichier.",
-                2: "Prochaine étape : Valorisez vos savoir-être en les documentant dans votre Portefeuille.",
-                3: "Prochaine étape : Passez le test D'CLIC PRO pour révéler votre personnalité.",
-                4: "Prochaine étape : Enrichissez votre trajectoire avec au moins 3 expériences.",
-            }
-            next_step_hint = next_actions.get(current_step, "")
+        next_step_messages = {
+            1: {
+                "hint": "Déposez votre CV (PDF ou Word) dans Trajectoire → Mon CV. L'IA analysera automatiquement vos compétences, expériences et formations.",
+                "impact": "Cela alimentera tout votre parcours : passeport, trajectoire, matching emploi."
+            },
+            2: {
+                "hint": "Documentez vos savoir-être (qualités relationnelles, rigueur, esprit d'équipe...) dans votre Portefeuille.",
+                "impact": "Les recruteurs valorisent autant les soft skills que les compétences techniques."
+            },
+            3: {
+                "hint": "Passez le test D'CLIC PRO (5 minutes). Il révèle votre profil de personnalité (DISC, MBTI, RIASEC).",
+                "impact": "Ces données enrichissent vos CV générés et affinent les recommandations."
+            },
+            4: {
+                "hint": "Complétez votre trajectoire avec vos expériences, formations et compétences acquises.",
+                "impact": "Une trajectoire riche permet de générer des CV plus percutants et de mieux matcher les offres."
+            },
+        }
+
+        next_info = next_step_messages.get(current_step, {})
 
         if not has_cv:
-            message = f"Bienvenue ! {next_step_hint} L'IA analysera vos compétences automatiquement."
+            message = f"Bienvenue ! {next_info.get('hint', '')} {next_info.get('impact', '')}"
             emoji = "wave"
         elif completed == 4:
             emoji = "trophy"
-            message = "Félicitations ! Vous avez complété les 4 étapes de votre parcours. Votre profil est complet !"
+            message = f"Bravo ! Vous avez complété les 4 étapes. Votre profil est complet avec {cv_skills_count} compétences et {experiences_count} expériences. Explorez maintenant le Job Dating et générez vos CV !"
         else:
-            summary_parts = []
-            if cv_skills_count > 0:
-                summary_parts.append(f"{cv_skills_count} savoir-faire")
-            if cv_savoir_etre_count > 0:
-                summary_parts.append(f"{cv_savoir_etre_count} savoir-être")
-            if experiences_count > 0:
-                summary_parts.append(f"{experiences_count} expérience(s)")
-            summary = ", ".join(summary_parts) if summary_parts else "profil en cours"
-
-            message = f"Votre profil : {summary}. {next_step_hint}"
+            summary = ", ".join(achievements) if achievements else "profil en cours de construction"
+            message = f"Votre progression : {summary}."
 
             if current_step <= 2:
                 emoji = "star"
@@ -4702,12 +4749,30 @@ async def get_coach_progress(token: str):
             else:
                 emoji = "target"
 
+        # Step details for each step
+        step1_details = None
+        if step1_complete:
+            step1_details = {"skills": cv_skills_count, "savoir_etre": cv_savoir_etre_count, "experiences": experiences_count}
+        step2_details = None
+        if step2_complete:
+            step2_details = {"savoir_etre_count": cv_savoir_etre_count}
+        step4_details = None
+        if step4_complete:
+            step4_details = {"experiences_count": experiences_count}
+
         return {
             "completed": completed, "total": 4,
             "current_step": current_step,
             "progress_pct": round((completed / 4) * 100),
             "emoji": emoji,
             "message": message,
+            "next_step": {
+                "step": current_step,
+                "hint": next_info.get("hint", ""),
+                "impact": next_info.get("impact", ""),
+            } if completed < 4 else None,
+            "achievements": achievements,
+            "tips": tips[:3],
             "steps": [
                 {
                     "id": 1, "title": "Importer votre CV",
@@ -4715,7 +4780,7 @@ async def get_coach_progress(token: str):
                     "action_label": "Mon CV" if not step1_complete else None,
                     "action_path": "/dashboard",
                     "action_type": "navigate",
-                    "details": {"skills": cv_skills_count, "savoir_etre": cv_savoir_etre_count} if step1_complete else None,
+                    "details": step1_details,
                 },
                 {
                     "id": 2, "title": "Me valoriser — Soft Skills",
@@ -4723,6 +4788,7 @@ async def get_coach_progress(token: str):
                     "action_label": "Valoriser" if not step2_complete else None,
                     "action_path": "/dashboard",
                     "action_type": "navigate",
+                    "details": step2_details,
                 },
                 {
                     "id": 3, "title": "Booster avec D'CLIC PRO",
@@ -4737,6 +4803,7 @@ async def get_coach_progress(token: str):
                     "action_label": "Trajectoire" if not step4_complete else None,
                     "action_path": "/dashboard",
                     "action_type": "navigate",
+                    "details": step4_details,
                 },
             ]
         }

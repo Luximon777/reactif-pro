@@ -7,7 +7,8 @@ import {
   MessageCircle, X, CheckCircle2, Minus,
   Sparkles, Target, Brain, Route, Upload, Award,
   ArrowRight, Trophy, Star, Rocket, Hand,
-  Send, Loader2, ListChecks, Bot, ChevronRight
+  Send, Loader2, ListChecks, Bot, ChevronRight,
+  Lightbulb, Plus, Download, TrendingUp
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,13 +30,36 @@ const STEP_NEXT_MESSAGES = {
   4: { msg: "Félicitations ! Toutes les étapes sont complétées. Votre profil RE'ACTIF PRO est complet !", icon: "trophy" },
 };
 
+const TIP_ICONS = { lightbulb: Lightbulb, rocket: Rocket, plus: Plus, target: Target, download: Download };
+
 /* ───── Steps View (compact) ───── */
 const StepsView = ({ progress, onAction }) => {
   const nextStep = progress.steps.find(s => s.id === progress.current_step && !s.complete);
+  const tips = progress.tips || [];
+  const nextInfo = progress.next_step;
+
   return (
     <div className="p-3 space-y-2">
-      {/* Proactive Next Step Banner */}
-      {nextStep && (
+      {/* Achievements summary */}
+      {progress.achievements?.length > 0 && (
+        <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 px-3 py-2" data-testid="coach-achievements">
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingUp className="w-3 h-3 text-emerald-600" />
+            <span className="text-[10px] font-bold text-emerald-800">Vos acquis</span>
+          </div>
+          <div className="space-y-0.5">
+            {progress.achievements.map((a, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                <span className="text-[11px] text-emerald-700">{a}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Proactive Next Step Banner with detailed hint */}
+      {nextStep && nextInfo && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -46,7 +70,7 @@ const StepsView = ({ progress, onAction }) => {
             <ArrowRight className="w-3.5 h-3.5 text-amber-600" />
             <span className="text-[11px] font-bold text-amber-800">Prochaine étape à réaliser</span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               {(() => { const Icon = STEP_ICONS[nextStep.id] || Target; return <Icon className="w-4 h-4 text-amber-700" />; })()}
               <span className="text-xs font-semibold text-slate-800">{nextStep.title}</span>
@@ -63,9 +87,16 @@ const StepsView = ({ progress, onAction }) => {
               </Button>
             )}
           </div>
+          {nextInfo.hint && (
+            <p className="text-[11px] text-amber-800 leading-relaxed">{nextInfo.hint}</p>
+          )}
+          {nextInfo.impact && (
+            <p className="text-[10px] text-amber-600 mt-1 italic">{nextInfo.impact}</p>
+          )}
         </motion.div>
       )}
 
+      {/* Steps list */}
       {progress.steps.map((step) => {
       const StepIcon = STEP_ICONS[step.id] || Target;
       const colors = STEP_COLORS[step.id] || { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200", accent: "bg-slate-500" };
@@ -97,10 +128,13 @@ const StepsView = ({ progress, onAction }) => {
                 {step.complete && <Badge className="text-[8px] bg-emerald-100 text-emerald-700 px-1 py-0">Fait</Badge>}
                 {isCurrent && !step.complete && <Badge className={`text-[8px] ${colors.bg} ${colors.text} px-1 py-0`}>En cours</Badge>}
               </div>
-              {step.complete && step.id === 1 && step.details?.disc && (
-                <div className="flex gap-1 mt-1">
-                  <Badge className="text-[8px] bg-blue-50 text-blue-600 px-1 py-0">DISC: {step.details.disc}</Badge>
-                  {step.details.vertu && <Badge className="text-[8px] bg-amber-50 text-amber-600 px-1 py-0">{step.details.vertu}</Badge>}
+              {/* Show details for completed steps */}
+              {step.complete && step.details && (
+                <div className="flex gap-1.5 mt-0.5 flex-wrap">
+                  {step.details.skills > 0 && <span className="text-[9px] text-emerald-600">{step.details.skills} compétences</span>}
+                  {step.details.experiences > 0 && <span className="text-[9px] text-emerald-600">{step.details.experiences} exp.</span>}
+                  {step.details.savoir_etre_count > 0 && <span className="text-[9px] text-emerald-600">{step.details.savoir_etre_count} savoir-être</span>}
+                  {step.details.experiences_count > 0 && <span className="text-[9px] text-emerald-600">{step.details.experiences_count} expériences tracées</span>}
                 </div>
               )}
             </div>
@@ -119,6 +153,29 @@ const StepsView = ({ progress, onAction }) => {
         </div>
       );
     })}
+
+      {/* Personalized tips */}
+      {tips.length > 0 && (
+        <div className="pt-1 space-y-1.5" data-testid="coach-tips">
+          <div className="flex items-center gap-1.5 px-1">
+            <Lightbulb className="w-3 h-3 text-blue-500" />
+            <span className="text-[10px] font-bold text-slate-600">Conseils personnalisés</span>
+          </div>
+          {tips.map((tip, i) => {
+            const TipIcon = TIP_ICONS[tip.icon] || Lightbulb;
+            return (
+              <div key={i} className={`rounded-lg border px-2.5 py-2 ${
+                tip.priority === "high" ? "bg-blue-50/70 border-blue-200" : "bg-slate-50 border-slate-100"
+              }`} data-testid={`coach-tip-${i}`}>
+                <div className="flex items-start gap-2">
+                  <TipIcon className={`w-3 h-3 mt-0.5 shrink-0 ${tip.priority === "high" ? "text-blue-500" : "text-slate-400"}`} />
+                  <p className="text-[11px] text-slate-700 leading-relaxed">{tip.text}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
   </div>
   );
 };
