@@ -33,7 +33,7 @@ import {
   Shield, FolderLock, Brain, MessageCircle, Compass, TrendingUp,
   ChevronRight, Star, Award, BookOpen, Share2, Trash2, Zap, Edit3,
   Save, Check, ArrowRight, Layers, Activity, Hexagon, CircleDot, Link2, Copy, X, Play,
-  Eye, EyeOff, Loader2, CheckCircle2, FileDown
+  Eye, EyeOff, Loader2, CheckCircle2, FileDown, ShieldCheck, Upload
 } from "lucide-react";
 import EmergingCompetenceCard from "@/components/Passport/EmergingCompetenceCard";
 import EmergingTab from "@/components/Passport/EmergingTab";
@@ -2641,6 +2641,11 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
               <h4 className="font-semibold text-slate-900">{exp.title}</h4>
               <Badge variant="outline" className="text-xs">{typeLabels[exp.experience_type] || "Autre"}</Badge>
               {exp.is_current && <Badge className="bg-emerald-100 text-emerald-700 text-xs">En cours</Badge>}
+              {exp.is_certified && (
+                <Badge className="bg-blue-100 text-blue-700 border border-blue-200 text-[10px] gap-1" data-testid={`certified-badge-${exp.id}`}>
+                  <ShieldCheck className="w-3 h-3" />Certifié
+                </Badge>
+              )}
               {expIllustrations.length > 0 && (
                 <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]" data-testid={`illus-count-${exp.id}`}>
                   {expIllustrations.length} soft skill{expIllustrations.length > 1 ? "s" : ""} prouvé{expIllustrations.length > 1 ? "s" : ""}
@@ -2663,12 +2668,68 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
                 ))}
               </div>
             )}
+
+            {/* Document officiel certifié */}
+            {exp.proof_document && (
+              <div className="mt-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200/60 p-2.5" data-testid={`passport-proof-doc-${exp.id}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4 text-blue-700" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-blue-800">Document officiel</span>
+                        <Badge className="bg-blue-600 text-white text-[8px]">Certifié</Badge>
+                      </div>
+                      <p className="text-[10px] text-blue-600 truncate max-w-[200px]">{exp.proof_document.original_filename}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-[10px] text-blue-700 border-blue-200 hover:bg-blue-100 gap-1"
+                    onClick={() => window.open(`${API}/passport/experiences/proof-file/${exp.proof_document.file_id}?token=${token}`, "_blank")}
+                    data-testid={`passport-view-proof-${exp.id}`}
+                  >
+                    <Eye className="w-3 h-3" />Consulter
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" className={`h-9 px-3 gap-1.5 rounded-lg border ${expanded ? "text-emerald-700 bg-emerald-50 border-emerald-300" : "text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-300"}`} onClick={() => setExpanded(!expanded)} data-testid={`toggle-illus-${exp.id}`}>
               <Sparkles className="w-4 h-4" />
               <span className="text-xs font-semibold">{expanded ? "Masquer" : "Prouver vos soft skills"}</span>
             </Button>
+            {!exp.proof_document && (
+              <label className="cursor-pointer" data-testid={`passport-upload-proof-${exp.id}`}>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 10 Mo)"); return; }
+                    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+                    if (!allowed.includes(file.type)) { toast.error("Format non accepté. Utilisez PDF, JPG ou PNG"); return; }
+                    try {
+                      toast.info("Upload en cours...");
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        const b64 = reader.result.split(",")[1];
+                        await axios.post(`${API}/passport/experiences/upload-proof?token=${token}`, {
+                          experience_id: exp.id, file_data: b64, file_name: file.name, mime_type: file.type
+                        });
+                        toast.success(`Document "${file.name}" rattaché`);
+                        if (onIllustrationSaved) onIllustrationSaved();
+                      };
+                      reader.readAsDataURL(file);
+                    } catch { toast.error("Erreur lors de l'upload"); }
+                  }}
+                />
+                <div className="h-9 px-3 gap-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 flex items-center text-blue-600 transition-colors">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-xs font-semibold">Certifier</span>
+                </div>
+              </label>
+            )}
             {exp.source === "declaratif" && (
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500" onClick={() => onDelete(exp.id)}>
                 <Trash2 className="w-3.5 h-3.5" />

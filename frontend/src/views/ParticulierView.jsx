@@ -1577,6 +1577,80 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
                                 </div>
                               </div>
                             )}
+
+                            {/* Document officiel / Certification */}
+                            {exp.proof_document ? (
+                              <div className="mt-2 bg-blue-50/60 rounded-lg border border-blue-200/60 p-2.5" data-testid={`proof-doc-display-${i}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center">
+                                      <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] font-semibold text-blue-800">Document officiel joint</span>
+                                      <p className="text-[9px] text-blue-600 truncate max-w-[180px]">{exp.proof_document.original_filename}</p>
+                                    </div>
+                                    <Badge className="bg-blue-100 text-blue-700 text-[8px] border border-blue-200">Certifié</Badge>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-blue-700 hover:bg-blue-100"
+                                      onClick={() => window.open(`${API}/passport/experiences/proof-file/${exp.proof_document.file_id}?token=${token}`, "_blank")}
+                                      data-testid={`view-proof-doc-${i}`}
+                                    >
+                                      <Eye className="w-3 h-3 mr-1" />Voir
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-red-500"
+                                      onClick={() => {
+                                        if (window.confirm("Supprimer ce document justificatif ?")) {
+                                          axios.delete(`${API}/passport/experiences/proof-file/${exp.proof_document.file_id}?token=${token}`)
+                                            .then(() => { toast.success("Document supprimé"); loadData(true); })
+                                            .catch(() => toast.error("Erreur lors de la suppression"));
+                                        }
+                                      }}
+                                      data-testid={`delete-proof-doc-${i}`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-2">
+                                <label className="flex items-center gap-2 p-2 rounded-lg border border-dashed border-blue-200/60 bg-blue-50/30 cursor-pointer hover:bg-blue-50 transition-colors"
+                                  data-testid={`upload-proof-doc-${i}`}
+                                >
+                                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 10 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 10 Mo)"); return; }
+                                      const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+                                      if (!allowed.includes(file.type)) { toast.error("Format non accepté. Utilisez PDF, JPG ou PNG"); return; }
+                                      try {
+                                        toast.info("Upload en cours...");
+                                        const reader = new FileReader();
+                                        reader.onload = async () => {
+                                          const b64 = reader.result.split(",")[1];
+                                          await axios.post(`${API}/passport/experiences/upload-proof?token=${token}`, {
+                                            experience_id: exp.id, file_data: b64, file_name: file.name, mime_type: file.type
+                                          });
+                                          toast.success(`Document "${file.name}" rattaché avec succès`);
+                                          loadData(true);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      } catch { toast.error("Erreur lors de l'upload"); }
+                                    }}
+                                  />
+                                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                    <Upload className="w-3 h-3 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-semibold text-blue-700">Joindre un document officiel</span>
+                                    <p className="text-[9px] text-blue-500">Contrat, attestation, certificat (PDF, JPG, PNG — max 10 Mo)</p>
+                                  </div>
+                                </label>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );

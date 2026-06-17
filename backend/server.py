@@ -1,11 +1,13 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 import os
 import logging
 import json
 import asyncio
+import base64
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -23,6 +25,7 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+gridfs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="proof_documents")
 
 # OpenAI via Emergent
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
@@ -5747,6 +5750,166 @@ async def learning_recommendations(token: str):
             "linked_sector": sector
         })
     return {"recommendations": recommendations, "total": len(recommendations)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCUMENT PROOF UPLOAD (Certification officielle des expériences)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ALLOWED_PROOF_MIMES = {
+    "application/pdf": ".pdf",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/jpg": ".jpg",
+}
+MAX_PROOF_SIZE_MB = 10
+
+
+class ProofUploadPayload(BaseModel):
+    experience_id: str
+    file_data: str  # base64 encoded
+    file_name: str
+    mime_type: str = "application/pdf"
+
+
+@api_router.post("/passport/experiences/upload-proof")
+async def upload_experience_proof_document(token: str, payload: ProofUploadPayload):
+    """Upload a document (contract, attestation) as official proof for an experience."""
+    token_doc = await get_current_token(token)
+
+    # Validate mime type
+    if payload.mime_type not in ALLOWED_PROOF_MIMES:
+        raise HTTPException(400, f"Type de fichier non autorisé. Formats acceptés : PDF, JPG, PNG")
+
+    # Decode base64
+    try:
+        file_bytes = base64.b64decode(payload.file_data)
+    except Exception:
+        raise HTTPException(400, "Données du fichier invalides")
+
+    # Validate size
+    size_mb = len(file_bytes) / (1024 * 1024)
+    if size_mb > MAX_PROOF_SIZE_MB:
+        raise HTTPException(400, f"Fichier trop volumineux ({size_mb:.1f} Mo). Maximum : {MAX_PROOF_SIZE_MB} Mo")
+
+    # Find the experience in the passport
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if not passport:
+        raise HTTPException(404, "Passeport non trouvé")
+
+    experiences = passport.get("experiences", [])
+    exp_index = None
+    for i, exp in enumerate(experiences):
+        if exp.get("id") == payload.experience_id:
+            exp_index = i
+            break
+
+    if exp_index is None:
+        raise HTTPException(404, "Expérience non trouvée dans le passeport")
+
+    # Store file in GridFS
+    file_id = str(uuid.uuid4())
+    ext = ALLOWED_PROOF_MIMES.get(payload.mime_type, ".pdf")
+    stored_filename = f"proof_{file_id}{ext}"
+
+    grid_id = await gridfs_bucket.upload_from_stream(
+        stored_filename,
+        io.BytesIO(file_bytes),
+        metadata={
+            "file_id": file_id,
+            "token_id": token_doc["id"],
+            "experience_id": payload.experience_id,
+            "original_filename": payload.file_name,
+            "mime_type": payload.mime_type,
+            "size_bytes": len(file_bytes),
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+
+    # Update the experience with proof document reference
+    proof_doc = {
+        "file_id": file_id,
+        "grid_id": str(grid_id),
+        "original_filename": payload.file_name,
+        "mime_type": payload.mime_type,
+        "size_bytes": len(file_bytes),
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    experiences[exp_index]["proof_document"] = proof_doc
+    experiences[exp_index]["is_certified"] = True
+    experiences[exp_index]["certification_date"] = datetime.now(timezone.utc).isoformat()
+
+    await db.passports.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"experiences": experiences, "last_updated": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {
+        "success": True,
+        "file_id": file_id,
+        "message": f"Document '{payload.file_name}' rattaché à l'expérience avec succès",
+        "proof_document": proof_doc,
+    }
+
+
+@api_router.get("/passport/experiences/proof-file/{file_id}")
+async def download_experience_proof(file_id: str, token: str):
+    """Download a proof document by its file_id."""
+    token_doc = await get_current_token(token)
+
+    # Find the file in GridFS by metadata
+    cursor = gridfs_bucket.find({"metadata.file_id": file_id, "metadata.token_id": token_doc["id"]})
+    grid_file = await cursor.to_list(1)
+
+    if not grid_file:
+        raise HTTPException(404, "Document non trouvé")
+
+    grid_file = grid_file[0]
+    stream = await gridfs_bucket.open_download_stream(grid_file["_id"])
+    content = await stream.read()
+
+    mime = grid_file.get("metadata", {}).get("mime_type", "application/octet-stream")
+    original_name = grid_file.get("metadata", {}).get("original_filename", "document")
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=mime,
+        headers={"Content-Disposition": f'inline; filename="{original_name}"'}
+    )
+
+
+@api_router.delete("/passport/experiences/proof-file/{file_id}")
+async def delete_experience_proof(file_id: str, token: str):
+    """Delete a proof document."""
+    token_doc = await get_current_token(token)
+
+    # Find and delete from GridFS
+    cursor = gridfs_bucket.find({"metadata.file_id": file_id, "metadata.token_id": token_doc["id"]})
+    grid_file = await cursor.to_list(1)
+
+    if not grid_file:
+        raise HTTPException(404, "Document non trouvé")
+
+    await gridfs_bucket.delete(grid_file[0]["_id"])
+
+    # Remove proof_document from the experience in passport
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if passport:
+        experiences = passport.get("experiences", [])
+        for exp in experiences:
+            pd = exp.get("proof_document")
+            if pd and pd.get("file_id") == file_id:
+                exp.pop("proof_document", None)
+                exp["is_certified"] = False
+                exp.pop("certification_date", None)
+                break
+        await db.passports.update_one(
+            {"token_id": token_doc["id"]},
+            {"$set": {"experiences": experiences, "last_updated": datetime.now(timezone.utc).isoformat()}}
+        )
+
+    return {"success": True, "message": "Document supprimé"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
