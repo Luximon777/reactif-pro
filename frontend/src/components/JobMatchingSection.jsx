@@ -157,9 +157,9 @@ const JobMatchingSection = ({ token }) => {
         },
       });
       if (res.data.already_applied) {
-        toast.info("Vous avez déjà postulé à cette offre");
+        toast.info("Vous avez déjà enregistré cette candidature");
       } else {
-        toast.success("Candidature enregistrée !");
+        toast.success("Candidature enregistrée ! Retrouvez-la dans l'onglet 'Mes Candidatures'");
       }
       setAppliedJobs((prev) => new Set([...prev, title]));
     } catch (e) {

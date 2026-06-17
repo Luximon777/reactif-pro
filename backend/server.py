@@ -758,18 +758,23 @@ async def jobs_applications_early(token: str):
 @api_router.post("/jobs/apply")
 async def jobs_apply_early(token: str, body: dict = {}):
     token_doc = await get_current_token(token)
-    job_id = body.get("job_id", "")
-    if not job_id:
-        raise HTTPException(400, "job_id requis")
-    existing = await db.applications.find_one({"token_id": token_doc["id"], "job_id": job_id})
+    job_title = body.get("job_title", "") or body.get("job_id", "")
+    if not job_title:
+        raise HTTPException(400, "job_title requis")
+    existing = await db.applications.find_one({"token_id": token_doc["id"], "job_title": job_title})
     if existing:
-        return {"success": False, "message": "Vous avez déjà candidaté à cette offre"}
-    await db.applications.insert_one({
-        "id": str(uuid.uuid4()), "token_id": token_doc["id"], "job_id": job_id,
-        "status": "envoyee", "applied_at": datetime.now(timezone.utc).isoformat(),
-        "motivation": body.get("motivation", "")
-    })
-    return {"success": True, "message": "Candidature envoyée avec succès"}
+        return {"success": True, "already_applied": True, "message": "Vous avez déjà enregistré cette candidature"}
+    job_data = body.get("job_data", {})
+    app_doc = {
+        "id": str(uuid.uuid4()),
+        "token_id": token_doc["id"],
+        "job_title": job_title,
+        "job_data": job_data,
+        "status": "en_preparation",
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.applications.insert_one(app_doc)
+    return {"success": True, "already_applied": False, "message": "Candidature enregistrée", "application_id": app_doc["id"]}
 
 
 @api_router.get("/jobs/{job_id}")
@@ -5788,28 +5793,36 @@ async def jobs_matching_search(token: str, q: str = ""):
     return {"jobs": jobs, "query": q, "total": len(jobs)}
 
 
-@api_router.post("/jobs/apply")
-async def jobs_apply(token: str, body: dict = {}):
-    token_doc = await get_current_token(token)
-    job_id = body.get("job_id", "")
-    if not job_id:
-        raise HTTPException(400, "job_id requis")
-    existing = await db.applications.find_one({"token_id": token_doc["id"], "job_id": job_id})
-    if existing:
-        return {"success": False, "message": "Vous avez déjà candidaté à cette offre"}
-    await db.applications.insert_one({
-        "id": str(uuid.uuid4()), "token_id": token_doc["id"], "job_id": job_id,
-        "status": "envoyee", "applied_at": datetime.now(timezone.utc).isoformat(),
-        "motivation": body.get("motivation", "")
-    })
-    return {"success": True, "message": "Candidature envoyée avec succès"}
-
-
 @api_router.get("/jobs/applications")
 async def jobs_applications(token: str):
     token_doc = await get_current_token(token)
     apps = await db.applications.find({"token_id": token_doc["id"]}, {"_id": 0}).sort("applied_at", -1).to_list(50)
     return {"applications": apps, "total": len(apps)}
+
+
+@api_router.put("/jobs/applications/{app_id}/status")
+async def update_application_status(app_id: str, token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    new_status = body.get("status", "")
+    valid = ["en_preparation", "envoyee", "entretien", "acceptee", "refusee"]
+    if new_status not in valid:
+        raise HTTPException(400, f"Statut invalide. Valeurs acceptées : {', '.join(valid)}")
+    result = await db.applications.update_one(
+        {"id": app_id, "token_id": token_doc["id"]},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Candidature non trouvée")
+    return {"success": True}
+
+
+@api_router.delete("/jobs/applications/{app_id}")
+async def delete_application(app_id: str, token: str):
+    token_doc = await get_current_token(token)
+    result = await db.applications.delete_one({"id": app_id, "token_id": token_doc["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Candidature non trouvée")
+    return {"success": True}
 
 
 # --- 5. Notifications mark read ---
