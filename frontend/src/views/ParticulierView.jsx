@@ -1467,38 +1467,120 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
               {/* Expériences extraites du passeport */}
               {passport?.experiences?.length > 0 && (
                 <Card className="card-base border-0 shadow-sm" data-testid="cv-experiences-section">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <Briefcase className="w-5 h-5 text-[#1e3a5f]" />
                       Expériences professionnelles
                       <Badge variant="secondary" className="ml-auto text-xs">{passport.experiences.length}</Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {passport.experiences.map((exp, i) => (
-                      <div key={exp.id || i} className="flex gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100" data-testid={`cv-experience-${i}`}>
-                        <div className="w-10 h-10 rounded-lg bg-[#1e3a5f]/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <Briefcase className="w-4 h-4 text-[#1e3a5f]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-slate-900">{exp.title}</h4>
-                          <p className="text-xs text-slate-600 mt-0.5">{exp.organization}</p>
-                          {(exp.start_date || exp.end_date) && (
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              {exp.start_date || "?"} — {exp.is_current ? "Aujourd'hui" : (exp.end_date || "?")}
-                            </p>
-                          )}
-                          {exp.description && <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{exp.description}</p>}
-                          {exp.skills_used?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {exp.skills_used.map((s, j) => (
-                                <Badge key={j} variant="outline" className="text-[10px] rounded-full">{s}</Badge>
-                              ))}
-                            </div>
-                          )}
+
+                  {/* Bandeau contributeur OPC */}
+                  <div className="mx-4 mb-3 rounded-xl bg-gradient-to-r from-indigo-50 via-purple-50 to-violet-50 border border-indigo-200/60 p-4" data-testid="opc-contributor-banner">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-md">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-indigo-900">Prouvez vos compétences, devenez Contributeur Sociétal</h4>
+                        <p className="text-xs text-indigo-700/80 mt-1 leading-relaxed">
+                          Chaque compétence illustrée par un <strong>exemple concret</strong> (situation, action, résultat) renforce la crédibilité de votre profil
+                          et enrichit l'<strong>Observatoire Prédictif des Compétences</strong>.
+                          Vos contributions anonymisées aident à cartographier les métiers de demain.
+                        </p>
+                        <div className="flex items-center gap-4 mt-2.5">
+                          <div className="flex items-center gap-1.5 text-[10px]">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-indigo-600 font-semibold">
+                              {passport.experiences.filter(e => e.proof || e.exemple_concret).length}/{passport.experiences.length} expériences documentées
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-purple-600">
+                            <Award className="w-3 h-3" />
+                            <span>Niveau : {
+                              passport.experiences.filter(e => e.proof || e.exemple_concret).length >= passport.experiences.length * 0.8
+                                ? "Contributeur Expert"
+                                : passport.experiences.filter(e => e.proof || e.exemple_concret).length >= passport.experiences.length * 0.5
+                                  ? "Contributeur Confirmé"
+                                  : passport.experiences.filter(e => e.proof || e.exemple_concret).length > 0
+                                    ? "Contributeur Actif"
+                                    : "En attente de contribution"
+                            }</span>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  </div>
+
+                  <CardContent className="space-y-3">
+                    {passport.experiences.map((exp, i) => {
+                      const hasProof = !!(exp.proof || exp.exemple_concret);
+                      return (
+                        <div key={exp.id || i} className={`flex gap-3 p-3 rounded-xl border ${hasProof ? "bg-emerald-50/30 border-emerald-200/60" : "bg-slate-50 border-slate-100"}`} data-testid={`cv-experience-${i}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${hasProof ? "bg-emerald-100" : "bg-[#1e3a5f]/10"}`}>
+                            {hasProof ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Briefcase className="w-4 h-4 text-[#1e3a5f]" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-slate-900">{exp.title}</h4>
+                              {hasProof && <Badge className="bg-emerald-100 text-emerald-700 text-[9px]">Documentée</Badge>}
+                            </div>
+                            <p className="text-xs text-slate-600 mt-0.5">{exp.organization}</p>
+                            {(exp.start_date || exp.end_date) && (
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {exp.start_date || "?"} — {exp.is_current ? "Aujourd'hui" : (exp.end_date || "?")}
+                              </p>
+                            )}
+                            {exp.description && <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{exp.description}</p>}
+                            {exp.skills_used?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {exp.skills_used.map((s, j) => (
+                                  <Badge key={j} variant="outline" className="text-[10px] rounded-full">{s}</Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Exemple concret / Preuve */}
+                            {hasProof ? (
+                              <div className="mt-2.5 bg-white rounded-lg border border-emerald-200/60 p-2.5">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <FileText className="w-3 h-3 text-emerald-600" />
+                                  <span className="text-[10px] font-semibold text-emerald-700">Exemple concret</span>
+                                </div>
+                                <p className="text-xs text-slate-600 leading-relaxed">{exp.proof || exp.exemple_concret}</p>
+                              </div>
+                            ) : (
+                              <div className="mt-2.5 bg-amber-50/60 rounded-lg border border-amber-200/40 border-dashed p-2.5 cursor-pointer hover:bg-amber-50 transition-colors"
+                                onClick={() => {
+                                  const proof = window.prompt(
+                                    `Illustrez cette expérience par un exemple concret :\n\n"${exp.title}" chez ${exp.organization}\n\nDécrivez une situation précise, l'action que vous avez menée, et le résultat obtenu (méthode SAR).`
+                                  );
+                                  if (proof && proof.trim()) {
+                                    axios.post(`${API}/passport/experience-proof?token=${token}`, {
+                                      experience_id: exp.id, proof: proof.trim()
+                                    }).then(() => {
+                                      toast.success("Exemple ajouté — merci pour votre contribution à l'OPC !");
+                                      loadData(true);
+                                    }).catch(() => toast.error("Erreur lors de l'ajout"));
+                                  }
+                                }}
+                                data-testid={`add-proof-${i}`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-full bg-amber-200/60 flex items-center justify-center shrink-0">
+                                    <Plus className="w-3 h-3 text-amber-700" />
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-semibold text-amber-800">Ajouter un exemple concret</span>
+                                    <p className="text-[9px] text-amber-600 mt-0.5">Situation, Action, Résultat — votre contribution enrichit l'Observatoire</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </CardContent>
                 </Card>
               )}

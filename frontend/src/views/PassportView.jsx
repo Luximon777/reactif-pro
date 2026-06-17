@@ -2665,9 +2665,9 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
             )}
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className={`h-7 px-2 gap-1 ${expanded ? "text-emerald-600 bg-emerald-50" : "text-slate-400 hover:text-emerald-600"}`} onClick={() => setExpanded(!expanded)} data-testid={`toggle-illus-${exp.id}`}>
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-medium">Prouver vos soft skills</span>
+            <Button variant="ghost" size="sm" className={`h-9 px-3 gap-1.5 rounded-lg border ${expanded ? "text-emerald-700 bg-emerald-50 border-emerald-300" : "text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-300"}`} onClick={() => setExpanded(!expanded)} data-testid={`toggle-illus-${exp.id}`}>
+              <Sparkles className="w-4 h-4" />
+              <span className="text-xs font-semibold">{expanded ? "Masquer" : "Prouver vos soft skills"}</span>
             </Button>
             {exp.source === "declaratif" && (
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500" onClick={() => onDelete(exp.id)}>

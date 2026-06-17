@@ -1794,6 +1794,20 @@ async def aggregate_passport_from_sources(token_id: str) -> dict:
         # Savoir-être from CV
         aggregated["savoir_faire"] = [sf.get("name","") if isinstance(sf, dict) else str(sf) for sf in cv_result.get("savoir_faire", [])[:15]]
         aggregated["savoir_etre"] = cv_result.get("savoir_etre", [])[:10]
+        # Experiences from CV
+        for exp in cv_result.get("experiences", []):
+            aggregated["experiences"].append({
+                "id": str(uuid.uuid4()),
+                "title": exp.get("title", ""),
+                "organization": exp.get("organization", ""),
+                "description": exp.get("description", ""),
+                "start_date": exp.get("start_date", ""),
+                "end_date": exp.get("end_date", ""),
+                "is_current": exp.get("is_ongoing", False),
+                "skills_used": exp.get("skills_used", []),
+                "proof": None,
+                "source": "cv_analysis"
+            })
 
     # 3. From Ubuntoo signals (emerging skills)
     signals = await db.ubuntoo_signals.find(
@@ -1870,6 +1884,7 @@ async def get_passport(token: str):
         passport_data = new_passport.model_dump()
         passport_data["competences"] = aggregated["competences"]
         passport_data["learning_path"] = aggregated["learning_path"]
+        passport_data["experiences"] = aggregated.get("experiences", [])
         passport_data["savoir_faire"] = aggregated.get("savoir_faire", [])
         passport_data["savoir_etre"] = aggregated.get("savoir_etre", [])
         passport_data["completeness_score"] = calculate_completeness(passport_data)
@@ -1910,6 +1925,14 @@ async def refresh_passport(token: str):
     passport["learning_path"] = aggregated["learning_path"]
     passport["savoir_faire"] = aggregated.get("savoir_faire", [])
     passport["savoir_etre"] = aggregated.get("savoir_etre", [])
+    # Merge experiences: keep proofs from existing, add new from CV
+    existing_exps = {(e.get("title","").lower(), e.get("organization","").lower()): e for e in passport.get("experiences", [])}
+    merged_exps = list(passport.get("experiences", []))
+    for new_exp in aggregated.get("experiences", []):
+        key = (new_exp.get("title","").lower(), new_exp.get("organization","").lower())
+        if key not in existing_exps:
+            merged_exps.append(new_exp)
+    passport["experiences"] = merged_exps
     passport["completeness_score"] = calculate_completeness(passport)
     passport["last_updated"] = datetime.now(timezone.utc).isoformat()
 
@@ -1918,6 +1941,9 @@ async def refresh_passport(token: str):
         {"$set": {
             "competences": passport["competences"],
             "learning_path": passport["learning_path"],
+            "experiences": passport["experiences"],
+            "savoir_faire": passport["savoir_faire"],
+            "savoir_etre": passport["savoir_etre"],
             "completeness_score": passport["completeness_score"],
             "last_updated": passport["last_updated"]
         }}
@@ -5648,6 +5674,55 @@ async def emerging_market_correlation(token: str):
 
 
 # --- 7. Learning recommendations ---
+@api_router.get("/learning/recommendations")
+
+# --- 8. Experience Proof (contributeur sociétal) ---
+@api_router.post("/passport/experience-proof")
+async def add_experience_proof(token: str, body: dict = {}):
+    """Add a concrete example/proof to a passport experience, contributing to OPC."""
+    token_doc = await get_current_token(token)
+    exp_id = body.get("experience_id", "")
+    proof = body.get("proof", "").strip()
+    if not proof:
+        raise HTTPException(400, "L'exemple concret est requis")
+
+    # Update passport experience with proof
+    result = await db.passports.update_one(
+        {"token_id": token_doc["id"], "experiences.id": exp_id},
+        {"$set": {"experiences.$.proof": proof, "experiences.$.proof_date": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    if result.modified_count == 0:
+        # Try matching by title (fallback if id doesn't match)
+        passport = await db.passports.find_one({"token_id": token_doc["id"]})
+        if passport:
+            experiences = passport.get("experiences", [])
+            for i, exp in enumerate(experiences):
+                if exp.get("id") == exp_id or (not exp_id and i == 0):
+                    experiences[i]["proof"] = proof
+                    experiences[i]["proof_date"] = datetime.now(timezone.utc).isoformat()
+                    await db.passports.update_one(
+                        {"token_id": token_doc["id"]},
+                        {"$set": {"experiences": experiences}}
+                    )
+                    break
+
+    # Also contribute to OPC: store anonymized proof for collective intelligence
+    await db.opc_contributions.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "experience_proof",
+        "domain": body.get("domain", ""),
+        "proof_text": proof[:500],
+        "skills_related": body.get("skills", []),
+        "contributed_at": datetime.now(timezone.utc).isoformat(),
+        "anonymous": True
+    })
+
+    # Count total contributions by this user
+    contrib_count = await db.opc_contributions.count_documents({})
+    return {"success": True, "message": "Contribution ajoutée à l'Observatoire", "total_contributions": contrib_count}
+
+
 @api_router.get("/learning/recommendations")
 async def learning_recommendations(token: str):
     token_doc = await get_current_token(token)
