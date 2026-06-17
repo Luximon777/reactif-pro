@@ -3791,47 +3791,212 @@ async def seed_database():
     demo_sector_trends = [
         {
             "id": str(uuid.uuid4()),
-            "sector_name": "Informatique",
+            "sector_name": "Informatique & Numérique",
             "emerging_skills": ["Prompt Engineering", "No-Code", "Green IT", "Cybersécurité"],
             "declining_skills": ["Flash", "COBOL", "jQuery"],
             "stable_skills": ["Python", "JavaScript", "SQL", "Git"],
             "transformation_index": 0.82,
-            "hiring_trend": "croissance",
+            "hiring_trend": "forte_croissance",
             "skill_gap_alert": True,
+            "salaries": 632000,
+            "offres_emploi": 98500,
+            "embauches": 74200,
+            "etablissements": 42100,
+            "tension": "fort",
+            "periode_offres": "T4 2025",
             "predicted_skills_demand": [
-                {"skill": "IA Générative", "demand_change": "+45%", "horizon": "2025"},
-                {"skill": "Cloud Native", "demand_change": "+32%", "horizon": "2025"},
-                {"skill": "DevSecOps", "demand_change": "+28%", "horizon": "2025"}
+                {"skill": "IA Générative", "demand_change": "+45%", "horizon": "2026"},
+                {"skill": "Cloud Native", "demand_change": "+32%", "horizon": "2026"},
+                {"skill": "DevSecOps", "demand_change": "+28%", "horizon": "2026"}
             ],
             "last_updated": datetime.now(timezone.utc).isoformat()
         },
         {
             "id": str(uuid.uuid4()),
-            "sector_name": "Administration",
+            "sector_name": "Administration & Secrétariat",
             "emerging_skills": ["No-Code", "Automatisation", "IA bureautique"],
             "declining_skills": ["Sténographie", "Classement papier"],
             "stable_skills": ["Excel", "Rédaction", "Organisation", "Accueil"],
             "transformation_index": 0.58,
             "hiring_trend": "stable",
             "skill_gap_alert": False,
+            "salaries": 1245000,
+            "offres_emploi": 62400,
+            "embauches": 51800,
+            "etablissements": 78300,
+            "tension": "moyen",
+            "periode_offres": "T4 2025",
             "predicted_skills_demand": [
-                {"skill": "Outils collaboratifs", "demand_change": "+25%", "horizon": "2025"},
-                {"skill": "GED", "demand_change": "+18%", "horizon": "2025"}
+                {"skill": "Outils collaboratifs", "demand_change": "+25%", "horizon": "2026"},
+                {"skill": "GED", "demand_change": "+18%", "horizon": "2026"}
             ],
             "last_updated": datetime.now(timezone.utc).isoformat()
         },
         {
             "id": str(uuid.uuid4()),
-            "sector_name": "Commerce",
+            "sector_name": "Commerce & Vente",
             "emerging_skills": ["Social Selling", "CRM avancé", "Data Analytics"],
             "declining_skills": ["Vente terrain classique"],
             "stable_skills": ["Négociation", "Relation client", "Prospection"],
             "transformation_index": 0.65,
             "hiring_trend": "croissance",
             "skill_gap_alert": True,
+            "salaries": 1870000,
+            "offres_emploi": 142000,
+            "embauches": 118500,
+            "etablissements": 215000,
+            "tension": "moyen",
+            "periode_offres": "T4 2025",
             "predicted_skills_demand": [
-                {"skill": "E-commerce", "demand_change": "+35%", "horizon": "2025"},
-                {"skill": "Marketing automation", "demand_change": "+30%", "horizon": "2025"}
+                {"skill": "E-commerce", "demand_change": "+35%", "horizon": "2026"},
+                {"skill": "Marketing automation", "demand_change": "+30%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Santé & Action sociale",
+            "emerging_skills": ["Télémédecine", "E-santé", "Coordination parcours patient"],
+            "declining_skills": ["Archivage papier médical"],
+            "stable_skills": ["Soins infirmiers", "Aide à la personne", "Gériatrie"],
+            "transformation_index": 0.55,
+            "hiring_trend": "forte_croissance",
+            "skill_gap_alert": True,
+            "salaries": 2350000,
+            "offres_emploi": 215000,
+            "embauches": 189000,
+            "etablissements": 156000,
+            "tension": "fort",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Aide-soignant", "demand_change": "+22%", "horizon": "2026"},
+                {"skill": "Infirmier coordinateur", "demand_change": "+18%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Bâtiment & Travaux publics",
+            "emerging_skills": ["BIM", "Construction durable", "Domotique"],
+            "declining_skills": ["Dessin technique manuel"],
+            "stable_skills": ["Maçonnerie", "Électricité", "Plomberie", "Charpente"],
+            "transformation_index": 0.60,
+            "hiring_trend": "croissance",
+            "skill_gap_alert": True,
+            "salaries": 1420000,
+            "offres_emploi": 125000,
+            "embauches": 102000,
+            "etablissements": 320000,
+            "tension": "fort",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Rénovation énergétique", "demand_change": "+40%", "horizon": "2026"},
+                {"skill": "Photovoltaïque", "demand_change": "+35%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Hôtellerie, Restauration & Tourisme",
+            "emerging_skills": ["Revenue Management", "Expérience client digitale", "Éco-tourisme"],
+            "declining_skills": ["Réservation téléphonique uniquement"],
+            "stable_skills": ["Cuisine", "Service en salle", "Accueil", "Hygiène HACCP"],
+            "transformation_index": 0.52,
+            "hiring_trend": "croissance",
+            "skill_gap_alert": True,
+            "salaries": 1080000,
+            "offres_emploi": 178000,
+            "embauches": 156000,
+            "etablissements": 245000,
+            "tension": "fort",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Chef cuisinier", "demand_change": "+15%", "horizon": "2026"},
+                {"skill": "Réceptionniste bilingue", "demand_change": "+12%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Transport & Logistique",
+            "emerging_skills": ["Supply Chain 4.0", "Véhicule autonome", "Logistique verte"],
+            "declining_skills": ["Gestion manuelle des stocks"],
+            "stable_skills": ["Conduite PL", "Gestion d'entrepôt", "Préparation commandes"],
+            "transformation_index": 0.63,
+            "hiring_trend": "croissance",
+            "skill_gap_alert": False,
+            "salaries": 1340000,
+            "offres_emploi": 112000,
+            "embauches": 95000,
+            "etablissements": 89000,
+            "tension": "moyen",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Chauffeur-livreur", "demand_change": "+20%", "horizon": "2026"},
+                {"skill": "Technicien logistique", "demand_change": "+15%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Propreté & Services aux entreprises",
+            "emerging_skills": ["Bio-nettoyage", "Management QSE", "Automatisation du nettoyage"],
+            "declining_skills": ["Techniques manuelles de base"],
+            "stable_skills": ["Entretien des locaux", "Vitrerie", "Hygiène hospitalière"],
+            "transformation_index": 0.45,
+            "hiring_trend": "stable",
+            "skill_gap_alert": False,
+            "salaries": 520000,
+            "offres_emploi": 86000,
+            "embauches": 72000,
+            "etablissements": 35000,
+            "tension": "moyen",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Agent de propreté qualifié", "demand_change": "+10%", "horizon": "2026"},
+                {"skill": "Chef d'équipe propreté", "demand_change": "+8%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Industrie & Production",
+            "emerging_skills": ["Industrie 4.0", "Robotique collaborative", "Maintenance prédictive"],
+            "declining_skills": ["Opérations manuelles répétitives"],
+            "stable_skills": ["Usinage", "Soudure", "Contrôle qualité", "Maintenance"],
+            "transformation_index": 0.72,
+            "hiring_trend": "croissance",
+            "skill_gap_alert": True,
+            "salaries": 2680000,
+            "offres_emploi": 156000,
+            "embauches": 128000,
+            "etablissements": 185000,
+            "tension": "fort",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Technicien maintenance industrielle", "demand_change": "+25%", "horizon": "2026"},
+                {"skill": "Opérateur CN", "demand_change": "+18%", "horizon": "2026"}
+            ],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sector_name": "Agriculture & Agroalimentaire",
+            "emerging_skills": ["Agriculture de précision", "Agro-écologie", "Traçabilité digitale"],
+            "declining_skills": ["Techniques intensives classiques"],
+            "stable_skills": ["Culture", "Élevage", "Transformation alimentaire"],
+            "transformation_index": 0.50,
+            "hiring_trend": "stable",
+            "skill_gap_alert": False,
+            "salaries": 680000,
+            "offres_emploi": 54000,
+            "embauches": 46000,
+            "etablissements": 410000,
+            "tension": "moyen",
+            "periode_offres": "T4 2025",
+            "predicted_skills_demand": [
+                {"skill": "Ouvrier agricole polyvalent", "demand_change": "+12%", "horizon": "2026"},
+                {"skill": "Technicien agroalimentaire", "demand_change": "+10%", "horizon": "2026"}
             ],
             "last_updated": datetime.now(timezone.utc).isoformat()
         }
