@@ -564,8 +564,8 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
           <p className="text-xs text-amber-600 mt-1">Rendez-vous dans l'onglet "Audit" pour charger et analyser votre CV. Les résultats alimenteront la génération.</p>
         </div>
       )}
-      {/* Upload Zone - hide in generate mode */}
-      {mode !== "generate" && (
+      {/* Upload Zone - hide in generate mode and when analysis already exists in audit mode */}
+      {mode !== "generate" && !(mode === "audit" && analysisResult && !uploading) && (
       <div className={`relative border-2 border-dashed rounded-xl transition-all overflow-hidden ${uploading ? "border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 p-0" : "border-slate-300 hover:border-[#1e3a5f] hover:bg-slate-50 p-6"}`}>
         {!uploading && (
           <input
@@ -747,6 +747,16 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
             </div>
           )}
           <p className="text-sm text-emerald-600 font-medium">Passeport automatiquement complété avec les données extraites</p>
+          {/* Re-analyze button in audit mode */}
+          {mode === "audit" && (
+            <div className="pt-2 border-t border-emerald-100">
+              <label className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#1e3a5f] cursor-pointer transition-colors" data-testid="cv-reanalyze-btn">
+                <RefreshCw className="w-3 h-3" />
+                <span>Ré-analyser avec un autre CV</span>
+                <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={handleUpload} className="hidden" />
+              </label>
+            </div>
+          )}
           {/* Auto-populated trajectory notification */}
           {analysisResult?.experiences_count > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3" data-testid="trajectory-auto-populated">
