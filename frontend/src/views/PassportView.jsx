@@ -3070,10 +3070,35 @@ const ArcheologieTab = ({ archeologie, loading, onLoad, savoirFaire, savoirEtre,
       </div>
 
       {/* D'CLIC boost banner */}
-      {dclicProfile?.dclic_imported && (
+      {dclicProfile?.dclic_imported ? (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 text-xs text-emerald-700" data-testid="archeologie-dclic-boost">
           <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
           <span>D'CLIC PRO enrichit l'archéologie : {dclicSE.length > 0 ? `${dclicSE.length} savoir-être issus de votre profil de personnalité` : "vos données de personnalité"} permettent de remonter plus profondément la chaîne des qualités, valeurs et vertus{dclicProfile.dclic_vertu_dominante ? ` (vertu dominante : ${dclicProfile.dclic_vertu_dominante})` : ""}.</span>
+        </div>
+      ) : (
+        <div className="rounded-xl border-2 border-dashed border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4" data-testid="archeologie-dclic-needed">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-bold text-amber-900">Boostez votre Archéologie avec D'CLIC PRO</h4>
+              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                Pour obtenir une Archéologie des Compétences personnalisée et complète, passez le test <strong>D'CLIC PRO</strong>.
+                Il révélera votre personnalité, vos dimensions DISC et vos vertus dominantes — permettant de remonter la chaîne complète :
+                Savoir-faire → Savoir-être → Qualités → Valeurs → Vertus.
+              </p>
+              <Button
+                size="sm"
+                className="mt-2.5 bg-amber-500 hover:bg-amber-600 text-white gap-1.5 shadow-sm"
+                onClick={() => window.open('/test-dclic', '_blank')}
+                data-testid="archeologie-launch-dclic-btn"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Passer le test D'CLIC PRO
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
