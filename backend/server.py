@@ -5775,19 +5775,27 @@ async def _run_cv_generation(job_id: str, token_id: str, model_types: list, job_
         async def gen_one(mtype):
             prompt = f"""CV "{mtype}" — {context}
 JSON: {{"titre":"str","accroche":"2 lignes","competences_cles":["..."],"experiences":[{{"poste":"","entreprise":"","periode":"","realisations":[""]}}],"formations":[{{"diplome":"","ecole":"","annee":""}}],"atouts":["..."],"langues":["Français (natif)"]}}"""
-            try:
-                chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cvgen-{job_id}-{mtype}",
-                                system_message="Expert RH français. Génère un CV structuré en JSON uniquement.").with_model("openai", "gpt-5.2")
-                resp = await chat.send_message(UserMessage(text=prompt))
-                text = resp.content if hasattr(resp, 'content') else str(resp).strip()
-                if "```json" in text: text = text.split("```json")[1].split("```")[0].strip()
-                elif "```" in text: text = text.split("```")[1].split("```")[0].strip()
-                return mtype, json.loads(text)
-            except Exception as e:
-                logger.error(f"[CV Gen {mtype}] {e}")
-                return mtype, {"titre": "CV Professionnel", "accroche": "Professionnel motivé", "competences_cles": skills[:5], "experiences": [], "formations": [], "atouts": savoir_etre[:3]}
+            def _blocking_call():
+                """Run LLM call in a separate thread for true parallelism."""
+                import asyncio as _aio
+                _loop = _aio.new_event_loop()
+                _aio.set_event_loop(_loop)
+                try:
+                    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cvgen-{job_id}-{mtype}",
+                                    system_message="Expert RH français. Génère un CV structuré en JSON uniquement.").with_model("openai", "gpt-5.2")
+                    resp = _loop.run_until_complete(chat.send_message(UserMessage(text=prompt)))
+                    text = resp.content if hasattr(resp, 'content') else str(resp).strip()
+                    if "```json" in text: text = text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in text: text = text.split("```")[1].split("```")[0].strip()
+                    return mtype, json.loads(text)
+                except Exception as e:
+                    logger.error(f"[CV Gen {mtype}] {e}")
+                    return mtype, {"titre": "CV Professionnel", "accroche": "Professionnel motivé", "competences_cles": skills[:5], "experiences": [], "formations": [], "atouts": savoir_etre[:3]}
+                finally:
+                    _loop.close()
+            return await asyncio.to_thread(_blocking_call)
 
-        # Run all model generations in parallel
+        # Run all model generations in TRUE parallel threads
         await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"progress": 0, "current_model": "Génération parallèle..."}})
         results = await asyncio.gather(*[gen_one(mt) for mt in model_types])
         models = {mtype: data for mtype, data in results}
