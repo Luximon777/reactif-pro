@@ -2899,7 +2899,20 @@ async def get_last_cv_analysis(token: str):
             if not result.get("savoir_etre") or len(result.get("savoir_etre", [])) == 0:
                 se_passport = (passport or {}).get("savoir_etre", [])
                 se_profile = (profile or {}).get("savoir_etre", [])
-                result["savoir_etre"] = se_passport if se_passport else se_profile
+                # Fallback: extract savoir_etre from CV transversal competences and strengths
+                if not se_passport and not se_profile:
+                    extracted_se = []
+                    for item in result.get("competences_transversales", []):
+                        name = item.get("name", item) if isinstance(item, dict) else str(item)
+                        if name:
+                            extracted_se.append({"name": name, "source": "cv_transversale"})
+                    for item in result.get("strengths", []):
+                        name = item.get("name", item) if isinstance(item, dict) else str(item)
+                        if name and not any(s.get("name") == name for s in extracted_se):
+                            extracted_se.append({"name": name, "source": "cv_strength"})
+                    result["savoir_etre"] = extracted_se
+                else:
+                    result["savoir_etre"] = se_passport if se_passport else se_profile
             if not result.get("experiences") or len(result.get("experiences", [])) == 0:
                 exp_passport = (passport or {}).get("experiences", [])
                 exp_profile = (profile or {}).get("experiences", [])
@@ -5412,6 +5425,24 @@ async def passport_enrich(token: str):
     if not passport.get("savoir_etre") and profile and profile.get("savoir_etre"):
         updates["savoir_etre"] = profile["savoir_etre"]
         enriched_fields.append("savoir_etre")
+
+    # If still no savoir_etre, extract from CV competences_transversales + strengths
+    if not passport.get("savoir_etre") and "savoir_etre" not in updates:
+        cv_job = await db.cv_jobs.find_one({"token_id": token_id, "status": "completed"}, sort=[("created_at", -1)])
+        if cv_job:
+            cv_result = cv_job.get("result", {})
+            extracted_se = []
+            for item in cv_result.get("competences_transversales", []):
+                name = item.get("name", item) if isinstance(item, dict) else str(item)
+                if name:
+                    extracted_se.append({"name": name, "source": "cv_transversale"})
+            for item in cv_result.get("strengths", []):
+                name = item.get("name", item) if isinstance(item, dict) else str(item)
+                if name and not any(s.get("name") == name for s in extracted_se):
+                    extracted_se.append({"name": name, "source": "cv_strength"})
+            if extracted_se:
+                updates["savoir_etre"] = extracted_se
+                enriched_fields.append("savoir_etre")
 
     # Sync experiences from profile if passport is empty
     if not passport.get("experiences") and profile and profile.get("experiences"):
