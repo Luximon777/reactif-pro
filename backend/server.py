@@ -731,18 +731,69 @@ async def create_job(token: str, request: CreateJobRequest):
 async def jobs_matching_early(token: str):
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:10]]
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:15]]
     sectors = (profile or {}).get("sectors", [])
-    jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(20).to_list(20)
+
+    # Also get experience titles from passport for better matching
+    exp_titles = []
+    for e in (passport or {}).get("experiences", []):
+        if isinstance(e, dict) and e.get("title"):
+            exp_titles.append(e["title"])
+
+    # Build combined user text for keyword matching
+    user_words = set()
+    for s in skills + exp_titles:
+        for w in s.lower().split():
+            if len(w) > 3:
+                user_words.add(w)
+
+    # Infer sectors from profile
+    inferred_sectors = _infer_sectors_from_profile((passport or {}).get("experiences", []), (passport or {}).get("savoir_faire", skills))
+    inferred_set = set(s.lower() for s in inferred_sectors[:3])
+
+    jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(30).to_list(30)
     matched = []
     for job in jobs:
         req = job.get("required_skills", [])
-        common = len(set(s.lower() for s in skills) & set(r.lower() for r in req))
-        score = min(int((common / max(len(req), 1)) * 70) + 30, 100) if req else 50
-        if job.get("sector", "").lower() in [s.lower() for s in sectors]:
-            score = min(score + 15, 100)
+        job_sector = job.get("sector", "").lower()
+        job_title_words = set(w.lower() for w in job.get("title", "").split() if len(w) > 3)
+
+        # 1. Exact skill match
+        exact = len(set(s.lower() for s in skills) & set(r.lower() for r in req))
+        # 2. Keyword skill match (partial word overlap)
+        keyword_matches = 0
+        for r_skill in req:
+            r_words = set(w for w in r_skill.lower().split() if len(w) > 3)
+            if r_words & user_words:
+                keyword_matches += 1
+        # 3. Experience title match
+        exp_match = 0
+        for et in exp_titles:
+            if any(w in et.lower() for w in job_title_words if len(w) > 3):
+                exp_match += 1
+                break
+        # 4. Sector match
+        sector_match = job_sector in inferred_set or any(job_sector in s for s in inferred_set)
+
+        total_req = max(len(req), 1)
+        skill_score = ((exact + keyword_matches * 0.7) / total_req) * 50
+        score = int(min(100, 20 + skill_score + (exp_match * 15) + (15 if sector_match else 0)))
+
+        rationale_parts = []
+        if exact > 0:
+            rationale_parts.append(f"{exact} compétence(s) exacte(s)")
+        if keyword_matches > exact:
+            rationale_parts.append(f"{keyword_matches - exact} par mots-clés")
+        if exp_match:
+            rationale_parts.append("expérience similaire")
+        if sector_match:
+            rationale_parts.append("secteur correspondant")
+        if not rationale_parts:
+            rationale_parts.append(f"0/{len(req)} compétences en commun")
+
         job["match_score"] = score
-        job["match_rationale"] = f"{common} compétences en commun sur {len(req)} requises"
+        job["match_rationale"] = " · ".join(rationale_parts)
         matched.append(job)
     matched.sort(key=lambda x: x["match_score"], reverse=True)
     return {"jobs": matched, "total": len(matched), "profile_skills_count": len(skills)}
@@ -3774,71 +3825,21 @@ async def seed_database():
     
     # Seed jobs
     demo_jobs = [
-        {
-            "id": str(uuid.uuid4()),
-            "title": "Assistant Administratif",
-            "company": "TechCorp France",
-            "location": "Paris, France",
-            "contract_type": "CDI",
-            "salary_range": "28 000€ - 35 000€",
-            "required_skills": ["Gestion administrative", "Excel", "Communication", "Organisation"],
-            "description": "Nous recherchons un assistant administratif polyvalent pour rejoindre notre équipe.",
-            "sector": "Administration",
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "title": "Chargé de Clientèle",
-            "company": "ServicePlus",
-            "location": "Lyon, France",
-            "contract_type": "CDI",
-            "salary_range": "32 000€ - 40 000€",
-            "required_skills": ["Relation client", "Négociation", "CRM", "Écoute active"],
-            "description": "Rejoignez notre équipe commerciale en tant que chargé de clientèle.",
-            "sector": "Commerce",
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "title": "Gestionnaire de Paie",
-            "company": "Fiduciaire Nationale",
-            "location": "Bordeaux, France",
-            "contract_type": "CDI",
-            "salary_range": "35 000€ - 45 000€",
-            "required_skills": ["Paie", "Droit social", "SILAE", "Excel avancé"],
-            "description": "Expert en paie recherché pour cabinet comptable en pleine croissance.",
-            "sector": "Comptabilité",
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "title": "Développeur Web Junior",
-            "company": "DigitalStart",
-            "location": "Nantes, France",
-            "contract_type": "CDI",
-            "salary_range": "30 000€ - 38 000€",
-            "required_skills": ["JavaScript", "HTML/CSS", "React", "Git"],
-            "description": "Opportunité pour développeur junior motivé dans une startup innovante.",
-            "sector": "Informatique",
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "title": "Responsable Formation",
-            "company": "FormaPro Institute",
-            "location": "Toulouse, France",
-            "contract_type": "CDI",
-            "salary_range": "40 000€ - 50 000€",
-            "required_skills": ["Ingénierie pédagogique", "Management", "Gestion de projet", "Formation adultes"],
-            "description": "Pilotez notre département formation et accompagnez le développement des compétences.",
-            "sector": "Formation",
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
+        {"id": str(uuid.uuid4()), "title": "Assistant Administratif", "company": "TechCorp France", "location": "Paris", "contract_type": "CDI", "salary_range": "28 000€ - 35 000€", "required_skills": ["Gestion administrative", "Excel", "Communication", "Organisation"], "description": "Nous recherchons un assistant administratif polyvalent.", "sector": "Administration", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Chargé de Clientèle", "company": "ServicePlus", "location": "Lyon", "contract_type": "CDI", "salary_range": "32 000€ - 40 000€", "required_skills": ["Relation client", "Négociation", "CRM", "Écoute active"], "description": "Rejoignez notre équipe commerciale.", "sector": "Commerce", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Agent d'entretien", "company": "Propreté Services IDF", "location": "Paris", "contract_type": "CDI", "salary_range": "21 600€ - 24 000€", "required_skills": ["Nettoyage", "Entretien", "Hygiène", "Autonomie"], "description": "Agent d'entretien pour bureaux et locaux professionnels en Île-de-France.", "sector": "Propreté", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Chef d'équipe propreté", "company": "GSF Neptune", "location": "Lille", "contract_type": "CDI", "salary_range": "24 000€ - 28 000€", "required_skills": ["Encadrement", "Nettoyage", "Organisation", "Contrôle qualité", "HACCP"], "description": "Management d'une équipe de 8 agents sur site tertiaire.", "sector": "Propreté", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Employé polyvalent de restauration", "company": "Sodexo", "location": "Lyon", "contract_type": "CDD", "salary_range": "21 600€ - 23 000€", "required_skills": ["Restauration", "Service", "Hygiène", "Travail en équipe"], "description": "Préparation, mise en place et service en restauration collective.", "sector": "Restauration", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Second de cuisine", "company": "Buffalo Grill", "location": "Bordeaux", "contract_type": "CDI", "salary_range": "23 000€ - 27 000€", "required_skills": ["Cuisine", "HACCP", "Gestion stocks", "Encadrement"], "description": "Assister le chef de cuisine dans la gestion quotidienne.", "sector": "Restauration", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Manager en restauration rapide", "company": "McDonald's", "location": "Marseille", "contract_type": "CDI", "salary_range": "26 000€ - 32 000€", "required_skills": ["Management", "Restauration", "Service client", "Hygiène", "Gestion stocks"], "description": "Gestion d'un restaurant et management d'une équipe de 15 personnes.", "sector": "Restauration", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Préparateur de commandes", "company": "Amazon Logistics", "location": "Metz", "contract_type": "CDI", "salary_range": "22 000€ - 25 000€", "required_skills": ["Préparation commandes", "Logistique", "Manutention", "Rigueur"], "description": "Préparer les commandes clients dans un entrepôt logistique.", "sector": "Logistique", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Magasinier-cariste", "company": "GLS France", "location": "Strasbourg", "contract_type": "CDI", "salary_range": "23 000€ - 26 000€", "required_skills": ["CACES", "Logistique", "Gestion stocks", "Organisation"], "description": "Réception, stockage et expédition de marchandises.", "sector": "Logistique", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Agent de maintenance bâtiment", "company": "Nexity", "location": "Toulouse", "contract_type": "CDI", "salary_range": "24 000€ - 28 000€", "required_skills": ["Maintenance", "Entretien", "Électricité", "Plomberie", "Autonomie"], "description": "Maintenance préventive et curative des bâtiments.", "sector": "BTP", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Auxiliaire de puériculture", "company": "Crèche Les Petits Pas", "location": "Nantes", "contract_type": "CDI", "salary_range": "22 000€ - 26 000€", "required_skills": ["Petite enfance", "Accompagnement enfant", "Hygiène", "Communication", "Patience"], "description": "Accompagnement des enfants de 3 mois à 3 ans.", "sector": "Petite enfance", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Animateur périscolaire", "company": "Mairie de Rennes", "location": "Rennes", "contract_type": "CDD", "salary_range": "21 600€ - 23 000€", "required_skills": ["Animation", "Enfant", "Créativité", "Travail en équipe", "Organisation"], "description": "Animation d'activités pour enfants 6-12 ans.", "sector": "Petite enfance", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Aide-soignant(e)", "company": "EHPAD Les Tilleuls", "location": "Montpellier", "contract_type": "CDI", "salary_range": "24 000€ - 28 000€", "required_skills": ["Soins", "Accompagnement", "Hygiène", "Empathie", "Travail en équipe"], "description": "Soins d'hygiène et de confort aux résidents.", "sector": "Santé", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Vendeur conseil", "company": "Leroy Merlin", "location": "Lille", "contract_type": "CDI", "salary_range": "23 000€ - 27 000€", "required_skills": ["Vente", "Conseil client", "Relation client", "Organisation"], "description": "Accueil et conseil des clients en magasin.", "sector": "Commerce", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "title": "Gestionnaire de Paie", "company": "Fiduciaire Nationale", "location": "Bordeaux", "contract_type": "CDI", "salary_range": "35 000€ - 45 000€", "required_skills": ["Paie", "Droit social", "SILAE", "Excel avancé"], "description": "Expert en paie pour cabinet comptable.", "sector": "Comptabilité", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
     ]
     
     # Seed learning modules

@@ -1062,12 +1062,13 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
     try {
       const [profileRes, jobsRes, learningRes, passportRes] = await Promise.all([
         axios.get(`${API}/profile?token=${token}`),
-        axios.get(`${API}/jobs?token=${token}`),
+        axios.get(`${API}/jobs/matching?token=${token}`),
         axios.get(`${API}/learning?token=${token}`),
         axios.get(`${API}/passport?token=${token}`).catch(() => ({ data: null })),
       ]);
       setProfile(profileRes.data);
-      setJobs(jobsRes.data);
+      const jobsData = jobsRes.data;
+      setJobs(Array.isArray(jobsData) ? jobsData : (jobsData.jobs || []));
       setLearningModules(learningRes.data);
       setPassport(passportRes.data);
 

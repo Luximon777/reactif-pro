@@ -49,7 +49,13 @@ Developpement d'une plateforme full-stack "Re'Actif Pro" basee sur l'analyse de 
 - **Events**: Generes dynamiquement avec _generate_job_dating_events()
 - **IDs**: Stables (evt-it-paris, evt-resto-bordeaux, etc.)
 
+### Phase 10 — Correction Job Matching Frontend (DONE - 17/06/2026)
+- Fix P0: Carte "Job Matching" affichait 0 car le dashboard appelait `/api/jobs` (scores generiques=25) au lieu de `/api/jobs/matching` (scores personnalises)
+- Correction dans `ParticulierView.jsx`: appel vers `/api/jobs/matching` + parsing format `{jobs:[...]}`
+- Resultat: 3 offres compatibles (scores >= 60%) correctement affichees sur Trajectoire et Accueil
+
 ## Backlog
-- **P1** : Refactoring `server.py` (>6400 lignes) en routeurs dedies sous /app/backend/routes/
-- **P2** : Export PDF des 4 modeles de CV
-- **P3** : Soft Skills (CSE), Valeurs (VIA), diagnostic CCSP, Codeveloppement, micro-titres
+- **P1** : Refactoring `server.py` (>6900 lignes) en routeurs dedies sous /app/backend/routes/
+- **P2** : Soft Skills (CSE), Valeurs (VIA) via modules d'auto-evaluation
+- **P2** : Outil diagnostic CCSP
+- **P3** : Ateliers de Codeveloppement, micro-titres/badges
