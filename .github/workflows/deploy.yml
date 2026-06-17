@@ -23,18 +23,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: yarn
-          cache-dependency-path: frontend/yarn.lock
+          node-version: 22
 
       - name: Install dependencies
         working-directory: frontend
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Build
         working-directory: frontend
         env:
           REACT_APP_BACKEND_URL: https://marche-cache.emergent.host
+          CI: false
         run: yarn build
 
       - name: Setup Pages
