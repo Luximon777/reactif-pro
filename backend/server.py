@@ -5994,12 +5994,31 @@ async def _run_cv_generation(job_id: str, token_id: str, model_types: list, job_
         offer_snippet = job_offer[:500].strip() if job_offer else ""
 
         # Build shared context once
-        context = f"Compétences: {', '.join(skills)}\nExpériences: {', '.join(exps)}\nFormations: {', '.join(formations)}\nSavoir-être: {', '.join(savoir_etre)}"
+        context = f"Compétences: {', '.join(skills)}\nExpériences: {', '.join(exps)}\nFormations: {', '.join(formations)}\nSavoir-être: {', '.join([s.get('name','') if isinstance(s,dict) else str(s) for s in savoir_etre])}"
+
+        # Determine target job title from offer
+        target_job = ""
         if offer_snippet:
-            context += f"\nOffre ciblée: {offer_snippet}"
+            # Extract first line or first significant phrase as job title
+            first_line = offer_snippet.split('\n')[0].strip()
+            if len(first_line) > 5:
+                target_job = first_line[:80]
 
         async def gen_one(mtype):
-            prompt = f"""CV "{mtype}" — {context}
+            if offer_snippet:
+                prompt = f"""Génère un CV professionnel de type "{mtype}" CIBLÉ pour cette offre d'emploi:
+OFFRE CIBLE: {offer_snippet}
+
+Le titre du CV DOIT mentionner le poste visé (ex: "{target_job}").
+L'accroche et les compétences doivent être reformulées pour correspondre aux exigences de l'offre.
+
+PROFIL DU CANDIDAT:
+{context}
+
+Réponds UNIQUEMENT en JSON: {{"titre":"[Poste visé d'après l'offre]","accroche":"2 lignes ciblées sur l'offre","competences_cles":["compétences reformulées selon l'offre"],"experiences":[{{"poste":"","entreprise":"","periode":"","realisations":["reformulées selon l'offre"]}}],"formations":[{{"diplome":"","ecole":"","annee":""}}],"atouts":["atouts en lien avec l'offre"],"langues":["Français (natif)"]}}"""
+            else:
+                prompt = f"""Génère un CV professionnel de type "{mtype}".
+PROFIL: {context}
 JSON: {{"titre":"str","accroche":"2 lignes","competences_cles":["..."],"experiences":[{{"poste":"","entreprise":"","periode":"","realisations":[""]}}],"formations":[{{"diplome":"","ecole":"","annee":""}}],"atouts":["..."],"langues":["Français (natif)"]}}"""
             def _blocking_call():
                 """Run LLM call in a separate thread for true parallelism."""
@@ -6008,7 +6027,7 @@ JSON: {{"titre":"str","accroche":"2 lignes","competences_cles":["..."],"experien
                 _aio.set_event_loop(_loop)
                 try:
                     chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cvgen-{job_id}-{mtype}",
-                                    system_message="Expert RH français. Génère un CV structuré en JSON uniquement.").with_model("openai", "gpt-5.2")
+                                    system_message="Tu es un expert RH et rédacteur de CV français. Quand une offre d'emploi est fournie, le titre du CV DOIT correspondre au poste visé dans l'offre. Adapte toutes les rubriques (accroche, compétences, réalisations) pour matcher l'offre. Réponds UNIQUEMENT en JSON valide.").with_model("openai", "gpt-5.2")
                     resp = _loop.run_until_complete(chat.send_message(UserMessage(text=prompt)))
                     text = resp.content if hasattr(resp, 'content') else str(resp).strip()
                     if "```json" in text: text = text.split("```json")[1].split("```")[0].strip()
