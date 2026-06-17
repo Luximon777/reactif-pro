@@ -2722,18 +2722,27 @@ async def get_last_cv_analysis(token: str):
             )
     if not result.get("audit_cv") or not result.get("savoir_faire"):
         passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-        if passport:
-            if not result.get("savoir_faire"):
-                result["savoir_faire"] = passport.get("savoir_faire", [])
-            if not result.get("savoir_etre"):
-                result["savoir_etre"] = passport.get("savoir_etre", [])
+        profile_id = token_doc.get("profile_id")
+        profile = await db.profiles.find_one({"id": profile_id}) if profile_id else None
+        if passport or profile:
+            # Merge savoir_faire from passport and profile.skills
+            if not result.get("savoir_faire") or len(result.get("savoir_faire", [])) == 0:
+                sf_passport = (passport or {}).get("savoir_faire", [])
+                sf_profile = (profile or {}).get("skills", [])
+                result["savoir_faire"] = sf_passport if sf_passport else sf_profile
+            if not result.get("savoir_etre") or len(result.get("savoir_etre", [])) == 0:
+                se_passport = (passport or {}).get("savoir_etre", [])
+                se_profile = (profile or {}).get("savoir_etre", [])
+                result["savoir_etre"] = se_passport if se_passport else se_profile
             if not result.get("experiences") or len(result.get("experiences", [])) == 0:
-                result["experiences"] = passport.get("experiences", [])
+                exp_passport = (passport or {}).get("experiences", [])
+                exp_profile = (profile or {}).get("experiences", [])
+                result["experiences"] = exp_passport if exp_passport else exp_profile
             if not result.get("profile"):
                 result["profile"] = {
-                    "professional_summary": passport.get("professional_summary", ""),
-                    "career_project": passport.get("career_project", ""),
-                    "target_sectors": passport.get("target_sectors", []),
+                    "professional_summary": (passport or {}).get("professional_summary", ""),
+                    "career_project": (passport or {}).get("career_project", ""),
+                    "target_sectors": (passport or {}).get("target_sectors", []),
                 }
             result["savoir_faire_count"] = len(result.get("savoir_faire", []))
             result["savoir_etre_count"] = len(result.get("savoir_etre", []))
