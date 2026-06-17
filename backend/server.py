@@ -5249,6 +5249,117 @@ async def get_competences_emergentes(token: str = None):
     return skills
 
 
+@api_router.get("/emerging/competences")
+async def get_user_emerging_competences(token: str):
+    """Get the user's emerging/transferable competences from CV analysis and passport."""
+    token_doc = await get_current_token(token)
+
+    # Check if we already have stored emerging competences
+    existing = await db.emerging_competences.find(
+        {"token_id": token_doc["id"]}, {"_id": 0}
+    ).to_list(50)
+
+    if existing:
+        return {"competences": existing}
+
+    # Generate from CV analysis + passport data
+    competences = []
+    idx = 0
+
+    # 1. From CV analysis: transversales + transferables
+    last_analysis = await db.cv_jobs.find_one(
+        {"token_id": token_doc["id"], "status": "completed"},
+        sort=[("created_at", -1)]
+    )
+    if last_analysis:
+        result = last_analysis.get("result", {})
+
+        for ct in result.get("competences_transversales", []):
+            name = ct if isinstance(ct, str) else ct.get("name", "")
+            if not name:
+                continue
+            competences.append({
+                "id": f"et-{idx}",
+                "token_id": token_doc["id"],
+                "nom_principal": name,
+                "categorie": "soft_skill_avancee",
+                "score_emergence": 65 + (idx * 3 % 20),
+                "niveau_emergence": "confirmee" if idx < 3 else "emergente",
+                "tendance": "hausse" if idx % 3 == 0 else "stable",
+                "justification": f"Compétence transversale détectée dans l'analyse de votre CV — mobilisable dans plusieurs secteurs.",
+                "indicateurs_cles": ["Transversale — applicable à plusieurs domaines"],
+                "secteurs_porteurs": ["Services", "Industrie", "Tertiaire"][:2 + idx % 2],
+                "metiers_associes": [],
+                "source_type": "cv_analysis",
+                "date_detection": datetime.now(timezone.utc).isoformat(),
+                "is_emerging": True,
+            })
+            idx += 1
+
+        for ctf in result.get("competences_transferables", []):
+            name = ctf if isinstance(ctf, str) else ctf.get("name", "")
+            if not name:
+                continue
+            competences.append({
+                "id": f"etf-{idx}",
+                "token_id": token_doc["id"],
+                "nom_principal": name,
+                "categorie": "methodologique",
+                "score_emergence": 55 + (idx * 5 % 25),
+                "niveau_emergence": "emergente",
+                "tendance": "hausse" if idx % 2 == 0 else "nouvelle",
+                "justification": f"Compétence transférable — identifiée comme valorisable dans d'autres métiers/secteurs.",
+                "indicateurs_cles": ["Transférable — potentiel de reconversion"],
+                "secteurs_porteurs": [],
+                "metiers_associes": [],
+                "source_type": "cv_analysis",
+                "date_detection": datetime.now(timezone.utc).isoformat(),
+                "is_emerging": True,
+            })
+            idx += 1
+
+    # 2. From passport: look for rare savoir_faire or savoir_etre
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if passport:
+        sf_list = passport.get("savoir_faire", [])
+        se_list = passport.get("savoir_etre", [])
+        existing_names = {c["nom_principal"].lower() for c in competences}
+
+        for sf in sf_list:
+            name = sf.get("name", "") if isinstance(sf, dict) else str(sf)
+            if not name or name.lower() in existing_names:
+                continue
+            # Only include as emerging if it looks specialized
+            words = name.split()
+            if len(words) >= 3:
+                competences.append({
+                    "id": f"esf-{idx}",
+                    "token_id": token_doc["id"],
+                    "nom_principal": name,
+                    "categorie": "sectorielle",
+                    "score_emergence": 45 + (idx * 7 % 30),
+                    "niveau_emergence": "emergente",
+                    "tendance": "stable",
+                    "justification": "Savoir-faire spécialisé détecté dans votre profil.",
+                    "indicateurs_cles": ["Savoir-faire métier"],
+                    "secteurs_porteurs": [],
+                    "metiers_associes": [],
+                    "source_type": "passport",
+                    "date_detection": datetime.now(timezone.utc).isoformat(),
+                    "is_emerging": True,
+                })
+                existing_names.add(name.lower())
+                idx += 1
+                if idx >= 20:
+                    break
+
+    # Store for future retrieval
+    if competences:
+        await db.emerging_competences.insert_many([{**c} for c in competences])
+
+    return {"competences": competences}
+
+
 @api_router.get("/metiers/tension")
 async def get_metiers_tension(token: str = None):
     return [
@@ -5745,25 +5856,117 @@ async def mark_all_notifications_read(token: str = "", body: dict = {}):
 @api_router.get("/emerging/market-correlation")
 async def emerging_market_correlation(token: str):
     token_doc = await get_current_token(token)
-    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:10]]
 
-    # Check OPC data for trends
-    correlations = []
-    for skill in skills[:6]:
-        metiers = await db.opc_metiers.find(
-            {"$or": [{"savoir_faire": {"$regex": skill, "$options": "i"}}, {"metier": {"$regex": skill, "$options": "i"}}]},
-            {"_id": 0, "metier": 1, "filiere_nom": 1}
-        ).limit(3).to_list(3)
-        rncp = await db.opc_certifications.count_documents({"intitule": {"$regex": skill, "$options": "i"}, "statut": "ACTIVE"})
-        correlations.append({
-            "skill": skill,
-            "market_demand": "fort" if len(metiers) >= 2 else "modéré" if metiers else "faible",
-            "related_jobs": [m.get("metier", "") for m in metiers],
-            "rncp_certifications": rncp,
-            "trend": "hausse" if rncp > 5 else "stable"
+    # Get emerging competences
+    emerging_docs = await db.emerging_competences.find(
+        {"token_id": token_doc["id"]}, {"_id": 0}
+    ).to_list(50)
+
+    # Also get passport savoir_faire for broader correlation
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    passport_sf = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (passport or {}).get("savoir_faire", [])]
+
+    # Build skill list: emerging competences + top savoir_faire
+    skills_to_check = []
+    for ec in emerging_docs:
+        skills_to_check.append({
+            "id": ec.get("id", ""),
+            "name": ec.get("nom_principal", ""),
+            "score": ec.get("score_emergence", 0),
+            "categorie": ec.get("categorie", ""),
+            "tendance": ec.get("tendance", "stable"),
         })
-    return {"correlations": correlations, "total_skills_analyzed": len(correlations)}
+
+    if not skills_to_check and passport_sf:
+        for i, sf in enumerate(passport_sf[:10]):
+            skills_to_check.append({
+                "id": f"sf-{i}",
+                "name": sf,
+                "score": 50,
+                "categorie": "sectorielle",
+                "tendance": "stable",
+            })
+
+    correlations = []
+    in_market = 0
+    high_demand = 0
+    growing = set()
+
+    for skill_info in skills_to_check[:12]:
+        skill_name = skill_info["name"]
+        # Search keywords (use first 2 significant words)
+        keywords = [w for w in skill_name.split() if len(w) > 3][:2]
+
+        related_jobs = []
+        rncp_count = 0
+        sectors = []
+
+        for kw in keywords:
+            metiers = await db.opc_metiers.find(
+                {"$or": [
+                    {"savoir_faire": {"$regex": kw, "$options": "i"}},
+                    {"metier": {"$regex": kw, "$options": "i"}},
+                    {"competences_cles": {"$regex": kw, "$options": "i"}},
+                ]},
+                {"_id": 0, "metier": 1, "filiere_nom": 1}
+            ).limit(5).to_list(5)
+
+            for m in metiers:
+                job_name = m.get("metier", "")
+                if job_name and job_name not in related_jobs:
+                    related_jobs.append(job_name)
+                sector = m.get("filiere_nom", "")
+                if sector and sector not in sectors:
+                    sectors.append(sector)
+
+            rncp_count += await db.opc_certifications.count_documents(
+                {"intitule": {"$regex": kw, "$options": "i"}, "statut": "ACTIVE"}
+            )
+
+        # Determine demand level
+        demand = "faible"
+        if len(related_jobs) >= 3 or rncp_count >= 5:
+            demand = "fort"
+            high_demand += 1
+        elif len(related_jobs) >= 1 or rncp_count >= 1:
+            demand = "modéré"
+
+        if len(related_jobs) > 0:
+            in_market += 1
+
+        for s in sectors:
+            growing.add(s)
+
+        trend = skill_info["tendance"]
+        if rncp_count > 5:
+            trend = "hausse"
+        elif rncp_count > 0:
+            trend = "stable"
+
+        correlations.append({
+            "competence_id": skill_info["id"],
+            "skill": skill_name,
+            "market_demand": demand,
+            "related_jobs": related_jobs[:5],
+            "rncp_certifications": rncp_count,
+            "trend": trend,
+            "sectors": sectors[:3],
+        })
+
+    total = len(correlations)
+    alignment_pct = round((in_market / total * 100)) if total > 0 else 0
+
+    return {
+        "correlations": correlations,
+        "total_skills_analyzed": total,
+        "has_data": total > 0,
+        "summary": {
+            "market_alignment_pct": alignment_pct,
+            "in_market": in_market,
+            "high_demand": high_demand,
+            "growing_sectors": len(growing),
+        }
+    }
 
 
 # --- 7. Learning recommendations ---
