@@ -5,7 +5,7 @@ Développement d'une plateforme full-stack "Ré'Actif Pro" basée sur l'analyse 
 
 ## Architecture
 - **Frontend** : React + Tailwind CSS + Shadcn/UI
-- **Backend** : FastAPI + MongoDB (Motor)
+- **Backend** : FastAPI + MongoDB (Motor) + GridFS
 - **IA** : Claude Sonnet 4.5 / GPT-5.2 via Emergent LLM Key
 
 ## Fonctionnalités Implémentées
@@ -41,7 +41,19 @@ Développement d'une plateforme full-stack "Ré'Actif Pro" basée sur l'analyse 
 
 **Tests : 21/21 passés (100%)**
 
+### Phase 8 — Upload de Documents Justificatifs (DONE - 17/06/2026)
+**Certification officielle des expériences :**
+- `POST /api/passport/experiences/upload-proof` — Upload base64 (PDF/JPG/PNG, max 10 Mo) vers GridFS
+- `GET /api/passport/experiences/proof-file/{file_id}` — Téléchargement/consultation du document
+- `DELETE /api/passport/experiences/proof-file/{file_id}` — Suppression du document + mise à jour passeport
+- Frontend ParticulierView : Bouton "Joindre un document officiel" sous chaque expérience (Trajectoire → Mon CV)
+- Frontend ParticulierView : Affichage "Document officiel joint" + badge "Certifié" + boutons Voir/Supprimer
+- Frontend PassportView : Badge "Certifié" dans l'ExperienceCard + bloc document avec bouton "Consulter"
+- Frontend PassportView : Bouton "Certifier" (upload) pour les expériences non certifiées
+
+**Tests : Backend 13/13 (100%), Frontend 100% (all UI verified)**
+
 ## Backlog
-- **P1** : Refactoring `server.py` (>5600 lignes)
+- **P1** : Refactoring `server.py` (>5900 lignes) en routeurs dédiés
 - **P2** : Export PDF des 4 modèles de CV
 - **P3** : Soft Skills (CSE), Valeurs (VIA), diagnostic CCSP, Codéveloppement, micro-titres
