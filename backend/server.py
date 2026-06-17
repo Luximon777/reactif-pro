@@ -6954,8 +6954,6 @@ async def jobdating_web_search(token: str, city: str = ""):
     return {"events": [], "city": city}
 
 
-# --- 7. Learning recommendations ---
-@api_router.get("/learning/recommendations")
 
 # --- 8. Experience Proof (contributeur sociétal) ---
 @api_router.post("/passport/experience-proof")
