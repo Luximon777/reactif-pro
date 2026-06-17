@@ -5047,27 +5047,29 @@ async def get_shared_trajectory(share_id: str):
 async def auto_populate_trajectory(token: str):
     token_doc = await get_current_token(token)
     token_id = token_doc["id"]
-    # Import from passport experiences
-    passport = await db.passport_competences.find_one({"token_id": token_id})
+    passport = await db.passports.find_one({"token_id": token_id})
     if not passport:
         return {"imported": 0}
     experiences = passport.get("experiences", [])
-    existing = await db.trajectory_steps.find({"token_id": token_id, "source": "auto-populate"}).to_list(200)
-    existing_titles = {e.get("title") for e in existing}
+    existing = await db.trajectory_steps.find({"token_id": token_id}).to_list(200)
+    existing_titles = {e.get("title", "").lower() for e in existing}
     imported = 0
     for exp in experiences:
+        if not isinstance(exp, dict):
+            continue
         title = exp.get("title") or exp.get("titre") or exp.get("poste") or ""
-        if not title or title in existing_titles:
+        if not title or title.lower() in existing_titles:
             continue
         step = {
             "id": str(uuid.uuid4()),
             "token_id": token_id,
             "step_type": "experience",
             "title": title,
-            "organization": exp.get("company") or exp.get("entreprise") or "",
+            "organization": exp.get("organization") or exp.get("company") or exp.get("entreprise") or "",
             "start_date": exp.get("start_date") or exp.get("debut") or "",
             "end_date": exp.get("end_date") or exp.get("fin") or "",
             "skills": exp.get("skills") or exp.get("competences") or [],
+            "description": exp.get("description", ""),
             "source": "auto-populate",
             "visibility": "private",
             "created_at": datetime.now(timezone.utc).isoformat()
@@ -5087,9 +5089,42 @@ async def log_trajectory_access(body: dict):
 @api_router.post("/trajectory/refresh")
 async def refresh_trajectory(token: str):
     token_doc = await get_current_token(token)
-    # Delete synthesis cache to force regeneration
-    await db.trajectory_synthesis.delete_one({"token_id": token_doc["id"]})
-    return {"status": "ok"}
+    token_id = token_doc["id"]
+    # 1. Delete synthesis cache
+    await db.trajectory_synthesis.delete_one({"token_id": token_id})
+    # 2. Delete all existing auto-populated steps
+    await db.trajectory_steps.delete_many({"token_id": token_id, "source": "auto-populate"})
+    # 3. Re-import from passport
+    passport = await db.passports.find_one({"token_id": token_id})
+    if not passport:
+        return {"status": "ok", "message": "Trajectoire actualisée (aucune donnée passeport)", "imported": 0}
+    experiences = passport.get("experiences", [])
+    existing_manual = await db.trajectory_steps.find({"token_id": token_id}).to_list(200)
+    existing_titles = {e.get("title", "").lower() for e in existing_manual}
+    imported = 0
+    for exp in experiences:
+        if not isinstance(exp, dict):
+            continue
+        title = exp.get("title") or exp.get("titre") or exp.get("poste") or ""
+        if not title or title.lower() in existing_titles:
+            continue
+        step = {
+            "id": str(uuid.uuid4()),
+            "token_id": token_id,
+            "step_type": "experience",
+            "title": title,
+            "organization": exp.get("organization") or exp.get("company") or exp.get("entreprise") or "",
+            "start_date": exp.get("start_date") or exp.get("debut") or "",
+            "end_date": exp.get("end_date") or exp.get("fin") or "",
+            "skills": exp.get("skills") or exp.get("competences") or [],
+            "description": exp.get("description", ""),
+            "source": "auto-populate",
+            "visibility": "private",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.trajectory_steps.insert_one(step)
+        imported += 1
+    return {"status": "ok", "message": f"Trajectoire actualisée — {imported} étape(s) importée(s)", "imported": imported}
 
 
 # ============== NOTIFICATIONS ==============
