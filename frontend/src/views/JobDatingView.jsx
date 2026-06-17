@@ -533,7 +533,7 @@ const JobDatingView = ({ token }) => {
         if (cancelled) return;
         const saved = savedRes.data?.events || [];
         setSavedEvents(saved);
-        setSavedIds(new Set(saved.map(e => e.title)));
+        setSavedIds(new Set(saved.map(e => e.event_id || e.title)));
         setRegisteredIds(new Set((regRes.data?.registrations || []).map(r => r.event_id)));
         const unreadNotifs = (notifsRes.data?.notifications || []).filter(n => n.type === "job_dating_new");
         setMatchingNotifs(unreadNotifs);
@@ -581,7 +581,7 @@ const JobDatingView = ({ token }) => {
   };
 
   const handleSave = async (event) => {
-    const eid = event.title;
+    const eid = event.id || event.title;
     try {
       if (savedIds.has(eid)) {
         await axios.delete(`${API}/jobdating/events/${encodeURIComponent(eid)}/save`, { params: { token } });
@@ -598,7 +598,7 @@ const JobDatingView = ({ token }) => {
   };
 
   const handleRegister = async (event) => {
-    const eid = event.title;
+    const eid = event.id || event.title;
     if (registeredIds.has(eid)) return;
     try {
       await axios.post(`${API}/jobdating/events/${encodeURIComponent(eid)}/register`, null, { params: { token } });
@@ -880,8 +880,8 @@ const JobDatingView = ({ token }) => {
                   <EventCard
                     key={i}
                     event={e}
-                    saved={savedIds.has(e.title)}
-                    registered={registeredIds.has(e.title)}
+                    saved={savedIds.has(e.id || e.title)}
+                    registered={registeredIds.has(e.id || e.title)}
                     onSave={handleSave}
                     onRegister={handleRegister}
                   />
@@ -1037,8 +1037,8 @@ const JobDatingView = ({ token }) => {
                 <EventCard
                   key={i}
                   event={e}
-                  saved={savedIds.has(e.title)}
-                  registered={registeredIds.has(e.title)}
+                  saved={savedIds.has(e.id || e.title)}
+                  registered={registeredIds.has(e.id || e.title)}
                   onSave={handleSave}
                   onRegister={handleRegister}
                   showAiReason={true}
