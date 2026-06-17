@@ -723,6 +723,52 @@ async def create_job(token: str, request: CreateJobRequest):
     await db.jobs.insert_one(job.model_dump())
     return job.model_dump()
 
+# Specific routes MUST come before wildcard /jobs/{job_id}
+@api_router.get("/jobs/matching")
+async def jobs_matching_early(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:10]]
+    sectors = (profile or {}).get("sectors", [])
+    jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(20).to_list(20)
+    matched = []
+    for job in jobs:
+        req = job.get("required_skills", [])
+        common = len(set(s.lower() for s in skills) & set(r.lower() for r in req))
+        score = min(int((common / max(len(req), 1)) * 70) + 30, 100) if req else 50
+        if job.get("sector", "").lower() in [s.lower() for s in sectors]:
+            score = min(score + 15, 100)
+        job["match_score"] = score
+        job["match_rationale"] = f"{common} compétences en commun sur {len(req)} requises"
+        matched.append(job)
+    matched.sort(key=lambda x: x["match_score"], reverse=True)
+    return {"jobs": matched, "total": len(matched), "profile_skills_count": len(skills)}
+
+
+@api_router.get("/jobs/applications")
+async def jobs_applications_early(token: str):
+    token_doc = await get_current_token(token)
+    apps = await db.applications.find({"token_id": token_doc["id"]}, {"_id": 0}).sort("applied_at", -1).to_list(50)
+    return {"applications": apps, "total": len(apps)}
+
+
+@api_router.post("/jobs/apply")
+async def jobs_apply_early(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    job_id = body.get("job_id", "")
+    if not job_id:
+        raise HTTPException(400, "job_id requis")
+    existing = await db.applications.find_one({"token_id": token_doc["id"], "job_id": job_id})
+    if existing:
+        return {"success": False, "message": "Vous avez déjà candidaté à cette offre"}
+    await db.applications.insert_one({
+        "id": str(uuid.uuid4()), "token_id": token_doc["id"], "job_id": job_id,
+        "status": "envoyee", "applied_at": datetime.now(timezone.utc).isoformat(),
+        "motivation": body.get("motivation", "")
+    })
+    return {"success": True, "message": "Candidature envoyée avec succès"}
+
+
 @api_router.get("/jobs/{job_id}")
 async def get_job(job_id: str):
     """Get job details"""
@@ -1726,6 +1772,29 @@ async def aggregate_passport_from_sources(token_id: str) -> dict:
             "source": "plateforme"
         })
 
+    # 2b. From CV analysis (savoir_faire & savoir_etre)
+    last_cv = await db.cv_jobs.find_one(
+        {"token_id": token_id, "status": "completed"}, sort=[("created_at", -1)]
+    )
+    if last_cv and last_cv.get("result"):
+        cv_result = last_cv["result"]
+        # Savoir-faire from CV
+        for sf in cv_result.get("savoir_faire", cv_result.get("competences", []))[:20]:
+            sname = sf.get("name", "") if isinstance(sf, dict) else str(sf)
+            if sname and sname.lower() not in seen_comp_names:
+                seen_comp_names.add(sname.lower())
+                level_raw = sf.get("level", sf.get("niveau", 50)) if isinstance(sf, dict) else 50
+                level_str = "avance" if (isinstance(level_raw, (int, float)) and level_raw >= 70) else "intermediaire" if (isinstance(level_raw, (int, float)) and level_raw >= 40) else "debutant"
+                aggregated["competences"].append({
+                    "id": str(uuid.uuid4()), "name": sname, "category": "savoir_faire",
+                    "level": level_str, "experience_years": 0, "proof": last_cv.get("filename"),
+                    "source": "ia_detectee", "is_emerging": False,
+                    "added_at": datetime.now(timezone.utc).isoformat()
+                })
+        # Savoir-être from CV
+        aggregated["savoir_faire"] = [sf.get("name","") if isinstance(sf, dict) else str(sf) for sf in cv_result.get("savoir_faire", [])[:15]]
+        aggregated["savoir_etre"] = cv_result.get("savoir_etre", [])[:10]
+
     # 3. From Ubuntoo signals (emerging skills)
     signals = await db.ubuntoo_signals.find(
         {"validation_status": {"$in": ["validee_humain", "integree"]}}, {"_id": 0}
@@ -1801,6 +1870,8 @@ async def get_passport(token: str):
         passport_data = new_passport.model_dump()
         passport_data["competences"] = aggregated["competences"]
         passport_data["learning_path"] = aggregated["learning_path"]
+        passport_data["savoir_faire"] = aggregated.get("savoir_faire", [])
+        passport_data["savoir_etre"] = aggregated.get("savoir_etre", [])
         passport_data["completeness_score"] = calculate_completeness(passport_data)
         await db.passports.insert_one(passport_data)
         passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
@@ -1837,6 +1908,8 @@ async def refresh_passport(token: str):
     all_comps = declared_comps + new_comps
     passport["competences"] = all_comps
     passport["learning_path"] = aggregated["learning_path"]
+    passport["savoir_faire"] = aggregated.get("savoir_faire", [])
+    passport["savoir_etre"] = aggregated.get("savoir_etre", [])
     passport["completeness_score"] = calculate_completeness(passport)
     passport["last_updated"] = datetime.now(timezone.utc).isoformat()
 
@@ -5227,15 +5300,8 @@ from observatory_ia_routes import router as observatory_ia_router
 # ─── Inclusion du router RNCP / France Compétences ───────────────────────
 from rncp_routes import router as rncp_router
 
-# Include all routers
-app.include_router(api_router)
-app.include_router(opc_ingestion_router)
-app.include_router(opc_vues_router)
-app.include_router(opc_ia_router)
-app.include_router(opc_admin_router)
-app.include_router(ubuntoo_router)
-app.include_router(observatory_ia_router)
-app.include_router(rncp_router)
+# Include all routers — must come AFTER all route definitions on api_router
+# (moved to end of file after batch fix endpoints)
 
 app.add_middleware(
     CORSMiddleware,
@@ -5291,6 +5357,334 @@ async def on_startup():
                 logger.info(f"[Seed] Utilisateur {pseudo} créé")
     except Exception as e:
         logger.error(f"[Startup error] {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH FIX: Missing endpoints for Espace Personnel
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- 1. Coach Step Chat (interactive IA conversation) ---
+@api_router.post("/coach/step-chat")
+async def coach_step_chat(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    message = body.get("message", "")
+    step_id = body.get("step_id", 1)
+    history = body.get("history", [])
+
+    step_titles = {
+        1: "Dépose ton CV et découvre ton passeport compétences",
+        2: "Identifie tes savoir-être et tes valeurs",
+        3: "Réalise ton D'CLIC PRO",
+        4: "Construis ta trajectoire et ton projet"
+    }
+    step_title = step_titles.get(step_id, f"Étape {step_id}")
+
+    # Load user profile for context
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    profile_ctx = ""
+    if profile:
+        skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in profile.get("skills", [])[:8]]
+        profile_ctx = f"\nProfil: {profile.get('name','')}, compétences: {', '.join(skills)}, secteurs: {', '.join(profile.get('sectors',[])[:3])}"
+
+    system = (
+        f"Tu es le Coach RE'ACTIF, un conseiller bienveillant spécialisé en insertion et réorientation professionnelle. "
+        f"Tu accompagnes l'utilisateur sur l'étape \"{step_title}\" de son parcours RE'ACTIF PRO. "
+        f"Réponds en français, de façon encourageante, concrète et concise (max 150 mots). "
+        f"Donne des conseils pratiques et actionables.{profile_ctx}"
+    )
+
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"coach-{token_doc['id']}-{step_id}",
+                        system_message=system).with_model("openai", "gpt-5.2")
+        # Build context with history
+        history_text = "\n".join([f"{'Utilisateur' if h.get('role')=='user' else 'Coach'}: {h.get('content','')}" for h in history[-4:]])
+        full_msg = f"{history_text}\nUtilisateur: {message}" if history_text else message
+        resp = await chat.send_message(UserMessage(text=full_msg))
+        return {"response": resp.content if hasattr(resp, 'content') else str(resp)}
+    except Exception as e:
+        logger.error(f"[Coach Chat] {e}")
+        return {"response": f"Merci pour votre question ! Pour l'étape \"{step_title}\", je vous conseille de commencer par explorer les outils disponibles dans votre espace personnel. N'hésitez pas à me relancer avec une question plus précise."}
+
+
+# --- 2. CV Generate Models (background job) ---
+@api_router.post("/cv/generate-models")
+async def start_cv_generate_models(token: str, body: dict = {}, background_tasks: BackgroundTasks = None):
+    token_doc = await get_current_token(token)
+    model_types = body.get("model_types", [])
+    job_offer = body.get("job_offer", "")
+
+    if not model_types:
+        raise HTTPException(400, "Aucun modèle sélectionné")
+
+    job_id = str(uuid.uuid4())
+    await db.cv_gen_jobs.insert_one({
+        "job_id": job_id, "token_id": token_doc["id"],
+        "model_types": model_types, "job_offer": job_offer,
+        "status": "processing", "progress": 0, "total": len(model_types),
+        "current_model": model_types[0] if model_types else "",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    if background_tasks:
+        background_tasks.add_task(_run_cv_generation, job_id, token_doc["id"], model_types, job_offer)
+    return {"job_id": job_id, "status": "processing"}
+
+
+async def _run_cv_generation(job_id: str, token_id: str, model_types: list, job_offer: str):
+    try:
+        last_cv = await db.cv_jobs.find_one({"token_id": token_id, "status": "completed"}, sort=[("created_at", -1)])
+        if not last_cv or not last_cv.get("result"):
+            await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Aucune analyse CV trouvée"}})
+            return
+
+        result = last_cv["result"]
+        models = {}
+
+        for i, mtype in enumerate(model_types):
+            await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"progress": i, "current_model": mtype}})
+
+            system = "Tu es un expert en rédaction de CV professionnels français. Génère un CV structuré en JSON."
+            prompt = f"""Génère un CV professionnel de type "{mtype}" basé sur ces données :
+Compétences: {json.dumps([s.get('name','') if isinstance(s,dict) else s for s in result.get('competences',result.get('skills',[]))[:12]], ensure_ascii=False)}
+Expériences: {json.dumps([e.get('title','') for e in result.get('experiences',[])[:6]], ensure_ascii=False)}
+Formations: {json.dumps([f.get('titre','') for f in result.get('formations',[])[:4]], ensure_ascii=False)}
+Savoir-être: {json.dumps(result.get('savoir_etre',[])[:6], ensure_ascii=False)}
+{f'Offre ciblée: {job_offer[:300]}' if job_offer else ''}
+
+Réponds en JSON: {{"titre": "Titre profil", "accroche": "Phrase d'accroche 2 lignes", "competences_cles": ["comp1",...], "experiences": [{{"poste":"","entreprise":"","periode":"","realisations":[""]}}], "formations": [{{"diplome":"","ecole":"","annee":""}}], "atouts": ["atout1",...], "langues": ["Français (natif)"]}}"""
+
+            try:
+                chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"cvgen-{job_id}-{mtype}",
+                                system_message=system).with_model("openai", "gpt-5.2")
+                resp = await chat.send_message(UserMessage(text=prompt))
+                text = resp.content if hasattr(resp, 'content') else str(resp).strip()
+                if "```json" in text: text = text.split("```json")[1].split("```")[0].strip()
+                elif "```" in text: text = text.split("```")[1].split("```")[0].strip()
+                models[mtype] = json.loads(text)
+            except Exception as e:
+                logger.error(f"[CV Gen {mtype}] {e}")
+                models[mtype] = {"titre": "CV Professionnel", "accroche": "Professionnel motivé", "competences_cles": [], "experiences": [], "formations": [], "atouts": []}
+
+        await db.cv_models.update_one(
+            {"token_id": token_id},
+            {"$set": {"token_id": token_id, "models": models, "generated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "progress": len(model_types)}})
+    except Exception as e:
+        logger.error(f"[CV Gen] {e}")
+        await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
+
+
+@api_router.get("/cv/generate-models/status")
+async def cv_generate_models_status(token: str, job_id: str):
+    token_doc = await get_current_token(token)
+    job = await db.cv_gen_jobs.find_one({"job_id": job_id, "token_id": token_doc["id"]}, {"_id": 0})
+    if not job:
+        raise HTTPException(404, "Job non trouvé")
+    return {"status": job.get("status"), "progress": job.get("progress", 0), "total": job.get("total", 0), "current_model": job.get("current_model", ""), "error": job.get("error")}
+
+
+# --- 3. Coffre CV Files & Transfer ---
+@api_router.get("/coffre/cv-files")
+async def coffre_cv_files(token: str):
+    token_doc = await get_current_token(token)
+    # Get uploaded CV files and generated CVs
+    docs = await db.documents.find(
+        {"user_token": token_doc["id"], "category": {"$in": ["cv", "cv_uploaded", "cv_generated"]}},
+        {"_id": 0, "id": 1, "title": 1, "filename": 1, "category": 1, "uploaded_at": 1}
+    ).to_list(20)
+
+    # Also check cv_jobs for uploaded filenames
+    cv_jobs = await db.cv_jobs.find(
+        {"token_id": token_doc["id"], "status": "completed"},
+        {"_id": 0, "filename": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(5)
+
+    files = []
+    for d in docs:
+        files.append({"id": d.get("id", ""), "name": d.get("title", d.get("filename", "")), "type": d.get("category", "cv"), "date": d.get("uploaded_at", "")})
+    for j in cv_jobs:
+        files.append({"id": str(uuid.uuid4()), "name": j.get("filename", "CV analysé"), "type": "cv_analyzed", "date": j.get("created_at", "")})
+    return files
+
+
+@api_router.post("/coffre/transfer-cv")
+async def coffre_transfer_cv(token: str, cv_type: str = "uploaded"):
+    token_doc = await get_current_token(token)
+    # Find the latest CV analysis result
+    last_cv = await db.cv_jobs.find_one({"token_id": token_doc["id"], "status": "completed"}, sort=[("created_at", -1)])
+    if not last_cv:
+        raise HTTPException(404, "Aucun CV analysé trouvé")
+
+    doc_id = str(uuid.uuid4())
+    await db.documents.insert_one({
+        "id": doc_id, "user_token": token_doc["id"],
+        "title": last_cv.get("filename", "CV transféré"),
+        "filename": last_cv.get("filename", "cv.pdf"),
+        "category": cv_type, "source": "cv_analysis",
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "skills": [s.get("name", "") if isinstance(s, dict) else str(s) for s in last_cv.get("result", {}).get("competences", [])[:20]]
+    })
+    return {"success": True, "document_id": doc_id}
+
+
+# --- 4. Jobs Matching & Applications ---
+@api_router.get("/jobs/matching")
+async def jobs_matching(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:10]]
+    sectors = (profile or {}).get("sectors", [])
+
+    jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(20).to_list(20)
+    matched = []
+    for job in jobs:
+        req = job.get("required_skills", [])
+        common = len(set(s.lower() for s in skills) & set(r.lower() for r in req))
+        score = min(int((common / max(len(req), 1)) * 70) + 30, 100) if req else 50
+        if job.get("sector", "").lower() in [s.lower() for s in sectors]:
+            score = min(score + 15, 100)
+        job["match_score"] = score
+        job["match_rationale"] = f"{common} compétences en commun sur {len(req)} requises"
+        matched.append(job)
+
+    matched.sort(key=lambda x: x["match_score"], reverse=True)
+    return {"jobs": matched, "total": len(matched), "profile_skills_count": len(skills)}
+
+
+@api_router.get("/jobs/matching/preferences")
+async def jobs_matching_preferences(token: str):
+    token_doc = await get_current_token(token)
+    prefs = await db.matching_prefs.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    return prefs or {"contract_types": [], "locations": [], "salary_min": 0, "remote": False}
+
+
+@api_router.post("/jobs/matching/preferences")
+async def save_matching_preferences(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    await db.matching_prefs.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {**body, "token_id": token_doc["id"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"success": True}
+
+
+@api_router.get("/jobs/matching/search")
+async def jobs_matching_search(token: str, q: str = ""):
+    token_doc = await get_current_token(token)
+    query = {"status": "active"}
+    if q:
+        query["$or"] = [{"title": {"$regex": q, "$options": "i"}}, {"description": {"$regex": q, "$options": "i"}}, {"company": {"$regex": q, "$options": "i"}}]
+    jobs = await db.jobs.find(query, {"_id": 0}).limit(30).to_list(30)
+    return {"jobs": jobs, "query": q, "total": len(jobs)}
+
+
+@api_router.post("/jobs/apply")
+async def jobs_apply(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    job_id = body.get("job_id", "")
+    if not job_id:
+        raise HTTPException(400, "job_id requis")
+    existing = await db.applications.find_one({"token_id": token_doc["id"], "job_id": job_id})
+    if existing:
+        return {"success": False, "message": "Vous avez déjà candidaté à cette offre"}
+    await db.applications.insert_one({
+        "id": str(uuid.uuid4()), "token_id": token_doc["id"], "job_id": job_id,
+        "status": "envoyee", "applied_at": datetime.now(timezone.utc).isoformat(),
+        "motivation": body.get("motivation", "")
+    })
+    return {"success": True, "message": "Candidature envoyée avec succès"}
+
+
+@api_router.get("/jobs/applications")
+async def jobs_applications(token: str):
+    token_doc = await get_current_token(token)
+    apps = await db.applications.find({"token_id": token_doc["id"]}, {"_id": 0}).sort("applied_at", -1).to_list(50)
+    return {"applications": apps, "total": len(apps)}
+
+
+# --- 5. Notifications mark read ---
+@api_router.post("/notifications/mark-read")
+async def mark_notification_read(token: str, body: dict = {}):
+    notification_id = body.get("notification_id", "")
+    if notification_id:
+        await db.notifications.update_one({"id": notification_id}, {"$set": {"read": True}})
+    return {"success": True}
+
+
+@api_router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read(token: str = "", body: dict = {}):
+    token_val = token or body.get("token", "")
+    if token_val:
+        token_doc = await get_current_token(token_val)
+        await db.notifications.update_many({"token_id": token_doc["id"]}, {"$set": {"read": True}})
+    return {"success": True}
+
+
+# --- 6. Emerging market correlation ---
+@api_router.get("/emerging/market-correlation")
+async def emerging_market_correlation(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:10]]
+
+    # Check OPC data for trends
+    correlations = []
+    for skill in skills[:6]:
+        metiers = await db.opc_metiers.find(
+            {"$or": [{"savoir_faire": {"$regex": skill, "$options": "i"}}, {"metier": {"$regex": skill, "$options": "i"}}]},
+            {"_id": 0, "metier": 1, "filiere_nom": 1}
+        ).limit(3).to_list(3)
+        rncp = await db.opc_certifications.count_documents({"intitule": {"$regex": skill, "$options": "i"}, "statut": "ACTIVE"})
+        correlations.append({
+            "skill": skill,
+            "market_demand": "fort" if len(metiers) >= 2 else "modéré" if metiers else "faible",
+            "related_jobs": [m.get("metier", "") for m in metiers],
+            "rncp_certifications": rncp,
+            "trend": "hausse" if rncp > 5 else "stable"
+        })
+    return {"correlations": correlations, "total_skills_analyzed": len(correlations)}
+
+
+# --- 7. Learning recommendations ---
+@api_router.get("/learning/recommendations")
+async def learning_recommendations(token: str):
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    gaps = (profile or {}).get("gaps", [])
+    sectors = (profile or {}).get("sectors", [])
+
+    recommendations = []
+    for i, gap in enumerate(gaps[:5]):
+        recommendations.append({
+            "id": str(uuid.uuid4()), "title": f"Renforcer : {gap}",
+            "description": f"Module de formation ciblé pour développer votre compétence en {gap.lower()}",
+            "priority": "haute" if i < 2 else "moyenne",
+            "duration": "2-4 semaines", "type": "formation",
+            "linked_gap": gap
+        })
+    for sector in sectors[:3]:
+        recommendations.append({
+            "id": str(uuid.uuid4()), "title": f"Découverte secteur : {sector}",
+            "description": f"Parcours d'orientation vers le secteur {sector}",
+            "priority": "moyenne", "duration": "1-2 semaines", "type": "orientation",
+            "linked_sector": sector
+        })
+    return {"recommendations": recommendations, "total": len(recommendations)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTER INCLUSION + APP LIFECYCLE (must come AFTER all route definitions)
+# ═══════════════════════════════════════════════════════════════════════════════
+app.include_router(api_router)
+app.include_router(opc_ingestion_router)
+app.include_router(opc_vues_router)
+app.include_router(opc_ia_router)
+app.include_router(opc_admin_router)
+app.include_router(ubuntoo_router)
+app.include_router(observatory_ia_router)
+app.include_router(rncp_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
