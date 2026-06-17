@@ -294,7 +294,8 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
     try {
       const res = await axios.post(`${API}/cv/check-offer-match?token=${token}`, { offer_text: offerText });
       setOfferMatchResult(res.data);
-    } catch {
+    } catch (err) {
+      console.error("[MatchCheck] Error:", err?.response?.status, err?.message);
       setOfferMatchResult(null);
     }
     setCheckingMatch(false);
@@ -302,6 +303,7 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
 
   // Auto-scrape URL and auto-check match when text changes
   const autoScrapeTimer = useRef(null);
+  const lastScrapedUrl = useRef("");
   useEffect(() => {
     if (autoScrapeTimer.current) clearTimeout(autoScrapeTimer.current);
     if (!jobOfferText || jobOfferText.trim().length < 10) return;
@@ -309,26 +311,36 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
     const trimmed = jobOfferText.trim();
     const isUrl = /^https?:\/\/\S+$/i.test(trimmed);
 
-    if (isUrl && !scrapingOffer) {
-      // Auto-scrape URL after 1s debounce
+    if (isUrl && !scrapingOffer && trimmed !== lastScrapedUrl.current) {
+      // Auto-scrape URL after debounce
       autoScrapeTimer.current = setTimeout(async () => {
+        lastScrapedUrl.current = trimmed;
         setScrapingOffer(true);
         setOfferMatchResult(null);
         try {
           const res = await axios.get(`${API}/scrape/job-offer?url=${encodeURIComponent(trimmed)}`);
-          if (res.data.success) {
-            setJobOfferText(res.data.text);
+          if (res.data.success && res.data.text) {
+            const scrapedText = res.data.text;
+            setJobOfferText(scrapedText);
             toast.success("Offre importée automatiquement !");
-            checkOfferMatch(res.data.text);
+            // Directly check match after scrape
+            setCheckingMatch(true);
+            try {
+              const matchRes = await axios.post(`${API}/cv/check-offer-match?token=${token}`, { offer_text: scrapedText });
+              setOfferMatchResult(matchRes.data);
+            } catch (matchErr) {
+              console.error("[AutoMatch] Error:", matchErr?.response?.status, matchErr?.message);
+            }
+            setCheckingMatch(false);
+          } else {
+            toast.error(res.data.error || "Impossible d'importer cette offre. Copiez-collez le texte directement.");
           }
-        } catch { /* silent */ }
+        } catch (err) {
+          console.error("[AutoScrape] Error:", err?.response?.status, err?.message);
+          toast.error("Erreur lors de l'import. Copiez-collez le texte directement.");
+        }
         setScrapingOffer(false);
       }, 1200);
-    } else if (!isUrl && !offerMatchResult && !checkingMatch && trimmed.length > 50) {
-      // Auto-check match for pasted text after 2s debounce
-      autoScrapeTimer.current = setTimeout(() => {
-        checkOfferMatch(trimmed);
-      }, 2000);
     }
 
     return () => { if (autoScrapeTimer.current) clearTimeout(autoScrapeTimer.current); };

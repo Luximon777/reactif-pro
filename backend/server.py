@@ -2627,8 +2627,18 @@ async def scrape_job_offer(url: str):
         }
 
         async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client_http:
-            resp = await client_http.get(url, headers=headers)
-            resp.raise_for_status()
+            # Retry up to 2 times for transient failures
+            resp = None
+            for attempt in range(3):
+                try:
+                    resp = await client_http.get(url, headers=headers)
+                    resp.raise_for_status()
+                    break
+                except (httpx.ConnectError, httpx.ReadTimeout) as retry_err:
+                    if attempt == 2:
+                        raise retry_err
+                    import asyncio
+                    await asyncio.sleep(1)
 
         soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -2716,7 +2726,7 @@ async def scrape_job_offer(url: str):
     except httpx.HTTPStatusError as e:
         return {"success": False, "text": "", "error": f"Erreur HTTP {e.response.status_code}"}
     except Exception as e:
-        logger.error(f"[Scrape] {e}")
+        logger.error(f"[Scrape] {type(e).__name__}: {e}", exc_info=True)
         return {"success": False, "text": "", "error": "Impossible de lire cette page. Copiez-collez le texte directement."}
 
 
