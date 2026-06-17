@@ -1,16 +1,12 @@
 # Test Credentials
 
-## Utilisateurs (Espace Personnel)
-- Pseudo: `mike7` | Password: `Solerys777!` | Token: `UHrqIUZvfNQnUf6SJYFNdUDlBSg_LobaMY3sKXo6EoQ`
-- Pseudo: `fanny95` | Password: `Solerys777!` | Token: `J3IYR6zGDSK6qCA40U4aC2ishnu5Zsyd3CPrlFW8INI`
-- Pseudo: `marc19` | Password: `Solerys777!`
+## User Accounts
+- **mike7** / `Solerys777!` (role: particulier, has 5 experiences: Agent d'entretien, Employe polyvalent, Second de cuisine, Employe de restauration, Magasinier)
+- **fanny95** / password unknown - use token directly: `J3IYR6zGDSK6qCA40U4aC2ishnu5Zsyd3CPrlFW8INI` (role: particulier, has 15 savoir-faire related to petite enfance)
 
-## Admin
-- Email: `admin@reactifpro.fr` | Password: `Choukette@777`
-- AdminGate password: `Choukette@777`
+## Login Endpoint
+POST /api/auth/login with body: `{"pseudo": "mike7", "password": "Solerys777!"}`
 
-## Entreprise
-- Pseudo: `rh@reactifpro.fr` | Password: `Reactif@pro2026!`
-
-## Dev / Invité
-- Password: `Reactif@pro2026!`
+## Database
+- DB Name: test_database
+- MongoDB URL: mongodb://localhost:27017
