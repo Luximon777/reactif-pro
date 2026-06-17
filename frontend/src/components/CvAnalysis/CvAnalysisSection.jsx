@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { API } from "@/App";
 import { Button } from "@/components/ui/button";
@@ -299,6 +299,41 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
     }
     setCheckingMatch(false);
   };
+
+  // Auto-scrape URL and auto-check match when text changes
+  const autoScrapeTimer = useRef(null);
+  useEffect(() => {
+    if (autoScrapeTimer.current) clearTimeout(autoScrapeTimer.current);
+    if (!jobOfferText || jobOfferText.trim().length < 10) return;
+
+    const trimmed = jobOfferText.trim();
+    const isUrl = /^https?:\/\/\S+$/i.test(trimmed);
+
+    if (isUrl && !scrapingOffer) {
+      // Auto-scrape URL after 1s debounce
+      autoScrapeTimer.current = setTimeout(async () => {
+        setScrapingOffer(true);
+        setOfferMatchResult(null);
+        try {
+          const res = await axios.get(`${API}/scrape/job-offer?url=${encodeURIComponent(trimmed)}`);
+          if (res.data.success) {
+            setJobOfferText(res.data.text);
+            toast.success("Offre importée automatiquement !");
+            checkOfferMatch(res.data.text);
+          }
+        } catch { /* silent */ }
+        setScrapingOffer(false);
+      }, 1200);
+    } else if (!isUrl && !offerMatchResult && !checkingMatch && trimmed.length > 50) {
+      // Auto-check match for pasted text after 2s debounce
+      autoScrapeTimer.current = setTimeout(() => {
+        checkOfferMatch(trimmed);
+      }, 2000);
+    }
+
+    return () => { if (autoScrapeTimer.current) clearTimeout(autoScrapeTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobOfferText]);
 
 
   const generateSelectedModels = async () => {
