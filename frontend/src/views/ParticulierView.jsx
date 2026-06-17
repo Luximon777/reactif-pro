@@ -573,7 +573,7 @@ const VisibilityCards = ({ settings, onUpdate }) => {
 };
 
 // ===== SYNTHESIS SECTION =====
-const SynthesisSection = ({ synthesis, loading }) => {
+const SynthesisSection = ({ synthesis, loading, token, onRefresh }) => {
   if (loading) {
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
@@ -623,18 +623,7 @@ const SynthesisSection = ({ synthesis, loading }) => {
               variant="outline"
               size="sm"
               className="text-[10px] h-7 px-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50 rounded-lg"
-              onClick={async () => {
-                try {
-                  toast.info("Actualisation de l'analyse en cours...");
-                  await axios.delete(`${API}/trajectory/synthesis/cache?token=${token}`);
-                  const res = await axios.get(`${API}/trajectory/synthesis?token=${token}`);
-                  const newSynth = res.data?.synthesis;
-                  if (newSynth) {
-                    setSynthesis(newSynth);
-                    toast.success("Analyse actualisée");
-                  }
-                } catch { toast.error("Erreur d'actualisation"); }
-              }}
+              onClick={() => onRefresh && onRefresh()}
               data-testid="refresh-synthesis-btn"
             >
               <RefreshCw className="w-3 h-3 mr-1" />
@@ -1816,7 +1805,23 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
                   </CardContent>
                 </Card>
               ) : (
-                <SynthesisSection synthesis={synthesis} loading={loadingSynthesis} />
+                <SynthesisSection
+                  synthesis={synthesis}
+                  loading={loadingSynthesis}
+                  token={token}
+                  onRefresh={async () => {
+                    try {
+                      toast.info("Actualisation de l'analyse en cours...");
+                      await axios.delete(`${API}/trajectory/synthesis/cache?token=${token}`);
+                      const res = await axios.get(`${API}/trajectory/synthesis?token=${token}`);
+                      const newSynth = res.data?.synthesis;
+                      if (newSynth) {
+                        setSynthesis(newSynth);
+                        toast.success("Analyse actualisée");
+                      }
+                    } catch { toast.error("Erreur d'actualisation"); }
+                  }}
+                />
               )}
             </div>
           )}
