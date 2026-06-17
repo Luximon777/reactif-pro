@@ -22,6 +22,13 @@ const STEP_COLORS = {
 };
 const EMOJI_ICONS = { wave: Hand, star: Star, rocket: Rocket, target: Target, trophy: Trophy };
 
+const STEP_NEXT_MESSAGES = {
+  1: { msg: "CV analysé avec succès ! Passez à l'étape 2 : identifiez vos savoir-être et vos valeurs pour compléter votre profil.", icon: "star" },
+  2: { msg: "Vos soft skills sont documentés ! Étape 3 : lancez le test D'CLIC PRO pour révéler votre personnalité.", icon: "rocket" },
+  3: { msg: "D'CLIC PRO terminé ! Dernière étape : construisez votre trajectoire professionnelle complète.", icon: "target" },
+  4: { msg: "Félicitations ! Toutes les étapes sont complétées. Votre profil RE'ACTIF PRO est complet !", icon: "trophy" },
+};
+
 /* ───── Steps View (compact) ───── */
 const StepsView = ({ progress, onAction }) => (
   <div className="p-3 space-y-2">
@@ -197,15 +204,37 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
   const [view, setView] = useState("steps"); // "steps" | "chat"
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
+  const [stepTransition, setStepTransition] = useState(null);
+  const prevCompleted = useRef(null);
 
   const loadProgress = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/coach/progress?token=${token}`);
-      setProgress(res.data);
+      const newProgress = res.data;
+
+      // Detect step completion transition
+      if (prevCompleted.current !== null && newProgress.completed > prevCompleted.current) {
+        const justCompleted = newProgress.completed;
+        const transition = STEP_NEXT_MESSAGES[justCompleted] || {};
+        setStepTransition({
+          completedStep: justCompleted,
+          message: transition.msg || "Étape complétée !",
+          icon: transition.icon || "star",
+        });
+        // Auto-open coach if closed, switch to steps view
+        setOpen(true);
+        setMinimized(false);
+        setView("steps");
+        // Clear transition after 8 seconds
+        setTimeout(() => setStepTransition(null), 8000);
+      }
+      prevCompleted.current = newProgress.completed;
+
+      setProgress(newProgress);
       const coachDismissed = localStorage.getItem(`coach_dismissed_${token}`);
-      if (!coachDismissed && res.data.completed < 4) {
+      if (!coachDismissed && newProgress.completed < 4) {
         setTimeout(() => setOpen(true), 1500);
-      } else if (res.data.completed < 4) {
+      } else if (newProgress.completed < 4) {
         setTimeout(() => setPulseHint(true), 3000);
       }
     } catch (e) {
@@ -215,6 +244,16 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
   }, [token]);
 
   useEffect(() => { loadProgress(); }, [loadProgress, refreshKey]);
+
+  // Auto-refresh every 15s to detect completed steps
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (progress && progress.completed < 4) {
+        loadProgress();
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [loadProgress, progress]);
 
   const handleDismiss = () => {
     setOpen(false);
@@ -397,6 +436,29 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
             {/* Content - hidden when minimized */}
             {!minimized && (view === "steps" ? (
               <>
+                {/* Step Transition Banner */}
+                {stepTransition && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-3 text-white shrink-0"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold">Étape {stepTransition.completedStep} terminée !</p>
+                        <p className="text-[11px] text-white/90 mt-0.5 leading-relaxed">{stepTransition.message}</p>
+                      </div>
+                      <button onClick={() => setStepTransition(null)} className="text-white/60 hover:text-white shrink-0">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Coach Message */}
                 <div className="px-3 py-2.5 bg-slate-50 border-b border-slate-100 shrink-0">
                   <p className="text-xs text-slate-700 leading-relaxed" data-testid="coach-message">
