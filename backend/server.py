@@ -6068,6 +6068,98 @@ async def coach_step_chat(token: str, body: dict = {}):
         return {"response": f"Merci pour votre question ! Pour l'étape \"{step_title}\", je vous conseille de commencer par explorer les outils disponibles dans votre espace personnel. N'hésitez pas à me relancer avec une question plus précise."}
 
 
+
+# --- CV Offer Match Check (quick score before generation) ---
+@api_router.post("/cv/check-offer-match")
+async def check_offer_match(token: str, body: dict = {}):
+    """Calculate a quick matching score between user profile/CV and a job offer text."""
+    token_doc = await get_current_token(token)
+    offer_text = body.get("offer_text", "").strip()
+    if not offer_text or len(offer_text) < 20:
+        raise HTTPException(400, "Texte de l'offre trop court")
+
+    # Get user profile skills
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    user_skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:15]]
+
+    # Get last CV analysis for more context
+    last_cv = await db.cv_jobs.find_one({"token_id": token_doc["id"], "status": "completed"}, sort=[("created_at", -1)])
+    cv_skills = []
+    cv_experiences = []
+    if last_cv and last_cv.get("result"):
+        r = last_cv["result"]
+        cv_skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in r.get("competences", r.get("skills", []))[:15]]
+        cv_experiences = [e.get("title", "") for e in r.get("experiences", [])[:5]]
+
+    all_skills = list(set(s.lower() for s in (user_skills + cv_skills) if s))
+    offer_lower = offer_text.lower()
+
+    # Extract significant keywords from user skills (words > 3 chars, excluding stop words)
+    stop_words = {"avec", "dans", "pour", "plus", "très", "sans", "sous", "chez", "entre", "comme", "après", "avant", "leur", "cette", "mais", "aussi", "même", "tout", "tous", "être", "avoir", "faire", "dire", "aller", "voir", "bien", "fait", "sont", "nous", "vous", "autres", "base", "selon", "travail", "poste", "offre", "emploi", "recherche", "candidat", "expérience", "profil", "compétences", "savoir"}
+    skill_keywords = set()
+    for skill in all_skills:
+        words = [w.strip("()/-,.'") for w in skill.split()]
+        for w in words:
+            if len(w) > 3 and w not in stop_words:
+                skill_keywords.add(w)
+
+    # Extract keywords from the offer
+    offer_words = set()
+    for w in offer_lower.split():
+        clean = w.strip("()/-,.'!?:;\"")
+        if len(clean) > 3 and clean not in stop_words:
+            offer_words.add(clean)
+
+    # Cross-match: keywords from user that appear in offer
+    matched_keywords = [kw for kw in skill_keywords if kw in offer_lower]
+    # Cross-match: offer keywords covered by user skills
+    offer_covered = [w for w in offer_words if any(w in sk for sk in skill_keywords)]
+
+    # Score based on offer keyword coverage (how well user matches what the offer asks)
+    offer_coverage = len(offer_covered) / max(len(offer_words), 1) if offer_words else 0
+    # Score based on user skills match (how many user skills are relevant)
+    user_relevance = len(matched_keywords) / max(len(skill_keywords), 1) if skill_keywords else 0
+
+    skills_score = min(int((offer_coverage * 0.6 + user_relevance * 0.4) * 70), 70)
+
+    # Check experience relevance (match significant words from experience titles)
+    exp_matches = 0
+    for e in cv_experiences:
+        if not e:
+            continue
+        exp_words = [w.strip("()/-,.'").lower() for w in e.split() if len(w) > 3]
+        if any(w in offer_lower for w in exp_words):
+            exp_matches += 1
+    exp_score = min(int((exp_matches / max(len(cv_experiences), 1)) * 25), 25) if cv_experiences else 0
+
+    # Base score for having a profile
+    base_score = 15 if all_skills else 5
+
+    total_score = min(base_score + skills_score + exp_score, 100)
+
+    # Extract offer title for display
+    offer_title = ""
+    first_line = offer_text.split("\n")[0].strip()
+    if first_line.upper().startswith("POSTE:"):
+        offer_title = first_line.split(":", 1)[1].strip()
+    elif len(first_line) > 5 and len(first_line) < 100:
+        offer_title = first_line
+
+    return {
+        "score": total_score,
+        "matched_skills": matched_keywords[:10],
+        "total_user_skills": len(all_skills),
+        "offer_title": offer_title,
+        "alert": total_score < 50,
+        "message": (
+            f"Attention : votre profil correspond à {total_score}% de cette offre ({len(matched_keywords)} mot(s)-clé(s) en commun). "
+            "Ce CV risque de ne pas passer les filtres ATS. Enrichissez votre profil ou ciblez une offre plus adaptée."
+        ) if total_score < 50 else (
+            f"Bonne compatibilité ({total_score}%) — {len(matched_keywords)} mot(s)-clé(s) en commun avec votre profil."
+        )
+    }
+
+
 # --- 2. CV Generate Models (background job) ---
 @api_router.post("/cv/generate-models")
 async def start_cv_generate_models(token: str, body: dict = {}, background_tasks: BackgroundTasks = None):

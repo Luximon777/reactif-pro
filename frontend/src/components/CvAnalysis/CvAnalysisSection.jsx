@@ -36,6 +36,8 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
   const [genProgress, setGenProgress] = useState(null);
   const [jobOfferText, setJobOfferText] = useState("");
   const [scrapingOffer, setScrapingOffer] = useState(false);
+  const [offerMatchResult, setOfferMatchResult] = useState(null);
+  const [checkingMatch, setCheckingMatch] = useState(false);
   const [ciEntries, setCiEntries] = useState([{ theme: "", description: "" }]);
   const [ciSaving, setCiSaving] = useState(false);
   const [ciAnalyses, setCiAnalyses] = useState(null);
@@ -285,6 +287,19 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
     }
     setUploading(false);
   };
+
+  const checkOfferMatch = async (offerText) => {
+    if (!offerText || offerText.trim().length < 30 || /^https?:\/\/\S+$/i.test(offerText.trim())) return;
+    setCheckingMatch(true);
+    try {
+      const res = await axios.post(`${API}/cv/check-offer-match?token=${token}`, { offer_text: offerText });
+      setOfferMatchResult(res.data);
+    } catch {
+      setOfferMatchResult(null);
+    }
+    setCheckingMatch(false);
+  };
+
 
   const generateSelectedModels = async () => {
     if (selectedGenModels.length === 0) return;
@@ -1031,7 +1046,7 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
               rows={3}
               placeholder="Collez un lien (URL) vers l'offre ou le texte de l'offre d'emploi..."
               value={jobOfferText}
-              onChange={(e) => setJobOfferText(e.target.value)}
+              onChange={(e) => { setJobOfferText(e.target.value); setOfferMatchResult(null); }}
               data-testid="job-offer-textarea"
             />
             {/* URL detection and scraping */}
@@ -1040,11 +1055,13 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
                 type="button"
                 onClick={async () => {
                   setScrapingOffer(true);
+                  setOfferMatchResult(null);
                   try {
                     const res = await axios.get(`${API}/scrape/job-offer?url=${encodeURIComponent(jobOfferText.trim())}`);
                     if (res.data.success) {
                       setJobOfferText(res.data.text);
                       toast.success("Offre d'emploi importée depuis le lien !");
+                      checkOfferMatch(res.data.text);
                     } else {
                       toast.error("Import impossible pour ce site. Copiez-collez le texte de l'offre directement.");
                     }
@@ -1062,10 +1079,88 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
                 <RefreshCw className="w-3 h-3 animate-spin" /> Import en cours...
               </p>
             )}
-            {jobOfferText && !/^https?:\/\/\S+$/i.test(jobOfferText.trim()) && (
-              <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> L'IA intégrera les mots-clés de cette offre pour optimiser le passage ATS
+            {jobOfferText && !/^https?:\/\/\S+$/i.test(jobOfferText.trim()) && !offerMatchResult && !checkingMatch && (
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Offre détectée
+                </p>
+                <button
+                  type="button"
+                  onClick={() => checkOfferMatch(jobOfferText)}
+                  className="flex items-center gap-1.5 text-xs text-[#1e3a5f] font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                  data-testid="check-match-btn"
+                >
+                  <BarChart3 className="w-3 h-3" /> Vérifier la compatibilité
+                </button>
+              </div>
+            )}
+            {checkingMatch && (
+              <p className="text-xs text-blue-600 flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3 animate-spin" /> Analyse de compatibilité en cours...
               </p>
+            )}
+            {/* Match score alert */}
+            {offerMatchResult && (
+              <div
+                className={`rounded-lg p-3 border ${
+                  offerMatchResult.alert
+                    ? "bg-red-50 border-red-300"
+                    : offerMatchResult.score < 70
+                    ? "bg-amber-50 border-amber-300"
+                    : "bg-emerald-50 border-emerald-300"
+                }`}
+                data-testid="offer-match-alert"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                    offerMatchResult.alert
+                      ? "bg-red-100 text-red-700"
+                      : offerMatchResult.score < 70
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-emerald-100 text-emerald-700"
+                  }`} data-testid="offer-match-score">
+                    {offerMatchResult.score}%
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      {offerMatchResult.alert ? (
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                      ) : offerMatchResult.score < 70 ? (
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      )}
+                      <p className={`text-sm font-semibold ${
+                        offerMatchResult.alert ? "text-red-700" : offerMatchResult.score < 70 ? "text-amber-700" : "text-emerald-700"
+                      }`}>
+                        {offerMatchResult.alert
+                          ? "Compatibilité faible avec votre profil"
+                          : offerMatchResult.score < 70
+                          ? "Compatibilité moyenne"
+                          : "Bonne compatibilité"}
+                        {offerMatchResult.offer_title && ` — ${offerMatchResult.offer_title}`}
+                      </p>
+                    </div>
+                    <p className={`text-xs ${offerMatchResult.alert ? "text-red-600" : offerMatchResult.score < 70 ? "text-amber-600" : "text-emerald-600"}`}>
+                      {offerMatchResult.message}
+                    </p>
+                    {offerMatchResult.matched_skills?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {offerMatchResult.matched_skills.map((s, i) => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-white border border-current opacity-80">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {offerMatchResult.alert && (
+                      <p className="text-xs text-red-500 mt-1 italic">
+                        Vous pouvez quand même générer le CV, mais il sera moins pertinent pour cette offre.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

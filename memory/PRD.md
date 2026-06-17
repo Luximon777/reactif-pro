@@ -60,6 +60,12 @@ Developpement d'une plateforme full-stack "Re'Actif Pro" basee sur l'analyse de 
 - Extraction titre amelioree: format "POSTE: ..." parse correctement
 - Snippet offre augmente de 500 a 1500 chars pour plus de contexte IA
 
+### Phase 10c — Alerte Score Matching CV (DONE - 17/06/2026)
+- Endpoint `POST /api/cv/check-offer-match` : calcul rapide de compatibilite profil vs offre
+- Algorithme par mots-cles bidirectionnel (couverture offre + pertinence profil)
+- Frontend : badge score (rouge <50, orange <70, vert >=70) + bandeau alerte + mots-cles matches
+- Declenchement automatique apres scraping URL ou manuellement via bouton "Verifier la compatibilite"
+
 ## Backlog
 - **P1** : Refactoring `server.py` (>6900 lignes) en routeurs dedies sous /app/backend/routes/
 - **P2** : Soft Skills (CSE), Valeurs (VIA) via modules d'auto-evaluation
