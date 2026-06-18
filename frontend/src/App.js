@@ -288,13 +288,15 @@ function AppContent() {
   if (!adminStatus) {
     // Allow public routes without admin gate
     const currentPath = window.location.pathname;
-    if (currentPath === "/observatoire") {
+    const publicPaths = ["/observatoire", "/test-dclic"];
+    if (publicPaths.some(p => currentPath.startsWith(p))) {
       return (
         <>
           <Toaster position="top-right" richColors />
           <BrowserRouter>
             <Routes>
               <Route path="/observatoire" element={<OpcPublicPage />} />
+              <Route path="/test-dclic" element={<DclicTestPage />} />
               <Route path="*" element={<AdminGate onAuthenticated={loginFromGate} />} />
             </Routes>
           </BrowserRouter>
