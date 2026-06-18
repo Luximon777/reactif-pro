@@ -1443,6 +1443,151 @@ async def get_skill_gaps():
     trends = await db.sector_trends.find({"skill_gap_alert": True}, {"_id": 0}).to_list(20)
     return trends
 
+
+@api_router.get("/observatoire/personalized")
+async def get_personalized_observatory(token: str):
+    """Cross-reference user profile/CV with observatory data for personalized predictions."""
+    token_doc = await get_current_token(token)
+
+    # Get user profile and passport
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+
+    # Gather user skills from all sources
+    user_skills = set()
+    if profile:
+        for s in profile.get("skills", []):
+            user_skills.add(s.get("name", "").lower().strip())
+        if profile.get("cv_skills"):
+            for s in profile["cv_skills"]:
+                user_skills.add(s.lower().strip()) if isinstance(s, str) else user_skills.add(s.get("name", "").lower().strip())
+    if passport:
+        for c in passport.get("competences", []):
+            user_skills.add(c.get("name", "").lower().strip())
+    user_skills.discard("")
+
+    if not user_skills:
+        return {"has_cv": False, "matches": [], "skill_gaps": [], "declining_alerts": [], "sector_relevance": [], "emerging_from_cv": [], "summary": {}}
+
+    # Get observatory data
+    emerging_skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(200)
+    sector_trends = await db.sector_trends.find({}, {"_id": 0}).to_list(50)
+
+    # Cross-match user skills with emerging skills
+    matches = []
+    declining_alerts = []
+    for es in emerging_skills:
+        es_name = es.get("skill_name", es.get("name", "")).lower().strip()
+        es_alt = [a.lower().strip() for a in es.get("alternative_names", [])]
+        matched = False
+        for us in user_skills:
+            if us in es_name or es_name in us or any(us in a or a in us for a in es_alt):
+                matched = True
+                break
+        if matched:
+            trend = es.get("trend", es.get("status", "stable"))
+            entry = {
+                "observatory_skill": es.get("skill_name", es.get("name", "")),
+                "name": es.get("skill_name", es.get("name", "")),
+                "emergence_score": es.get("emergence_score", 0.5),
+                "growth_rate": es.get("growth_rate", 0),
+                "score": es.get("emergence_score", 0.5),
+                "trend": trend,
+                "status": es.get("status", trend),
+                "sectors": es.get("related_sectors", []),
+            }
+            if trend in ("declin", "en_declin", "declining"):
+                declining_alerts.append(entry)
+            else:
+                matches.append(entry)
+
+    matches.sort(key=lambda x: x.get("score", 0), reverse=True)
+    # Deduplicate matches by skill name
+    seen = set()
+    unique_matches = []
+    for m in matches:
+        key = m.get("observatory_skill", "").lower()
+        if key not in seen:
+            seen.add(key)
+            unique_matches.append(m)
+    matches = unique_matches
+
+    # Identify skill gaps (high-demand emerging skills the user doesn't have)
+    skill_gaps = []
+    for es in emerging_skills:
+        es_name = es.get("skill_name", es.get("name", "")).lower().strip()
+        if es.get("emergence_score", 0) >= 0.6:
+            has_skill = any(us in es_name or es_name in us for us in user_skills)
+            if not has_skill:
+                skill_gaps.append({
+                    "skill_name": es.get("skill_name", es.get("name", "")),
+                    "name": es.get("skill_name", es.get("name", "")),
+                    "priority": "haute" if es.get("emergence_score", 0) >= 0.8 else "moyenne",
+                    "emergence_score": es.get("emergence_score", 0),
+                    "growth_rate": es.get("growth_rate", 0),
+                    "score": es.get("emergence_score", 0),
+                    "sectors": es.get("related_sectors", []),
+                })
+    skill_gaps.sort(key=lambda x: x.get("score", 0), reverse=True)
+    # Deduplicate gaps
+    seen_gaps = set()
+    unique_gaps = []
+    for g in skill_gaps:
+        key = g.get("skill_name", "").lower()
+        if key not in seen_gaps:
+            seen_gaps.add(key)
+            unique_gaps.append(g)
+    skill_gaps = unique_gaps
+
+    # Sector relevance (which sectors match the user's skills)
+    sector_relevance = []
+    for st in sector_trends:
+        sector_name = st.get("sector_name", "")
+        predicted = st.get("predicted_skills_demand", [])
+        match_count = 0
+        for ps in predicted:
+            ps_name = ps.get("skill", "").lower()
+            if any(us in ps_name or ps_name in us for us in user_skills):
+                match_count += 1
+        if match_count > 0 or st.get("transformation_index", 0) > 0.5:
+            # Find which user skills match this sector
+            matched_skills = []
+            for ps in predicted:
+                ps_name = ps.get("skill", "").lower()
+                for us in user_skills:
+                    if us in ps_name or ps_name in us:
+                        matched_skills.append(ps.get("skill", ""))
+                        break
+            sector_relevance.append({
+                "sector": sector_name,
+                "name": sector_name,
+                "relevance": min(match_count / max(len(predicted), 1), 1.0),
+                "transformation_index": st.get("transformation_index", 0),
+                "hiring_trend": "croissance" if st.get("growth_rate", "0%").replace("%", "").replace("+", "").strip() not in ("0", "") else "stable",
+                "skill_matches": match_count,
+                "growth_rate": st.get("growth_rate", "0%"),
+                "your_emerging_skills": matched_skills[:3],
+                "your_declining_skills": [],
+            })
+    sector_relevance.sort(key=lambda x: x.get("relevance", 0), reverse=True)
+
+    return {
+        "has_cv": True,
+        "matches": matches[:20],
+        "skill_gaps": skill_gaps[:20],
+        "declining_alerts": declining_alerts,
+        "sector_relevance": sector_relevance[:10],
+        "emerging_from_cv": [m["name"] for m in matches[:5]],
+        "summary": {
+            "total_skills_analyzed": len(user_skills),
+            "skills_in_observatory": len(matches),
+            "gaps_to_fill": len([g for g in skill_gaps if g.get("priority") == "haute"]),
+            "skills_declining": len(declining_alerts),
+        }
+    }
+
+
+
 # ============== INDICE D'ÉVOLUTION ENDPOINTS ==============
 
 def calculate_index_level(index: float) -> str:
