@@ -4,60 +4,38 @@
 Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace personnel, coach virtuel, Job Matching, portefeuille de compétences et questionnaire D'CLIC PRO.
 
 ## Architecture
-- Frontend: React + Tailwind + Shadcn/UI (SPA, GitHub Pages)
-- Backend: FastAPI + MongoDB (Emergent infrastructure)
-- IA: GPT-5.2 via Emergentintegrations (LlmChat) — appels exécutés dans un thread pool via `run_llm_nonblocking()`
+- Frontend: React + Tailwind + Shadcn/UI (SPA)
+- Backend: FastAPI + MongoDB
+- IA: GPT-5.2 via Emergentintegrations (LlmChat) — appels exécutés via `asyncio.to_thread`
 - API France Travail: OAuth2 client_credentials (ROME 4.0 + Offres d'emploi v2)
 
 ## Fonctionnalités implémentées
 
 ### Phase 1 - Core (DONE)
-- Authentification JWT
-- GPS Dashboard + analyse de CV
-- Coach Virtuel interactif
-- Portefeuille de compétences
-- Job Dating / Job Matching
+- Authentification JWT, GPS Dashboard, analyse de CV, Coach Virtuel, Portefeuille de compétences, Job Dating/Matching
 
 ### Phase 2 - Observatoire et Marché (DONE)
-- OPC autonome
-- Vue "Le Marché" — 4 onglets personnalisés par IA
+- OPC autonome, Vue "Le Marché" (4 onglets personnalisés par IA)
 
-### Phase 3 - D'CLIC PRO v2 (DONE - 19/06/2026)
-- Questionnaire complet avec 5 blocs conformes au cahier des charges original:
-  - Bloc 1: Archéologie des compétences (10 questions texte libre)
-  - Bloc 2: Intérêts professionnels RIASEC (10 items, échelle 1-5)
-  - Bloc 3: Valeurs professionnelles (10 items, échelle 1-5)
-  - Bloc 4: Savoir-être professionnels (10 items, échelle 1-5)
-  - Bloc 5: Projection professionnelle (5 questions mixtes: texte libre + choix)
-- Scoring engine: RIASEC code, valeurs dominantes (Schwartz), forces SEP, catégorisation archéologique (5 catégories), projection
-- Restitution frontend avec radar RIASEC, carte des valeurs, forces comportementales, archéologie, projection
-- Code d'accès unique généré pour chaque passation
-- Backend: /app/backend/dclic_routes.py (routes dédiées, prefix /api/dclic)
-- Frontend: /app/frontend/src/pages/DclicTestPage.jsx
+### Phase 3 - D'CLIC PRO v2 avec Restitution IA Riche (DONE - 19/06/2026)
+- **Questionnaire** : 45 questions / 5 blocs (Archéologie 10q texte, RIASEC 10q échelle, Valeurs 10q échelle, Savoir-être 10q échelle, Projection 5q mixtes)
+- **Scoring déterministe** : RIASEC code, valeurs Schwartz, forces savoir-être, catégorisation archéologique (5 catégories)
+- **Analyse IA enrichie (GPT-5.2)** : Génère MBTI, DISC, Boussole de Fonctionnement (4 axes), Profil de Vertus (6 vertus Seligman&Peterson), Generic Skills Approach (Cognition/Conation/Affection), RIASEC enrichi (traits, environnements), Analyse intégrée (3 niveaux), Analyse croisée, Cadran d'Ofman (3 quadrants: qualité→piège→défi→allergie), Pistes d'action
+- **Restitution graphique** : 10 sections navigables via sidebar (Archéologie, Profil Comportemental avec radars, Boussole MBTI, Analyse Intégrée, RIASEC, Vertus, Pistes, Analyse Croisée, Cadran d'Ofman, Carte d'Identité Pro avec QR code)
+- **Fallback** : Si l'IA échoue, profil enrichi déterministe de secours
+- Backend: `/app/backend/dclic_routes.py` | Frontend: `/app/frontend/src/pages/DclicTestPage.jsx`
 
 ### Phase 4 - Auto-évaluation (DONE)
-- Endpoint POST /api/passport/diagnostic/auto-evaluate
+- POST /api/passport/diagnostic/auto-evaluate
 
-### Phase 5 - Job Matching avancé (DONE - 18/06/2026)
-- Bug "Rechercher par scoring" corrigé (POST endpoint créé, format réponse aligné)
-- Scoring avancé avec filtres et priorités
-- Bouton France Travail avec moteur de recherche par ville/métier/département
-- Liens directs vers les pages d'offres France Travail
+### Phase 5 - Job Matching avancé (DONE)
+- Scoring avancé, France Travail par ville/métier, liens directs offres
 
-### Phase 6 - Analyser une offre (DONE - 18/06/2026)
-- POST /api/matching/analyze-offer-url : Récupère l'offre via API FT + analyse IA
-- POST /api/matching/analyze-offer : Analyse du texte collé manuellement
-- POST /api/matching/match-profile : Matching IA profil vs offre
-- GET /api/matching/history : Historique des analyses
-- Flow frontend 4 étapes : Comprendre → Importer → Analyser → Matching
+### Phase 6 - Analyser une offre (DONE)
+- Analyse URL, texte collé, matching IA profil/offre, historique
 
-### Phase 7 - ADN Pro + Candidatures (DONE - 18/06/2026)
-- POST /api/profile/identity-adn : Génération ADN Pro dans onglet Inventaire
-- POST /api/jobs/apply : Sauvegarder offre dans Mes Candidatures depuis Job Matching
-
-## Issues connues
-- (P2) server.py monolithique (~8600 lignes) - refactoring nécessaire
-- (P2) DclicTestPage.jsx contient des anciens composants de résultats inutilisés (ProfilComportemental, BoussoleSection, etc.) - nettoyage souhaitable
+### Phase 7 - ADN Pro + Candidatures (DONE)
+- Génération ADN Pro, sauvegarde candidatures depuis Job Matching
 
 ## Tâches futures (Backlog)
 - P1 : Filtrage ROME automatique pour France Travail
@@ -67,22 +45,11 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - P3 : Ateliers Codéveloppement
 - P3 : Micro-titres/badges
 
-## Déploiement
-- Frontend : GitHub Actions -> GitHub Pages
-- Backend : Emergent infrastructure
-- "Save to Github" + "Redeploy" pour production
-
 ## Key Endpoints
-- GET /api/dclic/questionnaire - Questionnaire D'CLIC PRO (5 blocs, 45 questions)
-- POST /api/dclic/submit - Soumission et calcul profil D'CLIC PRO
-- GET /api/dclic/results/{code} - Résultats par code d'accès
-- GET /api/dclic/my-results?token= - Résultats liés au profil utilisateur
-- GET /api/jobs/matching - Matching initial
-- POST /api/jobs/matching/search - Scoring avec filtres
-- POST /api/jobs/france-travail/search - Offres FT par ville/métier
-- POST /api/matching/analyze-offer-url - Analyse URL offre
-- POST /api/matching/analyze-offer - Analyse texte offre
-- POST /api/matching/match-profile - Matching profil/offre
-- GET /api/matching/history - Historique analyses
-- POST /api/profile/identity-adn - Génération ADN Pro
-- POST /api/jobs/apply - Sauvegarder candidature
+- GET /api/dclic/questionnaire — 5 blocs, 45 questions
+- POST /api/dclic/submit — Scoring + analyse IA → profil riche (MBTI, DISC, Ofman, etc.)
+- GET /api/dclic/results/{code} — Résultats par code d'accès
+- GET /api/dclic/my-results?token= — Résultats liés au profil utilisateur
+- POST /api/jobs/matching/search, POST /api/jobs/france-travail/search
+- POST /api/matching/analyze-offer-url, POST /api/matching/match-profile
+- POST /api/profile/identity-adn, POST /api/jobs/apply
