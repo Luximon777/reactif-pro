@@ -126,7 +126,9 @@ const JobMatchingSection = ({ token }) => {
   const [applyingJob, setApplyingJob] = useState(null);
   const [loadingFT, setLoadingFT] = useState(false);
   const [ftResults, setFtResults] = useState(null);
-  const [ftDepartement, setFtDepartement] = useState("75");
+  const [ftDepartement, setFtDepartement] = useState("");
+  const [ftMotsCles, setFtMotsCles] = useState("");
+  const [ftVille, setFtVille] = useState("");
 
   useEffect(() => {
     if (token) {
@@ -321,13 +323,23 @@ const JobMatchingSection = ({ token }) => {
   };
 
   const handleFTSearch = async () => {
+    if (!ftMotsCles && !ftDepartement && !ftVille) {
+      toast.info("Renseignez au moins un critère (métier, ville ou département)");
+      return;
+    }
     setLoadingFT(true);
     try {
-      const res = await axios.post(`${API}/jobs/france-travail/search?token=${token}`, {
-        departement: ftDepartement,
-      });
+      const payload = {};
+      if (ftDepartement) payload.departement = ftDepartement;
+      if (ftMotsCles) payload.motsCles = ftMotsCles;
+      if (ftVille) payload.motsCles = ftMotsCles ? `${ftMotsCles} ${ftVille}` : ftVille;
+      const res = await axios.post(`${API}/jobs/france-travail/search?token=${token}`, payload);
       setFtResults(res.data);
-      toast.success(`${res.data.matches?.length || 0} offres France Travail trouvées`);
+      if (res.data.message) {
+        toast.info(res.data.message);
+      } else {
+        toast.success(`${res.data.matches?.length || 0} offres France Travail trouvées`);
+      }
     } catch (e) {
       console.error("FT search error:", e);
       toast.error(e.response?.data?.detail || "Erreur lors de la recherche France Travail");
@@ -410,41 +422,64 @@ const JobMatchingSection = ({ token }) => {
         </Button>
       </div>
 
-      {/* France Travail Button */}
+      {/* France Travail Search Engine */}
       <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50" data-testid="france-travail-section">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-                <Globe className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900">Offres France Travail</h4>
-                <p className="text-[11px] text-slate-500">Rechercher les offres d'emploi liées à votre profil sur France Travail</p>
-              </div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+              <Globe className="w-5 h-5 text-white" />
             </div>
-            <div className="flex items-center gap-2">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900">Rechercher sur France Travail</h4>
+              <p className="text-[11px] text-slate-500">Trouvez des offres d'emploi réelles liées à votre profil</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex-1 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Métier, mot-clé (ex: agent entretien)"
+                  value={ftMotsCles}
+                  onChange={(e) => setFtMotsCles(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleFTSearch()}
+                  className="h-9 text-sm pl-8"
+                  data-testid="ft-motscles-input"
+                />
+              </div>
+              <div className="relative flex-1">
+                <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Ville (ex: Lyon, Marseille)"
+                  value={ftVille}
+                  onChange={(e) => setFtVille(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleFTSearch()}
+                  className="h-9 text-sm pl-8"
+                  data-testid="ft-ville-input"
+                />
+              </div>
               <Input
-                placeholder="Dépt (ex: 75)"
+                placeholder="Dépt"
                 value={ftDepartement}
                 onChange={(e) => setFtDepartement(e.target.value)}
-                className="h-9 text-sm w-24"
+                onKeyDown={(e) => e.key === "Enter" && handleFTSearch()}
+                className="h-9 text-sm w-16 text-center"
                 data-testid="ft-departement-input"
               />
-              <Button
-                onClick={handleFTSearch}
-                disabled={loadingFT}
-                className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
-                data-testid="ft-search-btn"
-              >
-                {loadingFT ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Globe className="w-4 h-4 mr-2" />
-                )}
-                {loadingFT ? "Recherche..." : "Offres France Travail"}
-              </Button>
             </div>
+            <Button
+              onClick={handleFTSearch}
+              disabled={loadingFT}
+              className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+              data-testid="ft-search-btn"
+            >
+              {loadingFT ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4 mr-2" />
+              )}
+              {loadingFT ? "Recherche..." : "Rechercher"}
+            </Button>
           </div>
         </CardContent>
       </Card>

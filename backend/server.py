@@ -7382,12 +7382,20 @@ async def search_france_travail_offres(token: str, body: dict = {}):
     skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:15]]
 
     code_rome = body.get("code_rome", "")
-    departement = body.get("departement", "75")
+    departement = body.get("departement", "")
+    mots_cles = body.get("motsCles", "")
+    commune = body.get("commune", "")
 
     if not code_rome and passport:
         rome_codes = passport.get("rome_codes", [])
         if rome_codes:
             code_rome = rome_codes[0] if isinstance(rome_codes[0], str) else rome_codes[0].get("code", "")
+
+    # If no motsCles provided, use job titles from profile
+    if not mots_cles and not code_rome:
+        exp_titles = [e.get("title", "") for e in (passport or {}).get("experiences", []) if isinstance(e, dict) and e.get("title")]
+        if exp_titles:
+            mots_cles = exp_titles[0]
 
     user_words = set()
     for s in skills:
@@ -7401,7 +7409,12 @@ async def search_france_travail_offres(token: str, body: dict = {}):
     ft_message = ""
     if ft.is_configured():
         try:
-            result = await ft.search_offres(departement=departement, code_rome=code_rome or None)
+            result = await ft.search_offres(
+                departement=departement or None,
+                code_rome=code_rome or None,
+                motsCles=mots_cles or None,
+                commune=commune or None,
+            )
             resultats = result.get("resultats", [])
             ft_api_ok = True
         except Exception as e:
@@ -7453,7 +7466,9 @@ async def search_france_travail_offres(token: str, body: dict = {}):
         lieu = (offre.get("lieuTravail") or {}).get("libelle", "")
         contrat = offre.get("typeContratLibelle", offre.get("typeContrat", ""))
         desc = offre.get("description", "")[:300]
-        url = offre.get("origineOffre", {}).get("urlOrigine", f"https://candidat.francetravail.fr/offres/recherche/detail/{offre.get('id', '')}")
+        # Direct link to the offer detail page on France Travail
+        offre_id = offre.get("id", "")
+        url = f"https://candidat.francetravail.fr/offres/recherche/detail/{offre_id}" if offre_id else ""
 
         ft_competences = [c.get("libelle", "") for c in (offre.get("competences") or []) if c.get("libelle")]
         matched_comps = []

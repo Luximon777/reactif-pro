@@ -81,12 +81,20 @@ class FranceTravailClient:
 
     # ─── Offres d'emploi v2 ────────────────────────────────────────────
 
-    async def search_offres(self, departement: str, range_offres: str = "0-149",
-                            code_rome: Optional[str] = None) -> dict:
+    async def search_offres(self, departement: str = "", range_offres: str = "0-149",
+                            code_rome: Optional[str] = None,
+                            motsCles: Optional[str] = None,
+                            commune: Optional[str] = None) -> dict:
         token = await self._get_token(self._scope_offres())
-        params = {"departement": departement, "range": range_offres}
+        params = {"range": range_offres}
+        if departement:
+            params["departement"] = departement
         if code_rome:
             params["codeROME"] = code_rome
+        if motsCles:
+            params["motsCles"] = motsCles
+        if commune:
+            params["commune"] = commune
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(
                 f"{API_BASE_OFFRES}/offres/search",
