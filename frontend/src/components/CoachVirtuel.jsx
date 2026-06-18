@@ -101,6 +101,7 @@ const StepsView = ({ progress, onAction }) => {
       const StepIcon = STEP_ICONS[step.id] || Target;
       const colors = STEP_COLORS[step.id] || { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200", accent: "bg-slate-500" };
       const isCurrent = step.id === progress.current_step;
+      const isInBanner = isCurrent && !step.complete && nextStep;
       return (
         <div
           key={step.id}
@@ -138,7 +139,8 @@ const StepsView = ({ progress, onAction }) => {
                 </div>
               )}
             </div>
-            {isCurrent && !step.complete && step.action_label && (
+            {/* Show action button only if NOT already shown in the banner above */}
+            {isCurrent && !step.complete && step.action_label && !isInBanner && (
               <Button
                 size="sm"
                 className={`h-6 text-[10px] px-2 ${colors.accent} text-white`}
