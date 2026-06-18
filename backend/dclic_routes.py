@@ -1,769 +1,466 @@
 """
-D'CLIC PRO — Questionnaire & Scoring Engine
-Routes: /api/dclic/questionnaire, /api/dclic/submit, /api/dclic/retrieve, /api/dclic/claim
+D'CLIC PRO — Questionnaire & Scoring Engine (Version originale complète)
+5 Blocs : Archéologie, RIASEC, Valeurs, Savoir-être, Projection
+Restitution : RIASEC, Carte valeurs, Forces, Savoir-être, Compétences, Pistes métiers
 """
 
-import os
-import json
-import uuid
-import random
-import logging
-from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-from motor.motor_asyncio import AsyncIOMotorClient
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from datetime import datetime, timezone
+import json, logging, secrets, string
 
-router = APIRouter(prefix="/api")
+router = APIRouter(prefix="/dclic", tags=["dclic"])
 
-MONGO_URL = os.environ.get("MONGO_URL")
-DB_NAME = os.environ.get("DB_NAME", "test_database")
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
+# ─── BLOC 1 : Archéologie des compétences (10 questions ouvertes) ─────
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+BLOC_1_ARCHEOLOGIE = [
+    {
+        "id": "arche_1",
+        "text": "Quelle activité avez-vous réalisée dans votre vie dont vous êtes le plus fier(e) ?",
+        "type": "open_text",
+        "placeholder": "Décrivez cette activité et ce qu'elle représente pour vous...",
+    },
+    {
+        "id": "arche_2",
+        "text": "Dans quelles situations les autres viennent-ils spontanément vous demander de l'aide ?",
+        "type": "open_text",
+        "placeholder": "Ex: pour organiser, réparer, écouter, expliquer...",
+    },
+    {
+        "id": "arche_3",
+        "text": "Avez-vous déjà organisé un événement, une activité ou coordonné plusieurs personnes ?",
+        "type": "open_text",
+        "placeholder": "Décrivez ce que vous avez organisé et votre rôle...",
+    },
+    {
+        "id": "arche_4",
+        "text": "Avez-vous déjà accompagné un proche dans une démarche importante ?",
+        "type": "open_text",
+        "placeholder": "Ex: démarche administrative, recherche d'emploi, soutien scolaire...",
+    },
+    {
+        "id": "arche_5",
+        "text": "Avez-vous exercé des responsabilités dans une association, un club, une communauté ou un groupe informel ?",
+        "type": "open_text",
+        "placeholder": "Décrivez votre rôle et vos responsabilités...",
+    },
+    {
+        "id": "arche_6",
+        "text": "Quelle difficulté importante avez-vous réussi à surmonter dans votre parcours ?",
+        "type": "open_text",
+        "placeholder": "Décrivez la difficulté et comment vous l'avez surmontée...",
+    },
+    {
+        "id": "arche_7",
+        "text": "Quels savoir-faire utilisez-vous régulièrement sans considérer qu'il s'agit de compétences ?",
+        "type": "open_text",
+        "placeholder": "Ex: cuisiner, bricoler, écouter, organiser, négocier...",
+    },
+    {
+        "id": "arche_8",
+        "text": "Qu'avez-vous appris en dehors de l'école ou du travail ?",
+        "type": "open_text",
+        "placeholder": "Ex: langue, instrument, mécanique, couture, informatique...",
+    },
+    {
+        "id": "arche_9",
+        "text": "Quelle activité vous donne le sentiment d'être particulièrement efficace ?",
+        "type": "open_text",
+        "placeholder": "L'activité où vous vous sentez dans votre élément...",
+    },
+    {
+        "id": "arche_10",
+        "text": "Si vous deviez transmettre une compétence à quelqu'un demain, laquelle choisiriez-vous ?",
+        "type": "open_text",
+        "placeholder": "La compétence que vous maîtrisez le mieux...",
+    },
+]
 
-# ============================================================================
-# QUESTIONNAIRE DATA
-# ============================================================================
+# ─── BLOC 2 : Intérêts professionnels RIASEC (10 items, échelle 1-5) ──
 
-QUESTIONNAIRE = [
-    # --- MBTI: Énergie (E/I) ---
+BLOC_2_RIASEC = [
+    {"id": "riasec_1", "text": "J'aime résoudre des problèmes concrets.", "dimension": "R"},
+    {"id": "riasec_2", "text": "J'aime comprendre comment fonctionnent les choses.", "dimension": "I"},
+    {"id": "riasec_3", "text": "J'aime créer ou imaginer de nouvelles idées.", "dimension": "A"},
+    {"id": "riasec_4", "text": "J'aime aider et accompagner les personnes.", "dimension": "S"},
+    {"id": "riasec_5", "text": "J'aime convaincre ou négocier.", "dimension": "E"},
+    {"id": "riasec_6", "text": "J'aime organiser et planifier.", "dimension": "C"},
+    {"id": "riasec_7", "text": "J'aime travailler avec des outils ou des machines.", "dimension": "R"},
+    {"id": "riasec_8", "text": "J'aime transmettre des connaissances.", "dimension": "S"},
+    {"id": "riasec_9", "text": "J'aime prendre des initiatives.", "dimension": "E"},
+    {"id": "riasec_10", "text": "J'aime travailler selon des procédures précises.", "dimension": "C"},
+]
+
+# ─── BLOC 3 : Valeurs professionnelles (10 items, échelle 1-5) ────────
+
+BLOC_3_VALEURS = [
+    {"id": "val_1", "text": "Dans mon travail, il est important d'aider les autres.", "dimension": "benevolence"},
+    {"id": "val_2", "text": "Il est important de pouvoir évoluer et apprendre.", "dimension": "stimulation"},
+    {"id": "val_3", "text": "Il est important de disposer d'une stabilité professionnelle.", "dimension": "securite"},
+    {"id": "val_4", "text": "Il est important d'avoir de l'autonomie.", "dimension": "autonomie"},
+    {"id": "val_5", "text": "Il est important d'être reconnu pour ses résultats.", "dimension": "reussite"},
+    {"id": "val_6", "text": "Il est important de contribuer à quelque chose d'utile à la société.", "dimension": "universalisme"},
+    {"id": "val_7", "text": "Il est important de travailler dans un environnement respectueux.", "dimension": "conformite"},
+    {"id": "val_8", "text": "Il est important de pouvoir innover.", "dimension": "autonomie"},
+    {"id": "val_9", "text": "Il est important de coopérer avec les autres.", "dimension": "benevolence"},
+    {"id": "val_10", "text": "Il est important d'agir conformément à mes convictions.", "dimension": "tradition"},
+]
+
+# ─── BLOC 4 : Savoir-être professionnels (10 items, échelle 1-5) ──────
+
+BLOC_4_SAVOIR_ETRE = [
+    {"id": "sep_1", "text": "Je respecte mes engagements.", "dimension": "fiabilite"},
+    {"id": "sep_2", "text": "Je m'adapte facilement aux changements.", "dimension": "adaptabilite"},
+    {"id": "sep_3", "text": "Je prends des initiatives lorsque c'est nécessaire.", "dimension": "initiative"},
+    {"id": "sep_4", "text": "Je reste calme face aux difficultés.", "dimension": "gestion_stress"},
+    {"id": "sep_5", "text": "Je travaille facilement en équipe.", "dimension": "cooperation"},
+    {"id": "sep_6", "text": "J'accepte les remarques constructives.", "dimension": "ouverture"},
+    {"id": "sep_7", "text": "Je persévère lorsque les résultats tardent à venir.", "dimension": "perseverance"},
+    {"id": "sep_8", "text": "Je sais gérer plusieurs tâches simultanément.", "dimension": "organisation"},
+    {"id": "sep_9", "text": "Je communique facilement avec différents interlocuteurs.", "dimension": "communication"},
+    {"id": "sep_10", "text": "Je recherche des solutions plutôt que des excuses.", "dimension": "resolution"},
+]
+
+# ─── BLOC 5 : Projection professionnelle (5 questions mixtes) ─────────
+
+BLOC_5_PROJECTION = [
     {
-        "id": "mbti_ei_1",
-        "category": "energie",
-        "text": "Quand vous devez recharger vos batteries après une journée intense, vous préférez :",
+        "id": "proj_1",
+        "text": "Quels métiers vous attirent aujourd'hui ?",
+        "type": "open_text",
+        "placeholder": "Listez 2 ou 3 métiers qui vous attirent...",
+    },
+    {
+        "id": "proj_2",
+        "text": "Quels métiers vous n'envisageriez jamais ?",
+        "type": "open_text",
+        "placeholder": "Listez les métiers qui ne vous correspondent pas du tout...",
+    },
+    {
+        "id": "proj_3",
+        "text": "Préférez-vous travailler avec :",
         "type": "choice",
         "choices": [
-            {"value": "E", "label": "Retrouver des amis ou collègues pour échanger"},
-            {"value": "I", "label": "Vous retrouver seul(e) pour un moment calme"}
-        ]
+            {"value": "personnes", "label": "Les personnes"},
+            {"value": "donnees", "label": "Les données"},
+            {"value": "objets", "label": "Les objets"},
+            {"value": "idees", "label": "Les idées"},
+            {"value": "combinaison", "label": "Une combinaison de plusieurs"},
+        ],
     },
     {
-        "id": "mbti_ei_2",
-        "category": "energie",
-        "text": "En réunion professionnelle, vous avez tendance à :",
+        "id": "proj_4",
+        "text": "Dans quel environnement vous sentez-vous le plus à l'aise ?",
         "type": "choice",
         "choices": [
-            {"value": "E", "label": "Prendre la parole spontanément et rebondir sur les idées"},
-            {"value": "I", "label": "Écouter attentivement puis formuler une réponse réfléchie"}
-        ]
-    },
-    # --- MBTI: Perception (S/N) ---
-    {
-        "id": "mbti_sn_1",
-        "category": "perception",
-        "text": "Face à un nouveau projet, vous vous concentrez d'abord sur :",
-        "type": "choice",
-        "choices": [
-            {"value": "S", "label": "Les faits concrets, les données et l'expérience passée"},
-            {"value": "N", "label": "Les possibilités futures, les connexions et les idées innovantes"}
-        ]
+            {"value": "bureau", "label": "En bureau / espace structuré"},
+            {"value": "terrain", "label": "Sur le terrain / en extérieur"},
+            {"value": "atelier", "label": "En atelier / espace technique"},
+            {"value": "contact", "label": "En contact direct avec le public"},
+            {"value": "domicile", "label": "À domicile / en télétravail"},
+            {"value": "itinerant", "label": "En déplacement / itinérant"},
+        ],
     },
     {
-        "id": "mbti_sn_2",
-        "category": "perception",
-        "text": "Vous apprenez mieux quand :",
-        "type": "choice",
-        "choices": [
-            {"value": "S", "label": "On vous montre des exemples concrets, étape par étape"},
-            {"value": "N", "label": "On vous explique le concept global et vous explorez par vous-même"}
-        ]
-    },
-    # --- MBTI: Décision (T/F) ---
-    {
-        "id": "mbti_tf_1",
-        "category": "decision",
-        "text": "Quand un collègue fait une erreur sur un projet important, vous :",
-        "type": "choice",
-        "choices": [
-            {"value": "T", "label": "Analysez objectivement l'erreur et proposez des corrections"},
-            {"value": "F", "label": "Tenez compte de la situation personnelle du collègue d'abord"}
-        ]
-    },
-    {
-        "id": "mbti_tf_2",
-        "category": "decision",
-        "text": "Pour prendre une décision professionnelle importante, vous vous fiez à :",
-        "type": "choice",
-        "choices": [
-            {"value": "T", "label": "Une analyse logique des avantages et inconvénients"},
-            {"value": "F", "label": "Votre ressenti et l'impact sur les personnes concernées"}
-        ]
-    },
-    # --- MBTI: Structure (J/P) ---
-    {
-        "id": "mbti_jp_1",
-        "category": "structure",
-        "text": "Face à une deadline, vous avez plutôt tendance à :",
-        "type": "choice",
-        "choices": [
-            {"value": "J", "label": "Planifier à l'avance et terminer bien avant l'échéance"},
-            {"value": "P", "label": "Travailler par à-coups en vous adaptant au fil de l'eau"}
-        ]
-    },
-    {
-        "id": "mbti_jp_2",
-        "category": "structure",
-        "text": "Votre espace de travail idéal est :",
-        "type": "choice",
-        "choices": [
-            {"value": "J", "label": "Bien organisé avec un système de classement clair"},
-            {"value": "P", "label": "Flexible avec plusieurs projets ouverts en parallèle"}
-        ]
-    },
-    # --- DISC ---
-    {
-        "id": "disc_1",
-        "category": "disc",
-        "text": "Classez ces 4 affirmations de la plus à la moins vous caractérisante :",
-        "type": "ranking",
-        "choices": [
-            {"value": "D", "label": "J'aime prendre des décisions rapides et diriger"},
-            {"value": "I", "label": "J'aime convaincre et motiver les autres"},
-            {"value": "S", "label": "J'aime la stabilité et aider les membres de mon équipe"},
-            {"value": "C", "label": "J'aime analyser les détails et garantir la qualité"}
-        ]
-    },
-    {
-        "id": "disc_2",
-        "category": "disc",
-        "text": "En situation de conflit professionnel, vous avez tendance à :",
-        "type": "choice",
-        "choices": [
-            {"value": "D", "label": "Affronter directement le problème et trancher"},
-            {"value": "I", "label": "Chercher un compromis par la discussion ouverte"},
-            {"value": "S", "label": "Écouter toutes les parties et chercher l'harmonie"},
-            {"value": "C", "label": "Analyser les faits et proposer une solution rationnelle"}
-        ]
-    },
-    {
-        "id": "disc_3",
-        "category": "disc",
-        "text": "Ce qui vous motive le plus dans votre travail :",
-        "type": "choice",
-        "choices": [
-            {"value": "D", "label": "Atteindre des résultats concrets et relever des défis"},
-            {"value": "I", "label": "Collaborer, inspirer et créer une dynamique positive"},
-            {"value": "S", "label": "Contribuer à un environnement stable et bienveillant"},
-            {"value": "C", "label": "Produire un travail précis et de haute qualité"}
-        ]
-    },
-    # --- RIASEC ---
-    {
-        "id": "riasec_1",
-        "category": "riasec",
-        "text": "Classez ces activités par ordre de préférence :",
-        "type": "ranking",
-        "choices": [
-            {"value": "R", "label": "Construire, réparer ou manipuler des objets"},
-            {"value": "I", "label": "Rechercher, analyser ou résoudre des problèmes complexes"},
-            {"value": "A", "label": "Créer, concevoir ou exprimer des idées"},
-            {"value": "S", "label": "Aider, enseigner ou conseiller des personnes"},
-            {"value": "E", "label": "Diriger, vendre ou négocier"},
-            {"value": "C", "label": "Organiser, classer ou gérer des données"}
-        ]
-    },
-    {
-        "id": "riasec_2",
-        "category": "riasec",
-        "text": "L'environnement de travail qui vous attire le plus :",
-        "type": "choice",
-        "choices": [
-            {"value": "R", "label": "En atelier, en plein air, avec des outils ou machines"},
-            {"value": "I", "label": "En laboratoire ou bureau d'études, avec de la recherche"},
-            {"value": "A", "label": "Un studio créatif, une scène, un espace artistique"},
-            {"value": "S", "label": "Un lieu d'accueil, de soins ou d'accompagnement"},
-            {"value": "E", "label": "Un bureau de direction, un espace commercial"},
-            {"value": "C", "label": "Un bureau structuré avec des procédures claires"}
-        ]
-    },
-    # --- Ennéagramme ---
-    {
-        "id": "ennea_1",
-        "category": "enneagramme",
-        "text": "Ce qui guide vos choix professionnels en profondeur :",
-        "type": "choice",
-        "choices": [
-            {"value": "1", "label": "Le besoin de faire les choses correctement et d'améliorer le monde"},
-            {"value": "2", "label": "Le besoin d'aider et d'être apprécié(e) pour ma contribution"},
-            {"value": "3", "label": "Le besoin de réussir et d'être reconnu(e) pour mes accomplissements"},
-            {"value": "4", "label": "Le besoin d'authenticité et de sens profond dans ce que je fais"},
-            {"value": "5", "label": "Le besoin de comprendre et de maîtriser mon domaine d'expertise"},
-            {"value": "6", "label": "Le besoin de sécurité et de loyauté envers mon équipe"},
-            {"value": "7", "label": "Le besoin de variété, de liberté et de nouvelles expériences"},
-            {"value": "8", "label": "Le besoin de contrôle, d'autonomie et de protéger les plus faibles"},
-            {"value": "9", "label": "Le besoin d'harmonie, de paix et de consensus"}
-        ]
-    },
-    {
-        "id": "ennea_2",
-        "category": "enneagramme",
-        "text": "Votre plus grande crainte dans le contexte professionnel :",
-        "type": "choice",
-        "choices": [
-            {"value": "1", "label": "Être imparfait(e) ou corrompu(e)"},
-            {"value": "2", "label": "Ne pas être aimé(e) ou utile"},
-            {"value": "3", "label": "Échouer ou ne pas être reconnu(e)"},
-            {"value": "4", "label": "Perdre mon identité ou être ordinaire"},
-            {"value": "5", "label": "Être envahi(e) ou incompétent(e)"},
-            {"value": "6", "label": "Être abandonné(e) ou sans soutien"},
-            {"value": "7", "label": "Être limité(e) ou souffrir"},
-            {"value": "8", "label": "Être contrôlé(e) ou vulnérable"},
-            {"value": "9", "label": "Le conflit ou la séparation"}
-        ]
-    },
-    # --- Vertus (Seligman & Peterson) ---
-    {
-        "id": "vertus_1",
-        "category": "vertus",
-        "text": "Classez ces qualités de la plus à la moins importante pour vous :",
-        "type": "ranking",
-        "choices": [
-            {"value": "sagesse", "label": "La sagesse (curiosité, créativité, ouverture d'esprit)"},
-            {"value": "courage", "label": "Le courage (persévérance, authenticité, vitalité)"},
-            {"value": "humanite", "label": "L'humanité (empathie, gentillesse, intelligence sociale)"},
-            {"value": "justice", "label": "La justice (équité, leadership, travail d'équipe)"},
-            {"value": "temperance", "label": "La tempérance (humilité, prudence, maîtrise de soi)"},
-            {"value": "transcendance", "label": "La transcendance (gratitude, espoir, humour, spiritualité)"}
-        ]
-    },
-    {
-        "id": "vertus_2",
-        "category": "vertus",
-        "text": "Dans votre vie professionnelle, ce qui vous définit le mieux :",
-        "type": "choice",
-        "choices": [
-            {"value": "sagesse", "label": "Ma curiosité intellectuelle et mon désir d'apprendre"},
-            {"value": "courage", "label": "Ma persévérance face aux obstacles"},
-            {"value": "humanite", "label": "Mon empathie et ma capacité à créer du lien"},
-            {"value": "justice", "label": "Mon sens de l'équité et du collectif"},
-            {"value": "temperance", "label": "Ma capacité à garder le recul et la mesure"},
-            {"value": "transcendance", "label": "Mon optimisme et ma capacité à donner du sens"}
-        ]
-    },
-    # --- Valeurs (Schwartz) ---
-    {
-        "id": "valeurs_1",
-        "category": "valeurs",
-        "text": "Classez ces valeurs par ordre d'importance pour votre carrière :",
-        "type": "ranking",
-        "choices": [
-            {"value": "autonomie", "label": "Autonomie : liberté de pensée et d'action"},
-            {"value": "stimulation", "label": "Stimulation : variété, nouveauté, défis"},
-            {"value": "realisation", "label": "Réalisation de soi : ambition, compétence, succès"},
-            {"value": "bienveillance", "label": "Bienveillance : entraide, loyauté, honnêteté"},
-            {"value": "securite", "label": "Sécurité : stabilité, ordre, santé"},
-            {"value": "universalisme", "label": "Universalisme : justice sociale, tolérance, environnement"}
-        ]
-    },
-    # --- Style de travail ---
-    {
-        "id": "style_1",
-        "category": "style",
-        "text": "Votre manière préférée de travailler :",
-        "type": "choice",
-        "choices": [
-            {"value": "solo", "label": "En autonomie, avec mes propres méthodes"},
-            {"value": "duo", "label": "En binôme, avec un partenaire de confiance"},
-            {"value": "equipe", "label": "En équipe pluridisciplinaire"},
-            {"value": "reseau", "label": "En réseau, avec des connexions variées"}
-        ]
-    },
-    {
-        "id": "style_2",
-        "category": "style",
-        "text": "Face à un problème complexe au travail, votre premier réflexe :",
-        "type": "choice",
-        "choices": [
-            {"value": "analyser", "label": "Décomposer le problème en sous-parties logiques"},
-            {"value": "consulter", "label": "Consulter des collègues pour avoir différents avis"},
-            {"value": "experimenter", "label": "Tester rapidement une solution, quitte à ajuster"},
-            {"value": "recul", "label": "Prendre du recul pour voir le tableau d'ensemble"}
-        ]
-    },
-    # --- Compétences perçues ---
-    {
-        "id": "competences_1",
-        "category": "competences",
-        "text": "Parmi ces compétences transversales, classez vos 4 plus fortes :",
-        "type": "ranking",
-        "choices": [
-            {"value": "communication", "label": "Communication et expression"},
-            {"value": "organisation", "label": "Organisation et planification"},
-            {"value": "leadership", "label": "Leadership et influence"},
-            {"value": "creativite", "label": "Créativité et innovation"},
-            {"value": "analyse", "label": "Analyse et résolution de problèmes"},
-            {"value": "adaptabilite", "label": "Adaptabilité et flexibilité"},
-            {"value": "cooperation", "label": "Coopération et travail d'équipe"},
-            {"value": "rigueur", "label": "Rigueur et attention au détail"}
-        ]
-    },
-    # --- Gestion du stress ---
-    {
-        "id": "stress_1",
-        "category": "stress",
-        "text": "Sous forte pression au travail, vous avez plutôt tendance à :",
-        "type": "choice",
-        "choices": [
-            {"value": "action", "label": "Redoubler d'efforts et passer à l'action immédiate"},
-            {"value": "planifier", "label": "Réorganiser vos priorités et planifier"},
-            {"value": "soutien", "label": "Chercher du soutien auprès de vos proches ou collègues"},
-            {"value": "retrait", "label": "Prendre du recul et analyser la situation calmement"}
-        ]
+        "id": "proj_5",
+        "text": "Quel serait pour vous un travail réussi dans cinq ans ?",
+        "type": "open_text",
+        "placeholder": "Décrivez votre vision d'un travail épanouissant dans 5 ans...",
     },
 ]
 
 
-# ============================================================================
-# SCORING ENGINE
-# ============================================================================
+# ─── Scoring Engine ──────────────────────────────────────────────────
 
-def _compute_scores(answers: dict) -> dict:
-    """Compute raw dimension scores from questionnaire answers."""
+RIASEC_LABELS = {
+    "R": "Réaliste — Concret, manuel, technique",
+    "I": "Investigateur — Analytique, intellectuel, scientifique",
+    "A": "Artistique — Créatif, expressif, imaginatif",
+    "S": "Social — Aidant, coopératif, pédagogue",
+    "E": "Entreprenant — Leader, persuasif, ambitieux",
+    "C": "Conventionnel — Organisé, précis, méthodique",
+}
 
-    # MBTI scores
-    mbti = {"E": 0, "I": 0, "S": 0, "N": 0, "T": 0, "F": 0, "J": 0, "P": 0}
-    for qid, val in answers.items():
-        if qid.startswith("mbti_ei"):
-            mbti[val] = mbti.get(val, 0) + 1
-        elif qid.startswith("mbti_sn"):
-            mbti[val] = mbti.get(val, 0) + 1
-        elif qid.startswith("mbti_tf"):
-            mbti[val] = mbti.get(val, 0) + 1
-        elif qid.startswith("mbti_jp"):
-            mbti[val] = mbti.get(val, 0) + 1
+VALEUR_LABELS = {
+    "benevolence": "Bienveillance — Bien-être des proches et des autres",
+    "stimulation": "Stimulation — Nouveauté, défis, apprentissage",
+    "securite": "Sécurité — Stabilité, protection, cadre",
+    "autonomie": "Autonomie — Liberté de pensée et d'action",
+    "reussite": "Réussite — Accomplissement et reconnaissance",
+    "universalisme": "Universalisme — Justice sociale, environnement",
+    "conformite": "Conformité — Respect des règles et de l'ordre",
+    "tradition": "Tradition — Respect des convictions et des valeurs",
+}
 
-    mbti_code = ""
-    mbti_code += "E" if mbti["E"] >= mbti["I"] else "I"
-    mbti_code += "S" if mbti["S"] >= mbti["N"] else "N"
-    mbti_code += "T" if mbti["T"] >= mbti["F"] else "F"
-    mbti_code += "J" if mbti["J"] >= mbti["P"] else "P"
+SEP_LABELS = {
+    "fiabilite": "Fiabilité — Respect des engagements",
+    "adaptabilite": "Adaptabilité — Souplesse face au changement",
+    "initiative": "Initiative — Proactivité et prise de décision",
+    "gestion_stress": "Gestion du stress — Calme sous pression",
+    "cooperation": "Coopération — Esprit d'équipe",
+    "ouverture": "Ouverture — Acceptation du feedback",
+    "perseverance": "Persévérance — Ténacité face aux obstacles",
+    "organisation": "Organisation — Gestion multi-tâches",
+    "communication": "Communication — Aisance relationnelle",
+    "resolution": "Résolution — Orientation solutions",
+}
 
-    mbti_pcts = {
-        "energie": int(max(mbti["E"], mbti["I"]) / max(mbti["E"] + mbti["I"], 1) * 100),
-        "perception": int(max(mbti["S"], mbti["N"]) / max(mbti["S"] + mbti["N"], 1) * 100),
-        "decision": int(max(mbti["T"], mbti["F"]) / max(mbti["T"] + mbti["F"], 1) * 100),
-        "structure": int(max(mbti["J"], mbti["P"]) / max(mbti["J"] + mbti["P"], 1) * 100),
+
+def compute_dclic_profile(answers: dict) -> dict:
+    """Calcule le profil D'CLIC PRO complet."""
+
+    # ── Archéologie des compétences ──────────────────────────────
+    archeologie = {}
+    for q in BLOC_1_ARCHEOLOGIE:
+        val = answers.get(q["id"], "")
+        if val and len(str(val)) > 2:
+            archeologie[q["id"]] = str(val)
+
+    # Catégorisation archéologique
+    arche_categories = {
+        "visibles": [],
+        "enfouies": [],
+        "transferables": [],
+        "adaptatives": [],
+        "potentielles": [],
     }
+    # Q1 (fierté) + Q9 (efficacité) = visibles
+    for k in ["arche_1", "arche_9"]:
+        if archeologie.get(k):
+            arche_categories["visibles"].append(archeologie[k])
+    # Q3 (organisation) + Q5 (responsabilités asso) = transferables
+    for k in ["arche_3", "arche_5"]:
+        if archeologie.get(k):
+            arche_categories["transferables"].append(archeologie[k])
+    # Q4 (accompagnement) + Q2 (aide spontanée) = enfouies
+    for k in ["arche_2", "arche_4"]:
+        if archeologie.get(k):
+            arche_categories["enfouies"].append(archeologie[k])
+    # Q6 (difficulté surmontée) = adaptatives
+    if archeologie.get("arche_6"):
+        arche_categories["adaptatives"].append(archeologie["arche_6"])
+    # Q7 (savoir-faire non reconnus) + Q8 (apprentissages informels) + Q10 (transmission) = potentielles
+    for k in ["arche_7", "arche_8", "arche_10"]:
+        if archeologie.get(k):
+            arche_categories["potentielles"].append(archeologie[k])
 
-    # DISC scores
-    disc = {"D": 0, "I": 0, "S": 0, "C": 0}
-    for qid, val in answers.items():
-        if not qid.startswith("disc_"):
-            continue
-        if "," in val:  # ranking
-            parts = val.split(",")
-            for rank, v in enumerate(parts):
-                disc[v] = disc.get(v, 0) + (len(parts) - rank)
-        else:
-            disc[val] = disc.get(val, 0) + 3
+    # ── RIASEC ───────────────────────────────────────────────────
+    riasec_scores = {"R": 0, "I": 0, "A": 0, "S": 0, "E": 0, "C": 0}
+    for item in BLOC_2_RIASEC:
+        val = answers.get(item["id"])
+        if val is not None:
+            try:
+                score = int(val)
+                riasec_scores[item["dimension"]] += score
+            except (ValueError, TypeError):
+                pass
 
-    disc_total = max(sum(disc.values()), 1)
-    disc_pcts = {k: int(v / disc_total * 100) for k, v in disc.items()}
-    disc_dominant = max(disc, key=disc.get)
-    disc_labels = {"D": "Dominance", "I": "Influence", "S": "Stabilité", "C": "Conformité"}
+    riasec_sorted = sorted(riasec_scores.items(), key=lambda x: x[1], reverse=True)
+    riasec_code = "".join([r[0] for r in riasec_sorted[:3]])
+    riasec_max = max(riasec_scores.values()) if riasec_scores.values() else 1
 
-    # RIASEC scores
-    riasec = {"R": 0, "I": 0, "A": 0, "S": 0, "E": 0, "C": 0}
-    for qid, val in answers.items():
-        if not qid.startswith("riasec_"):
-            continue
-        if "," in val:
-            parts = val.split(",")
-            for rank, v in enumerate(parts):
-                riasec[v] = riasec.get(v, 0) + (len(parts) - rank)
-        else:
-            riasec[v] = riasec.get(v, 0) + 3
-    riasec_total = max(sum(riasec.values()), 1)
-    riasec_pcts = {k: int(v / riasec_total * 100) for k, v in riasec.items()}
-    sorted_riasec = sorted(riasec.items(), key=lambda x: -x[1])
-    riasec_major = sorted_riasec[0][0]
-    riasec_minor = sorted_riasec[1][0] if len(sorted_riasec) > 1 else riasec_major
+    riasec_profile = {}
+    for dim, score in riasec_scores.items():
+        riasec_profile[dim] = {
+            "score": score,
+            "pct": round((score / max(riasec_max, 1)) * 100),
+            "label": RIASEC_LABELS.get(dim, dim),
+        }
 
-    riasec_names = {"R": "Réaliste", "I": "Investigateur", "A": "Artistique", "S": "Social", "E": "Entreprenant", "C": "Conventionnel"}
+    # ── Valeurs (Schwartz simplifié) ─────────────────────────────
+    valeur_scores = {}
+    for item in BLOC_3_VALEURS:
+        val = answers.get(item["id"])
+        dim = item["dimension"]
+        if val is not None:
+            try:
+                score = int(val)
+                valeur_scores[dim] = valeur_scores.get(dim, 0) + score
+            except (ValueError, TypeError):
+                pass
 
-    # Enneagram
-    ennea_counts = {}
-    for qid, val in answers.items():
-        if qid.startswith("ennea_"):
-            ennea_counts[val] = ennea_counts.get(val, 0) + 1
-    ennea_type = max(ennea_counts, key=ennea_counts.get) if ennea_counts else "2"
-    ennea_labels = {"1": "Le Perfectionniste", "2": "L'Altruiste", "3": "Le Battant", "4": "L'Artiste", "5": "L'Observateur", "6": "Le Loyaliste", "7": "L'Épicurien", "8": "Le Leader", "9": "Le Médiateur"}
-
-    # Vertus
-    vertus = {"sagesse": 0, "courage": 0, "humanite": 0, "justice": 0, "temperance": 0, "transcendance": 0}
-    for qid, val in answers.items():
-        if not qid.startswith("vertus_"):
-            continue
-        if "," in val:
-            parts = val.split(",")
-            for rank, v in enumerate(parts):
-                if v in vertus:
-                    vertus[v] += (len(parts) - rank)
-        elif val in vertus:
-            vertus[val] += 3
-    vertus_total = max(sum(vertus.values()), 1)
-    vertus_pcts = {k: int(v / vertus_total * 100) for k, v in vertus.items()}
-    vertus_dominant = max(vertus, key=vertus.get)
-    vertus_names = {"sagesse": "Sagesse", "courage": "Courage", "humanite": "Humanité", "justice": "Justice", "temperance": "Tempérance", "transcendance": "Transcendance"}
-
-    # Valeurs Schwartz
-    valeurs = {}
-    for qid, val in answers.items():
-        if not qid.startswith("valeurs_"):
-            continue
-        if "," in val:
-            parts = val.split(",")
-            for rank, v in enumerate(parts):
-                valeurs[v] = valeurs.get(v, 0) + (len(parts) - rank)
-        elif val:
-            valeurs[val] = valeurs.get(val, 0) + 3
-
-    # Competences ranking
-    competences = {}
-    for qid, val in answers.items():
-        if qid == "competences_1" and "," in val:
-            parts = val.split(",")
-            for rank, v in enumerate(parts):
-                competences[v] = len(parts) - rank
-
-    # Style & stress
-    style = answers.get("style_1", "equipe")
-    problem_style = answers.get("style_2", "analyser")
-    stress_style = answers.get("stress_1", "planifier")
-
-    return {
-        "mbti_code": mbti_code,
-        "mbti_raw": mbti,
-        "mbti_pcts": mbti_pcts,
-        "disc_dominant": disc_dominant,
-        "disc_label": disc_labels.get(disc_dominant, ""),
-        "disc_scores": disc_pcts,
-        "riasec_major": riasec_major,
-        "riasec_minor": riasec_minor,
-        "riasec_major_name": riasec_names.get(riasec_major, ""),
-        "riasec_minor_name": riasec_names.get(riasec_minor, ""),
-        "riasec_scores": riasec_pcts,
-        "ennea_type": int(ennea_type),
-        "ennea_label": ennea_labels.get(ennea_type, ""),
-        "vertus_dominant": vertus_dominant,
-        "vertus_dominant_name": vertus_names.get(vertus_dominant, ""),
-        "vertus_scores": vertus_pcts,
-        "valeurs_top": sorted(valeurs.items(), key=lambda x: -x[1])[:4] if valeurs else [],
-        "competences_top": sorted(competences.items(), key=lambda x: -x[1])[:4] if competences else [],
-        "style": style,
-        "problem_style": problem_style,
-        "stress_style": stress_style,
-    }
-
-
-async def _generate_ai_profile(scores: dict, birth_date: str = None, target_job: str = None) -> dict:
-    """Use AI to generate rich narrative profile from raw scores."""
-    if not EMERGENT_LLM_KEY:
-        logging.warning("No EMERGENT_LLM_KEY, using fallback profile")
-        return _fallback_profile(scores)
-
-    prompt = f"""Tu es un expert en psychologie du travail et en bilan de compétences. 
-À partir des scores D'CLIC PRO suivants, génère un profil professionnel riche et personnalisé.
-
-SCORES:
-- MBTI: {scores['mbti_code']}
-- DISC dominant: {scores['disc_dominant']} ({scores['disc_label']})  scores: {json.dumps(scores['disc_scores'])}
-- RIASEC: {scores['riasec_major']} ({scores['riasec_major_name']}) / {scores['riasec_minor']} ({scores['riasec_minor_name']})  scores: {json.dumps(scores['riasec_scores'])}
-- Ennéagramme: Type {scores['ennea_type']} ({scores['ennea_label']})
-- Vertu dominante: {scores['vertus_dominant_name']}  scores: {json.dumps(scores['vertus_scores'])}
-- Valeurs top: {json.dumps(scores['valeurs_top'])}
-- Compétences fortes: {json.dumps(scores['competences_top'])}
-- Style de travail: {scores['style']}, résolution: {scores['problem_style']}, stress: {scores['stress_style']}
-{"- Métier visé: " + target_job if target_job else ""}
-{"- Date de naissance: " + birth_date if birth_date else ""}
-
-Réponds UNIQUEMENT en JSON valide (pas de markdown). Structure:
-{{
-  "compass": {{
-    "summary": "2-3 phrases sur le profil global",
-    "axes": [
-      {{"name": "Énergie", "dominant": "{scores['mbti_code'][0]}", "pole_a": {{"code": "E", "label": "Extraversion"}}, "pole_b": {{"code": "I", "label": "Introversion"}}, "insight": "phrase explicative"}},
-      {{"name": "Perception", "dominant": "{scores['mbti_code'][1]}", "pole_a": {{"code": "S", "label": "Sensation"}}, "pole_b": {{"code": "N", "label": "Intuition"}}, "insight": "phrase explicative"}},
-      {{"name": "Décision", "dominant": "{scores['mbti_code'][2]}", "pole_a": {{"code": "T", "label": "Pensée"}}, "pole_b": {{"code": "F", "label": "Sentiment"}}, "insight": "phrase explicative"}},
-      {{"name": "Organisation", "dominant": "{scores['mbti_code'][3]}", "pole_a": {{"code": "J", "label": "Jugement"}}, "pole_b": {{"code": "P", "label": "Perception"}}, "insight": "phrase explicative"}}
+    valeur_sorted = sorted(valeur_scores.items(), key=lambda x: x[1], reverse=True)
+    valeurs_dominantes = [
+        {"code": v[0], "score": v[1], "label": VALEUR_LABELS.get(v[0], v[0])}
+        for v in valeur_sorted[:4]
     ]
-  }},
-  "vertu_data": {{
-    "name": "{scores['vertus_dominant_name']}",
-    "cognition": ["3-4 forces cognitives liées au profil"],
-    "conation": ["3-4 forces de volonté liées"],
-    "affection": ["3-4 forces émotionnelles liées"],
-    "valeurs_schwartz": ["4-5 valeurs Schwartz les plus alignées"],
-    "forces": ["4-5 forces de caractère Seligman/Peterson"],
-    "savoirs_etre": ["5-6 savoirs-être professionnels France Travail"]
-  }},
-  "integrated_analysis": {{
-    "synthese": "Paragraphe de synthèse intégrée du profil",
-    "niveau_1_preuves": {{
-      "competences_prouvees": ["5-6 compétences clés"],
-      "forces_cles": ["3-4 forces"]
-    }},
-    "niveau_2_fonctionnement": {{
-      "style_travail": "Description du style de travail",
-      "environnement_favorable": ["3-4 types d'environnements"]
-    }},
-    "niveau_3_regulation": {{
-      "moteur_interne": "Ce qui drive la personne",
-      "leviers_croissance": ["3-4 leviers"],
-      "signaux_stress": ["2-3 signaux d'alerte"]
-    }}
-  }},
-  "riasec_detail": {{
-    "traits": ["4-5 traits dominants"],
-    "environnements_preferes": ["3-4 environnements"],
-    "major_description": "Description du type majeur"
-  }},
-  "vertus_detail": {{
-    "qualites_dominantes": ["4-5 qualités humaines"]
-  }},
-  "life_path": {{
-    "label": "Titre du chemin de développement",
-    "strengths": ["3-4 forces naturelles"],
-    "watchouts": ["2-3 points de vigilance"],
-    "micro_actions": [
-      {{"focus": "domaine", "action": "action concrète"}},
-      {{"focus": "domaine", "action": "action concrète"}},
-      {{"focus": "domaine", "action": "action concrète"}}
-    ],
-    "work_preferences": ["3-4 préférences"]
-  }},
-  "cross_analysis": {{
-    "has_cross_analysis": {"true" if birth_date else "false"},
-    "synergy_disc": "Synergie entre DISC et style de travail",
-    "synergy_ennea": "Synergie entre Ennéagramme et motivations profondes",
-    "tension": "Tension potentielle à transformer",
-    "integration_insight": "Insight d'intégration"
-  }},
-  "ofman_quadrant": [
-    {{"qualite": "qualité 1", "piege": "excès de cette qualité", "defi": "compétence à développer", "allergie": "ce qui irrite", "source": "MBTI/DISC/etc", "recommandation": "conseil"}},
-    {{"qualite": "qualité 2", "piege": "excès", "defi": "développer", "allergie": "irrite", "source": "source", "recommandation": "conseil"}},
-    {{"qualite": "qualité 3", "piege": "excès", "defi": "développer", "allergie": "irrite", "source": "source", "recommandation": "conseil"}}
-  ],
-  "competences_fortes": ["6-8 compétences transversales identifiées"],
-  "ennea_detail": {{
-    "type_name": "{scores['ennea_label']}",
-    "motivations": ["2-3 motivations profondes"],
-    "peurs": ["1-2 peurs fondamentales"]
-  }}
-}}"""
 
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"dclic-{uuid.uuid4()}",
-            system_message="Tu es un expert en psychologie du travail. Réponds uniquement en JSON valide."
-        ).with_model("openai", "gpt-5.2")
-        response = await chat.send_message(UserMessage(text=prompt))
-        raw = response.strip() if isinstance(response, str) else response.text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw[:-3]
-            raw = raw.strip()
-        return json.loads(raw)
-    except Exception as e:
-        logging.error(f"[D'CLIC] AI profile generation failed: {e}")
-        return _fallback_profile(scores)
+    # ── Savoir-être professionnels (SEP) ─────────────────────────
+    sep_scores = {}
+    for item in BLOC_4_SAVOIR_ETRE:
+        val = answers.get(item["id"])
+        dim = item["dimension"]
+        if val is not None:
+            try:
+                sep_scores[dim] = int(val)
+            except (ValueError, TypeError):
+                pass
 
+    sep_sorted = sorted(sep_scores.items(), key=lambda x: x[1], reverse=True)
+    sep_forces = [
+        {"code": s[0], "score": s[1], "label": SEP_LABELS.get(s[0], s[0])}
+        for s in sep_sorted if s[1] >= 4
+    ]
+    sep_all = [
+        {"code": s[0], "score": s[1], "label": SEP_LABELS.get(s[0], s[0])}
+        for s in sep_sorted
+    ]
 
-def _fallback_profile(scores: dict) -> dict:
-    """Generate a basic profile when AI is unavailable."""
+    # ── Projection professionnelle ───────────────────────────────
+    projection = {
+        "metiers_attires": answers.get("proj_1", ""),
+        "metiers_exclus": answers.get("proj_2", ""),
+        "preference_travail": answers.get("proj_3", ""),
+        "environnement": answers.get("proj_4", ""),
+        "vision_5_ans": answers.get("proj_5", ""),
+    }
+
+    # ── Code d'accès ─────────────────────────────────────────────
+    code = "-".join([
+        "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(4))
+        for _ in range(2)
+    ])
+
     return {
-        "compass": {
-            "summary": f"Profil {scores['mbti_code']} avec un style {scores['disc_label']}. Orientation {scores['riasec_major_name']}/{scores['riasec_minor_name']}.",
-            "axes": [
-                {"name": "Énergie", "dominant": scores["mbti_code"][0], "pole_a": {"code": "E", "label": "Extraversion"}, "pole_b": {"code": "I", "label": "Introversion"}, "insight": "Votre source d'énergie principale."},
-                {"name": "Perception", "dominant": scores["mbti_code"][1], "pole_a": {"code": "S", "label": "Sensation"}, "pole_b": {"code": "N", "label": "Intuition"}, "insight": "Votre mode de perception."},
-                {"name": "Décision", "dominant": scores["mbti_code"][2], "pole_a": {"code": "T", "label": "Pensée"}, "pole_b": {"code": "F", "label": "Sentiment"}, "insight": "Votre mode de décision."},
-                {"name": "Organisation", "dominant": scores["mbti_code"][3], "pole_a": {"code": "J", "label": "Jugement"}, "pole_b": {"code": "P", "label": "Perception"}, "insight": "Votre style d'organisation."},
-            ]
+        "access_code": code,
+        "archeologie_competences": {
+            "reponses": archeologie,
+            "categories": arche_categories,
         },
-        "vertu_data": {
-            "name": scores["vertus_dominant_name"],
-            "cognition": ["Curiosité", "Jugement critique", "Perspective"],
-            "conation": ["Persévérance", "Authenticité", "Vitalité"],
-            "affection": ["Gentillesse", "Intelligence sociale", "Amour"],
-            "valeurs_schwartz": [v[0] for v in scores.get("valeurs_top", [])[:4]],
-            "forces": [c[0] for c in scores.get("competences_top", [])[:4]],
-            "savoirs_etre": ["Autonomie", "Rigueur", "Sens du relationnel", "Adaptabilité"]
+        "riasec": {
+            "code": riasec_code,
+            "dominant": riasec_sorted[0][0] if riasec_sorted else "S",
+            "dominant_label": RIASEC_LABELS.get(riasec_sorted[0][0], "") if riasec_sorted else "",
+            "scores": riasec_scores,
+            "profile": riasec_profile,
         },
-        "integrated_analysis": {
-            "synthese": f"Profil {scores['mbti_code']} à dominante {scores['disc_label']}.",
-            "niveau_1_preuves": {"competences_prouvees": [c[0] for c in scores.get("competences_top", [])], "forces_cles": ["Adaptabilité", "Communication"]},
-            "niveau_2_fonctionnement": {"style_travail": f"Style {scores['style']}", "environnement_favorable": ["Équipe structurée", "Environnement collaboratif"]},
-            "niveau_3_regulation": {"moteur_interne": scores["ennea_label"], "leviers_croissance": ["Formation continue", "Mentorat"], "signaux_stress": ["Surcharge", "Isolement"]}
+        "valeurs": {
+            "dominantes": valeurs_dominantes,
+            "scores": dict(valeur_scores),
         },
-        "riasec_detail": {"traits": ["Méthodique", "Communicant"], "environnements_preferes": ["Bureau", "Terrain"], "major_description": f"Profil {scores['riasec_major_name']}"},
-        "vertus_detail": {"qualites_dominantes": ["Empathie", "Persévérance", "Intégrité"]},
-        "life_path": {
-            "label": "Développement professionnel",
-            "strengths": ["Adaptabilité", "Engagement"],
-            "watchouts": ["Perfectionnisme", "Surmenage"],
-            "micro_actions": [{"focus": "Réseau", "action": "Développer votre réseau professionnel"}, {"focus": "Formation", "action": "Identifier une formation clé"}],
-            "work_preferences": ["Autonomie", "Collaboration"]
+        "savoir_etre": {
+            "forces": sep_forces,
+            "all": sep_all,
         },
-        "cross_analysis": {"has_cross_analysis": False, "synergy_disc": "", "synergy_ennea": "", "tension": "", "integration_insight": ""},
-        "ofman_quadrant": [{"qualite": "Rigueur", "piege": "Perfectionnisme", "defi": "Flexibilité", "allergie": "Négligence", "source": "MBTI", "recommandation": "Accepter l'imperfection"}],
-        "competences_fortes": [c[0] for c in scores.get("competences_top", [])[:6]],
-        "ennea_detail": {"type_name": scores["ennea_label"], "motivations": ["Contribution", "Excellence"], "peurs": ["Échec"]}
+        "projection": projection,
     }
 
 
-# ============================================================================
-# ROUTES
-# ============================================================================
+# ─── Routes ──────────────────────────────────────────────────────
 
-@router.get("/dclic/questionnaire")
-async def get_questionnaire():
-    """Return the D'CLIC PRO questionnaire."""
-    return {"questions": QUESTIONNAIRE}
+def register_dclic_routes(app, db_ref):
+    global db
+    db = db_ref
 
+    @router.get("/questionnaire")
+    async def get_questionnaire():
+        return {
+            "title": "D'CLIC PRO — Révélateur de potentiel professionnel",
+            "description": "Identifiez vos intérêts, valeurs, qualités et compétences cachées pour révéler votre potentiel.",
+            "blocs": [
+                {
+                    "id": "archeologie",
+                    "title": "Archéologie des compétences",
+                    "subtitle": "Explorons vos compétences visibles et cachées",
+                    "icon": "pickaxe",
+                    "type": "open_text",
+                    "questions": BLOC_1_ARCHEOLOGIE,
+                },
+                {
+                    "id": "riasec",
+                    "title": "Intérêts professionnels",
+                    "subtitle": "Évaluez chaque affirmation de 1 (pas du tout) à 5 (tout à fait)",
+                    "icon": "compass",
+                    "type": "scale",
+                    "scale_min": 1,
+                    "scale_max": 5,
+                    "scale_labels": {"1": "Pas du tout", "2": "Un peu", "3": "Moyennement", "4": "Beaucoup", "5": "Tout à fait"},
+                    "questions": [{"id": q["id"], "text": q["text"], "type": "scale"} for q in BLOC_2_RIASEC],
+                },
+                {
+                    "id": "valeurs",
+                    "title": "Valeurs professionnelles",
+                    "subtitle": "Évaluez l'importance de chaque valeur de 1 (pas important) à 5 (essentiel)",
+                    "icon": "heart",
+                    "type": "scale",
+                    "scale_min": 1,
+                    "scale_max": 5,
+                    "scale_labels": {"1": "Pas important", "2": "Peu important", "3": "Moyennement", "4": "Important", "5": "Essentiel"},
+                    "questions": [{"id": q["id"], "text": q["text"], "type": "scale"} for q in BLOC_3_VALEURS],
+                },
+                {
+                    "id": "savoir_etre",
+                    "title": "Savoir-être professionnels",
+                    "subtitle": "Évaluez-vous de 1 (rarement) à 5 (toujours)",
+                    "icon": "user-check",
+                    "type": "scale",
+                    "scale_min": 1,
+                    "scale_max": 5,
+                    "scale_labels": {"1": "Rarement", "2": "Parfois", "3": "Souvent", "4": "Très souvent", "5": "Toujours"},
+                    "questions": [{"id": q["id"], "text": q["text"], "type": "scale"} for q in BLOC_4_SAVOIR_ETRE],
+                },
+                {
+                    "id": "projection",
+                    "title": "Projection professionnelle",
+                    "subtitle": "Projetez-vous dans votre avenir professionnel",
+                    "icon": "rocket",
+                    "type": "mixed",
+                    "questions": BLOC_5_PROJECTION,
+                },
+            ],
+        }
 
-class DclicSubmitPayload(BaseModel):
-    answers: dict
-    birth_date: Optional[str] = None
-    education_level: Optional[str] = None
-    target_job: Optional[str] = None
+    @router.post("/submit")
+    async def submit_dclic(body: dict = {}):
+        token = body.get("token")
+        answers = body.get("answers", {})
 
+        if len(answers) < 15:
+            raise HTTPException(400, f"Questionnaire incomplet ({len(answers)} réponses minimum 15 requises)")
 
-@router.post("/dclic/submit")
-async def submit_dclic(payload: DclicSubmitPayload):
-    """Process D'CLIC PRO answers and return full profile."""
-    if not payload.answers or len(payload.answers) < 5:
-        raise HTTPException(status_code=400, detail="Réponses insuffisantes")
+        profile = compute_dclic_profile(answers)
 
-    scores = _compute_scores(payload.answers)
-    ai_profile = await _generate_ai_profile(scores, payload.birth_date, payload.target_job)
+        doc = {
+            "access_code": profile["access_code"],
+            "answers": answers,
+            "profile": profile,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
 
-    access_code = f"DCLIC-{uuid.uuid4().hex[:6].upper()}"
+        if token:
+            doc["token_id"] = token
+            await db.passports.update_one(
+                {"token_id": token},
+                {"$set": {
+                    "dclic_results": profile,
+                    "dclic_completed_at": datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
 
-    profile = {
-        "mbti": scores["mbti_code"],
-        "disc": scores["disc_dominant"],
-        "disc_label": scores["disc_label"],
-        "disc_scores": scores["disc_scores"],
-        "ennea_type": scores["ennea_type"],
-        "ennea_label": scores["ennea_label"],
-        "scores": scores["mbti_pcts"],
-        "riasec_profile": {
-            "major": scores["riasec_major"],
-            "minor": scores["riasec_minor"],
-            "major_name": scores["riasec_major_name"],
-            "minor_name": scores["riasec_minor_name"],
-            "major_description": ai_profile.get("riasec_detail", {}).get("major_description", ""),
-            "scores": scores["riasec_scores"],
-            "traits": ai_profile.get("riasec_detail", {}).get("traits", []),
-            "environnements_preferes": ai_profile.get("riasec_detail", {}).get("environnements_preferes", []),
-        },
-        "vertus_profile": {
-            "dominant": scores["vertus_dominant"],
-            "dominant_name": scores["vertus_dominant_name"],
-            "vertu_dominante_name": scores["vertus_dominant_name"],
-            "vertus_scores": scores["vertus_scores"],
-            "qualites_dominantes": ai_profile.get("vertus_detail", {}).get("qualites_dominantes", []),
-        },
-        "vertu_data": ai_profile.get("vertu_data", {}),
-        "compass": ai_profile.get("compass", {}),
-        "integrated_analysis": ai_profile.get("integrated_analysis", {}),
-        "life_path": ai_profile.get("life_path", {}),
-        "cross_analysis": ai_profile.get("cross_analysis", {}),
-        "ofman_quadrant": ai_profile.get("ofman_quadrant", []),
-        "competences_fortes": ai_profile.get("competences_fortes", []),
-        "ennea_detail": ai_profile.get("ennea_detail", {}),
-    }
+        await db.dclic_profiles.insert_one(doc)
+        doc.pop("_id", None)
 
-    # Save to database
-    result_doc = {
-        "access_code": access_code,
-        "profile": profile,
-        "answers": payload.answers,
-        "birth_date": payload.birth_date,
-        "education_level": payload.education_level,
-        "target_job": payload.target_job,
-        "raw_scores": scores,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    await db.dclic_results.insert_one(result_doc)
+        return {
+            "success": True,
+            "access_code": profile["access_code"],
+            "profile": profile,
+        }
 
-    return {"access_code": access_code, "profile": profile}
+    @router.get("/results/{code}")
+    async def get_dclic_results(code: str):
+        doc = await db.dclic_profiles.find_one(
+            {"access_code": code.upper()},
+            {"_id": 0},
+        )
+        if not doc:
+            raise HTTPException(404, "Code D'CLIC PRO introuvable")
+        return doc.get("profile", doc)
 
+    @router.get("/my-results")
+    async def get_my_dclic_results(token: str):
+        passport = await db.passports.find_one({"token_id": token}, {"_id": 0})
+        if not passport or not passport.get("dclic_results"):
+            raise HTTPException(404, "Aucun résultat D'CLIC PRO trouvé. Passez d'abord le test.")
+        return passport["dclic_results"]
 
-class DclicRetrievePayload(BaseModel):
-    access_code: str
-
-
-@router.post("/dclic/retrieve")
-async def retrieve_dclic(payload: DclicRetrievePayload):
-    """Retrieve D'CLIC PRO results by access code."""
-    doc = await db.dclic_results.find_one({"access_code": payload.access_code}, {"_id": 0})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Code d'accès introuvable")
-    return {"access_code": doc["access_code"], "profile": doc["profile"]}
-
-
-@router.get("/dclic/claim")
-async def claim_dclic(access_code: str, user_id: str = ""):
-    """Claim a D'CLIC result for a user."""
-    doc = await db.dclic_results.find_one({"access_code": access_code})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Code d'accès introuvable")
-    if user_id:
-        await db.dclic_results.update_one({"access_code": access_code}, {"$set": {"claimed_by": user_id}})
-    return {"status": "claimed", "profile": doc.get("profile", {})}
-
-
-class ImportDclicPayload(BaseModel):
-    dclic_profile: dict
-    target_job: Optional[str] = None
-    skills: list = []
-
-
-@router.post("/profile/import-dclic")
-async def import_dclic(token: str, payload: ImportDclicPayload):
-    """Import D'CLIC PRO results into user profile."""
-    # Validate token directly to avoid circular import
-    token_doc = await db.tokens.find_one({"token": token})
-    if not token_doc:
-        raise HTTPException(status_code=401, detail="Token invalide")
-    token_id = str(token_doc["_id"])
-
-    profile_update = {
-        "dclic_result": payload.dclic_profile,
-        "dclic_imported_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if payload.target_job:
-        profile_update["target_job"] = payload.target_job
-
-    await db.profiles.update_one(
-        {"token_id": token_id},
-        {"$set": profile_update},
-        upsert=True
-    )
-
-    # Also add skills from D'CLIC to passport
-    if payload.skills:
-        passport = await db.passports.find_one({"token_id": token_id})
-        if passport:
-            existing_names = {c.get("name", "").lower() for c in passport.get("competences", [])}
-            new_comps = list(passport.get("competences", []))
-            for skill in payload.skills:
-                if skill.get("name", "").lower() not in existing_names:
-                    new_comps.append({
-                        "name": skill["name"],
-                        "nature": "savoir_faire",
-                        "category": skill.get("category", "transversale"),
-                        "level": "intermediaire",
-                        "source": "dclic_pro",
-                    })
-                    existing_names.add(skill["name"].lower())
-            await db.passports.update_one({"token_id": token_id}, {"$set": {"competences": new_comps}})
-
-    return {"status": "ok", "message": "Profil D'CLIC importé avec succès"}
+    app.include_router(router)
