@@ -1455,33 +1455,167 @@ async def get_personalized_observatory(token: str):
 
     # Gather user skills from all sources
     user_skills = set()
+    user_skill_names = []  # Keep original casing
     if profile:
         for s in profile.get("skills", []):
-            user_skills.add(s.get("name", "").lower().strip())
+            name = s.get("name", "").strip()
+            if name:
+                user_skills.add(name.lower())
+                user_skill_names.append(name)
         if profile.get("cv_skills"):
             for s in profile["cv_skills"]:
-                user_skills.add(s.lower().strip()) if isinstance(s, str) else user_skills.add(s.get("name", "").lower().strip())
+                name = (s if isinstance(s, str) else s.get("name", "")).strip()
+                if name:
+                    user_skills.add(name.lower())
+                    user_skill_names.append(name)
     if passport:
         for c in passport.get("competences", []):
-            user_skills.add(c.get("name", "").lower().strip())
+            name = c.get("name", "").strip()
+            if name:
+                user_skills.add(name.lower())
+                user_skill_names.append(name)
     user_skills.discard("")
 
     if not user_skills:
         return {"has_cv": False, "matches": [], "skill_gaps": [], "declining_alerts": [], "sector_relevance": [], "emerging_from_cv": [], "summary": {}}
 
-    # Get observatory data
+    # Gather user context
+    user_sectors = list(set(
+        (profile or {}).get("sectors", []) +
+        (passport or {}).get("target_sectors", []) +
+        ([s for s in [(passport or {}).get("secteur_activite")] if s])
+    ))
+    experiences = (passport or {}).get("experiences", [])
+    exp_titles = [e.get("titre", e.get("poste", "")) for e in experiences if e.get("titre") or e.get("poste")]
+    metier_cible = (passport or {}).get("metier_cible", "")
+
+    # ---- Use AI to generate truly personalized analysis ----
+    if EMERGENT_LLM_KEY:
+        try:
+            import json as json_lib
+            skills_text = ", ".join(list(set(user_skill_names))[:20])
+            sectors_text = ", ".join(user_sectors) if user_sectors else "non précisés"
+            exp_text = ", ".join(exp_titles[:5]) if exp_titles else "non précisées"
+
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"obs-perso-{token_doc['id'][:8]}",
+                system_message="""Tu es un expert du marché de l'emploi en France. Analyse le profil et génère un JSON strict avec:
+{
+  "matches": [{"name":"compétence détectée comme émergente/en demande","score":0.0-1.0,"growth_rate":0.01-0.30,"trend":"croissance|stable|declin","sectors":["secteurs liés"]}],
+  "skill_gaps": [{"name":"compétence à acquérir pertinente pour ce profil","score":0.0-1.0,"growth_rate":0.01-0.30,"priority":"haute|moyenne","sectors":["secteurs liés"]}],
+  "sector_relevance": [{"name":"nom du secteur pertinent pour ce profil","relevance":0.0-1.0,"trend":"croissance|stable|declin","growth_rate":0.01-0.15,"skill_matches":N,"your_emerging_skills":["compétences du profil pertinentes"]}],
+  "declining_alerts": [{"name":"compétence du profil potentiellement en déclin","score":0.0-1.0,"growth_rate":-0.05,"trend":"declin"}]
+}
+IMPORTANT: 
+- Les secteurs et lacunes DOIVENT correspondre au profil réel de l'utilisateur. Ne suggère PAS des compétences IT à un profil opérationnel terrain sauf si c'est pertinent.
+- growth_rate est un nombre décimal (ex: 0.12 = +12% de croissance). Utilise des valeurs réalistes.
+- score est la pertinence/émergence (0.0 à 1.0)
+- Base-toi sur les compétences, expériences et secteurs réels."""
+            ).with_model("openai", "gpt-5.2")
+
+            prompt = f"""Profil utilisateur :
+- Compétences : {skills_text}
+- Secteurs d'activité : {sectors_text}
+- Expériences : {exp_text}
+- Métier cible : {metier_cible or 'non défini'}
+
+Génère l'analyse personnalisée JSON du marché pour CE profil spécifique."""
+
+            response = await chat.send_message(UserMessage(text=prompt))
+            clean = response.strip()
+            if clean.startswith("```"):
+                clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            ai_data = json_lib.loads(clean)
+
+            # Normalize AI data to match frontend expected fields
+            def normalize_item(item):
+                score = item.get("score", item.get("emergence_score", 0.5))
+                if isinstance(score, str):
+                    try:
+                        score = float(score)
+                    except:
+                        score = 0.5
+                gr = item.get("growth_rate", 0)
+                if isinstance(gr, str):
+                    gr_clean = gr.replace("%", "").replace("+", "").strip()
+                    try:
+                        gr = float(gr_clean) / 100.0
+                    except:
+                        gr = 0.05
+                elif isinstance(gr, (int, float)) and gr > 1:
+                    gr = gr / 100.0
+                item["score"] = score
+                item["emergence_score"] = score
+                item["growth_rate"] = gr
+                item["observatory_skill"] = item.get("name", "")
+                return item
+
+            def normalize_sector(s):
+                rel = s.get("relevance", 0.5)
+                if isinstance(rel, str):
+                    try:
+                        rel = float(rel)
+                    except:
+                        rel = 0.5
+                s["relevance"] = rel
+                s["transformation_index"] = rel
+                gr = s.get("growth_rate", 0.05)
+                if isinstance(gr, str):
+                    gr_clean = gr.replace("%", "").replace("+", "").split("à")[0].split("-")[0].strip()
+                    try:
+                        gr_num = float(gr_clean)
+                        gr = gr_num / 100.0 if gr_num > 1 else gr_num
+                    except:
+                        gr = 0.05
+                elif isinstance(gr, (int, float)) and abs(gr) > 1:
+                    gr = gr / 100.0
+                s["growth_rate"] = gr
+                s["sector"] = s.get("name", "")
+                s["hiring_trend"] = s.get("trend", "stable")
+                return s
+
+            norm_matches = [normalize_item(m) for m in ai_data.get("matches", [])]
+            norm_gaps = [normalize_item(g) for g in ai_data.get("skill_gaps", [])]
+            norm_declining = [normalize_item(a) for a in ai_data.get("declining_alerts", [])]
+            norm_sectors = [normalize_sector(s) for s in ai_data.get("sector_relevance", [])]
+
+            return {
+                "has_cv": True,
+                "matches": norm_matches[:20],
+                "skill_gaps": norm_gaps[:20],
+                "declining_alerts": norm_declining,
+                "sector_relevance": norm_sectors[:10],
+                "emerging_from_cv": [m["name"] for m in norm_matches[:5]],
+                "summary": {
+                    "total_skills_analyzed": len(user_skills),
+                    "skills_in_observatory": len(norm_matches),
+                    "gaps_to_fill": len([g for g in norm_gaps if g.get("priority") == "haute"]),
+                    "skills_declining": len(norm_declining),
+                }
+            }
+        except Exception as e:
+            logger.error(f"Observatory personalized AI error: {e}")
+
+    # ---- Fallback: improved keyword matching ----
     emerging_skills = await db.emerging_skills.find({}, {"_id": 0}).to_list(200)
     sector_trends = await db.sector_trends.find({}, {"_id": 0}).to_list(50)
 
-    # Cross-match user skills with emerging skills
+    # Cross-match with keyword extraction
     matches = []
     declining_alerts = []
     for es in emerging_skills:
         es_name = es.get("skill_name", es.get("name", "")).lower().strip()
         es_alt = [a.lower().strip() for a in es.get("alternative_names", [])]
+        # Extract keywords for fuzzy matching
+        es_keywords = [w for w in es_name.split() if len(w) > 3]
         matched = False
         for us in user_skills:
-            if us in es_name or es_name in us or any(us in a or a in us for a in es_alt):
+            us_keywords = [w for w in us.split() if len(w) > 3]
+            if (us in es_name or es_name in us or
+                any(us in a or a in us for a in es_alt) or
+                any(ek in us for ek in es_keywords) or
+                any(uk in es_name for uk in us_keywords)):
                 matched = True
                 break
         if matched:
@@ -1502,72 +1636,89 @@ async def get_personalized_observatory(token: str):
                 matches.append(entry)
 
     matches.sort(key=lambda x: x.get("score", 0), reverse=True)
-    # Deduplicate matches by skill name
     seen = set()
     unique_matches = []
     for m in matches:
-        key = m.get("observatory_skill", "").lower()
+        key = m.get("name", "").lower()
         if key not in seen:
             seen.add(key)
             unique_matches.append(m)
     matches = unique_matches
 
-    # Identify skill gaps (high-demand emerging skills the user doesn't have)
+    # Skill gaps - only from sectors relevant to the user
     skill_gaps = []
     for es in emerging_skills:
         es_name = es.get("skill_name", es.get("name", "")).lower().strip()
+        es_sectors = [s.lower() for s in es.get("related_sectors", [])]
+        # Only suggest gaps from user's sectors
+        sector_match = False
+        for us in user_sectors:
+            us_lower = us.lower()
+            if any(us_lower in es_s or es_s in us_lower for es_s in es_sectors):
+                sector_match = True
+                break
+        if not sector_match and user_sectors:
+            continue
         if es.get("emergence_score", 0) >= 0.6:
             has_skill = any(us in es_name or es_name in us for us in user_skills)
             if not has_skill:
                 skill_gaps.append({
-                    "skill_name": es.get("skill_name", es.get("name", "")),
                     "name": es.get("skill_name", es.get("name", "")),
                     "priority": "haute" if es.get("emergence_score", 0) >= 0.8 else "moyenne",
-                    "emergence_score": es.get("emergence_score", 0),
-                    "growth_rate": es.get("growth_rate", 0),
                     "score": es.get("emergence_score", 0),
                     "sectors": es.get("related_sectors", []),
                 })
     skill_gaps.sort(key=lambda x: x.get("score", 0), reverse=True)
-    # Deduplicate gaps
     seen_gaps = set()
     unique_gaps = []
     for g in skill_gaps:
-        key = g.get("skill_name", "").lower()
+        key = g.get("name", "").lower()
         if key not in seen_gaps:
             seen_gaps.add(key)
             unique_gaps.append(g)
     skill_gaps = unique_gaps
 
-    # Sector relevance (which sectors match the user's skills)
+    # Sector relevance - prioritize user's actual sectors
     sector_relevance = []
     for st in sector_trends:
         sector_name = st.get("sector_name", "")
+        sector_lower = sector_name.lower()
         predicted = st.get("predicted_skills_demand", [])
+
+        # Check if this sector matches the user's sectors via keywords
+        sector_match = False
+        for us in user_sectors:
+            us_kw = [w for w in us.lower().split() if len(w) > 3]
+            if any(kw in sector_lower for kw in us_kw) or sector_lower in us.lower() or us.lower() in sector_lower:
+                sector_match = True
+                break
+
+        # Check skill matches with keywords
         match_count = 0
+        matched_skills = []
         for ps in predicted:
             ps_name = ps.get("skill", "").lower()
-            if any(us in ps_name or ps_name in us for us in user_skills):
-                match_count += 1
-        if match_count > 0 or st.get("transformation_index", 0) > 0.5:
-            # Find which user skills match this sector
-            matched_skills = []
-            for ps in predicted:
-                ps_name = ps.get("skill", "").lower()
-                for us in user_skills:
-                    if us in ps_name or ps_name in us:
-                        matched_skills.append(ps.get("skill", ""))
-                        break
+            ps_kw = [w for w in ps_name.split() if len(w) > 3]
+            for us in user_skills:
+                us_kw = [w for w in us.split() if len(w) > 3]
+                if (us in ps_name or ps_name in us or
+                    any(pk in us for pk in ps_kw) or
+                    any(uk in ps_name for uk in us_kw)):
+                    match_count += 1
+                    matched_skills.append(ps.get("skill", ""))
+                    break
+
+        # Only include sectors that match user's profile OR have skill matches
+        if sector_match or match_count > 0:
             sector_relevance.append({
                 "sector": sector_name,
                 "name": sector_name,
-                "relevance": min(match_count / max(len(predicted), 1), 1.0),
+                "relevance": min((match_count + (2 if sector_match else 0)) / max(len(predicted), 1), 1.0),
                 "transformation_index": st.get("transformation_index", 0),
                 "hiring_trend": "croissance" if st.get("growth_rate", "0%").replace("%", "").replace("+", "").strip() not in ("0", "") else "stable",
                 "skill_matches": match_count,
                 "growth_rate": st.get("growth_rate", "0%"),
                 "your_emerging_skills": matched_skills[:3],
-                "your_declining_skills": [],
             })
     sector_relevance.sort(key=lambda x: x.get("relevance", 0), reverse=True)
 

@@ -19,12 +19,17 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 
 ### Phase 2 - Observatoire et Marché (DONE)
 - OPC (Observatoire Prédictif des Compétences) autonome
-- Vue "Le Marché" avec 4 onglets personnalisés :
-  - Observatoire : données personnalisées auto-chargées
-  - Évolution : score d'exposition enrichi (passport/CV)
-  - Marché caché : diagnostic IA automatique (GPT-5.2)
-  - Explorateur : suggestions de métiers personnalisées
-- Endpoints : `/api/observatoire/personalized`, `/api/marche-cache/diagnostic`, `/api/referentiel/explorer/suggestions`, `/api/evolution-index/user-profile`
+- Vue "Le Marché" avec 4 onglets TOUS personnalisés par IA :
+  - Observatoire : analyse IA croisée profil/marché (secteurs, compétences émergentes, lacunes, déclin)
+  - Évolution : score d'exposition enrichi (passport/CV, jobs, formations)
+  - Marché caché : diagnostic IA automatique (score d'accès, forces, faiblesses, recommandations, canaux)
+  - Explorateur : suggestions de métiers basées sur le profil
+- Endpoints :
+  - `GET /api/observatoire/personalized` → Analyse IA complète (GPT-5.2)
+  - `POST /api/marche-cache/diagnostic` → Diagnostic marché caché IA
+  - `GET /api/referentiel/explorer/suggestions` → Métiers suggérés
+  - `GET /api/evolution-index/user-profile` → Enrichi passport/CV
+  - `POST /api/passport/diagnostic/auto-evaluate` → Auto-évaluation Lamri & Lubart + CCSP
 
 ### Phase 3 - D'CLIC PRO (DONE)
 - Questionnaire complet avec routes backend
@@ -32,18 +37,18 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - Frontend `/test-dclic`
 
 ### Phase 4 - Auto-évaluation Compétences (DONE)
-- Endpoint `POST /api/passport/diagnostic/auto-evaluate` créé
-- Évaluation IA automatique selon Lamri & Lubart (5 composantes) et CCSP (pôles + degrés)
-- Classification nature (savoir-faire / savoir-être)
+- Évaluation IA automatique selon Lamri & Lubart et CCSP
 - Diagnostic visuel avec radar chart et barres CCSP
 
-### Autres (DONE)
-- Navigation Coach Virtuel ("Mon CV" via `?sub=cv`)
-- Suppression badge Emergent + titre index.html
+## Issues résolues cette session
+- NaN dans les scores de l'Observatoire → Normalisation des données IA
+- Secteurs génériques au lieu de personnalisés → Analyse IA du profil réel
+- Endpoint auto-evaluate manquant (404) → Créé
+- Endpoint marche-cache/diagnostic manquant (404) → Créé
 
 ## Issues connues
 - (P1) Images D'CLIC PRO (EN PAUSE par l'utilisateur)
-- (P2) server.py monolithique (>7600 lignes)
+- (P2) server.py monolithique (>7800 lignes)
 
 ## Tâches futures (Backlog)
 - P2 : Refactoring server.py en modules routes/
@@ -54,5 +59,5 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 
 ## Déploiement
 - Frontend : GitHub Actions -> GitHub Pages (reactif.pro)
-- Backend : Emergent infrastructure
+- Backend : Emergent infrastructure (marche-cache.emergent.host)
 - IMPORTANT : "Save to Github" (frontend) + "Redeploy" (backend) pour production
