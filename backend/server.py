@@ -706,6 +706,103 @@ async def update_profile(token: str, request: UpdateProfileRequest):
     
     return await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
 
+
+@api_router.post("/profile/identity-adn")
+async def generate_identity_adn(token: str):
+    """Génère l'ADN Professionnel de l'utilisateur via IA."""
+    token_doc = await get_current_token(token)
+
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "Clé LLM non configurée")
+
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+
+    if not passport and not profile:
+        return {"error": "Profil insuffisant. Ajoutez vos compétences et expériences d'abord."}
+
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:20]]
+    experiences = (passport or {}).get("experiences", [])
+    formations = (passport or {}).get("formations", [])
+    savoir_faire = (passport or {}).get("savoir_faire", [])
+    savoir_etre = (passport or {}).get("savoir_etre", [])
+
+    sf_list = [s if isinstance(s, str) else s.get("name", "") for s in savoir_faire[:12]]
+    se_list = [s if isinstance(s, str) else s.get("name", "") for s in savoir_etre[:12]]
+    exp_list = []
+    for e in experiences[:6]:
+        if isinstance(e, dict):
+            exp_list.append(f"{e.get('title', '')} ({e.get('duration', '')}) - {e.get('company', '')}")
+
+    form_list = []
+    for f in formations[:4]:
+        if isinstance(f, dict):
+            form_list.append(f"{f.get('title', '')} ({f.get('level', '')})")
+
+    # D'CLIC PRO results if available
+    dclic = (passport or {}).get("dclic_results", {})
+    dclic_text = ""
+    if dclic:
+        if dclic.get("mbti"):
+            dclic_text += f"MBTI: {dclic['mbti']}. "
+        if dclic.get("disc"):
+            dclic_text += f"DISC: {dclic['disc']}. "
+        if dclic.get("riasec"):
+            dclic_text += f"RIASEC: {dclic['riasec']}. "
+
+    user_context = f"""Compétences techniques: {', '.join(skills) if skills else 'Non renseigné'}
+Savoir-faire: {', '.join(sf_list) if sf_list else 'Non renseigné'}
+Savoir-être: {', '.join(se_list) if se_list else 'Non renseigné'}
+Expériences: {chr(10).join(exp_list) if exp_list else 'Non renseigné'}
+Formations: {', '.join(form_list) if form_list else 'Non renseigné'}
+Tests psychométriques: {dclic_text if dclic_text else 'Non passés'}"""
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"adn-pro-{token_doc['id']}-{uuid.uuid4()}",
+        system_message="Tu es un expert en bilan de compétences et psychologie du travail en France. Tu génères des analyses profondes et personnalisées."
+    ).with_model("openai", "gpt-5.2")
+
+    prompt = f"""Analyse ce profil professionnel et génère son ADN Professionnel : une synthèse identitaire unique qui capture l'essence de ce professionnel.
+
+PROFIL:
+{user_context}
+
+Retourne UNIQUEMENT un JSON valide (pas de markdown) :
+{{
+  "synthese_adn": "Paragraphe de 3-4 phrases décrivant l'identité professionnelle unique de cette personne, ses atouts distinctifs et son positionnement sur le marché.",
+  "style_professionnel": "Une phrase décrivant le style de travail (ex: 'Opérationnel méthodique, orienté terrain et fiabilité')",
+  "forces_principales": ["Force 1", "Force 2", "Force 3", "Force 4"],
+  "environnements_favorables": ["Type d'environnement 1", "Type d'environnement 2", "Type d'environnement 3"],
+  "axes_projection": ["Axe d'évolution possible 1", "Axe d'évolution possible 2", "Axe d'évolution possible 3"],
+  "potentiel_evolution": "Phrase décrivant le potentiel de progression et les directions d'évolution possibles"
+}}
+
+IMPORTANT: Base-toi UNIQUEMENT sur les données du profil. Sois spécifique et concret, pas générique."""
+
+    response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+    import re
+    text = response.strip() if isinstance(response, str) else response.text.strip()
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        adn = json.loads(json_match.group())
+    else:
+        adn = json.loads(text)
+
+    # Save to passport
+    await db.passports.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {
+            "identity_adn": adn,
+            "identity_adn_generated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True
+    )
+
+    return adn
+
+
+
 # ============== JOBS ENDPOINTS ==============
 
 @api_router.get("/jobs")
