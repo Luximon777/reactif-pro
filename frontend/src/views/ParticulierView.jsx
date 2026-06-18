@@ -24,7 +24,7 @@ import {
   SlidersHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
 import CentresInteretSection from "@/components/CentresInteretSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
@@ -976,18 +976,29 @@ const AccessRequestsNotifications = ({ token }) => {
 // ===== MAIN COMPONENT =====
 const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [passport, setPassport] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [learningModules, setLearningModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(viewMode || "trajectoire");
-  const [trajSubTab, setTrajSubTab] = useState("trajectoire");
+  const [trajSubTab, setTrajSubTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("sub") || "trajectoire";
+  });
 
   // Sync activeTab when viewMode changes (SPA navigation)
   useEffect(() => {
     if (viewMode) setActiveTab(viewMode);
   }, [viewMode]);
+
+  // Sync trajSubTab when URL query param changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sub = params.get("sub");
+    if (sub) setTrajSubTab(sub);
+  }, [location.search]);
   const [steps, setSteps] = useState([]);
   const [synthesis, setSynthesis] = useState(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);

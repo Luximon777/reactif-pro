@@ -22,9 +22,9 @@ const JOURNEY_STEPS = [
     icon: User,
     color: "violet",
     items: [
-      { label: "Importer et analyser mon CV", key: "cv", path: "/dashboard/trajectoire" },
+      { label: "Importer et analyser mon CV", key: "cv", path: "/dashboard/trajectoire?sub=cv" },
       { label: "Passer le test D'CLIC PRO", key: "dclic", action: "dclic" },
-      { label: "Identifier mes centres d'intérêt", key: "centres", path: "/dashboard/trajectoire" },
+      { label: "Identifier mes centres d'intérêt", key: "centres", path: "/dashboard/trajectoire?sub=centres" },
     ],
     cta: "Commencer",
     ctaActive: "Continuer",
@@ -38,7 +38,7 @@ const JOURNEY_STEPS = [
     color: "emerald",
     items: [
       { label: "Prouver mes soft skills avec des exemples", key: "softskills", path: "/dashboard/profil" },
-      { label: "Générer mon CV par IA", key: "cv_gen", path: "/dashboard/trajectoire" },
+      { label: "Générer mon CV par IA", key: "cv_gen", path: "/dashboard/trajectoire?sub=generer" },
       { label: "Construire mon pitch pro", key: "pitch", path: "/dashboard/profil" },
     ],
     cta: "Prouver mes soft skills",
@@ -53,7 +53,7 @@ const JOURNEY_STEPS = [
     color: "blue",
     items: [
       { label: "Explorer mes compétences", key: "competences", path: "/dashboard/competences" },
-      { label: "Tracer ma trajectoire", key: "trajectoire", path: "/dashboard/trajectoire" },
+      { label: "Tracer ma trajectoire", key: "trajectoire", path: "/dashboard/trajectoire?sub=trajectoire" },
       { label: "Découvrir les métiers possibles", key: "passerelles", path: "/dashboard/profil" },
     ],
     cta: "Explorer mes pistes",
@@ -403,9 +403,9 @@ const GpsDashboard = ({ token, pseudo, profile, passport, steps, jobs, allSkills
       {/* === 5. ACTIONS RAPIDES === */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="gps-quick-actions">
         {[
-          { label: "Mettre à jour mon CV", icon: FileText, path: "/dashboard/trajectoire", color: "text-blue-600 bg-blue-50 hover:bg-blue-100" },
+          { label: "Mettre à jour mon CV", icon: FileText, path: "/dashboard/trajectoire?sub=cv", color: "text-blue-600 bg-blue-50 hover:bg-blue-100" },
           { label: "Modifier mon profil", icon: User, path: "/dashboard/profil", color: "text-violet-600 bg-violet-50 hover:bg-violet-100" },
-          { label: "Ajouter une expérience", icon: Route, path: "/dashboard/trajectoire", color: "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" },
+          { label: "Ajouter une expérience", icon: Route, path: "/dashboard/trajectoire?sub=trajectoire", color: "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" },
           { label: "Mon portefeuille", icon: FolderLock, path: "/dashboard/coffre-fort", color: "text-rose-600 bg-rose-50 hover:bg-rose-100" },
         ].map((a, i) => {
           const AIcon = a.icon;

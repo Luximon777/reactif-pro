@@ -5088,7 +5088,7 @@ async def get_coach_progress(token: str):
                     "id": 1, "title": "Importer votre CV",
                     "complete": step1_complete,
                     "action_label": "Mon CV" if not step1_complete else None,
-                    "action_path": "/dashboard/trajectoire",
+                    "action_path": "/dashboard/trajectoire?sub=cv",
                     "action_type": "navigate",
                     "details": step1_details,
                 },

@@ -66,8 +66,18 @@ Developpement d'une plateforme full-stack "Re'Actif Pro" basee sur l'analyse de 
 - Frontend : badge score (rouge <50, orange <70, vert >=70) + bandeau alerte + mots-cles matches
 - Declenchement automatique apres scraping URL ou manuellement via bouton "Verifier la compatibilite"
 
+### Phase 10d — Deploiement GitHub Pages (DONE - 18/06/2026)
+- Workflow GitHub Actions (`.github/workflows/deploy.yml`) avec injection `REACT_APP_BACKEND_URL`
+- SPA routing via `404.html` + `CNAME` pour `reactif.pro`
+
+### Phase 11 — Bug Fix Coach Virtuel Navigation (DONE - 18/06/2026)
+- Fix P0: Le bouton "Mon CV" du Coach naviguait vers `/dashboard/trajectoire` mais atterrissait sur le sous-onglet "Ma trajectoire" au lieu de "Mon CV"
+- Solution: Ajout du parametre `?sub=cv` dans `action_path` (backend) + lecture du param `sub` dans `ParticulierView.jsx` via `useLocation` pour activer le bon sous-onglet
+- Egalement corrige les liens dans GpsDashboard (Importer CV, Generer CV, Centres d'interet, etc.)
+- Fix doublons Coach: Le bouton n'est plus duplique dans la liste si deja present dans la banniere
+
 ## Backlog
-- **P1** : Refactoring `server.py` (>6900 lignes) en routeurs dedies sous /app/backend/routes/
+- **P1** : Refactoring `server.py` (>7200 lignes) en routeurs dedies sous /app/backend/routes/
 - **P2** : Soft Skills (CSE), Valeurs (VIA) via modules d'auto-evaluation
 - **P2** : Outil diagnostic CCSP
 - **P3** : Ateliers de Codeveloppement, micro-titres/badges
