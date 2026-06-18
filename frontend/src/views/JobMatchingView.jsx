@@ -10,7 +10,7 @@ import {
   Search, FileText, Target, Download, ChevronRight, ChevronLeft,
   AlertTriangle, CheckCircle2, Lightbulb, Briefcase, GraduationCap,
   Users, MessageSquare, Loader2, ClipboardPaste, ArrowRight, Star,
-  Info, Zap, Award, Clock, Link
+  Info, Zap, Award, Clock, Link, BookmarkPlus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +36,8 @@ const JobMatchingView = ({ token }) => {
   const [history, setHistory] = useState([]);
 
   const [analyzingUrl, setAnalyzingUrl] = useState(false);
+  const [savingCandidature, setSavingCandidature] = useState(false);
+  const [candidatureSaved, setCandidatureSaved] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -111,6 +113,39 @@ const JobMatchingView = ({ token }) => {
     setOfferUrl("");
     setAnalysis(null);
     setMatchResult(null);
+    setCandidatureSaved(false);
+  };
+
+  const handleSaveCandidature = async () => {
+    if (!analysis?.analyse) return;
+    setSavingCandidature(true);
+    try {
+      const a = analysis.analyse;
+      const res = await axios.post(`${API}/jobs/apply?token=${token}`, {
+        job_title: a.titre_poste || "Offre analysée",
+        job_data: {
+          entreprise: a.entreprise || "",
+          localisation: a.localisation || "",
+          type_contrat: a.type_contrat || "",
+          salaire: a.salaire || "",
+          url: offerUrl || "",
+          score_qualite: analysis.score_qualite_offre || 0,
+          score_matching: matchResult?.score_global || 0,
+          verdict: matchResult?.verdict || "",
+          analysis_id: analysis.analysis_id || "",
+          source: "analyse_offre",
+        },
+      });
+      if (res.data.already_applied) {
+        toast.info("Cette candidature est déjà enregistrée");
+      } else {
+        toast.success("Candidature sauvegardée dans 'Mes Candidatures'");
+      }
+      setCandidatureSaved(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Erreur lors de la sauvegarde");
+    }
+    setSavingCandidature(false);
   };
 
   return (
@@ -487,6 +522,20 @@ const JobMatchingView = ({ token }) => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={resetAll} className="flex-1" data-testid="matching-new-analysis">
               Nouvelle analyse
+            </Button>
+            <Button
+              onClick={handleSaveCandidature}
+              disabled={savingCandidature || candidatureSaved}
+              className={`flex-1 ${candidatureSaved ? "bg-emerald-100 text-emerald-700 border border-emerald-300" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
+              data-testid="matching-save-candidature"
+            >
+              {savingCandidature ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
+              ) : candidatureSaved ? (
+                <><CheckCircle2 className="w-4 h-4 mr-2" /> Sauvegardée</>
+              ) : (
+                <><BookmarkPlus className="w-4 h-4 mr-2" /> Sauvegarder dans Mes Candidatures</>
+              )}
             </Button>
           </div>
         </div>
