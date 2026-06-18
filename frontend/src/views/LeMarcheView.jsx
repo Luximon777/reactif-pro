@@ -37,13 +37,13 @@ const LeMarcheView = ({ token }) => {
         <TabsContent value="observatoire" className="mt-6">
           <ObservatoireView token={token} embedded />
         </TabsContent>
-        <TabsContent value="evolution" className="mt-6" forceMount style={{ display: activeTab === "evolution" ? "block" : "none" }}>
+        <TabsContent value="evolution" className="mt-6">
           <EvolutionIndexView token={token} embedded />
         </TabsContent>
-        <TabsContent value="marche-cache" className="mt-6" forceMount style={{ display: activeTab === "marche-cache" ? "block" : "none" }}>
+        <TabsContent value="marche-cache" className="mt-6">
           <MarcheCacheView token={token} />
         </TabsContent>
-        <TabsContent value="explorateur" className="mt-6" forceMount style={{ display: activeTab === "explorateur" ? "block" : "none" }}>
+        <TabsContent value="explorateur" className="mt-6">
           <ExplorateurView token={token} embedded />
         </TabsContent>
       </Tabs>

@@ -85,23 +85,31 @@ const EvolutionIndexView = ({ token, embedded }) => {
   const [selectedJob, setSelectedJob] = useState(null);
 
   useEffect(() => {
-    loadData();
-  }, [token]);
+    let cancelled = false;
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [dashboardRes, userRes] = await Promise.all([
-        axios.get(`${API}/evolution-index/dashboard`),
-        axios.get(`${API}/evolution-index/user-profile?token=${token}`)
-      ]);
-      setDashboard(dashboardRes.data);
-      setUserAnalysis(userRes.data);
-    } catch (error) {
-      console.error("Error loading evolution index:", error);
-    }
-    setLoading(false);
-  };
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [dashRes, userRes] = await Promise.all([
+          fetch(`${API}/evolution-index/dashboard`).then(r => r.ok ? r.json() : null),
+          token ? fetch(`${API}/evolution-index/user-profile?token=${token}`).then(r => r.ok ? r.json() : null) : Promise.resolve(null)
+        ]);
+        if (!cancelled) {
+          if (dashRes) setDashboard(dashRes);
+          if (userRes) setUserAnalysis(userRes);
+          setLoading(false);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Error loading evolution index:", error);
+          setLoading(false);
+        }
+      }
+    };
+
+    doLoad();
+    return () => { cancelled = true; };
+  }, [token]);
 
   if (loading) {
     return (
@@ -155,8 +163,7 @@ const EvolutionIndexView = ({ token, embedded }) => {
   const handleRefresh = async () => {
     try {
       await axios.post(`${API}/evolution-index/refresh?token=${token}`);
-      setLoading(true);
-      await loadData();
+      window.location.reload();
     } catch (e) {
       console.error(e);
     }

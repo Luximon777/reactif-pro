@@ -17,23 +17,40 @@ const MarcheCacheView = ({ token }) => {
 
   // Auto-load diagnostic when user has a token
   useEffect(() => {
-    if (token && !diagnostic && !loading) {
-      runDiagnostic();
-    }
+    if (!token) return;
+    let cancelled = false;
+
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 90000 });
+        if (!cancelled) {
+          if (res.data.error) {
+            toast.error(res.data.error);
+          } else {
+            setDiagnostic(res.data.diagnostic);
+          }
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          toast.error("Erreur lors de l'analyse");
+          setLoading(false);
+        }
+      }
+    };
+
+    doLoad();
+    return () => { cancelled = true; };
   }, [token]);
 
   const runDiagnostic = async () => {
+    setDiagnostic(null);
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 60000 });
-      if (res.data.error) {
-        toast.error(res.data.error);
-      } else {
-        setDiagnostic(res.data.diagnostic);
-      }
-    } catch {
-      toast.error("Erreur lors de l'analyse");
-    }
+      const res = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 90000 });
+      if (res.data.error) { toast.error(res.data.error); } else { setDiagnostic(res.data.diagnostic); }
+    } catch { toast.error("Erreur lors de l'analyse"); }
     setLoading(false);
   };
 

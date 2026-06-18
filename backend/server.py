@@ -17,6 +17,16 @@ import secrets
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import PyPDF2
 import io
+import concurrent.futures
+
+def _sync_llm_call(chat, message):
+    """Run async LLM call synchronously in a thread."""
+    return asyncio.run(chat.send_message(message))
+
+async def run_llm_nonblocking(chat, message):
+    """Run LLM call in a thread pool to avoid blocking the FastAPI event loop."""
+    return await asyncio.to_thread(_sync_llm_call, chat, message)
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -605,7 +615,7 @@ async def calculate_match_with_ai(profile_skills: List[str], job_requirements: L
         Calcule un score de correspondance et explique pourquoi.
         """
         
-        response = await chat.send_message(UserMessage(text=prompt))
+        response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
         
         # Parse response
         import json
@@ -1522,7 +1532,7 @@ IMPORTANT:
 
 Génère l'analyse personnalisée JSON du marché pour CE profil spécifique."""
 
-            response = await chat.send_message(UserMessage(text=prompt))
+            response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
             clean = response.strip()
             if clean.startswith("```"):
                 clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
@@ -2097,7 +2107,7 @@ Le JSON doit contenir exactement ces champs:
 }"""
             ).with_model("openai", "gpt-5.2")
 
-            response = await chat.send_message(UserMessage(text=f"Profil utilisateur:\n{user_context}\n\nGénère le diagnostic JSON du marché caché."))
+            response = await run_llm_nonblocking(chat, UserMessage(text=f"Profil utilisateur:\n{user_context}\n\nGénère le diagnostic JSON du marché caché."))
             import json as json_lib
             clean = response.strip()
             if clean.startswith("```"):
@@ -2255,7 +2265,7 @@ async def analyze_contribution_with_ai(contribution: SkillContribution) -> Dict[
         3. Potentiellement émergente
         """
         
-        response = await chat.send_message(UserMessage(text=prompt))
+        response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
         
         import json
         try:
@@ -2470,7 +2480,7 @@ async def generate_passerelles_with_ai(competences: List[dict], sectors: List[st
             system_message="Tu es un conseiller en évolution professionnelle français expert. Analyse les compétences et suggère des passerelles professionnelles réalistes. Réponds UNIQUEMENT en JSON valide: un array de max 5 objets avec les clés: job_name (str), compatibility_score (float 0-1), shared_skills (list str), skills_to_acquire (list str max 3), training_needed (str court), accessibility (str: accessible/formation_courte/formation_longue), sector (str)."
         ).with_model("openai", "gpt-5.2")
 
-        response = await chat.send_message(UserMessage(text=f"""Compétences de la personne: {skills_list}
+        response = await run_llm_nonblocking(chat, UserMessage(text=f"""Compétences de la personne: {skills_list}
 Secteurs d'intérêt: {sectors_str}
 
 Propose 5 passerelles professionnelles réalistes."""))
@@ -2808,7 +2818,7 @@ Réponds UNIQUEMENT en JSON strict (pas de markdown). Le JSON doit être un tabl
             if metier:
                 prompt += f"\nMétier cible : {metier}"
 
-            response = await chat.send_message(UserMessage(text=prompt))
+            response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
             clean = response.strip()
             if clean.startswith("```"):
                 clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
@@ -2996,7 +3006,7 @@ async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int 
                 session_id=f"cv-{uuid.uuid4()}",
                 system_message=system_msg
             ).with_model("openai", "gpt-5.2")
-            response = await chat.send_message(UserMessage(text=user_msg))
+            response = await run_llm_nonblocking(chat, UserMessage(text=user_msg))
             raw = response.strip() if isinstance(response, str) else response.text.strip()
             if raw.startswith("```"):
                 raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
@@ -4415,7 +4425,7 @@ Identifie :
 3. Les nouvelles pratiques professionnelles
 4. Les transformations de métiers en cours
 """
-        response = await chat.send_message(UserMessage(text=prompt))
+        response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
         import json
         try:
             return json.loads(response)
@@ -6759,7 +6769,7 @@ async def coach_step_chat(token: str, body: dict = {}):
         # Build context with history
         history_text = "\n".join([f"{'Utilisateur' if h.get('role')=='user' else 'Coach'}: {h.get('content','')}" for h in history[-4:]])
         full_msg = f"{history_text}\nUtilisateur: {message}" if history_text else message
-        resp = await chat.send_message(UserMessage(text=full_msg))
+        resp = await run_llm_nonblocking(chat, UserMessage(text=full_msg))
         return {"response": resp.content if hasattr(resp, 'content') else str(resp)}
     except Exception as e:
         logger.error(f"[Coach Chat] {e}")
