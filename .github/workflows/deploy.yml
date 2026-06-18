@@ -25,6 +25,10 @@ jobs:
         with:
           node-version: 22
 
+      - name: Create env file
+        working-directory: frontend
+        run: echo "REACT_APP_BACKEND_URL=https://marche-cache.emergent.host" > .env.production
+
       - name: Install dependencies
         working-directory: frontend
         run: yarn install
@@ -32,8 +36,7 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          REACT_APP_BACKEND_URL: https://marche-cache.emergent.host
-          CI: false
+          CI: "false"
         run: yarn build
 
       - name: Setup Pages
