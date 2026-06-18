@@ -1757,58 +1757,319 @@ async def get_evolution_dashboard():
 
 @api_router.get("/evolution-index/user-profile")
 async def get_user_evolution_analysis(token: str):
-    """Get evolution analysis based on user's profile and skills"""
+    """Get evolution analysis based on user's profile, passport and CV skills"""
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    
-    if not profile:
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
+    if not profile and not passport:
         raise HTTPException(status_code=404, detail="Profil non trouvé")
-    
-    user_sectors = profile.get("sectors", [])
-    user_skills = [s.get("name", "") for s in profile.get("skills", [])]
-    
-    # Find relevant job indices
+
+    # Gather sectors from profile + passport
+    user_sectors = list(set(
+        (profile or {}).get("sectors", []) +
+        (passport or {}).get("target_sectors", []) +
+        ([s for s in [(passport or {}).get("secteur_activite")] if s])
+    ))
+
+    # Gather skills from profile + passport + cv_skills
+    user_skills = set()
+    for s in (profile or {}).get("skills", []):
+        user_skills.add(s.get("name", ""))
+    for s in (profile or {}).get("cv_skills", []):
+        user_skills.add(s if isinstance(s, str) else s.get("name", ""))
+    for c in (passport or {}).get("competences", []):
+        user_skills.add(c.get("name", ""))
+    for sf in (passport or {}).get("savoir_faire", []):
+        user_skills.add(sf if isinstance(sf, str) else sf.get("name", ""))
+    user_skills.discard("")
+    user_skills = list(user_skills)
+
+    has_cv = bool(user_skills) or bool((passport or {}).get("experiences"))
+
+    # Find relevant job indices from sectors (fuzzy keyword matching)
     relevant_jobs = []
+    seen_jobs = set()
     for sector in user_sectors:
-        jobs = await db.job_evolution_indices.find(
-            {"sector": {"$regex": sector, "$options": "i"}},
+        # Extract keywords from sector for better matching
+        keywords = [w for w in sector.lower().split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
+        for kw in keywords[:2]:
+            jobs = await db.job_evolution_indices.find(
+                {"sector": {"$regex": kw, "$options": "i"}},
+                {"_id": 0}
+            ).to_list(10)
+            for j in jobs:
+                jn = j.get("job_name", "")
+                if jn not in seen_jobs:
+                    seen_jobs.add(jn)
+                    relevant_jobs.append(j)
+
+    # Also try matching by user's job title / metier_cible from passport
+    metier_cible = (passport or {}).get("metier_cible", "") or (passport or {}).get("career_project", "")
+    if metier_cible and len(relevant_jobs) < 3:
+        extra = await db.job_evolution_indices.find(
+            {"job_name": {"$regex": metier_cible.split()[0] if metier_cible else "", "$options": "i"}},
             {"_id": 0}
-        ).to_list(20)
-        relevant_jobs.extend(jobs)
-    
+        ).to_list(5)
+        for j in extra:
+            jn = j.get("job_name", "")
+            if jn not in seen_jobs:
+                seen_jobs.add(jn)
+                relevant_jobs.append(j)
+
     # Find skills at risk
     skills_at_risk = []
     skills_in_demand = []
-    
+
     for job in relevant_jobs:
         for skill in user_skills:
-            if skill in job.get("declining_skills", []):
+            skill_lower = skill.lower()
+            if any(skill_lower in d.lower() or d.lower() in skill_lower for d in job.get("declining_skills", [])):
                 skills_at_risk.append({"skill": skill, "job": job["job_name"]})
-            if skill in job.get("emerging_skills", []):
+            if any(skill_lower in e.lower() or e.lower() in skill_lower for e in job.get("emerging_skills", [])):
                 skills_in_demand.append({"skill": skill, "job": job["job_name"]})
-    
+
     # Recommendations
     all_recommended = set()
     for job in relevant_jobs:
         all_recommended.update(job.get("recommended_skills", []))
-    
+
+    # Emerging skills from CV
+    emerging_from_cv = []
+    emerging_skills_db = await db.emerging_skills.find({}, {"_id": 0}).to_list(200)
+    for es in emerging_skills_db:
+        es_name = es.get("skill_name", es.get("name", "")).lower()
+        for us in user_skills:
+            if us.lower() in es_name or es_name in us.lower():
+                emerging_from_cv.append({"name": es.get("skill_name", es.get("name", "")), "score": round(es.get("emergence_score", 0.5) * 100)})
+                break
+
     # Calculate personal evolution exposure
     if relevant_jobs:
         avg_exposure = sum(j.get("evolution_index", 0) for j in relevant_jobs) / len(relevant_jobs)
     else:
         avg_exposure = 50
-    
+
     return {
+        "has_cv": has_cv,
         "profile_sectors": user_sectors,
         "profile_skills": user_skills,
         "evolution_exposure": round(avg_exposure, 1),
         "exposure_interpretation": get_index_interpretation(avg_exposure),
-        "relevant_jobs": relevant_jobs[:5],
-        "skills_at_risk": skills_at_risk,
-        "skills_in_demand": skills_in_demand,
+        "relevant_jobs": relevant_jobs[:8],
+        "skills_at_risk": skills_at_risk[:10],
+        "skills_in_demand": skills_in_demand[:10],
         "recommended_skills_to_acquire": list(all_recommended - set(user_skills))[:10],
-        "recommended_trainings": list(set(t for j in relevant_jobs for t in j.get("recommended_trainings", [])))[:5]
+        "recommended_trainings": list(set(t for j in relevant_jobs for t in j.get("recommended_trainings", [])))[:5],
+        "emerging_from_cv": emerging_from_cv[:5],
+        "data_sources": {
+            "cv_analysis": bool((profile or {}).get("cv_skills")),
+            "passport": bool(passport),
+        }
     }
+
+# ============== MARCHÉ CACHÉ ENDPOINTS ==============
+
+class MarcheCacheDiagnosticRequest(BaseModel):
+    token: str
+
+@api_router.post("/marche-cache/diagnostic")
+async def marche_cache_diagnostic(payload: MarcheCacheDiagnosticRequest):
+    """AI-powered diagnostic of user's hidden job market access potential."""
+    token_doc = await get_current_token(payload.token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
+    # Gather user context
+    user_skills = []
+    for s in (profile or {}).get("skills", []):
+        user_skills.append(s.get("name", ""))
+    for s in (profile or {}).get("cv_skills", []):
+        user_skills.append(s if isinstance(s, str) else s.get("name", ""))
+    for c in (passport or {}).get("competences", []):
+        user_skills.append(c.get("name", ""))
+    user_skills = list(set(sk for sk in user_skills if sk))
+
+    experiences = (passport or {}).get("experiences", [])
+    metier = (passport or {}).get("metier_cible", "") or (passport or {}).get("career_project", "")
+    sectors = list(set(
+        (profile or {}).get("sectors", []) +
+        (passport or {}).get("target_sectors", [])
+    ))
+    raw_soft = (passport or {}).get("savoir_etre", [])
+    soft_skills = [s if isinstance(s, str) else s.get("name", str(s)) for s in raw_soft]
+
+    # Get D'CLIC results if available
+    dclic = await db.dclic_results.find_one({"user_id": token_doc["id"]}, {"_id": 0})
+    personality_traits = []
+    if dclic and dclic.get("profile"):
+        p = dclic["profile"]
+        personality_traits = [
+            f"MBTI: {p.get('mbti', 'N/A')}",
+            f"DISC: {p.get('disc', 'N/A')}",
+            f"RIASEC: {p.get('riasec', 'N/A')}",
+        ]
+
+    skills_str = ", ".join(str(s) for s in user_skills[:15]) if user_skills else "Non renseignées"
+    sectors_str = ", ".join(str(s) for s in sectors[:5]) if sectors else "Non définis"
+    soft_str = ", ".join(str(s) for s in soft_skills[:8]) if soft_skills else "Non renseignés"
+
+    context_lines = [
+        f"Compétences: {skills_str}",
+        f"Expériences: {len(experiences)} postes",
+        f"Métier cible: {metier or 'Non défini'}",
+        f"Secteurs: {sectors_str}",
+        f"Soft skills: {soft_str}",
+    ]
+    if personality_traits:
+        context_lines.append(f"Profil psychométrique: {', '.join(personality_traits)}")
+
+    user_context = "\n".join(context_lines)
+
+    if EMERGENT_LLM_KEY:
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"marche-cache-{token_doc['id'][:8]}",
+                system_message="""Tu es un expert en stratégie d'accès au marché caché de l'emploi en France.
+Analyse le profil de l'utilisateur et génère un diagnostic complet en JSON strict (pas de markdown).
+Le JSON doit contenir exactement ces champs:
+{
+  "score_acces": (entier 1-10),
+  "analyse": "texte court décrivant la situation globale",
+  "forces_marche_cache": ["liste des atouts pour accéder au marché caché"],
+  "faiblesses": ["liste des points faibles"],
+  "recommandations": [{"titre": "...", "description": "...", "priorite": "haute|moyenne|basse"}],
+  "canaux_privilegier": ["liste de canaux d'accès recommandés"],
+  "types_entreprises": ["types d'entreprises à cibler"],
+  "strategie_reseau": "paragraphe décrivant la stratégie réseau personnalisée"
+}"""
+            ).with_model("openai", "gpt-5.2")
+
+            response = await chat.send_message(UserMessage(text=f"Profil utilisateur:\n{user_context}\n\nGénère le diagnostic JSON du marché caché."))
+            import json as json_lib
+            clean = response.strip()
+            if clean.startswith("```"):
+                clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            diagnostic = json_lib.loads(clean)
+            return {"diagnostic": diagnostic}
+        except Exception as e:
+            logger.error(f"Marché caché AI error: {e}")
+
+    # Fallback without AI
+    score = min(10, max(1, len(user_skills) // 2 + len(experiences) + (2 if metier else 0)))
+    return {"diagnostic": {
+        "score_acces": score,
+        "analyse": f"Avec {len(user_skills)} compétences et {len(experiences)} expériences, votre accès au marché caché est {'bon' if score >= 6 else 'à développer'}.",
+        "forces_marche_cache": [f"Compétences diversifiées ({len(user_skills)} identifiées)"] + ([f"Secteurs ciblés : {', '.join(sectors[:3])}"] if sectors else []),
+        "faiblesses": ["Enrichissez votre profil pour un diagnostic plus précis"] if len(user_skills) < 5 else [],
+        "recommandations": [
+            {"titre": "Activez votre réseau professionnel", "description": "Contactez d'anciens collègues et participez à des événements sectoriels.", "priorite": "haute"},
+            {"titre": "Candidatures spontanées ciblées", "description": "Identifiez les entreprises de vos secteurs et envoyez des candidatures personnalisées.", "priorite": "moyenne"},
+        ],
+        "canaux_privilegier": ["LinkedIn", "Événements sectoriels", "Anciens collègues", "Associations professionnelles"],
+        "types_entreprises": ["PME en croissance", "Start-ups de votre secteur", "Cabinets de conseil"],
+        "strategie_reseau": "Développez votre présence en ligne et participez activement aux discussions de votre secteur."
+    }}
+
+
+# ============== EXPLORATEUR SUGGESTIONS PERSONNALISÉES ==============
+
+@api_router.get("/referentiel/explorer/suggestions")
+async def get_explorer_suggestions(token: str):
+    """Return personalized job suggestions based on user profile."""
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
+    # Gather user context
+    user_skills = set()
+    for s in (profile or {}).get("skills", []):
+        user_skills.add(s.get("name", "").lower())
+    for c in (passport or {}).get("competences", []):
+        user_skills.add(c.get("name", "").lower())
+    user_skills.discard("")
+
+    metier_cible = (passport or {}).get("metier_cible", "")
+    sectors = list(set(
+        (profile or {}).get("sectors", []) +
+        (passport or {}).get("target_sectors", [])
+    ))
+    experiences = (passport or {}).get("experiences", [])
+    experience_titles = [e.get("titre", e.get("poste", "")) for e in experiences if e.get("titre") or e.get("poste")]
+
+    suggestions = []
+    seen = set()
+
+    # 1. Suggest metier_cible if it exists
+    if metier_cible and metier_cible.lower() not in seen:
+        suggestions.append({"name": metier_cible, "reason": "Votre métier cible"})
+        seen.add(metier_cible.lower())
+
+    # 2. Add experience-based suggestions
+    for title in experience_titles[:3]:
+        if title.lower() not in seen:
+            suggestions.append({"name": title, "reason": "Basé sur votre expérience"})
+            seen.add(title.lower())
+
+    # 3. Search referentiel for sector-matching jobs
+    for sector in sectors[:3]:
+        # Extract key words from sector for fuzzy matching
+        keywords = [w for w in sector.lower().split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
+        for kw in keywords[:2]:
+            # Search in referentiel_metiers_flat
+            sector_data = await db.referentiel_metiers_flat.find(
+                {"secteur": {"$regex": kw, "$options": "i"}},
+                {"_id": 0, "name": 1, "secteur": 1}
+            ).to_list(3)
+            for m in sector_data:
+                name = m.get("name", "")
+                if name.lower() not in seen:
+                    suggestions.append({"name": name, "reason": f"Secteur {m.get('secteur', sector)}"})
+                    seen.add(name.lower())
+
+    # 4. Search evolution indices for jobs in user's sectors
+    for sector in sectors[:2]:
+        keywords = [w for w in sector.lower().split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
+        for kw in keywords[:2]:
+            jobs = await db.job_evolution_indices.find(
+                {"sector": {"$regex": kw, "$options": "i"}},
+                {"_id": 0, "job_name": 1, "sector": 1, "evolution_index": 1}
+            ).to_list(3)
+            for j in jobs:
+                jn = j.get("job_name", "")
+                if jn.lower() not in seen:
+                    suggestions.append({"name": jn, "reason": f"Métier en {j.get('sector', sector)}"})
+                    seen.add(jn.lower())
+
+    # 5. Search ROME metiers by skill keywords
+    if user_skills and len(suggestions) < 6:
+        sample_skills = list(user_skills)[:3]
+        for sk in sample_skills:
+            kw = sk.split()[0] if sk else ""
+            if len(kw) < 3:
+                continue
+            rome_matches = await db.rome_metiers.find(
+                {"$or": [
+                    {"libelle": {"$regex": kw, "$options": "i"}},
+                    {"appellations": {"$regex": kw, "$options": "i"}},
+                ]},
+                {"_id": 0, "libelle": 1}
+            ).to_list(3)
+            for rm in rome_matches:
+                name = rm.get("libelle", "")
+                if name.lower() not in seen:
+                    suggestions.append({"name": name, "reason": f"Lié à {sk}"})
+                    seen.add(name.lower())
+
+    has_profile = bool(user_skills or metier_cible or experience_titles)
+    return {
+        "has_profile": has_profile,
+        "suggestions": suggestions[:12],
+        "skills_count": len(user_skills),
+        "sectors": sectors[:5],
+    }
+
 
 async def analyze_contribution_with_ai(contribution: SkillContribution) -> Dict[str, Any]:
     """Analyze a contribution using AI"""

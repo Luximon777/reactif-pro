@@ -183,6 +183,7 @@ const ExplorateurView = ({ token, embedded }) => {
   const [selectedMetier, setSelectedMetier] = useState(null);
   const [loading, setLoading] = useState(false);
   const [allMetiers, setAllMetiers] = useState([]);
+  const [personalSuggestions, setPersonalSuggestions] = useState(null);
 
   useEffect(() => {
     axios.get(`${API}/referentiel/explorer/stats`).then(r => setStats(r.data)).catch(() => {});
@@ -197,6 +198,15 @@ const ExplorateurView = ({ token, embedded }) => {
       setAllMetiers(metiers);
     }).catch(() => {});
   }, []);
+
+  // Auto-load personalized suggestions when user has token
+  useEffect(() => {
+    if (token && !personalSuggestions) {
+      axios.get(`${API}/referentiel/explorer/suggestions?token=${token}`, { timeout: 15000 })
+        .then(r => setPersonalSuggestions(r.data))
+        .catch(() => {});
+    }
+  }, [token]);
 
   // Load metier names for secteurs that have metiers_count > 0
   useEffect(() => {
@@ -389,6 +399,26 @@ const ExplorateurView = ({ token, embedded }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Personalized suggestions */}
+          {personalSuggestions?.suggestions?.length > 0 && (
+            <div className="max-w-2xl mx-auto" data-testid="explorer-personal-suggestions">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                <p className="text-xs text-indigo-600 uppercase tracking-wider font-semibold">Métiers suggérés pour votre profil</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {personalSuggestions.suggestions.map((s, i) => (
+                  <button key={i} onClick={() => selectMetier(s.name)}
+                    className="group text-sm px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 hover:border-indigo-400 transition-colors capitalize"
+                    data-testid={`personal-metier-${i}`}>
+                    <span className="text-indigo-800 font-medium">{s.name}</span>
+                    <span className="text-[10px] text-indigo-400 ml-1.5 group-hover:text-indigo-600">{s.reason}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

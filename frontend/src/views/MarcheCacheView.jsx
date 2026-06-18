@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,10 +15,17 @@ const MarcheCacheView = ({ token }) => {
   const [diagnostic, setDiagnostic] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Auto-load diagnostic when user has a token
+  useEffect(() => {
+    if (token && !diagnostic && !loading) {
+      runDiagnostic();
+    }
+  }, [token]);
+
   const runDiagnostic = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/marche-cache/diagnostic`, { token });
+      const res = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 60000 });
       if (res.data.error) {
         toast.error(res.data.error);
       } else {
@@ -75,8 +82,21 @@ const MarcheCacheView = ({ token }) => {
         </CardContent>
       </Card>
 
-      {/* CTA Diagnostic */}
-      {!diagnostic && (
+      {/* Loading state */}
+      {loading && !diagnostic && (
+        <Card className="border-[#4f6df5]/30 bg-gradient-to-r from-[#4f6df5]/5 to-[#10b981]/5" data-testid="marche-cache-loading">
+          <CardContent className="p-6 text-center space-y-4">
+            <Loader2 className="w-12 h-12 mx-auto text-[#4f6df5] animate-spin" />
+            <div>
+              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Analyse de votre profil en cours...</h3>
+              <p className="text-sm text-slate-500 mt-1">L'IA croise vos compétences, expériences et personnalité pour évaluer votre accès au marché caché.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* CTA Diagnostic - show only if not loading and no diagnostic */}
+      {!diagnostic && !loading && (
         <Card className="border-[#4f6df5]/30 bg-gradient-to-r from-[#4f6df5]/5 to-[#10b981]/5" data-testid="marche-cache-cta">
           <CardContent className="p-6 text-center space-y-4">
             <Brain className="w-12 h-12 mx-auto text-[#4f6df5]" />
