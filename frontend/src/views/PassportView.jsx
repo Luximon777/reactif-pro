@@ -1129,6 +1129,9 @@ const PassportView = ({ token, viewMode }) => {
           })()}
         </TabsContent>
         <TabsContent value="competences" className="space-y-6 mt-4">
+          {/* ADN Professionnel - en haut de l'inventaire */}
+          <IdentityAdnBlock token={token} passport={passport} setPassport={setPassport} />
+
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-slate-900">Mes compétences ({competences.length})</h3>
             <Dialog open={addCompDialogOpen} onOpenChange={setAddCompDialogOpen}>
