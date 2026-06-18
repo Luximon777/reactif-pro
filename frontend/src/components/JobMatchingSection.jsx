@@ -817,9 +817,9 @@ const JobMatchingSection = ({ token }) => {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
                       {(() => {
-                        const searchQuery = [match.titre, match.localisation || match.secteur, "offre emploi"]
-                          .filter(Boolean).join(" ");
-                        const searchUrl = match.url_offre || `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+                        const ftQuery = encodeURIComponent(match.titre || "");
+                        const ftLieu = encodeURIComponent(match.localisation || "");
+                        const searchUrl = match.url_offre || `https://candidat.francetravail.fr/offres/recherche?motsCles=${ftQuery}&lieux=${ftLieu}`;
                         return (
                           <a href={searchUrl} target="_blank" rel="noopener noreferrer"
                             className="font-semibold text-slate-900 hover:text-blue-600 underline-offset-2 hover:underline transition-colors flex items-center gap-1.5 group/link"
