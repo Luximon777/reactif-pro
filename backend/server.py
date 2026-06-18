@@ -2596,6 +2596,134 @@ async def evaluate_competence(comp_id: str, token: str, data: EvaluateCompetence
 
     return {"message": "Évaluation enregistrée", "competence_id": comp_id, "components": components}
 
+@api_router.post("/passport/diagnostic/auto-evaluate")
+async def auto_evaluate_competences(token: str):
+    """Auto-evaluate all passport competences using AI (Lamri & Lubart + CCSP)."""
+    token_doc = await get_current_token(token)
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouvé")
+
+    comps = passport.get("competences", [])
+    if not comps:
+        raise HTTPException(status_code=400, detail="Aucune compétence à évaluer")
+
+    # Filter only unevaluated competences
+    to_evaluate = []
+    for c in comps:
+        has_eval = any(c.get("components", {}).get(k, 0) > 0 for k in ["connaissance", "cognition", "conation", "affection", "sensori_moteur"])
+        if not has_eval:
+            to_evaluate.append(c)
+
+    if not to_evaluate and all(any(c.get("components", {}).get(k, 0) > 0 for k in ["connaissance", "cognition", "conation", "affection", "sensori_moteur"]) for c in comps):
+        return {"message": "Toutes les compétences sont déjà évaluées", "evaluated": 0}
+
+    # Get user context for better evaluation
+    experiences = passport.get("experiences", [])
+    metier = passport.get("metier_cible", "") or passport.get("career_project", "")
+    exp_context = ", ".join([e.get("titre", e.get("poste", "")) for e in experiences[:3] if e.get("titre") or e.get("poste")])
+
+    # Build competence list for AI
+    comp_names = [c.get("name", "") for c in (to_evaluate if to_evaluate else comps)]
+
+    if EMERGENT_LLM_KEY:
+        try:
+            import json as json_lib
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"auto-eval-{token_doc['id'][:8]}",
+                system_message="""Tu es un expert en évaluation de compétences professionnelles selon deux référentiels :
+
+1. **Lamri & Lubart** (5 composantes, score de 1 à 5 chacune) :
+   - connaissance : savoirs théoriques
+   - cognition : capacités d'analyse et raisonnement
+   - conation : motivation et engagement
+   - affection : intelligence émotionnelle
+   - sensori_moteur : habiletés physiques et techniques
+
+2. **CCSP** :
+   - pole : "realisation" (produire), "interaction" (communiquer), ou "initiative" (innover)
+   - degree : "imitation" (reproduire), "adaptation" (ajuster), ou "transposition" (créer)
+
+3. **Nature** : "savoir_faire" (technique) ou "savoir_etre" (comportemental)
+
+Réponds UNIQUEMENT en JSON strict (pas de markdown). Le JSON doit être un tableau d'objets :
+[{"name":"nom_competence","connaissance":X,"cognition":X,"conation":X,"affection":X,"sensori_moteur":X,"ccsp_pole":"...","ccsp_degree":"...","nature":"savoir_faire|savoir_etre"}]"""
+            ).with_model("openai", "gpt-5.2")
+
+            prompt = f"Évalue ces compétences professionnelles :\n{', '.join(comp_names)}"
+            if exp_context:
+                prompt += f"\nContexte métier : {exp_context}"
+            if metier:
+                prompt += f"\nMétier cible : {metier}"
+
+            response = await chat.send_message(UserMessage(text=prompt))
+            clean = response.strip()
+            if clean.startswith("```"):
+                clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            ai_evals = json_lib.loads(clean)
+
+            # Apply AI evaluations to competences
+            eval_map = {}
+            for ae in ai_evals:
+                eval_map[ae.get("name", "").lower()] = ae
+
+            updated = 0
+            for comp in comps:
+                cname = comp.get("name", "").lower()
+                ai = eval_map.get(cname)
+                if not ai:
+                    # Fuzzy match
+                    for key, val in eval_map.items():
+                        if key in cname or cname in key:
+                            ai = val
+                            break
+                if ai:
+                    has_eval = any(comp.get("components", {}).get(k, 0) > 0 for k in ["connaissance", "cognition", "conation", "affection", "sensori_moteur"])
+                    if not has_eval:
+                        comp["components"] = {
+                            "connaissance": max(0, min(5, ai.get("connaissance", 2))),
+                            "cognition": max(0, min(5, ai.get("cognition", 2))),
+                            "conation": max(0, min(5, ai.get("conation", 2))),
+                            "affection": max(0, min(5, ai.get("affection", 2))),
+                            "sensori_moteur": max(0, min(5, ai.get("sensori_moteur", 2))),
+                        }
+                        if ai.get("ccsp_pole"):
+                            comp["ccsp_pole"] = ai["ccsp_pole"]
+                        if ai.get("ccsp_degree"):
+                            comp["ccsp_degree"] = ai["ccsp_degree"]
+                        if ai.get("nature") and not comp.get("nature"):
+                            comp["nature"] = ai["nature"]
+                        updated += 1
+
+            await db.passports.update_one(
+                {"token_id": token_doc["id"]},
+                {"$set": {"competences": comps, "last_updated": datetime.now(timezone.utc).isoformat()}}
+            )
+            return {"message": f"{updated} compétences évaluées par l'IA", "evaluated": updated}
+
+        except Exception as e:
+            logger.error(f"Auto-evaluate AI error: {e}")
+
+    # Fallback: basic heuristic evaluation
+    updated = 0
+    for comp in comps:
+        has_eval = any(comp.get("components", {}).get(k, 0) > 0 for k in ["connaissance", "cognition", "conation", "affection", "sensori_moteur"])
+        if not has_eval:
+            comp["components"] = {"connaissance": 2, "cognition": 2, "conation": 3, "affection": 2, "sensori_moteur": 2}
+            comp["ccsp_pole"] = comp.get("ccsp_pole") or "realisation"
+            comp["ccsp_degree"] = comp.get("ccsp_degree") or "adaptation"
+            if not comp.get("nature"):
+                comp["nature"] = "savoir_faire"
+            updated += 1
+
+    await db.passports.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"competences": comps, "last_updated": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": f"{updated} compétences évaluées (heuristique)", "evaluated": updated}
+
+
 @api_router.get("/passport/diagnostic")
 async def get_ccsp_diagnostic(token: str):
     """Generate a CCSP diagnostic based on all passport competences"""

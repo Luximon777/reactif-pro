@@ -20,28 +20,30 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 ### Phase 2 - Observatoire et Marché (DONE)
 - OPC (Observatoire Prédictif des Compétences) autonome
 - Vue "Le Marché" avec 4 onglets personnalisés :
-  - Observatoire : données personnalisées auto-chargées (compétences vs marché)
-  - Évolution : score d'exposition, métiers liés, formations (enrichi avec passport/CV)
-  - Marché caché : diagnostic IA automatique (score, forces, faiblesses, recommandations)
-  - Explorateur : suggestions de métiers basées sur le profil
-- Endpoint `/api/observatoire/personalized` 
-- Endpoint `/api/marche-cache/diagnostic` (POST, IA GPT-5.2)
-- Endpoint `/api/referentiel/explorer/suggestions`
-- Endpoint `/api/evolution-index/user-profile` (enrichi)
+  - Observatoire : données personnalisées auto-chargées
+  - Évolution : score d'exposition enrichi (passport/CV)
+  - Marché caché : diagnostic IA automatique (GPT-5.2)
+  - Explorateur : suggestions de métiers personnalisées
+- Endpoints : `/api/observatoire/personalized`, `/api/marche-cache/diagnostic`, `/api/referentiel/explorer/suggestions`, `/api/evolution-index/user-profile`
 
 ### Phase 3 - D'CLIC PRO (DONE)
 - Questionnaire complet avec routes backend
 - Scoring IA (MBTI, DISC, RIASEC)
-- Frontend accessible via `/test-dclic`
+- Frontend `/test-dclic`
+
+### Phase 4 - Auto-évaluation Compétences (DONE)
+- Endpoint `POST /api/passport/diagnostic/auto-evaluate` créé
+- Évaluation IA automatique selon Lamri & Lubart (5 composantes) et CCSP (pôles + degrés)
+- Classification nature (savoir-faire / savoir-être)
+- Diagnostic visuel avec radar chart et barres CCSP
 
 ### Autres (DONE)
 - Navigation Coach Virtuel ("Mon CV" via `?sub=cv`)
 - Suppression badge Emergent + titre index.html
-- Routage frontend D'CLIC PRO pour utilisateurs authentifiés
 
 ## Issues connues
-- (P1) Images D'CLIC PRO : utilisateur veut anciennes photos (EN PAUSE)
-- (P2) server.py monolithique (>7400 lignes) : à refactorer en routes distinctes
+- (P1) Images D'CLIC PRO (EN PAUSE par l'utilisateur)
+- (P2) server.py monolithique (>7600 lignes)
 
 ## Tâches futures (Backlog)
 - P2 : Refactoring server.py en modules routes/
@@ -52,5 +54,5 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 
 ## Déploiement
 - Frontend : GitHub Actions -> GitHub Pages (reactif.pro)
-- Backend : Emergent infrastructure (marche-cache.emergent.host)
-- IMPORTANT : Utilisateur doit "Save to Github" (frontend) ET "Redeploy" (backend) pour production
+- Backend : Emergent infrastructure
+- IMPORTANT : "Save to Github" (frontend) + "Redeploy" (backend) pour production
