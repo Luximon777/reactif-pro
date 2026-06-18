@@ -16,7 +16,8 @@ import {
 import {
   Target, Sparkles, ChevronDown, ChevronUp, Search,
   AlertTriangle, ShieldAlert, CheckCircle2, Star, MapPin,
-  Filter, RotateCcw, Heart, Shield, Accessibility, Send, ExternalLink, FileEdit
+  Filter, RotateCcw, Heart, Shield, Accessibility, Send, ExternalLink, FileEdit,
+  Globe, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -123,6 +124,9 @@ const JobMatchingSection = ({ token }) => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [applyingJob, setApplyingJob] = useState(null);
+  const [loadingFT, setLoadingFT] = useState(false);
+  const [ftResults, setFtResults] = useState(null);
+  const [ftDepartement, setFtDepartement] = useState("75");
 
   useEffect(() => {
     if (token) {
@@ -302,7 +306,23 @@ const JobMatchingSection = ({ token }) => {
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS);
     setHasSearched(false);
+    setFtResults(null);
     toast.info("Filtres réinitialisés");
+  };
+
+  const handleFTSearch = async () => {
+    setLoadingFT(true);
+    try {
+      const res = await axios.post(`${API}/jobs/france-travail/search?token=${token}`, {
+        departement: ftDepartement,
+      });
+      setFtResults(res.data);
+      toast.success(`${res.data.matches?.length || 0} offres France Travail trouvées`);
+    } catch (e) {
+      console.error("FT search error:", e);
+      toast.error(e.response?.data?.detail || "Erreur lors de la recherche France Travail");
+    }
+    setLoadingFT(false);
   };
 
   const updateFilter = (key, field, value) => {
@@ -379,6 +399,100 @@ const JobMatchingSection = ({ token }) => {
           {filtersOpen ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
         </Button>
       </div>
+
+      {/* France Travail Button */}
+      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50" data-testid="france-travail-section">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+                <Globe className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900">Offres France Travail</h4>
+                <p className="text-[11px] text-slate-500">Rechercher les offres d'emploi liées à votre profil sur France Travail</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Dépt (ex: 75)"
+                value={ftDepartement}
+                onChange={(e) => setFtDepartement(e.target.value)}
+                className="h-9 text-sm w-24"
+                data-testid="ft-departement-input"
+              />
+              <Button
+                onClick={handleFTSearch}
+                disabled={loadingFT}
+                className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                data-testid="ft-search-btn"
+              >
+                {loadingFT ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Globe className="w-4 h-4 mr-2" />
+                )}
+                {loadingFT ? "Recherche..." : "Offres France Travail"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* France Travail Results */}
+      {ftResults && ftResults.matches?.length > 0 && (
+        <div className="space-y-3" data-testid="ft-results">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              {ftResults.matches.length} offre(s) France Travail
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => setFtResults(null)} className="text-xs text-slate-400">
+              Masquer
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {ftResults.matches.map((match, idx) => {
+              const sc = getScoreColor(match.matching_score);
+              return (
+                <Card key={idx} className="transition-all hover:shadow-md border-blue-100" data-testid={`ft-match-card-${idx}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <a href={match.url_offre} target="_blank" rel="noopener noreferrer"
+                          className="font-semibold text-sm text-slate-900 hover:text-blue-600 hover:underline flex items-center gap-1.5"
+                          data-testid={`ft-title-link-${idx}`}>
+                          {match.titre}
+                          <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
+                        </a>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-xs text-slate-500">{match.entreprise_type}</span>
+                          <Badge variant="outline" className="text-[10px]">{match.type_contrat}</Badge>
+                          {match.localisation && <span className="text-xs text-slate-400 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{match.localisation}</span>}
+                        </div>
+                      </div>
+                      <div className={`flex flex-col items-center ml-3 px-2.5 py-1.5 rounded-xl ${sc.bg}`}>
+                        <span className={`text-lg font-bold ${sc.text}`}>{match.matching_score}%</span>
+                        <span className={`text-[9px] ${sc.text}`}>match</span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-600 mb-2 line-clamp-2">{match.description}</p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(match.competences_matchees || []).map((c, i) => (
+                        <Badge key={i} className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">{c}</Badge>
+                      ))}
+                    </div>
+                    {match.salaire_indicatif && (
+                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">{match.salaire_indicatif}</span>
+                    )}
+                    <Badge className="ml-2 text-[9px] bg-blue-100 text-blue-700 border border-blue-200">France Travail</Badge>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter Panel */}
       {filtersOpen && (

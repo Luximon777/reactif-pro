@@ -737,76 +737,351 @@ async def create_job(token: str, request: CreateJobRequest):
     return job.model_dump()
 
 # Specific routes MUST come before wildcard /jobs/{job_id}
+def _build_match_entry(job, score, skills_matched, rationale, scoring=None):
+    """Transform a DB job into the frontend-expected match format."""
+    return {
+        "titre": job.get("title", job.get("intitule_poste", "")),
+        "matching_score": score,
+        "secteur": job.get("sector", job.get("secteur", "")),
+        "type_contrat": job.get("contract_type", job.get("type_contrat", "CDI")),
+        "entreprise_type": job.get("company", job.get("entreprise", "")),
+        "localisation": job.get("location", job.get("localisation", "")),
+        "description": job.get("description", ""),
+        "salaire_indicatif": job.get("salary_range", job.get("salaire_indicatif", "")),
+        "competences_matchees": skills_matched,
+        "pourquoi_ce_match": rationale,
+        "url_offre": job.get("url_offre", ""),
+        "scoring": scoring,
+    }
+
+
+def _score_job_basic(job, skills, user_words, exp_titles, inferred_set):
+    """Basic scoring of a job against user profile. Returns (score, matched_skills, rationale)."""
+    req = job.get("required_skills", [])
+    job_sector = job.get("sector", "").lower()
+    job_title_words = set(w.lower() for w in job.get("title", "").split() if len(w) > 3)
+
+    skills_lower = set(s.lower() for s in skills)
+    req_lower = set(r.lower() for r in req)
+    exact = len(skills_lower & req_lower)
+    matched_skill_names = list(skills_lower & req_lower)
+
+    keyword_matches = 0
+    for r_skill in req:
+        r_words = set(w for w in r_skill.lower().split() if len(w) > 3)
+        if r_words & user_words:
+            keyword_matches += 1
+
+    exp_match = 0
+    for et in exp_titles:
+        if any(w in et.lower() for w in job_title_words if len(w) > 3):
+            exp_match += 1
+            break
+
+    sector_match = job_sector in inferred_set or any(job_sector in s for s in inferred_set)
+
+    total_req = max(len(req), 1)
+    skill_score = ((exact + keyword_matches * 0.7) / total_req) * 50
+    score = int(min(100, 20 + skill_score + (exp_match * 15) + (15 if sector_match else 0)))
+
+    parts = []
+    if exact > 0:
+        parts.append(f"{exact} compétence(s) exacte(s)")
+    if keyword_matches > exact:
+        parts.append(f"{keyword_matches - exact} par mots-clés")
+    if exp_match:
+        parts.append("expérience similaire")
+    if sector_match:
+        parts.append("secteur correspondant")
+    if not parts:
+        parts.append(f"0/{len(req)} compétences en commun")
+
+    return score, matched_skill_names[:6], " · ".join(parts)
+
+
+def _apply_filter_scoring(job, match_entry, filters, user_profile_text):
+    """Apply advanced filter-based scoring on a match. Returns updated match_entry with scoring."""
+    evaluations = []
+    blocages = []
+    vigilances = []
+    points_forts = []
+    total_points = 0
+    earned_points = 0
+
+    # Métier filter
+    if "metier" in filters:
+        priority = filters["metier"].get("priority", 3)
+        weight = priority * 4
+        total_points += weight
+        metiers = filters["metier"].get("value", [])
+        job_title = match_entry["titre"].lower()
+        job_desc = match_entry.get("description", "").lower()
+        match_found = any(m.lower() in job_title or m.lower() in job_desc for m in metiers)
+        compat = 1.0 if match_found else 0.2
+        earned_points += int(weight * compat)
+        evaluations.append({"label": "Métier", "compatibility": compat, "priority": priority})
+        if match_found:
+            points_forts.append({"critere": "Métier", "message": f"Correspond au(x) métier(s) recherché(s)"})
+        elif priority >= 5:
+            blocages.append({"critere": "Métier", "raison": "Ne correspond pas au métier recherché"})
+
+    # Secteur filter
+    if "secteur" in filters:
+        priority = filters["secteur"].get("priority", 3)
+        weight = priority * 4
+        total_points += weight
+        secteurs = filters["secteur"].get("value", [])
+        job_sector = match_entry["secteur"].lower()
+        match_found = any(s.lower() in job_sector or job_sector in s.lower() for s in secteurs)
+        compat = 1.0 if match_found else 0.3
+        earned_points += int(weight * compat)
+        evaluations.append({"label": "Secteur", "compatibility": compat, "priority": priority})
+        if match_found:
+            points_forts.append({"critere": "Secteur", "message": f"Secteur {match_entry['secteur']} correspondant"})
+
+    # Contrat filter
+    if "contrat" in filters:
+        priority = filters["contrat"].get("priority", 3)
+        weight = priority * 3
+        total_points += weight
+        contrats = [c.lower() for c in filters["contrat"].get("value", [])]
+        job_contrat = match_entry["type_contrat"].lower()
+        match_found = any(c in job_contrat or job_contrat in c for c in contrats)
+        compat = 1.0 if match_found else 0.1
+        earned_points += int(weight * compat)
+        evaluations.append({"label": "Contrat", "compatibility": compat, "priority": priority})
+        if not match_found and priority >= 4:
+            vigilances.append({"critere": "Contrat", "message": f"Type {match_entry['type_contrat']} non recherché"})
+        if match_found:
+            points_forts.append({"critere": "Contrat", "message": f"{match_entry['type_contrat']} correspond"})
+
+    # Salaire filter
+    if "salaire_minimum" in filters:
+        priority = filters["salaire_minimum"].get("priority", 3)
+        weight = priority * 3
+        total_points += weight
+        sal_min = filters["salaire_minimum"].get("value", 0)
+        sal_text = match_entry.get("salaire_indicatif", "")
+        # Try to extract number from salary text
+        import re
+        nums = re.findall(r"[\d\s]+", sal_text.replace(" ", "").replace("\u202f", ""))
+        max_sal = 0
+        for n in nums:
+            try:
+                v = int(n.strip())
+                if v > max_sal:
+                    max_sal = v
+            except ValueError:
+                pass
+        if max_sal > 0 and sal_min:
+            compat = 1.0 if max_sal >= int(sal_min) else max(0.1, max_sal / int(sal_min))
+            earned_points += int(weight * compat)
+            evaluations.append({"label": "Salaire", "compatibility": round(compat, 2), "priority": priority})
+            if compat < 0.5 and priority >= 4:
+                vigilances.append({"critere": "Salaire", "message": f"Salaire potentiellement inférieur au minimum souhaité ({sal_min}€)"})
+        else:
+            earned_points += int(weight * 0.5)
+            evaluations.append({"label": "Salaire", "compatibility": 0.5, "priority": priority})
+
+    # Zone géographique filter
+    if "zone_geographique" in filters:
+        priority = filters["zone_geographique"].get("priority", 4)
+        weight = priority * 4
+        total_points += weight
+        zone = filters["zone_geographique"].get("value", "").lower()
+        job_loc = match_entry["localisation"].lower()
+        match_found = zone in job_loc or job_loc in zone or any(w in job_loc for w in zone.split(",") if len(w.strip()) > 2)
+        compat = 1.0 if match_found else 0.2
+        earned_points += int(weight * compat)
+        evaluations.append({"label": "Localisation", "compatibility": compat, "priority": priority})
+        if match_found:
+            points_forts.append({"critere": "Localisation", "message": f"Dans la zone recherchée ({match_entry['localisation']})"})
+        elif priority >= 5:
+            blocages.append({"critere": "Localisation", "raison": f"Hors zone ({match_entry['localisation']})"})
+        elif priority >= 3:
+            vigilances.append({"critere": "Localisation", "message": f"Localisation {match_entry['localisation']} hors zone demandée"})
+
+    # Télétravail filter
+    if "teletravail" in filters:
+        priority = filters["teletravail"].get("priority", 2)
+        weight = priority * 2
+        total_points += weight
+        earned_points += int(weight * 0.5)  # Unknown by default
+        evaluations.append({"label": "Télétravail", "compatibility": 0.5, "priority": priority})
+
+    # Temps de travail
+    if "temps_travail" in filters:
+        priority = filters["temps_travail"].get("priority", 2)
+        weight = priority * 2
+        total_points += weight
+        earned_points += int(weight * 0.7)
+        evaluations.append({"label": "Temps de travail", "compatibility": 0.7, "priority": priority})
+
+    # Restrictions fonctionnelles
+    if "restrictions_fonctionnelles" in filters:
+        priority = filters["restrictions_fonctionnelles"].get("priority", 5)
+        restrictions = filters["restrictions_fonctionnelles"].get("value", {})
+        active_restrictions = [k for k, v in restrictions.items() if v]
+        if active_restrictions:
+            weight = priority * 3
+            total_points += weight
+            earned_points += int(weight * 0.5)
+            evaluations.append({"label": "Restrictions fonctionnelles", "compatibility": 0.5, "priority": priority})
+            vigilances.append({"critere": "Restrictions", "message": f"{len(active_restrictions)} restriction(s) à vérifier avec l'employeur"})
+
+    # Inclusion score
+    score_inclusion = 0
+    if "ciblage_employeurs_inclusifs" in filters and filters["ciblage_employeurs_inclusifs"].get("value"):
+        score_inclusion = 50  # Default, would need employer DB data
+    if "accessibilite_metier_handicap" in filters and filters["accessibilite_metier_handicap"].get("value"):
+        score_inclusion = max(score_inclusion, 40)
+
+    # Calculate final scored matching_score
+    if total_points > 0:
+        filter_pct = (earned_points / total_points) * 100
+        # Blend: 40% profile match + 60% filter match
+        blended = int(match_entry["matching_score"] * 0.4 + filter_pct * 0.6)
+    else:
+        blended = match_entry["matching_score"]
+
+    # Determine status
+    has_blocage = len(blocages) > 0
+    if has_blocage:
+        statut = "Incompatible"
+    elif blended >= 75:
+        statut = "Excellent match"
+    elif blended >= 55:
+        statut = "Match pertinent"
+    elif blended >= 35:
+        statut = "Match moyen"
+    else:
+        statut = "Faible compatibilité"
+
+    match_entry["matching_score"] = blended
+    match_entry["scoring"] = {
+        "statut": statut,
+        "score_detail": {"obtenu": earned_points, "maximum": total_points},
+        "evaluations": evaluations,
+        "blocages": blocages,
+        "vigilances": vigilances,
+        "points_forts": points_forts,
+        "score_inclusion": score_inclusion,
+    }
+    return match_entry
+
+
 @api_router.get("/jobs/matching")
 async def jobs_matching_early(token: str):
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     passport = await db.passports.find_one({"token_id": token_doc["id"]})
     skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:15]]
-    sectors = (profile or {}).get("sectors", [])
 
-    # Also get experience titles from passport for better matching
     exp_titles = []
     for e in (passport or {}).get("experiences", []):
         if isinstance(e, dict) and e.get("title"):
             exp_titles.append(e["title"])
 
-    # Build combined user text for keyword matching
     user_words = set()
     for s in skills + exp_titles:
         for w in s.lower().split():
             if len(w) > 3:
                 user_words.add(w)
 
-    # Infer sectors from profile
-    inferred_sectors = _infer_sectors_from_profile((passport or {}).get("experiences", []), (passport or {}).get("savoir_faire", skills))
+    inferred_sectors = _infer_sectors_from_profile(
+        (passport or {}).get("experiences", []),
+        (passport or {}).get("savoir_faire", skills)
+    )
     inferred_set = set(s.lower() for s in inferred_sectors[:3])
 
+    # Check for optimized CV and career project
+    cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]})
+    career_project = (passport or {}).get("projet_professionnel", "")
+    profile_title = ""
+    if exp_titles:
+        profile_title = exp_titles[0]
+    elif inferred_sectors:
+        profile_title = f"Profil {inferred_sectors[0]}"
+
     jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(30).to_list(30)
-    matched = []
+    matches = []
     for job in jobs:
-        req = job.get("required_skills", [])
-        job_sector = job.get("sector", "").lower()
-        job_title_words = set(w.lower() for w in job.get("title", "").split() if len(w) > 3)
+        score, matched_skills, rationale = _score_job_basic(job, skills, user_words, exp_titles, inferred_set)
+        entry = _build_match_entry(job, score, matched_skills, rationale)
+        matches.append(entry)
 
-        # 1. Exact skill match
-        exact = len(set(s.lower() for s in skills) & set(r.lower() for r in req))
-        # 2. Keyword skill match (partial word overlap)
-        keyword_matches = 0
-        for r_skill in req:
-            r_words = set(w for w in r_skill.lower().split() if len(w) > 3)
-            if r_words & user_words:
-                keyword_matches += 1
-        # 3. Experience title match
-        exp_match = 0
-        for et in exp_titles:
-            if any(w in et.lower() for w in job_title_words if len(w) > 3):
-                exp_match += 1
-                break
-        # 4. Sector match
-        sector_match = job_sector in inferred_set or any(job_sector in s for s in inferred_set)
+    matches.sort(key=lambda x: x["matching_score"], reverse=True)
+    return {
+        "has_data": len(matches) > 0 or len(skills) > 0,
+        "has_filters": False,
+        "profile_summary": {
+            "titre": profile_title,
+            "skills_count": len(skills),
+            "has_optimized_cv": cv_doc is not None,
+            "has_career_project": bool(career_project),
+        },
+        "matches": matches,
+    }
 
-        total_req = max(len(req), 1)
-        skill_score = ((exact + keyword_matches * 0.7) / total_req) * 50
-        score = int(min(100, 20 + skill_score + (exp_match * 15) + (15 if sector_match else 0)))
 
-        rationale_parts = []
-        if exact > 0:
-            rationale_parts.append(f"{exact} compétence(s) exacte(s)")
-        if keyword_matches > exact:
-            rationale_parts.append(f"{keyword_matches - exact} par mots-clés")
-        if exp_match:
-            rationale_parts.append("expérience similaire")
-        if sector_match:
-            rationale_parts.append("secteur correspondant")
-        if not rationale_parts:
-            rationale_parts.append(f"0/{len(req)} compétences en commun")
+@api_router.post("/jobs/matching/search")
+async def jobs_matching_search_post(token: str, body: dict = {}):
+    """Recherche d'offres avec scoring avancé basé sur les filtres utilisateur."""
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:15]]
 
-        job["match_score"] = score
-        job["match_rationale"] = " · ".join(rationale_parts)
-        matched.append(job)
-    matched.sort(key=lambda x: x["match_score"], reverse=True)
-    return {"jobs": matched, "total": len(matched), "profile_skills_count": len(skills)}
+    exp_titles = []
+    for e in (passport or {}).get("experiences", []):
+        if isinstance(e, dict) and e.get("title"):
+            exp_titles.append(e["title"])
+
+    user_words = set()
+    for s in skills + exp_titles:
+        for w in s.lower().split():
+            if len(w) > 3:
+                user_words.add(w)
+
+    inferred_sectors = _infer_sectors_from_profile(
+        (passport or {}).get("experiences", []),
+        (passport or {}).get("savoir_faire", skills)
+    )
+    inferred_set = set(s.lower() for s in inferred_sectors[:3])
+
+    cv_doc = await db.cv_models.find_one({"token_id": token_doc["id"]})
+    career_project = (passport or {}).get("projet_professionnel", "")
+    profile_title = exp_titles[0] if exp_titles else (f"Profil {inferred_sectors[0]}" if inferred_sectors else "Profil")
+
+    # Save preferences
+    await db.matching_prefs.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"token_id": token_doc["id"], "filters": body, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+
+    user_profile_text = " ".join(skills + exp_titles).lower()
+
+    jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(30).to_list(30)
+    matches = []
+    for job in jobs:
+        score, matched_skills, rationale = _score_job_basic(job, skills, user_words, exp_titles, inferred_set)
+        entry = _build_match_entry(job, score, matched_skills, rationale)
+        entry = _apply_filter_scoring(job, entry, body, user_profile_text)
+        matches.append(entry)
+
+    matches.sort(key=lambda x: x["matching_score"], reverse=True)
+    return {
+        "has_data": len(matches) > 0 or len(skills) > 0,
+        "has_filters": True,
+        "profile_summary": {
+            "titre": profile_title,
+            "skills_count": len(skills),
+            "has_optimized_cv": cv_doc is not None,
+            "has_career_project": bool(career_project),
+        },
+        "matches": matches,
+    }
 
 
 @api_router.get("/jobs/applications")
@@ -7075,34 +7350,13 @@ async def coffre_transfer_cv(token: str, cv_type: str = "uploaded"):
 
 
 # --- 4. Jobs Matching & Applications ---
-@api_router.get("/jobs/matching")
-async def jobs_matching(token: str):
-    token_doc = await get_current_token(token)
-    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:10]]
-    sectors = (profile or {}).get("sectors", [])
-
-    jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(20).to_list(20)
-    matched = []
-    for job in jobs:
-        req = job.get("required_skills", [])
-        common = len(set(s.lower() for s in skills) & set(r.lower() for r in req))
-        score = min(int((common / max(len(req), 1)) * 70) + 30, 100) if req else 50
-        if job.get("sector", "").lower() in [s.lower() for s in sectors]:
-            score = min(score + 15, 100)
-        job["match_score"] = score
-        job["match_rationale"] = f"{common} compétences en commun sur {len(req)} requises"
-        matched.append(job)
-
-    matched.sort(key=lambda x: x["match_score"], reverse=True)
-    return {"jobs": matched, "total": len(matched), "profile_skills_count": len(skills)}
-
-
 @api_router.get("/jobs/matching/preferences")
 async def jobs_matching_preferences(token: str):
     token_doc = await get_current_token(token)
     prefs = await db.matching_prefs.find_one({"token_id": token_doc["id"]}, {"_id": 0})
-    return prefs or {"contract_types": [], "locations": [], "salary_min": 0, "remote": False}
+    if prefs and prefs.get("filters"):
+        return {"has_preferences": True, "filters": prefs["filters"]}
+    return {"has_preferences": False, "filters": None}
 
 
 @api_router.post("/jobs/matching/preferences")
@@ -7110,20 +7364,140 @@ async def save_matching_preferences(token: str, body: dict = {}):
     token_doc = await get_current_token(token)
     await db.matching_prefs.update_one(
         {"token_id": token_doc["id"]},
-        {"$set": {**body, "token_id": token_doc["id"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+        {"$set": {"filters": body, "token_id": token_doc["id"], "updated_at": datetime.now(timezone.utc).isoformat()}},
         upsert=True
     )
     return {"success": True}
 
 
-@api_router.get("/jobs/matching/search")
-async def jobs_matching_search(token: str, q: str = ""):
+@api_router.post("/jobs/france-travail/search")
+async def search_france_travail_offres(token: str, body: dict = {}):
+    """Recherche d'offres d'emploi France Travail basée sur le profil utilisateur."""
+    from opc.connecteurs.france_travail import FranceTravailClient
     token_doc = await get_current_token(token)
-    query = {"status": "active"}
-    if q:
-        query["$or"] = [{"title": {"$regex": q, "$options": "i"}}, {"description": {"$regex": q, "$options": "i"}}, {"company": {"$regex": q, "$options": "i"}}]
-    jobs = await db.jobs.find(query, {"_id": 0}).limit(30).to_list(30)
-    return {"jobs": jobs, "query": q, "total": len(jobs)}
+    ft = FranceTravailClient()
+
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:15]]
+
+    code_rome = body.get("code_rome", "")
+    departement = body.get("departement", "75")
+
+    if not code_rome and passport:
+        rome_codes = passport.get("rome_codes", [])
+        if rome_codes:
+            code_rome = rome_codes[0] if isinstance(rome_codes[0], str) else rome_codes[0].get("code", "")
+
+    user_words = set()
+    for s in skills:
+        for w in s.lower().split():
+            if len(w) > 3:
+                user_words.add(w)
+
+    # Try real France Travail API first
+    ft_api_ok = False
+    resultats = []
+    ft_message = ""
+    if ft.is_configured():
+        try:
+            result = await ft.search_offres(departement=departement, code_rome=code_rome or None)
+            resultats = result.get("resultats", [])
+            ft_api_ok = True
+        except Exception as e:
+            err_str = str(e)
+            logging.warning(f"France Travail API unavailable: {err_str[:200]}")
+            if "invalid_scope" in err_str:
+                ft_message = "L'API Offres d'emploi France Travail n'est pas souscrite pour cette application. Activez-la sur francetravail.io > Vos applications. En attendant, voici les offres de notre base de données correspondant à votre profil."
+            else:
+                ft_message = f"L'API France Travail est temporairement indisponible. Voici les offres de notre base de données."
+
+    # Fallback: use internal DB jobs if FT API failed
+    if not ft_api_ok:
+        inferred_sectors = _infer_sectors_from_profile(
+            (passport or {}).get("experiences", []),
+            (passport or {}).get("savoir_faire", skills)
+        )
+        inferred_set = set(s.lower() for s in inferred_sectors[:3])
+        exp_titles = [e.get("title", "") for e in (passport or {}).get("experiences", []) if isinstance(e, dict) and e.get("title")]
+
+        jobs = await db.jobs.find({"status": "active"}, {"_id": 0}).limit(20).to_list(20)
+        matches = []
+        for job in jobs:
+            score, matched_skills, rationale = _score_job_basic(job, skills, user_words, exp_titles, inferred_set)
+            entry = _build_match_entry(job, score, matched_skills, rationale)
+            entry["source"] = "base_interne"
+            entry["pourquoi_ce_match"] = f"Base interne — {rationale}"
+            matches.append(entry)
+
+        matches.sort(key=lambda x: x["matching_score"], reverse=True)
+        return {
+            "has_data": len(matches) > 0,
+            "has_filters": False,
+            "source": "base_interne",
+            "message": ft_message,
+            "profile_summary": {
+                "titre": "Offres correspondant à votre profil",
+                "skills_count": len(skills),
+                "has_optimized_cv": False,
+                "has_career_project": False,
+            },
+            "matches": matches,
+        }
+
+    # Process FT API results
+    matches = []
+    for offre in resultats[:20]:
+        titre = offre.get("intitule", "")
+        entreprise = (offre.get("entreprise") or {}).get("nom", "Entreprise")
+        lieu = (offre.get("lieuTravail") or {}).get("libelle", "")
+        contrat = offre.get("typeContratLibelle", offre.get("typeContrat", ""))
+        desc = offre.get("description", "")[:300]
+        url = offre.get("origineOffre", {}).get("urlOrigine", f"https://candidat.francetravail.fr/offres/recherche/detail/{offre.get('id', '')}")
+
+        ft_competences = [c.get("libelle", "") for c in (offre.get("competences") or []) if c.get("libelle")]
+        matched_comps = []
+        for fc in ft_competences:
+            fc_words = set(w for w in fc.lower().split() if len(w) > 3)
+            if fc_words & user_words:
+                matched_comps.append(fc)
+
+        score = min(100, 30 + int((len(matched_comps) / max(len(ft_competences), 1)) * 50) + (10 if matched_comps else 0))
+
+        salaire = ""
+        if offre.get("salaire"):
+            sal = offre["salaire"]
+            salaire = sal.get("libelle", sal.get("complement1", ""))
+
+        matches.append({
+            "titre": titre,
+            "matching_score": score,
+            "secteur": offre.get("secteurActiviteLibelle", ""),
+            "type_contrat": contrat,
+            "entreprise_type": entreprise,
+            "localisation": lieu,
+            "description": desc,
+            "salaire_indicatif": salaire,
+            "competences_matchees": matched_comps[:6],
+            "pourquoi_ce_match": f"Offre France Travail — {len(matched_comps)} compétence(s) en commun",
+            "url_offre": url,
+            "scoring": None,
+            "source": "france_travail",
+        })
+
+    matches.sort(key=lambda x: x["matching_score"], reverse=True)
+    return {
+        "has_data": len(matches) > 0,
+        "has_filters": False,
+        "source": "france_travail",
+        "profile_summary": {
+            "titre": "Offres France Travail",
+            "skills_count": len(skills),
+            "has_optimized_cv": False,
+            "has_career_project": False,
+        },
+        "matches": matches,
+    }
 
 
 @api_router.get("/jobs/applications")
