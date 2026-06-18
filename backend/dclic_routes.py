@@ -36,8 +36,8 @@ QUESTIONNAIRE = [
         "text": "Quand vous devez recharger vos batteries après une journée intense, vous préférez :",
         "type": "choice",
         "choices": [
-            {"value": "E", "label": "Retrouver des amis ou collègues pour échanger", "image": "https://images.pexels.com/photos/7212946/pexels-photo-7212946.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "I", "label": "Vous retrouver seul(e) pour un moment calme", "image": "https://images.pexels.com/photos/6615044/pexels-photo-6615044.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "E", "label": "Retrouver des amis ou collègues pour échanger"},
+            {"value": "I", "label": "Vous retrouver seul(e) pour un moment calme"}
         ]
     },
     {
@@ -46,8 +46,8 @@ QUESTIONNAIRE = [
         "text": "En réunion professionnelle, vous avez tendance à :",
         "type": "choice",
         "choices": [
-            {"value": "E", "label": "Prendre la parole spontanément et rebondir sur les idées", "image": "https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=600&q=80"},
-            {"value": "I", "label": "Écouter attentivement puis formuler une réponse réfléchie", "image": "https://images.pexels.com/photos/11045735/pexels-photo-11045735.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "E", "label": "Prendre la parole spontanément et rebondir sur les idées"},
+            {"value": "I", "label": "Écouter attentivement puis formuler une réponse réfléchie"}
         ]
     },
     # --- MBTI: Perception (S/N) ---
@@ -57,8 +57,8 @@ QUESTIONNAIRE = [
         "text": "Face à un nouveau projet, vous vous concentrez d'abord sur :",
         "type": "choice",
         "choices": [
-            {"value": "S", "label": "Les faits concrets, les données et l'expérience passée", "image": "https://images.pexels.com/photos/669612/pexels-photo-669612.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "N", "label": "Les possibilités futures, les connexions et les idées innovantes", "image": "https://images.pexels.com/photos/355948/pexels-photo-355948.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "S", "label": "Les faits concrets, les données et l'expérience passée"},
+            {"value": "N", "label": "Les possibilités futures, les connexions et les idées innovantes"}
         ]
     },
     {
@@ -67,8 +67,8 @@ QUESTIONNAIRE = [
         "text": "Vous apprenez mieux quand :",
         "type": "choice",
         "choices": [
-            {"value": "S", "label": "On vous montre des exemples concrets, étape par étape", "image": "https://images.pexels.com/photos/6694560/pexels-photo-6694560.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "N", "label": "On vous explique le concept global et vous explorez par vous-même", "image": "https://images.pexels.com/photos/6285282/pexels-photo-6285282.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "S", "label": "On vous montre des exemples concrets, étape par étape"},
+            {"value": "N", "label": "On vous explique le concept global et vous explorez par vous-même"}
         ]
     },
     # --- MBTI: Décision (T/F) ---
@@ -78,8 +78,8 @@ QUESTIONNAIRE = [
         "text": "Quand un collègue fait une erreur sur un projet important, vous :",
         "type": "choice",
         "choices": [
-            {"value": "T", "label": "Analysez objectivement l'erreur et proposez des corrections", "image": "https://images.pexels.com/photos/10626014/pexels-photo-10626014.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "F", "label": "Tenez compte de la situation personnelle du collègue d'abord", "image": "https://images.pexels.com/photos/7640795/pexels-photo-7640795.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "T", "label": "Analysez objectivement l'erreur et proposez des corrections"},
+            {"value": "F", "label": "Tenez compte de la situation personnelle du collègue d'abord"}
         ]
     },
     {
@@ -88,8 +88,8 @@ QUESTIONNAIRE = [
         "text": "Pour prendre une décision professionnelle importante, vous vous fiez à :",
         "type": "choice",
         "choices": [
-            {"value": "T", "label": "Une analyse logique des avantages et inconvénients", "image": "https://images.pexels.com/photos/6716014/pexels-photo-6716014.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "F", "label": "Votre ressenti et l'impact sur les personnes concernées", "image": "https://images.pexels.com/photos/8901633/pexels-photo-8901633.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "T", "label": "Une analyse logique des avantages et inconvénients"},
+            {"value": "F", "label": "Votre ressenti et l'impact sur les personnes concernées"}
         ]
     },
     # --- MBTI: Structure (J/P) ---
@@ -99,8 +99,8 @@ QUESTIONNAIRE = [
         "text": "Face à une deadline, vous avez plutôt tendance à :",
         "type": "choice",
         "choices": [
-            {"value": "J", "label": "Planifier à l'avance et terminer bien avant l'échéance", "image": "https://images.pexels.com/photos/7428213/pexels-photo-7428213.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "P", "label": "Travailler par à-coups en vous adaptant au fil de l'eau", "image": "https://images.pexels.com/photos/7794043/pexels-photo-7794043.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "J", "label": "Planifier à l'avance et terminer bien avant l'échéance"},
+            {"value": "P", "label": "Travailler par à-coups en vous adaptant au fil de l'eau"}
         ]
     },
     {
@@ -109,8 +109,8 @@ QUESTIONNAIRE = [
         "text": "Votre espace de travail idéal est :",
         "type": "choice",
         "choices": [
-            {"value": "J", "label": "Bien organisé avec un système de classement clair", "image": "https://images.pexels.com/photos/6172482/pexels-photo-6172482.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "P", "label": "Flexible avec plusieurs projets ouverts en parallèle", "image": "https://images.pexels.com/photos/2013664/pexels-photo-2013664.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "J", "label": "Bien organisé avec un système de classement clair"},
+            {"value": "P", "label": "Flexible avec plusieurs projets ouverts en parallèle"}
         ]
     },
     # --- DISC ---
@@ -132,10 +132,10 @@ QUESTIONNAIRE = [
         "text": "En situation de conflit professionnel, vous avez tendance à :",
         "type": "choice",
         "choices": [
-            {"value": "D", "label": "Affronter directement le problème et trancher", "image": "https://images.pexels.com/photos/9301303/pexels-photo-9301303.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "I", "label": "Chercher un compromis par la discussion ouverte", "image": "https://images.pexels.com/photos/7793999/pexels-photo-7793999.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "S", "label": "Écouter toutes les parties et chercher l'harmonie", "image": "https://images.pexels.com/photos/3931556/pexels-photo-3931556.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "C", "label": "Analyser les faits et proposer une solution rationnelle", "image": "https://images.pexels.com/photos/6694560/pexels-photo-6694560.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "D", "label": "Affronter directement le problème et trancher"},
+            {"value": "I", "label": "Chercher un compromis par la discussion ouverte"},
+            {"value": "S", "label": "Écouter toutes les parties et chercher l'harmonie"},
+            {"value": "C", "label": "Analyser les faits et proposer une solution rationnelle"}
         ]
     },
     {
@@ -144,10 +144,10 @@ QUESTIONNAIRE = [
         "text": "Ce qui vous motive le plus dans votre travail :",
         "type": "choice",
         "choices": [
-            {"value": "D", "label": "Atteindre des résultats concrets et relever des défis", "image": "https://images.pexels.com/photos/8133890/pexels-photo-8133890.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "I", "label": "Collaborer, inspirer et créer une dynamique positive", "image": "https://images.pexels.com/photos/7213190/pexels-photo-7213190.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "S", "label": "Contribuer à un environnement stable et bienveillant", "image": "https://images.unsplash.com/photo-1522075782449-e45a34f1ddfb?w=600&q=80"},
-            {"value": "C", "label": "Produire un travail précis et de haute qualité", "image": "https://images.pexels.com/photos/19316513/pexels-photo-19316513.png?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "D", "label": "Atteindre des résultats concrets et relever des défis"},
+            {"value": "I", "label": "Collaborer, inspirer et créer une dynamique positive"},
+            {"value": "S", "label": "Contribuer à un environnement stable et bienveillant"},
+            {"value": "C", "label": "Produire un travail précis et de haute qualité"}
         ]
     },
     # --- RIASEC ---
@@ -171,12 +171,12 @@ QUESTIONNAIRE = [
         "text": "L'environnement de travail qui vous attire le plus :",
         "type": "choice",
         "choices": [
-            {"value": "R", "label": "En atelier, en plein air, avec des outils ou machines", "image": "https://images.pexels.com/photos/23325515/pexels-photo-23325515.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "I", "label": "En laboratoire ou bureau d'études, avec de la recherche", "image": "https://images.pexels.com/photos/8533136/pexels-photo-8533136.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "A", "label": "Un studio créatif, une scène, un espace artistique", "image": "https://images.pexels.com/photos/13834911/pexels-photo-13834911.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "S", "label": "Un lieu d'accueil, de soins ou d'accompagnement", "image": "https://images.pexels.com/photos/4173338/pexels-photo-4173338.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "E", "label": "Un bureau de direction, un espace commercial", "image": "https://images.pexels.com/photos/7109292/pexels-photo-7109292.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "C", "label": "Un bureau structuré avec des procédures claires", "image": "https://images.pexels.com/photos/6538582/pexels-photo-6538582.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "R", "label": "En atelier, en plein air, avec des outils ou machines"},
+            {"value": "I", "label": "En laboratoire ou bureau d'études, avec de la recherche"},
+            {"value": "A", "label": "Un studio créatif, une scène, un espace artistique"},
+            {"value": "S", "label": "Un lieu d'accueil, de soins ou d'accompagnement"},
+            {"value": "E", "label": "Un bureau de direction, un espace commercial"},
+            {"value": "C", "label": "Un bureau structuré avec des procédures claires"}
         ]
     },
     # --- Ennéagramme ---
@@ -265,10 +265,10 @@ QUESTIONNAIRE = [
         "text": "Votre manière préférée de travailler :",
         "type": "choice",
         "choices": [
-            {"value": "solo", "label": "En autonomie, avec mes propres méthodes", "image": "https://images.pexels.com/photos/6615044/pexels-photo-6615044.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "duo", "label": "En binôme, avec un partenaire de confiance", "image": "https://images.pexels.com/photos/7640795/pexels-photo-7640795.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "equipe", "label": "En équipe pluridisciplinaire", "image": "https://images.pexels.com/photos/7793999/pexels-photo-7793999.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "reseau", "label": "En réseau, avec des connexions variées", "image": "https://images.pexels.com/photos/7212946/pexels-photo-7212946.jpeg?auto=compress&cs=tinysrgb&w=600"}
+            {"value": "solo", "label": "En autonomie, avec mes propres méthodes"},
+            {"value": "duo", "label": "En binôme, avec un partenaire de confiance"},
+            {"value": "equipe", "label": "En équipe pluridisciplinaire"},
+            {"value": "reseau", "label": "En réseau, avec des connexions variées"}
         ]
     },
     {
@@ -277,10 +277,10 @@ QUESTIONNAIRE = [
         "text": "Face à un problème complexe au travail, votre premier réflexe :",
         "type": "choice",
         "choices": [
-            {"value": "analyser", "label": "Décomposer le problème en sous-parties logiques", "image": "https://images.pexels.com/photos/669612/pexels-photo-669612.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "consulter", "label": "Consulter des collègues pour avoir différents avis", "image": "https://images.pexels.com/photos/7647953/pexels-photo-7647953.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "experimenter", "label": "Tester rapidement une solution, quitte à ajuster", "image": "https://images.pexels.com/photos/2013664/pexels-photo-2013664.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "recul", "label": "Prendre du recul pour voir le tableau d'ensemble", "image": "https://images.unsplash.com/photo-1522075782449-e45a34f1ddfb?w=600&q=80"}
+            {"value": "analyser", "label": "Décomposer le problème en sous-parties logiques"},
+            {"value": "consulter", "label": "Consulter des collègues pour avoir différents avis"},
+            {"value": "experimenter", "label": "Tester rapidement une solution, quitte à ajuster"},
+            {"value": "recul", "label": "Prendre du recul pour voir le tableau d'ensemble"}
         ]
     },
     # --- Compétences perçues ---
@@ -307,10 +307,10 @@ QUESTIONNAIRE = [
         "text": "Sous forte pression au travail, vous avez plutôt tendance à :",
         "type": "choice",
         "choices": [
-            {"value": "action", "label": "Redoubler d'efforts et passer à l'action immédiate", "image": "https://images.pexels.com/photos/8133890/pexels-photo-8133890.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "planifier", "label": "Réorganiser vos priorités et planifier", "image": "https://images.pexels.com/photos/7428213/pexels-photo-7428213.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "soutien", "label": "Chercher du soutien auprès de vos proches ou collègues", "image": "https://images.pexels.com/photos/8901633/pexels-photo-8901633.jpeg?auto=compress&cs=tinysrgb&w=600"},
-            {"value": "retrait", "label": "Prendre du recul et analyser la situation calmement", "image": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80"}
+            {"value": "action", "label": "Redoubler d'efforts et passer à l'action immédiate"},
+            {"value": "planifier", "label": "Réorganiser vos priorités et planifier"},
+            {"value": "soutien", "label": "Chercher du soutien auprès de vos proches ou collègues"},
+            {"value": "retrait", "label": "Prendre du recul et analyser la situation calmement"}
         ]
     },
 ]
