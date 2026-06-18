@@ -138,7 +138,9 @@ const JobMatchingSection = ({ token }) => {
   const loadApplications = async () => {
     try {
       const res = await axios.get(`${API}/jobs/applications?token=${token}`);
-      const titles = new Set(res.data.map((a) => a.job_title));
+      // Handle both array and {applications: [...]} response formats
+      const apps = Array.isArray(res.data) ? res.data : (res.data.applications || []);
+      const titles = new Set(apps.map((a) => a.job_title));
       setAppliedJobs(titles);
     } catch (e) {
       console.error("Load applications error:", e);
@@ -227,10 +229,18 @@ const JobMatchingSection = ({ token }) => {
   const buildSearchPayload = () => {
     const payload = {};
     if (filters.metier.value) {
-      payload.metier = { value: filters.metier.value.split(",").map((s) => s.trim()).filter(Boolean), priority: filters.metier.priority };
+      // Handle both string and array values (from saved preferences)
+      const metierValue = Array.isArray(filters.metier.value) 
+        ? filters.metier.value 
+        : filters.metier.value.split(",").map((s) => s.trim()).filter(Boolean);
+      payload.metier = { value: metierValue, priority: filters.metier.priority };
     }
     if (filters.secteur.value) {
-      payload.secteur = { value: filters.secteur.value.split(",").map((s) => s.trim()).filter(Boolean), priority: filters.secteur.priority };
+      // Handle both string and array values (from saved preferences)
+      const secteurValue = Array.isArray(filters.secteur.value) 
+        ? filters.secteur.value 
+        : filters.secteur.value.split(",").map((s) => s.trim()).filter(Boolean);
+      payload.secteur = { value: secteurValue, priority: filters.secteur.priority };
     }
     if (filters.contrat.value?.length > 0) {
       payload.contrat = { value: filters.contrat.value, priority: filters.contrat.priority };
