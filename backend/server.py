@@ -1995,11 +1995,27 @@ async def get_user_evolution_analysis(token: str):
     for job in relevant_jobs:
         all_recommended.update(job.get("recommended_skills", []))
 
-    # Emerging skills from CV
+    # Emerging skills from CV - only match skills relevant to user's sectors
     emerging_from_cv = []
     emerging_skills_db = await db.emerging_skills.find({}, {"_id": 0}).to_list(200)
     for es in emerging_skills_db:
         es_name = es.get("skill_name", es.get("name", "")).lower()
+        es_sectors = [s.lower() for s in es.get("related_sectors", [])]
+        
+        # Check if this emerging skill is relevant to user's sectors
+        sector_relevant = False
+        if not user_sectors:
+            sector_relevant = True  # No sectors = show all
+        else:
+            for us in user_sectors:
+                us_kw = [w for w in us.lower().split() if len(w) > 3]
+                if any(kw in es_s for kw in us_kw for es_s in es_sectors):
+                    sector_relevant = True
+                    break
+        
+        if not sector_relevant:
+            continue
+            
         for us in user_skills:
             if us.lower() in es_name or es_name in us.lower():
                 emerging_from_cv.append({"name": es.get("skill_name", es.get("name", "")), "score": round(es.get("emergence_score", 0.5) * 100)})
