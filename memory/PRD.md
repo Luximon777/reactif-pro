@@ -1,48 +1,56 @@
-# RE'ACTIF PRO — PRD (Product Requirements Document)
+# Ré'Actif Pro - PRD
 
-## Probleme Original
-Developpement d'une plateforme full-stack "Re'Actif Pro" basee sur l'analyse de competences avec un Observatoire Predictif des Competences (OPC) et un Espace Personnel complet.
+## Problème original
+Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace personnel, coach virtuel, Job Matching, portefeuille de compétences et questionnaire D'CLIC PRO.
 
 ## Architecture
-- **Frontend** : React + Tailwind CSS + Shadcn/UI
-- **Backend** : FastAPI + MongoDB (Motor) + GridFS
-- **IA** : Claude Sonnet 4.5 / GPT-5.2 via Emergent LLM Key
-- **Production** : Frontend sur GitHub Pages (reactif.pro) + Backend Emergent (marche-cache.emergent.host)
+- Frontend: React + Tailwind + Shadcn/UI (SPA, GitHub Pages)
+- Backend: FastAPI + MongoDB (Emergent infrastructure)
+- IA: GPT-5.2 via Emergentintegrations (LlmChat)
 
-## Fonctionnalites Implementees
+## Fonctionnalités implémentées
 
-### Phase 1-10 (sessions precedentes - DONE)
-- Infrastructure, CV, OPC, Cartographie IA, Audit, Upload Documents, Coach RE'ACTIF, Job Dating, Scraping, Deploiement GitHub Pages
+### Phase 1 - Core (DONE)
+- Authentification JWT (login/register)
+- GPS Dashboard avec analyse de CV
+- Coach Virtuel interactif
+- Portefeuille de compétences
+- Job Dating / Job Matching
 
-### Phase 11 — Bug Fix Coach Virtuel Navigation (DONE - 18/06/2026)
-- Fix: "Mon CV" navigue vers bon sous-onglet via ?sub=cv + mapping frontend resilient
-- Fix doublons Coach
+### Phase 2 - Observatoire et Marché (DONE)
+- OPC (Observatoire Prédictif des Compétences) autonome
+- Vue "Le Marché" avec 4 onglets personnalisés :
+  - Observatoire : données personnalisées auto-chargées (compétences vs marché)
+  - Évolution : score d'exposition, métiers liés, formations (enrichi avec passport/CV)
+  - Marché caché : diagnostic IA automatique (score, forces, faiblesses, recommandations)
+  - Explorateur : suggestions de métiers basées sur le profil
+- Endpoint `/api/observatoire/personalized` 
+- Endpoint `/api/marche-cache/diagnostic` (POST, IA GPT-5.2)
+- Endpoint `/api/referentiel/explorer/suggestions`
+- Endpoint `/api/evolution-index/user-profile` (enrichi)
 
-### Phase 12 — D'CLIC PRO Backend Complet (DONE - 18/06/2026)
-- Cree dclic_routes.py: questionnaire 22 questions (MBTI/DISC/RIASEC/Enneagramme/Vertus/Valeurs)
-- Images illustratives sur 14 questions (photos Pexels/Unsplash pour choix)
-- Scoring algorithmique + profil IA (GPT-5.2)
-- 5 endpoints: questionnaire, submit, retrieve, claim, import-dclic
-- Fix routing: /test-dclic accessible sans auth
+### Phase 3 - D'CLIC PRO (DONE)
+- Questionnaire complet avec routes backend
+- Scoring IA (MBTI, DISC, RIASEC)
+- Frontend accessible via `/test-dclic`
 
-### Phase 13 — Corrections UI (DONE - 18/06/2026)
-- Titre onglet: "RE'ACTIF PRO | Intelligence Professionnelle"
-- Badge "Made with Emergent" supprime
+### Autres (DONE)
+- Navigation Coach Virtuel ("Mon CV" via `?sub=cv`)
+- Suppression badge Emergent + titre index.html
+- Routage frontend D'CLIC PRO pour utilisateurs authentifiés
 
-### Phase 14 — Predictions IA Observatoire (DONE - 18/06/2026)
-- Cree endpoint GET /api/observatoire/personalized
-- Croisement profil utilisateur × donnees observatoire (emerging_skills + sector_trends)
-- Matching competences emergentes, identification lacunes prioritaires, secteurs pertinents
-- Deduplication des resultats
-- Champs compatibles frontend: observatory_skill, emergence_score, growth_rate, sector, hiring_trend, your_emerging_skills
+## Issues connues
+- (P1) Images D'CLIC PRO : utilisateur veut anciennes photos (EN PAUSE)
+- (P2) server.py monolithique (>7400 lignes) : à refactorer en routes distinctes
 
-## Key Technical Details
-- **DB**: test_database (MongoDB)
-- **Collections cles**: profiles, passports, cv_jobs, coach_progress, dclic_results, emerging_skills, sector_trends
-- **Routes files**: server.py (monolithe ~7300 lignes), dclic_routes.py, observatory_ia_routes.py, rncp_routes.py
+## Tâches futures (Backlog)
+- P2 : Refactoring server.py en modules routes/
+- P2 : Intégrer Soft Skills (CSE) et Valeurs (VIA) 
+- P2 : Diagnostic CCSP
+- P3 : Ateliers de Codéveloppement
+- P3 : Système de micro-titres/badges
 
-## Backlog
-- **P1** : Refactoring server.py en routeurs dedies sous /app/backend/routes/
-- **P2** : Soft Skills (CSE), Valeurs (VIA) via modules d'auto-evaluation
-- **P2** : Outil diagnostic fonctionnel CCSP
-- **P3** : Ateliers de Codeveloppement, micro-titres/badges
+## Déploiement
+- Frontend : GitHub Actions -> GitHub Pages (reactif.pro)
+- Backend : Emergent infrastructure (marche-cache.emergent.host)
+- IMPORTANT : Utilisateur doit "Save to Github" (frontend) ET "Redeploy" (backend) pour production
