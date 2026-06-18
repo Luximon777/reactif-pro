@@ -7370,6 +7370,374 @@ async def save_matching_preferences(token: str, body: dict = {}):
     return {"success": True}
 
 
+
+# ─── Matching Candidat / Offre (Analyser une offre) ──────────────────
+
+async def _scrape_offer_text(url: str) -> str:
+    """Fetch and extract text from an offer URL."""
+    import httpx
+    from html.parser import HTMLParser
+
+    class TextExtractor(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.texts = []
+            self._skip = False
+            self._skip_tags = {"script", "style", "noscript", "svg", "head"}
+
+        def handle_starttag(self, tag, attrs):
+            if tag in self._skip_tags:
+                self._skip = True
+
+        def handle_endtag(self, tag):
+            if tag in self._skip_tags:
+                self._skip = False
+
+        def handle_data(self, data):
+            if not self._skip:
+                t = data.strip()
+                if t:
+                    self.texts.append(t)
+
+    # Try France Travail API first for FT URLs
+    ft_id = ""
+    if "francetravail.fr" in url and "/detail/" in url:
+        ft_id = url.split("/detail/")[-1].split("?")[0].split("#")[0]
+
+    if ft_id:
+        try:
+            from opc.connecteurs.france_travail import FranceTravailClient
+            ft = FranceTravailClient()
+            if ft.is_configured():
+                token_ft = await ft._get_token(ft._scope_offres())
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    r = await client.get(
+                        f"https://api.francetravail.io/partenaire/offresdemploi/v2/offres/{ft_id}",
+                        headers={"Authorization": f"Bearer {token_ft}", "Accept": "application/json"},
+                    )
+                    if r.status_code == 200:
+                        offre = r.json()
+                        parts = []
+                        parts.append(f"Titre: {offre.get('intitule', '')}")
+                        parts.append(f"Entreprise: {(offre.get('entreprise') or {}).get('nom', 'Non précisé')}")
+                        parts.append(f"Lieu: {(offre.get('lieuTravail') or {}).get('libelle', '')}")
+                        parts.append(f"Contrat: {offre.get('typeContratLibelle', '')}")
+                        if offre.get("salaire"):
+                            sal = offre["salaire"]
+                            parts.append(f"Salaire: {sal.get('libelle', sal.get('complement1', ''))}")
+                        parts.append(f"Description: {offre.get('description', '')}")
+                        comps = [c.get("libelle", "") for c in (offre.get("competences") or []) if c.get("libelle")]
+                        if comps:
+                            parts.append(f"Compétences: {', '.join(comps)}")
+                        quals = [q.get("libelle", "") for q in (offre.get("qualitesProfessionnelles") or []) if q.get("libelle")]
+                        if quals:
+                            parts.append(f"Qualités: {', '.join(quals)}")
+                        if offre.get("experienceLibelle"):
+                            parts.append(f"Expérience: {offre['experienceLibelle']}")
+                        if offre.get("formations"):
+                            forms = [f_.get("niveauLibelle", "") for f_ in offre["formations"]]
+                            parts.append(f"Formation: {', '.join(forms)}")
+                        return "\n".join(parts)
+        except Exception as e:
+            logging.warning(f"FT API detail failed for {ft_id}: {e}")
+
+    # Fallback: scrape HTML
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+        r = await client.get(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
+        r.raise_for_status()
+        extractor = TextExtractor()
+        extractor.feed(r.text)
+        text = " ".join(extractor.texts)
+        return text[:8000]
+
+
+async def _analyze_offer_with_ai(offer_text: str) -> dict:
+    """Use LLM to analyze a job offer text and return structured data."""
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "Clé LLM non configurée")
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"offer-analyze-{uuid.uuid4()}",
+        system_message="Tu es un expert RH français. Analyse les offres d'emploi et retourne un JSON structuré."
+    ).with_model("openai", "gpt-5.2")
+    prompt = f"""Analyse cette offre d'emploi et retourne un JSON structuré.
+
+OFFRE:
+{offer_text[:5000]}
+
+Retourne UNIQUEMENT un JSON valide (pas de markdown):
+{{
+  "titre_poste": "...",
+  "entreprise": "...",
+  "localisation": "...",
+  "type_contrat": "CDI/CDD/Intérim/...",
+  "salaire": "... ou Non précisé",
+  "missions": ["mission 1", "mission 2", ...],
+  "competences_requises": ["comp1", "comp2", ...],
+  "soft_skills_requis": ["soft1", "soft2", ...],
+  "experience_requise": "...",
+  "formation_requise": "..."
+}}"""
+
+    response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+    import re
+    text = response.strip()
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        return json.loads(json_match.group())
+    return json.loads(text)
+
+
+async def _generate_offer_synthesis(analyse: dict, offer_text: str) -> dict:
+    """Generate synthesis, quality score, missing info, and recommendations."""
+    if not EMERGENT_LLM_KEY:
+        return {"synthese": "", "score_qualite_offre": 50, "informations_manquantes": [], "recommandations_candidat": []}
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"offer-synth-{uuid.uuid4()}",
+        system_message="Tu es un expert RH français. Évalue la qualité des offres d'emploi."
+    ).with_model("openai", "gpt-5.2")
+    prompt = f"""Évalue cette offre d'emploi. Titre: {analyse.get('titre_poste', '')}. Entreprise: {analyse.get('entreprise', '')}.
+
+Texte de l'offre (extrait):
+{offer_text[:3000]}
+
+Retourne UNIQUEMENT un JSON valide:
+{{
+  "synthese": "Résumé en 2-3 phrases de l'offre",
+  "score_qualite_offre": 0-100,
+  "informations_manquantes": [
+    {{"theme": "Salaire", "detail": "Le salaire n'est pas mentionné", "importance": "Important pour évaluer l'offre"}}
+  ],
+  "recommandations_candidat": [
+    "Conseil 1 pour le candidat",
+    "Conseil 2"
+  ]
+}}"""
+
+    response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+    import re
+    text = response.strip() if isinstance(response, str) else response.text.strip()
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        return json.loads(json_match.group())
+    return json.loads(text)
+
+
+@api_router.get("/matching/history")
+async def matching_history(token: str):
+    token_doc = await get_current_token(token)
+    analyses = await db.offer_analyses.find(
+        {"token_id": token_doc["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+
+    result = []
+    for a in analyses:
+        analyse = a.get("analyse", {})
+        result.append({
+            "id": a.get("analysis_id", ""),
+            "titre": analyse.get("titre_poste", "Offre"),
+            "entreprise": analyse.get("entreprise", ""),
+            "score_qualite": a.get("score_qualite_offre", 0),
+            "score_matching": a.get("score_matching"),
+            "created_at": a.get("created_at", ""),
+        })
+    return {"analyses": result}
+
+
+@api_router.post("/matching/analyze-offer-url")
+async def analyze_offer_url(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    url = body.get("url", "").strip()
+    if not url.startswith("http"):
+        raise HTTPException(400, "URL invalide")
+
+    try:
+        offer_text = await _scrape_offer_text(url)
+    except Exception as e:
+        logging.error(f"Scrape error for {url}: {e}")
+        raise HTTPException(400, f"Impossible de récupérer le contenu de cette URL. Collez le texte manuellement.")
+
+    if len(offer_text.strip()) < 30:
+        raise HTTPException(400, "Contenu insuffisant récupéré. Collez le texte de l'offre manuellement.")
+
+    try:
+        analyse = await _analyze_offer_with_ai(offer_text)
+    except Exception as e:
+        logging.error(f"AI analysis error: {e}")
+        raise HTTPException(500, "Erreur lors de l'analyse IA de l'offre")
+
+    try:
+        synthesis = await _generate_offer_synthesis(analyse, offer_text)
+    except Exception as e:
+        logging.warning(f"Synthesis error: {e}")
+        synthesis = {"synthese": "", "score_qualite_offre": 50, "informations_manquantes": [], "recommandations_candidat": []}
+
+    analysis_id = str(uuid.uuid4())
+    doc = {
+        "analysis_id": analysis_id,
+        "token_id": token_doc["id"],
+        "url": url,
+        "offer_text": offer_text[:6000],
+        "analyse": analyse,
+        **synthesis,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.offer_analyses.insert_one(doc)
+
+    return {
+        "analysis_id": analysis_id,
+        "analyse": analyse,
+        **synthesis,
+    }
+
+
+@api_router.post("/matching/analyze-offer")
+async def analyze_offer_text(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    offer_text = body.get("text", "").strip()
+    if len(offer_text) < 30:
+        raise HTTPException(400, "Texte trop court (minimum 30 caractères)")
+
+    try:
+        analyse = await _analyze_offer_with_ai(offer_text)
+    except Exception as e:
+        logging.error(f"AI analysis error: {e}")
+        raise HTTPException(500, "Erreur lors de l'analyse IA de l'offre")
+
+    try:
+        synthesis = await _generate_offer_synthesis(analyse, offer_text)
+    except Exception as e:
+        logging.warning(f"Synthesis error: {e}")
+        synthesis = {"synthese": "", "score_qualite_offre": 50, "informations_manquantes": [], "recommandations_candidat": []}
+
+    analysis_id = str(uuid.uuid4())
+    doc = {
+        "analysis_id": analysis_id,
+        "token_id": token_doc["id"],
+        "source": body.get("source", "paste"),
+        "offer_text": offer_text[:6000],
+        "analyse": analyse,
+        **synthesis,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.offer_analyses.insert_one(doc)
+
+    return {
+        "analysis_id": analysis_id,
+        "analyse": analyse,
+        **synthesis,
+    }
+
+
+@api_router.post("/matching/match-profile")
+async def match_profile_with_offer(token: str, body: dict = {}):
+    token_doc = await get_current_token(token)
+    analysis_id = body.get("analysis_id", "")
+    if not analysis_id:
+        raise HTTPException(400, "analysis_id requis")
+
+    analysis_doc = await db.offer_analyses.find_one({"analysis_id": analysis_id, "token_id": token_doc["id"]})
+    if not analysis_doc:
+        raise HTTPException(404, "Analyse non trouvée")
+
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in (profile or {}).get("skills", [])[:20]]
+    experiences = (passport or {}).get("experiences", [])
+    formations = (passport or {}).get("formations", [])
+    savoir_faire = (passport or {}).get("savoir_faire", [])
+    savoir_etre = (passport or {}).get("savoir_etre", [])
+
+    analyse = analysis_doc.get("analyse", {})
+
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "Clé LLM non configurée")
+
+    user_context = f"""Compétences: {', '.join(skills[:15])}
+Savoir-faire: {', '.join([s if isinstance(s, str) else s.get('name','') for s in savoir_faire[:10]]) if savoir_faire else 'Non renseigné'}
+Savoir-être: {', '.join([s if isinstance(s, str) else s.get('name','') for s in savoir_etre[:10]]) if savoir_etre else 'Non renseigné'}
+Expériences: {json.dumps([{'titre': e.get('title',''), 'duree': e.get('duration','')} for e in experiences[:5]], ensure_ascii=False)}
+Formations: {json.dumps([{'titre': f.get('title',''), 'niveau': f.get('level','')} for f in formations[:3]], ensure_ascii=False)}"""
+
+    offer_context = f"""Poste: {analyse.get('titre_poste', '')}
+Compétences requises: {', '.join(analyse.get('competences_requises', []))}
+Soft skills: {', '.join(analyse.get('soft_skills_requis', []))}
+Expérience: {analyse.get('experience_requise', '')}
+Formation: {analyse.get('formation_requise', '')}"""
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"match-profile-{uuid.uuid4()}",
+        system_message="Tu es un expert RH français. Compare un profil candidat avec une offre d'emploi."
+    ).with_model("openai", "gpt-5.2")
+    prompt = f"""Compare ce profil candidat avec cette offre d'emploi et évalue la compatibilité.
+
+PROFIL CANDIDAT:
+{user_context}
+
+OFFRE D'EMPLOI:
+{offer_context}
+
+Retourne UNIQUEMENT un JSON valide:
+{{
+  "score_global": 0-100,
+  "verdict": "Phrase résumant le niveau de compatibilité",
+  "details": {{
+    "competences_techniques": {{
+      "score": 0-100,
+      "forces": ["force 1", "force 2"],
+      "lacunes": ["lacune 1"]
+    }},
+    "soft_skills": {{
+      "score": 0-100,
+      "forces": ["force 1"],
+      "lacunes": ["lacune 1"]
+    }},
+    "experience": {{
+      "score": 0-100,
+      "forces": ["force 1"],
+      "lacunes": ["lacune 1"]
+    }},
+    "formation": {{
+      "score": 0-100,
+      "forces": ["force 1"],
+      "lacunes": []
+    }}
+  }},
+  "recommandations": [
+    {{"type": "cv", "conseil": "Conseil pour améliorer le CV"}},
+    {{"type": "formation", "conseil": "Formation recommandée"}},
+    {{"type": "entretien", "conseil": "Conseil pour l'entretien"}},
+    {{"type": "profil", "conseil": "Amélioration du profil"}}
+  ],
+  "message_accroche": "Message de motivation personnalisé de 3-4 phrases pour cette offre"
+}}"""
+
+    response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+    import re
+    text = response.strip() if isinstance(response, str) else response.text.strip()
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        result = json.loads(json_match.group())
+    else:
+        result = json.loads(text)
+
+    # Save matching score back to analysis
+    await db.offer_analyses.update_one(
+        {"analysis_id": analysis_id},
+        {"$set": {"score_matching": result.get("score_global", 0)}}
+    )
+
+    return result
+
+
+
 @api_router.post("/jobs/france-travail/search")
 async def search_france_travail_offres(token: str, body: dict = {}):
     """Recherche d'offres d'emploi France Travail basée sur le profil utilisateur."""
