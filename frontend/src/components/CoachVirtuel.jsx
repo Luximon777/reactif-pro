@@ -358,8 +358,15 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
     if (step.action_type === "dclic") {
       window.open('/test-dclic', '_blank');
       setOpen(false);
-    } else if (step.action_type === "navigate" && step.action_path) {
-      navigate(step.action_path);
+    } else if (step.action_type === "navigate") {
+      // Map step IDs to correct paths with sub-tabs (resilient to backend version)
+      const STEP_PATHS = {
+        1: "/dashboard/trajectoire?sub=cv",
+        2: "/dashboard/competences",
+        4: "/dashboard/trajectoire?sub=trajectoire",
+      };
+      const path = STEP_PATHS[step.id] || step.action_path || "/dashboard";
+      navigate(path);
       setOpen(false);
     }
   };
