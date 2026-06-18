@@ -25,9 +25,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Create env file
+      - name: Create env file for production
         working-directory: frontend
-        run: echo "REACT_APP_BACKEND_URL=https://marche-cache.emergent.host" > .env.production
+        run: |
+          echo "REACT_APP_BACKEND_URL=https://marche-cache.emergent.host" > .env
 
       - name: Install dependencies
         working-directory: frontend
