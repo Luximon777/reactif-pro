@@ -85,6 +85,13 @@ const ObservatoireView = ({ token, embedded }) => {
     loadData();
   }, [token]);
 
+  // Auto-load personalized data when user has a token
+  useEffect(() => {
+    if (token && !personalizedData && !loadingPersonalized) {
+      loadPersonalized();
+    }
+  }, [token]);
+
   const loadData = async () => {
     setLoading(true);
     try {
