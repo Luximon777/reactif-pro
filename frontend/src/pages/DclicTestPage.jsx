@@ -683,6 +683,7 @@ const DclicTestPage = () => {
   const [showCvPrompt, setShowCvPrompt] = useState(false);
   const { token: authToken } = useAuth();
   const resultRef = useRef(null);
+  const [activeSection, setActiveSection] = useState("archeologie");
 
   const handleValidateReport = async () => {
     setReportValidated(true);
@@ -795,197 +796,87 @@ const DclicTestPage = () => {
 
   const blocIcons = { archeologie: "⛏️", riasec: "🧭", valeurs: "💎", savoir_etre: "🤝", projection: "🚀" };
 
-  // ===================== RESULTS SCREEN =====================
+  // ===================== RESULTS SCREEN (Rich Restitution) =====================
   if (step === "results" && result?.profile) {
     const p = result.profile;
-    const riasec = p.riasec || {};
-    const valeurs = p.valeurs || {};
-    const sep = p.savoir_etre || {};
-    const arche = p.archeologie_competences || {};
-    const proj = p.projection || {};
 
-    const radarData = Object.entries(riasec.scores || {}).map(([k, v]) => ({
-      subject: k, value: v, fullMark: 10,
-    }));
+    const renderSection = () => {
+      switch (activeSection) {
+        case "archeologie": return <ArcheologieSection profile={p} />;
+        case "comportemental": return <ProfilComportemental profile={p} />;
+        case "boussole": return <BoussoleSection profile={p} />;
+        case "riasec": return <RiasecSection profile={p} />;
+        case "vertus": return <VertusSection profile={p} />;
+        case "integrated": return <IntegratedSection profile={p} />;
+        case "ofman": return <OfmanSection profile={p} />;
+        case "pistes": return <PistesSection profile={p} />;
+        case "cross": return <CrossSection profile={p} />;
+        case "carte": return <CarteSection profile={p} accessCode={result.access_code} />;
+        default: return null;
+      }
+    };
 
     return (
-      <div ref={resultRef} className="min-h-screen bg-[#0f1b2d] relative overflow-hidden" data-testid="dclic-results">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[#1a3a5a]/40 blur-[150px]" />
-          <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#2a1a4a]/30 blur-[120px]" />
-        </div>
-        <div className="relative z-10 max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <div ref={resultRef} className="min-h-screen bg-[#0f1b2d]" data-testid="dclic-results">
+        <div className="max-w-6xl mx-auto px-4 py-6">
           {/* Header */}
-          <div className="text-center space-y-3">
-            <DclicProLogo size={80} animated={false} />
-            <h1 className="text-3xl font-bold text-white">Votre Carte d'Identité Professionnelle</h1>
-            {result.access_code && (
-              <div className="inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-xl px-5 py-3">
-                <Key className="w-5 h-5 text-[#818cf8]" />
-                <span className="font-mono text-lg text-white tracking-widest">{result.access_code}</span>
-                <button onClick={copyCode} className="text-slate-400 hover:text-white transition-colors" data-testid="copy-code-btn">
-                  {codeCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                </button>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-3">
+              <DclicProLogo size={50} animated={false} />
+              <div>
+                <h1 className="text-2xl font-bold text-white">Résultats D'CLIC PRO</h1>
+                <p className="text-sm text-slate-400">Votre profil de personnalité et compétences professionnelles</p>
               </div>
-            )}
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="bg-[#152a45] border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2" data-testid="dclic-code-display">
+                <span className="text-xs text-[#818cf8]">Code :</span>
+                <span className="font-mono font-bold text-white text-lg" data-testid="dclic-code">{result.access_code}</span>
+                <button onClick={copyCode} className="text-[#818cf8] hover:text-white transition-colors">{codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
+              </div>
+              {!reportValidated ? (
+                <button className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5" onClick={handleValidateReport} disabled={importStatus === "importing"} data-testid="validate-report-btn">
+                  {importStatus === "importing" ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  {importStatus === "importing" ? "Import en cours..." : "Valider le rapport"}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  {importStatus === "done" && <span className="text-emerald-400 text-xs flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" />Importé dans votre profil</span>}
+                  <button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-[#4f6df5]/20" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Sparkles className="w-4 h-4" />Mon espace personnel</button>
+                </div>
+              )}
+              <button className="border border-white/20 text-white/60 hover:text-white hover:border-white/40 font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 text-sm" onClick={() => { setResult(null); setAnswers({}); setCurrentBloc(0); setCurrentQ(0); setStep("intro"); setReportValidated(false); setActiveSection("archeologie"); }} data-testid="redo-test-btn"><ArrowLeft className="w-4 h-4" />Refaire le test</button>
+            </div>
           </div>
 
-          {/* RIASEC Radar */}
-          <Card className="bg-[#152a45]/80 border-white/10">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">🧭 Profil d'intérêts (RIASEC)</h2>
-              <p className="text-slate-400 text-sm mb-4">Code dominant : <Badge className="bg-[#4f6df5] text-white ml-1">{riasec.code || "---"}</Badge></p>
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="w-full md:w-1/2 h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid stroke="#334155" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: "#94a3b8", fontSize: 14, fontWeight: 600 }} />
-                      <PolarRadiusAxis tick={false} domain={[0, 10]} />
-                      <Radar dataKey="value" stroke="#4f6df5" fill="#4f6df5" fillOpacity={0.3} strokeWidth={2} />
-                      <RechartsTooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", color: "#e2e8f0" }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="w-full md:w-1/2 space-y-2">
-                  {Object.entries(riasec.profile || {}).sort((a, b) => b[1].score - a[1].score).map(([k, v]) => (
-                    <div key={k} className="flex items-center gap-3">
-                      <span className="w-6 text-center font-bold text-white">{k}</span>
-                      <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] rounded-full transition-all" style={{ width: `${v.pct}%` }} />
-                      </div>
-                      <span className="text-sm text-slate-400 w-8 text-right">{v.score}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <p className="mt-4 text-sm text-[#818cf8] font-medium">{riasec.dominant_label}</p>
-            </CardContent>
-          </Card>
+          {/* Disclaimer */}
+          <div className="bg-[#152a45]/60 border border-amber-500/20 rounded-xl px-5 py-3 flex items-start gap-3 mb-6" data-testid="results-disclaimer">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm text-slate-400 font-light leading-relaxed">Cette restitution repose sur des méthodes d'analyse de la personnalité et des compétences. Elle a une valeur indicative et ne constitue pas une évaluation certifiée ou officielle.</p>
+              <p className="text-sm text-slate-400 font-light leading-relaxed">L'IA reste un outil d'aide à la décision, jamais un substitut au conseiller. Pour une évaluation approfondie, un accompagnement personnalisé est disponible via la plateforme <strong className="text-white font-medium">RE'ACTIF PRO</strong>.</p>
+            </div>
+          </div>
 
-          {/* Valeurs dominantes */}
-          <Card className="bg-[#152a45]/80 border-white/10">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">💎 Carte des valeurs dominantes</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(valeurs.dominantes || []).map((v, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#4f6df5] to-[#6c5ce7] flex items-center justify-center text-white font-bold text-sm">{v.score}</div>
-                    <div>
-                      <p className="text-white font-semibold text-sm capitalize">{v.code}</p>
-                      <p className="text-slate-400 text-xs">{v.label}</p>
-                    </div>
-                  </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Sidebar */}
+            <nav className="lg:w-64 shrink-0">
+              <div className="bg-[#152a45] rounded-xl border border-white/10 p-2 lg:sticky lg:top-4 space-y-0.5">
+                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-400 border-b border-white/10 mb-1"><BookOpen className="w-4 h-4" />Navigation</div>
+                {SECTIONS.map((s) => (
+                  <button key={s.id} onClick={() => setActiveSection(s.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-all ${activeSection === s.id ? "bg-[#4f6df5]/15 text-[#818cf8] font-semibold" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
+                    data-testid={`nav-${s.id}`}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${activeSection === s.id ? "bg-[#4f6df5] text-white" : "bg-white/10 text-slate-500"}`}>{s.icon}</span>
+                    {s.label}
+                  </button>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Savoir-être professionnels */}
-          <Card className="bg-[#152a45]/80 border-white/10">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🤝 Forces comportementales & Savoir-être</h2>
-              {(sep.forces || []).length > 0 && (
-                <div className="mb-4">
-                  <p className="text-emerald-400 text-sm font-semibold mb-2">Vos points forts (score ≥ 4/5)</p>
-                  <div className="flex flex-wrap gap-2">
-                    {sep.forces.map((s, i) => (
-                      <Badge key={i} className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 text-sm">{s.label.split("—")[0].trim()} ({s.score}/5)</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                {(sep.all || []).map((s, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="text-sm text-slate-300 w-40 truncate">{s.label.split("—")[0].trim()}</span>
-                    <div className="flex-1 flex gap-1">
-                      {[1, 2, 3, 4, 5].map(n => (
-                        <div key={n} className={`h-3 flex-1 rounded-sm ${n <= s.score ? "bg-gradient-to-r from-[#4f6df5] to-[#10b981]" : "bg-white/10"}`} />
-                      ))}
-                    </div>
-                    <span className="text-sm text-slate-400 w-6 text-right">{s.score}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Archéologie des compétences */}
-          <Card className="bg-[#152a45]/80 border-white/10">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">⛏️ Archéologie des compétences</h2>
-              {Object.entries(arche.categories || {}).filter(([_, v]) => v.length > 0).map(([cat, items]) => (
-                <div key={cat} className="mb-4">
-                  <p className="text-[#818cf8] text-sm font-semibold capitalize mb-2">
-                    {cat === "visibles" ? "🔍 Compétences visibles" : cat === "enfouies" ? "🔎 Compétences enfouies" : cat === "transferables" ? "🔄 Compétences transférables" : cat === "adaptatives" ? "🛡️ Compétences adaptatives" : "✨ Compétences potentielles"}
-                  </p>
-                  <div className="space-y-1">
-                    {items.map((item, i) => (
-                      <p key={i} className="text-sm text-slate-300 bg-white/5 rounded-lg px-3 py-2 border border-white/5">{item}</p>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Projection professionnelle */}
-          <Card className="bg-[#152a45]/80 border-white/10">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🚀 Projection professionnelle</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {proj.metiers_attires && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                    <p className="text-emerald-400 text-xs font-semibold mb-1">Métiers qui attirent</p>
-                    <p className="text-white text-sm">{proj.metiers_attires}</p>
-                  </div>
-                )}
-                {proj.metiers_exclus && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                    <p className="text-red-400 text-xs font-semibold mb-1">Métiers exclus</p>
-                    <p className="text-white text-sm">{proj.metiers_exclus}</p>
-                  </div>
-                )}
-                {proj.preference_travail && (
-                  <div className="bg-[#4f6df5]/10 border border-[#4f6df5]/20 rounded-xl p-4">
-                    <p className="text-[#818cf8] text-xs font-semibold mb-1">Préfère travailler avec</p>
-                    <p className="text-white text-sm capitalize">{proj.preference_travail === "combinaison" ? "Une combinaison de plusieurs" : `Les ${proj.preference_travail}`}</p>
-                  </div>
-                )}
-                {proj.environnement && (
-                  <div className="bg-[#6c5ce7]/10 border border-[#6c5ce7]/20 rounded-xl p-4">
-                    <p className="text-purple-400 text-xs font-semibold mb-1">Environnement idéal</p>
-                    <p className="text-white text-sm capitalize">{proj.environnement.replace("_", " ")}</p>
-                  </div>
-                )}
-              </div>
-              {proj.vision_5_ans && (
-                <div className="mt-4 bg-white/5 border border-white/10 rounded-xl p-4">
-                  <p className="text-amber-400 text-xs font-semibold mb-1">Vision à 5 ans</p>
-                  <p className="text-white text-sm">{proj.vision_5_ans}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {!reportValidated ? (
-              <Button onClick={handleValidateReport} className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white px-8 py-3 text-base" data-testid="validate-report-btn">
-                {importStatus === "importing" ? "Import en cours..." : "Valider et importer dans mon profil"}
-              </Button>
-            ) : (
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-4 py-2 text-sm">
-                <CheckCircle className="w-4 h-4 mr-1" /> Résultats importés dans votre profil
-              </Badge>
-            )}
-            <Button variant="outline" onClick={() => { setStep("intro"); setResult(null); setAnswers({}); setCurrentBloc(0); setCurrentQ(0); }} className="border-white/20 text-white hover:bg-white/10" data-testid="restart-btn">
-              Recommencer le test
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/dashboard")} className="border-white/20 text-white hover:bg-white/10" data-testid="back-dashboard-btn">
-              <Home className="w-4 h-4 mr-2" /> Retour au tableau de bord
-            </Button>
+            </nav>
+            {/* Content */}
+            <main className="flex-1 bg-[#152a45] rounded-xl border border-white/10 p-6" data-testid="results-content">
+              {renderSection()}
+            </main>
           </div>
         </div>
       </div>
