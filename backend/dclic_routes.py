@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
 import json, logging, secrets, string
 
-router = APIRouter(prefix="/dclic", tags=["dclic"])
+router = APIRouter(prefix="/api/dclic", tags=["dclic"])
 
 # ─── BLOC 1 : Archéologie des compétences (10 questions ouvertes) ─────
 

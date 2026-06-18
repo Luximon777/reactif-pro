@@ -7056,7 +7056,7 @@ from observatory_ia_routes import router as observatory_ia_router
 from rncp_routes import router as rncp_router
 
 # ─── Inclusion du router D'CLIC PRO ──────────────────────────────────────
-from dclic_routes import router as dclic_router
+from dclic_routes import register_dclic_routes
 
 # Include all routers — must come AFTER all route definitions on api_router
 # (moved to end of file after batch fix endpoints)
@@ -8777,7 +8777,7 @@ app.include_router(opc_admin_router)
 app.include_router(ubuntoo_router)
 app.include_router(observatory_ia_router)
 app.include_router(rncp_router)
-app.include_router(dclic_router)
+register_dclic_routes(app, db)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

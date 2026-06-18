@@ -1391,90 +1391,7 @@ const DclicTestPage = () => {
     </div>
   );
 
-  // ===================== RESULTS =====================
-  if (step === "results" && result) {
-    const p = result.profile || {};
-    const renderSection = () => {
-      switch (activeSection) {
-        case "comportemental": return <ProfilComportemental profile={p} />;
-        case "archeologie": return <ArcheologieSection profile={p} />;
-        case "boussole": return <BoussoleSection profile={p} />;
-        case "integrated": return <IntegratedSection profile={p} />;
-        case "riasec": return <RiasecSection profile={p} />;
-        case "vertus": return <VertusSection profile={p} />;
-        case "pistes": return <PistesSection profile={p} />;
-        case "cross": return <CrossSection profile={p} />;
-        case "ofman": return <OfmanSection profile={p} />;
-        case "carte": return <CarteSection profile={p} accessCode={result.access_code} />;
-        default: return null;
-      }
-    };
-    return (
-      <div className="min-h-screen bg-[#1e3a5f]">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
-            <div className="flex items-center gap-3">
-              <DclicProLogo size={50} animated={false} />
-              <div>
-                <h1 className="text-2xl font-bold text-white">Résultats D'CLIC PRO</h1>
-                <p className="text-sm text-slate-400">Votre profil de personnalité et compétences professionnelles</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="bg-[#152a45] border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2" data-testid="dclic-code-display">
-                <span className="text-xs text-[#818cf8]">Code :</span>
-                <span className="font-mono font-bold text-white text-lg" data-testid="dclic-code">{result.access_code}</span>
-                <button onClick={copyCode} className="text-[#818cf8] hover:text-white transition-colors">{codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
-              </div>
-              {!reportValidated ? (
-                <button className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5" onClick={handleValidateReport} disabled={importStatus === "importing"} data-testid="validate-report-btn">
-                  {importStatus === "importing" ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                  {importStatus === "importing" ? "Import en cours..." : "Valider le rapport"}
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  {importStatus === "done" && <span className="text-emerald-400 text-xs flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" />Importé dans votre profil</span>}
-                  <button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-[#4f6df5]/20" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Sparkles className="w-4 h-4" />Mon espace personnel</button>
-                </div>
-              )}
-              <button className="border border-white/20 text-white/60 hover:text-white hover:border-white/40 font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 text-sm" onClick={() => { setResult(null); setAnswers({}); setRankingSelections({}); setCurrentIdx(0); setStep("intro"); setReportValidated(false); }} data-testid="redo-test-btn"><ArrowLeft className="w-4 h-4" />Refaire le test</button>
-            </div>
-          </div>
-
-          {/* Disclaimer */}
-          <div className="bg-[#152a45]/60 border border-amber-500/20 rounded-xl px-5 py-3 flex items-start gap-3 mb-6" data-testid="results-disclaimer">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm text-slate-400 font-light leading-relaxed">Cette restitution repose sur des méthodes d'analyse de la personnalité et des compétences. Elle a une valeur indicative et ne constitue pas une évaluation certifiée ou officielle.</p>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">L'IA reste un outil d'aide à la décision, jamais un substitut au conseiller. Pour une évaluation approfondie, un accompagnement personnalisé est disponible via la plateforme <strong className="text-white font-medium">RE'ACTIF PRO</strong>.</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Sidebar */}
-            <nav className="lg:w-64 shrink-0">
-              <div className="bg-[#152a45] rounded-xl border border-white/10 p-2 lg:sticky lg:top-4 space-y-0.5">
-                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-400 border-b border-white/10 mb-1"><BookOpen className="w-4 h-4" />Navigation</div>
-                {SECTIONS.map((s) => (
-                  <button key={s.id} onClick={() => setActiveSection(s.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-all ${activeSection === s.id ? "bg-[#4f6df5]/15 text-[#818cf8] font-semibold" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
-                    data-testid={`nav-${s.id}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${activeSection === s.id ? "bg-[#4f6df5] text-white" : "bg-white/10 text-slate-500"}`}>{s.icon}</span>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </nav>
-            {/* Content */}
-            <main className="flex-1 bg-[#152a45] rounded-xl border border-white/10 p-6" data-testid="results-content">
-              {renderSection()}
-            </main>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // (Old results section removed — new results are rendered at lines 798-993)
 
   // ===================== QUESTIONNAIRE =====================
   if (step !== "questionnaire") return (
@@ -1500,110 +1417,118 @@ const DclicTestPage = () => {
       <div className="text-center space-y-4">
         <AlertTriangle className="w-10 h-10 text-red-400 mx-auto" />
         <p className="text-red-300 text-lg">{questionsError}</p>
-        <button
-          className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold"
-          onClick={() => window.location.reload()}
-          data-testid="retry-questionnaire-btn"
-        >
-          Réessayer
-        </button>
+        <button className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold" onClick={() => window.location.reload()} data-testid="retry-questionnaire-btn">Réessayer</button>
       </div>
     </div>
   );
 
-  if (!q) return (
+  if (!bloc) return (
     <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
       <div className="text-center space-y-4">
         <p className="text-slate-300 text-lg">Aucune question n'a été chargée.</p>
-        <button
-          className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold"
-          onClick={() => setStep("intro")}
-          data-testid="back-to-intro-btn"
-        >
-          Revenir à l'accueil
-        </button>
+        <button className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold" onClick={() => setStep("intro")} data-testid="back-to-intro-btn">Revenir à l'accueil</button>
       </div>
     </div>
   );
 
+  const scaleLabels = bloc.scale_labels || {};
+
   return (
-    <div className="min-h-screen bg-[#1e3a5f] relative overflow-hidden">
+    <div className="min-h-screen bg-[#0f1b2d] relative overflow-hidden" data-testid="dclic-questionnaire">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[10%] left-[20%] w-[400px] h-[400px] rounded-full bg-[#4f6df5]/8 blur-[100px]" />
         <div className="absolute bottom-[10%] right-[15%] w-[300px] h-[300px] rounded-full bg-[#6c5ce7]/6 blur-[80px]" />
       </div>
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-6">
         {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <button className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm"
-            onClick={() => currentIdx > 0 ? setCurrentIdx(i => i - 1) : setStep("education")} data-testid="back-btn">
+        <header className="flex items-center justify-between mb-4">
+          <button className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm" onClick={handleBack} data-testid="back-btn">
             <ArrowLeft className="w-5 h-5" />Retour
           </button>
-          <span className="text-white/50 text-sm font-medium">Question {currentIdx + 1} sur {questions.length}</span>
+          <span className="text-white/50 text-sm font-medium">Bloc {currentBloc + 1} / {blocs.length}</span>
         </header>
 
         {/* Progress Bar */}
-        <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-10">
+        <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-6">
           <div className="h-full rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] transition-all duration-500" style={{ width: `${progress}%` }} data-testid="progress-bar" />
         </div>
 
-        {/* Question Card */}
-        <div className="bg-[#152a45]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl" data-testid={`question-${q.id}`}>
-          <div className="mb-8 text-center">
-            <span className="text-sm text-[#818cf8] font-medium uppercase tracking-wider">{getCategoryLabel(q.category)}</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3">{q.question}</h2>
-            {q.instruction && <p className="text-sm text-slate-400 mt-2">{q.instruction}</p>}
-          </div>
+        {/* Bloc Title */}
+        <div className="text-center mb-6">
+          <span className="text-3xl mb-2 block">{blocIcons[bloc.id] || "📋"}</span>
+          <h2 className="text-xl md:text-2xl font-bold text-white">{bloc.title}</h2>
+          <p className="text-sm text-slate-400 mt-1">{bloc.subtitle}</p>
+        </div>
 
-          {isRanking ? (
-            <div className="space-y-4">
-              <div className="flex justify-center gap-2 mb-4">
-                {Array.from({ length: maxRank }, (_, n) => (
-                  <span key={n} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${currentRanking.length > n ? "bg-[#4f6df5] text-white shadow-lg shadow-[#4f6df5]/30" : "bg-white/10 text-slate-500"}`}>{n + 1}</span>
-                ))}
+        {/* ── SCALE BLOC: Show all questions at once ── */}
+        {isScaleBloc && (
+          <div className="space-y-4" data-testid={`bloc-${bloc.id}`}>
+            {questions.map((q, qi) => (
+              <div key={q.id} className="bg-[#152a45]/80 backdrop-blur-xl rounded-xl border border-white/10 p-5" data-testid={`question-${q.id}`}>
+                <p className="text-white font-medium mb-3">{qi + 1}. {q.text}</p>
+                <div className="flex gap-2 flex-wrap">
+                  {Array.from({ length: (bloc.scale_max || 5) - (bloc.scale_min || 1) + 1 }, (_, i) => i + (bloc.scale_min || 1)).map(n => (
+                    <button key={n} onClick={() => handleAnswer(q.id, n)}
+                      className={`flex-1 min-w-[50px] py-2.5 rounded-lg text-sm font-semibold transition-all ${answers[q.id] === n ? "bg-[#4f6df5] text-white shadow-lg shadow-[#4f6df5]/30" : "bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white"}`}
+                      data-testid={`scale-${q.id}-${n}`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-500 mt-1 px-1">
+                  <span>{scaleLabels["1"] || ""}</span>
+                  <span>{scaleLabels["5"] || scaleLabels[String(bloc.scale_max)] || ""}</span>
+                </div>
               </div>
-              <div className={`grid ${q.choices[0]?.image ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
-                {q.choices.map(choice => {
-                  const rank = getRank(choice.value);
-                  const sel = rank !== null;
+            ))}
+          </div>
+        )}
+
+        {/* ── NON-SCALE BLOC: Show one question at a time ── */}
+        {!isScaleBloc && currentQuestion && (
+          <div className="bg-[#152a45]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl" data-testid={`question-${currentQuestion.id}`}>
+            <p className="text-xs text-slate-500 mb-2">Question {currentQ + 1} / {questions.length}</p>
+            <h3 className="text-xl md:text-2xl font-bold text-white mb-6">{currentQuestion.text}</h3>
+
+            {/* Open text */}
+            {currentQuestion.type === "open_text" && (
+              <textarea
+                value={answers[currentQuestion.id] || ""}
+                onChange={e => handleAnswer(currentQuestion.id, e.target.value)}
+                placeholder={currentQuestion.placeholder || "Votre réponse..."}
+                rows={4}
+                className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#4f6df5] resize-none"
+                data-testid={`textarea-${currentQuestion.id}`}
+              />
+            )}
+
+            {/* Choice */}
+            {currentQuestion.type === "choice" && currentQuestion.choices && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {currentQuestion.choices.map(c => {
+                  const sel = answers[currentQuestion.id] === c.value;
                   return (
-                    <button key={choice.id} disabled={!sel && currentRanking.length >= maxRank}
-                      className={`relative rounded-xl border-2 p-3 text-left transition-all ${sel ? "border-[#4f6df5] bg-[#4f6df5]/10 shadow-lg shadow-[#4f6df5]/10" : "border-white/10 hover:border-white/20 bg-white/5"} ${!sel && currentRanking.length >= maxRank ? "opacity-30" : "cursor-pointer"}`}
-                      onClick={() => handleRankingSelect(choice)} data-testid={`choice-${choice.id}`}>
-                      {sel && <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-[#4f6df5] text-white text-sm font-bold flex items-center justify-center shadow-lg">{rank}</span>}
-                      {choice.image && <img src={choice.image} alt={choice.alt || ""} className="w-full h-28 object-cover rounded-lg mb-2" loading="lazy" />}
-                      <p className="text-sm font-medium text-white/90">{choice.label}</p>
+                    <button key={c.value} onClick={() => handleAnswer(currentQuestion.id, c.value)}
+                      className={`rounded-xl border-2 p-4 text-left transition-all ${sel ? "border-[#4f6df5] bg-[#4f6df5]/10 shadow-lg shadow-[#4f6df5]/15" : "border-white/10 hover:border-white/20 bg-white/5"}`}
+                      data-testid={`choice-${c.value}`}>
+                      <p className="text-sm font-semibold text-white/90">{c.label}</p>
+                      {sel && <CheckCircle className="w-5 h-5 text-[#4f6df5] mt-1" />}
                     </button>
                   );
                 })}
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {q.choices.map(choice => {
-                const sel = answers[q.id] === choice.value;
-                return (
-                  <button key={choice.id}
-                    className={`relative rounded-xl border-2 p-4 transition-all ${sel ? "border-[#4f6df5] bg-[#4f6df5]/10 shadow-lg shadow-[#4f6df5]/15" : "border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/8"} cursor-pointer group`}
-                    onClick={() => handleAnswer(choice.value)} data-testid={`choice-${choice.id}`}>
-                    {choice.image && <img src={choice.image} alt={choice.alt || ""} className="w-full h-36 object-cover rounded-lg mb-3" loading="lazy" />}
-                    <p className="text-sm font-semibold text-white/90 text-center">{choice.label}</p>
-                    {sel && <CheckCircle className="absolute top-2 right-2 w-6 h-6 text-[#4f6df5]" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Navigation */}
-          <div className="flex justify-end mt-8 pt-6 border-t border-white/10">
-            <button
-              className={`px-8 py-3 rounded-full font-semibold text-white flex items-center gap-2 transition-all ${canProceed && !isSubmitting ? "bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:shadow-lg hover:shadow-[#4f6df5]/25" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
-              disabled={!canProceed || isSubmitting}
-              onClick={handleNext} data-testid="next-btn">
-              {isSubmitting ? "Analyse en cours..." : currentIdx === questions.length - 1 ? (<>Terminer <CheckCircle className="w-4 h-4" /></>) : (<>Suivant <ArrowRight className="w-4 h-4" /></>)}
-            </button>
+            )}
           </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex justify-end mt-6">
+          <button
+            className={`px-8 py-3 rounded-full font-semibold text-white flex items-center gap-2 transition-all ${canProceed && !isSubmitting ? "bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:shadow-lg hover:shadow-[#4f6df5]/25" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
+            disabled={!canProceed || isSubmitting}
+            onClick={handleNext} data-testid="next-btn">
+            {isSubmitting ? "Analyse en cours..." : (isScaleBloc ? (currentBloc === blocs.length - 1 ? <>Terminer <CheckCircle className="w-4 h-4" /></> : <>Bloc suivant <ArrowRight className="w-4 h-4" /></>) : (currentQ === questions.length - 1 && currentBloc === blocs.length - 1 ? <>Terminer <CheckCircle className="w-4 h-4" /></> : <>Suivant <ArrowRight className="w-4 h-4" /></>))}
+          </button>
         </div>
       </div>
     </div>
