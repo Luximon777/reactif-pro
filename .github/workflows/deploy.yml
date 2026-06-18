@@ -25,10 +25,15 @@ jobs:
         with:
           node-version: 22
 
-      - name: Create env file for production
+      - name: Create env file
         working-directory: frontend
         run: |
           echo "REACT_APP_BACKEND_URL=https://marche-cache.emergent.host" > .env
+          echo "REACT_APP_BACKEND_URL=https://marche-cache.emergent.host" > .env.production
+          echo "REACT_APP_BACKEND_URL=https://marche-cache.emergent.host" > .env.local
+          cat .env
+          echo "--- Files created ---"
+          ls -la .env*
 
       - name: Install dependencies
         working-directory: frontend
@@ -36,9 +41,15 @@ jobs:
 
       - name: Build
         working-directory: frontend
-        env:
-          CI: "false"
-        run: yarn build
+        run: REACT_APP_BACKEND_URL=https://marche-cache.emergent.host CI=false yarn build
+
+      - name: Verify build output
+        working-directory: frontend
+        run: |
+          BUNDLE=$(ls build/static/js/main.*.js)
+          echo "Bundle: $BUNDLE"
+          grep -oP 'REACT_APP_BACKEND_URL:"[^"]*"' "$BUNDLE" || echo "NOT FOUND"
+          grep -c "marche-cache" "$BUNDLE" && echo "marche-cache found" || echo "marche-cache NOT found"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
