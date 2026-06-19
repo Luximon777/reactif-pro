@@ -1466,15 +1466,15 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                           onClick={async () => {
                             try {
                               const res = await axios.get(`${API}/coffre/documents?token=${token}`);
-                              const docs = res.data.documents || [];
-                              const cvDoc = docs.find(d => d.title?.toLowerCase().includes("cv original"));
+                              const docs = res.data.documents || res.data || [];
+                              const cvDoc = Array.isArray(docs) ? docs.find(d => d.title?.toLowerCase().includes("cv original")) : null;
                               if (cvDoc) {
                                 const link = document.createElement("a");
                                 link.href = `${API}/coffre/download/${cvDoc.id}?token=${token}`;
                                 link.download = cvDoc.filename || "mon_cv.pdf";
                                 link.click();
                               } else {
-                                toast.error("CV original non trouvé dans le coffre-fort");
+                                toast.info("Pour activer le téléchargement, recharge ton CV via 'Charger un autre CV' ci-dessous.");
                               }
                             } catch { toast.error("Erreur de téléchargement"); }
                           }}

@@ -86,7 +86,12 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - P3 : Micro-titres/badges
 
 
-### Phase 4c - Coach RE'ACTIF PRO — CIP Expert (DONE - 19/06/2026)
+### Phase 4d - Fix Trajectoire + Téléchargement CV (DONE - 19/06/2026)
+- Bug fix: Les uploads multiples de CV accumulaient les expériences dans la trajectoire au lieu de les remplacer
+- Fix: Nettoyage des entrées `ia_detectee`/`ia_suggeree` avant chaque nouvelle auto-population depuis le CV
+- Bug fix: Bouton "Télécharger mon CV" inopérant (fichier jamais stocké)
+- Fix: Le CV original est stocké dans le coffre-fort GridFS lors de l'upload, avec endpoint `GET /coffre/download/{id}`
+- Note: Les CV uploadés AVANT ce fix ne sont pas téléchargeables (message informatif affiché)
 - Le Coach est désormais un Conseiller en Insertion Professionnelle (CIP) expert RH
 - Chat IA GPT-5.2 avec prompt système CIP complet : techniques de recherche d'emploi, préparation entretiens, connaissance du marché, accompagnement projet professionnel
 - Tutoiement bienveillant, ton motivant et conseils actionnables

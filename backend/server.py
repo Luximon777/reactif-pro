@@ -1512,6 +1512,36 @@ async def get_coffre_document(token: str, document_id: str):
         raise HTTPException(status_code=404, detail="Document non trouvé")
     return doc
 
+@api_router.get("/coffre/download/{document_id}")
+async def download_coffre_document(document_id: str, token: str):
+    """Download a file from the coffre-fort by document ID."""
+    token_doc = await get_current_token(token)
+
+    # Find document metadata
+    doc = await db.coffre_documents.find_one({"id": document_id, "token_id": token_doc["id"]})
+    if not doc:
+        raise HTTPException(404, "Document non trouvé dans le coffre-fort")
+
+    # Find the file in GridFS
+    cursor = gridfs_bucket.find({"metadata.file_id": document_id, "metadata.token_id": token_doc["id"]})
+    grid_files = await cursor.to_list(1)
+
+    if not grid_files:
+        raise HTTPException(404, "Fichier non trouvé dans le stockage")
+
+    grid_file = grid_files[0]
+    stream = await gridfs_bucket.open_download_stream(grid_file["_id"])
+    content = await stream.read()
+
+    mime = doc.get("content_type", grid_file.get("metadata", {}).get("content_type", "application/octet-stream"))
+    filename = doc.get("filename", "document")
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
 @api_router.post("/coffre/documents")
 async def create_coffre_document(token: str, request: CreateDocumentRequest):
     """Create a new document in coffre-fort"""
@@ -3812,7 +3842,21 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
 
         # ── Auto-populate trajectory steps from CV experiences ──
         try:
+            # IMPORTANT: Remove old auto-detected/suggested entries from previous CVs
+            # This prevents accumulation when user uploads multiple CVs
+            old_count = await db.trajectory_steps.count_documents({
+                "token_id": token_id,
+                "source": {"$in": ["ia_detectee", "ia_suggeree"]}
+            })
+            if old_count > 0:
+                await db.trajectory_steps.delete_many({
+                    "token_id": token_id,
+                    "source": {"$in": ["ia_detectee", "ia_suggeree"]}
+                })
+                logging.info(f"[CV→Trajectoire] Supprimé {old_count} anciennes entrées auto-détectées pour token {token_id[:12]}")
+
             type_map = {"professionnel": "emploi", "personnel": "projet", "benevole": "benevolat", "projet": "projet", "formation": "formation"}
+            # Only check manually-added steps for dedup (keep user's own entries)
             existing_steps = await db.trajectory_steps.find({"token_id": token_id}).to_list(500)
             existing_titles = {s.get("title", "").lower() for s in existing_steps}
 
@@ -4030,6 +4074,39 @@ async def analyze_cv(token: str, file: UploadFile = File(...)):
 
     # Launch background task with raw file bytes
     asyncio.create_task(_run_cv_analysis(job_id, token_doc["id"], file_content, file.filename))
+
+    # Store original CV file in coffre-fort for download
+    try:
+        content_type = "application/pdf" if ext == "pdf" else "application/vnd.openxmlformats-officedocument.wordprocessingml.document" if ext == "docx" else "text/plain"
+        file_id = str(uuid.uuid4())
+        grid_id = await gridfs_bucket.upload_from_stream(
+            file.filename,
+            file_content,
+            metadata={
+                "file_id": file_id,
+                "token_id": token_doc["id"],
+                "content_type": content_type,
+                "original_filename": file.filename,
+            }
+        )
+        # Upsert coffre document entry for "CV original"
+        await db.coffre_documents.update_one(
+            {"token_id": token_doc["id"], "title": "CV original"},
+            {"$set": {
+                "id": file_id,
+                "token_id": token_doc["id"],
+                "title": "CV original",
+                "filename": file.filename,
+                "content_type": content_type,
+                "grid_id": str(grid_id),
+                "category": "cv",
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True
+        )
+        logging.info(f"[CV Upload] CV original stocké dans le coffre-fort: {file.filename}")
+    except Exception as store_err:
+        logging.error(f"[CV Upload] Erreur stockage coffre-fort: {store_err}")
 
     return {"job_id": job_id, "status": "started", "message": "Analyse lancée en arrière-plan"}
 
