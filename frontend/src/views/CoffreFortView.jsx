@@ -489,19 +489,20 @@ const CoffreFortView = ({ token }) => {
                       <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`edit-doc-${doc.id}`} onClick={() => {
                         window.location.href = "/dashboard/profil?tab=experiences";
                       }}><Pencil className="w-3.5 h-3.5 text-amber-600" /></Button>
-                      <label className="inline-flex items-center h-7 w-7 justify-center cursor-pointer" data-testid={`validate-doc-${doc.id}`}>
+                      <label className="inline-flex items-center h-7 w-7 justify-center cursor-pointer" data-testid={`validate-doc-${doc.id}`} title={doc.trust_level === "valide" ? "Validé" : "Cocher pour valider"}>
                         <input
                           type="checkbox"
                           checked={doc.trust_level === "valide"}
+                          disabled={doc.trust_level === "valide"}
                           onChange={async (e) => {
-                            const newLevel = e.target.checked ? "valide" : "auto_declare";
+                            if (!e.target.checked) return;
                             try {
-                              await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: newLevel });
-                              toast.success(e.target.checked ? "Preuve validée" : "Validation retirée");
+                              await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "valide" });
+                              toast.success("Preuve validée");
                               loadAll();
                             } catch { toast.error("Erreur"); }
                           }}
-                          className="w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          className={`w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 ${doc.trust_level === "valide" ? "cursor-default opacity-70" : "cursor-pointer"}`}
                         />
                       </label>
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => handleDelete(doc.id)} data-testid={`delete-doc-${doc.id}`}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
