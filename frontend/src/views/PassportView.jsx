@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { API } from "@/App";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -421,10 +422,12 @@ const PassportView = ({ token, viewMode }) => {
   const [passport, setPassport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState(
-    viewMode === "profil" ? "profile" :
+    urlTab || (viewMode === "profil" ? "profile" :
     viewMode === "competences" ? "competences" :
-    "profile"
+    "profile")
   );
   const [addCompDialogOpen, setAddCompDialogOpen] = useState(false);
   const [addExpDialogOpen, setAddExpDialogOpen] = useState(false);
@@ -735,7 +738,7 @@ const PassportView = ({ token, viewMode }) => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#1e3a5f] flex items-center gap-3">
             <Shield className="w-8 h-8" />
-            Mon Passeport de Compétences
+            Mon parcours professionnel
           </h1>
           <p className="text-slate-500 mt-1">Votre identité professionnelle numérique évolutive</p>
         </div>
