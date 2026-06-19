@@ -807,6 +807,9 @@ const CoffreFortView = ({ token }) => {
                             <th className="text-center px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">
                               <span className="inline-flex items-center gap-1"><Award className="w-3 h-3 text-amber-600" />Statut</span>
                             </th>
+                            <th className="text-center px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">
+                              <span className="inline-flex items-center gap-1"><Globe className="w-3 h-3 text-cyan-600" />Expert OPC</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -844,6 +847,39 @@ const CoffreFortView = ({ token }) => {
                                 </td>
                                 <td className="px-3 py-2.5 text-center">
                                   <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusClass}`}>{statusLabel}</span>
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  {hasProof && hasContract ? (() => {
+                                    const matchingDocs = documents.filter(d => d.linked_experience_id === exp.id && d.document_type === "sare_proof");
+                                    const validatedDoc = matchingDocs.find(d => d.trust_level === "valide");
+                                    const opcDoc = matchingDocs.find(d => d.opc_contributed);
+                                    return validatedDoc ? (
+                                      <input
+                                        type="checkbox"
+                                        checked={!!opcDoc}
+                                        data-testid={`opc-checkbox-${idx}`}
+                                        onChange={async (e) => {
+                                          if (e.target.checked) {
+                                            try {
+                                              const res = await axios.post(`${API}/opc/contribute?token=${token}`, { document_id: validatedDoc.id });
+                                              toast.success(res.data.message || "Compétence transmise à l'OPC");
+                                              loadAll();
+                                            } catch (err) { toast.error(err.response?.data?.detail || "Erreur"); }
+                                          } else {
+                                            try {
+                                              await axios.delete(`${API}/opc/contribute/${validatedDoc.id}?token=${token}`);
+                                              loadAll();
+                                            } catch { toast.error("Erreur"); }
+                                          }
+                                        }}
+                                        className="w-4 h-4 rounded border-cyan-400 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                                      />
+                                    ) : (
+                                      <span className="text-[9px] text-slate-400">Valider d'abord</span>
+                                    );
+                                  })() : (
+                                    <span className="text-slate-300">—</span>
+                                  )}
                                 </td>
                               </tr>
                             );
