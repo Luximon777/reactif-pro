@@ -270,9 +270,6 @@ const CoffreFortView = ({ token }) => {
                   <p className={`text-sm text-slate-300 leading-relaxed ${!showAdnDetails ? "line-clamp-2" : ""}`}>
                     {passport.identity_adn.synthese_adn}
                   </p>
-                  {!showAdnDetails && (
-                    <span className="text-sm text-cyan-400 font-medium mt-0.5 inline-block">... suite du texte</span>
-                  )}
                 </div>
                 <div className="flex items-center gap-1 text-cyan-400 shrink-0 mt-0.5">
                   <span className="text-xs font-medium">{showAdnDetails ? "Réduire" : "Voir plus"}</span>
