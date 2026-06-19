@@ -206,7 +206,7 @@ const SECTIONS = [
   { id: "pistes", label: "Pistes d'Action", icon: "7" },
   { id: "cross", label: "Analyse Croisée", icon: "8" },
   { id: "ofman", label: "Cadran d'Ofman", icon: "9" },
-  { id: "carte", label: "Carte d'Identité Pro", icon: "10" },
+  { id: "carte", label: "Carte Emploi", icon: "10" },
 ];
 
 const Bar = ({ label, value, max = 100, color = "bg-[#4f6df5]" }) => (
@@ -566,7 +566,7 @@ const CarteSection = ({ profile, accessCode }) => {
         backgroundColor: "#1e1b4b"
       });
       const link = document.createElement("a");
-      link.download = `carte-dclic-pro-${accessCode || "profil"}.png`;
+      link.download = `carte-emploi-reactif-pro-${accessCode || "profil"}.png`;
       link.href = dataUrl;
       link.click();
     } catch (e) {
@@ -586,7 +586,7 @@ const CarteSection = ({ profile, accessCode }) => {
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-white">Carte d'Identité Professionnelle</h3>
+          <h3 className="text-lg font-bold text-white">Carte Emploi RE'ACTIF PRO</h3>
           <p className="text-sm text-slate-400">Synthèse visuelle de votre profil</p>
         </div>
         <div className="flex items-center gap-2">
@@ -609,7 +609,26 @@ const CarteSection = ({ profile, accessCode }) => {
             <p className="text-xs text-slate-400 mb-0.5">Code d'accès pour booster votre profil RE'ACTIF PRO</p>
             <p className="text-lg font-mono font-bold text-white tracking-wider">{accessCode}</p>
           </div>
-          <button onClick={() => { navigator.clipboard.writeText(accessCode); }}
+          <button onClick={() => { 
+              const code = accessCode;
+              if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(code).then(() => {
+                  const btn = document.querySelector('[data-testid="copy-code-btn"]');
+                  if (btn) btn.textContent = "✓ Copié !";
+                  setTimeout(() => { const b = document.querySelector('[data-testid="copy-code-btn"]'); if (b) b.textContent = "Copier le code"; }, 2000);
+                }).catch(() => {
+                  const ta = document.createElement("textarea"); ta.value = code; ta.style.position = "fixed"; ta.style.left = "-9999px"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+                  const btn = document.querySelector('[data-testid="copy-code-btn"]');
+                  if (btn) btn.textContent = "✓ Copié !";
+                  setTimeout(() => { const b = document.querySelector('[data-testid="copy-code-btn"]'); if (b) b.textContent = "Copier le code"; }, 2000);
+                });
+              } else {
+                const ta = document.createElement("textarea"); ta.value = code; ta.style.position = "fixed"; ta.style.left = "-9999px"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+                const btn = document.querySelector('[data-testid="copy-code-btn"]');
+                if (btn) btn.textContent = "✓ Copié !";
+                setTimeout(() => { const b = document.querySelector('[data-testid="copy-code-btn"]'); if (b) b.textContent = "Copier le code"; }, 2000);
+              }
+            }}
             className="bg-[#4f6df5] hover:bg-[#6366f1] text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5"
             data-testid="copy-code-btn">
             <Copy className="w-3.5 h-3.5" /> Copier le code
@@ -620,7 +639,7 @@ const CarteSection = ({ profile, accessCode }) => {
       {/* Downloadable Card */}
       <div ref={cardRef} className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl overflow-hidden shadow-xl text-white" data-testid="identity-card">
         <div className="px-6 pt-5 pb-3 flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-wide">PROFIL D'CLIC PRO</h2>
+          <h2 className="text-2xl font-bold tracking-wide">CARTE EMPLOI RE'ACTIF PRO</h2>
           <div className="text-right text-xs"><p className="font-bold text-indigo-300">RE'ACTIF PRO</p></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2">
@@ -827,11 +846,29 @@ const DclicTestPage = () => {
   };
 
   const copyCode = () => {
-    if (result?.access_code) {
-      navigator.clipboard.writeText(result.access_code);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 3000);
+    if (!result?.access_code) return;
+    const code = result.access_code;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(code).then(() => {
+        setCodeCopied(true);
+        setTimeout(() => setCodeCopied(false), 3000);
+      }).catch(() => fallbackCopy(code));
+    } else {
+      fallbackCopy(code);
     }
+  };
+
+  const fallbackCopy = (text) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 3000);
   };
 
   const blocIcons = {};
@@ -871,7 +908,7 @@ const DclicTestPage = () => {
               <div className="bg-[#152a45] border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2" data-testid="dclic-code-display">
                 <span className="text-xs text-[#818cf8]">Code :</span>
                 <span className="font-mono font-bold text-white text-lg" data-testid="dclic-code">{result.access_code}</span>
-                <button onClick={copyCode} className="text-[#818cf8] hover:text-white transition-colors">{codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
+                <button onClick={() => { copyCode(); }} className="text-[#818cf8] hover:text-white transition-colors" data-testid="copy-code-top-btn">{codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
               </div>
               {!reportValidated ? (
                 <button className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5" onClick={handleValidateReport} disabled={importStatus === "importing"} data-testid="validate-report-btn">
