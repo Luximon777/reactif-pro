@@ -86,10 +86,14 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - P3 : Micro-titres/badges
 
 
-### Phase 4c - Coach Virtuel continu (DONE - 19/06/2026)
-- Fix: Le coach affiche désormais des conseils avancés (Portefeuille, Job Dating, Observatoire, CV ciblé) quand les 4 étapes de base sont complétées
-- Backend: Endpoint `/api/coach/progress` enrichi avec `advanced_next_steps` et `tips` haute priorité pour `completed == 4`
-- Frontend: Nouveau banner "Continuez à enrichir votre profil" dans `CoachVirtuel.jsx` avec bouton d'action et conseils personnalisés
+### Phase 4c - Coach RE'ACTIF PRO — CIP Expert (DONE - 19/06/2026)
+- Le Coach est désormais un Conseiller en Insertion Professionnelle (CIP) expert RH
+- Chat IA GPT-5.2 avec prompt système CIP complet : techniques de recherche d'emploi, préparation entretiens, connaissance du marché, accompagnement projet professionnel
+- Tutoiement bienveillant, ton motivant et conseils actionnables
+- Limites strictes : redirige vers ALT&ACT pour questions juridiques (droit social/travail) et psychologiques
+- Tips personnalisés en langage CIP professionnel
+- Conseils continus après complétion des 4 étapes (Portefeuille, Job Dating, Observatoire, CV ciblé)
+- Renommé "Coach RE'ACTIF PRO" partout dans l'interface
 
 ## Tests de Régression (19/06/2026)
 - 37 tests pytest couvrant: Auth (4), Profile (3), D'CLIC PRO submit/retrieve/claim/import (8), Coach (3), Passport reset (5+dclic), Observatoire/Evolution (6), Job Match (4)

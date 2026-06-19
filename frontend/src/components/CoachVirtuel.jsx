@@ -24,10 +24,10 @@ const STEP_COLORS = {
 const EMOJI_ICONS = { wave: Hand, star: Star, rocket: Rocket, target: Target, trophy: Trophy };
 
 const STEP_NEXT_MESSAGES = {
-  1: { msg: "CV analysé avec succès ! Passez à l'étape 2 : identifiez vos savoir-être et vos valeurs pour compléter votre profil.", icon: "star" },
-  2: { msg: "Vos soft skills sont documentés ! Étape 3 : lancez le test D'CLIC PRO pour révéler votre personnalité.", icon: "rocket" },
-  3: { msg: "D'CLIC PRO terminé ! Dernière étape : construisez votre trajectoire professionnelle complète.", icon: "target" },
-  4: { msg: "Félicitations ! Toutes les étapes sont complétées. Votre profil RE'ACTIF PRO est complet !", icon: "trophy" },
+  1: { msg: "CV analysé avec succès ! Passons à l'étape 2 : identifie tes savoir-être et qualités humaines pour compléter ton profil.", icon: "star" },
+  2: { msg: "Tes soft skills sont documentés ! Étape 3 : lance le test D'CLIC PRO pour mieux te connaître.", icon: "rocket" },
+  3: { msg: "D'CLIC PRO terminé ! Dernière étape : construis ta trajectoire professionnelle complète.", icon: "target" },
+  4: { msg: "Toutes les étapes sont complétées ! Ton profil RE'ACTIF PRO est prêt. Passons à l'action : candidatures, entretiens, Job Dating.", icon: "trophy" },
 };
 
 const TIP_ICONS = { lightbulb: Lightbulb, rocket: Rocket, plus: Plus, target: Target, download: Download, shield: Award, calendar: Target, refresh: TrendingUp, compass: Target };
@@ -240,9 +240,9 @@ const ChatView = ({ messages, sending, onSend, onActionClick, inputRef }) => {
         {messages.length === 0 && (
           <div className="text-center py-6">
             <Bot className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-400">Posez-moi une question sur la plateforme !</p>
+            <p className="text-xs text-slate-400">Pose-moi une question sur ta recherche d'emploi !</p>
             <div className="mt-3 space-y-1.5">
-              {["Comment déposer mon CV ?", "Qu'est-ce que D'CLIC PRO ?", "Comment voir mes opportunités ?"].map((q, i) => (
+              {["Comment préparer un entretien d'embauche ?", "Quels conseils pour mon CV ?", "Comment trouver les offres qui me correspondent ?"].map((q, i) => (
                 <button
                   key={i}
                   onClick={() => { setInput(""); onSend(q); }}
@@ -301,7 +301,7 @@ const ChatView = ({ messages, sending, onSend, onActionClick, inputRef }) => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Posez votre question..."
+          placeholder="Pose ta question au coach..."
           className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f]"
           disabled={sending}
           data-testid="coach-chat-input"
@@ -504,8 +504,8 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
                     {view === "chat" ? <Bot className={`${minimized ? "w-3.5 h-3.5" : "w-4.5 h-4.5"}`} /> : <EmojiIcon className={`${minimized ? "w-3.5 h-3.5" : "w-4.5 h-4.5"}`} />}
                   </div>
                   <div>
-                    <h3 className={`font-semibold ${minimized ? "text-xs" : "text-sm"}`}>Coach RE'ACTIF</h3>
-                    {!minimized && <p className="text-[10px] text-white/70">{view === "chat" ? "Assistant IA" : `${progress.completed}/4 étapes`}</p>}
+                    <h3 className={`font-semibold ${minimized ? "text-xs" : "text-sm"}`}>Coach RE'ACTIF PRO</h3>
+                    {!minimized && <p className="text-[10px] text-white/70">{view === "chat" ? "Ton conseiller emploi" : `${progress.completed}/4 étapes`}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -610,7 +610,7 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
                     data-testid="coach-open-chat-btn"
                   >
                     <Bot className="w-3.5 h-3.5" />
-                    <span>Besoin d'aide ? Posez-moi une question...</span>
+                    <span>Besoin d'un conseil ? Parle-moi...</span>
                   </button>
                 </div>
               </>

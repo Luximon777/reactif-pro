@@ -342,7 +342,7 @@ const GpsDashboard = ({ token, pseudo, profile, passport, steps, jobs, allSkills
                 <Brain className="w-5 h-5 text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs font-semibold text-blue-700 mb-1">Coach RE'ACTIF</p>
+                <p className="text-xs font-semibold text-blue-700 mb-1">Coach RE'ACTIF PRO</p>
                 <p className="text-sm text-slate-700 leading-relaxed">{coachMessage}</p>
               </div>
             </div>

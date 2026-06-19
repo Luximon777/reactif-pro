@@ -281,7 +281,7 @@ export default function EspacePersonnel() {
                 <MessageSquare className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-bold text-sm text-slate-900">Coach RE'ACTIF</p>
+                <p className="font-bold text-sm text-slate-900">Coach RE'ACTIF PRO</p>
                 <p className="text-xs text-slate-500">{completedSteps}/4 étapes</p>
               </div>
             </div>

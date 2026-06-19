@@ -6263,41 +6263,41 @@ async def get_coach_progress(token: str):
         if has_dclic:
             achievements.append("Profil D'CLIC PRO complété")
 
-        # Build personalized tips based on current state
+        # Build personalized CIP tips based on current state
         tips = []
         if has_cv and cv_skills_count > 0 and not step2_complete:
             tips.append({
                 "icon": "lightbulb",
-                "text": f"Vos {cv_skills_count} savoir-faire sont extraits de votre CV. Ajoutez maintenant vos savoir-être (qualités humaines) pour compléter votre profil : allez dans Portefeuille → Savoir-être.",
+                "text": f"Tu as {cv_skills_count} savoir-faire identifiés — c'est une bonne base ! Maintenant, valorise tes qualités humaines (savoir-être) : elles font souvent la différence en entretien. Direction Portefeuille → Savoir-être.",
                 "priority": "high"
             })
         if has_cv and not has_dclic:
             tips.append({
                 "icon": "rocket",
-                "text": "Le test D'CLIC PRO (5 min) révèle votre profil DISC et MBTI. Ces données boostent la pertinence de vos CV générés et de vos recommandations.",
+                "text": "Le test D'CLIC PRO (5 min) révèle ton profil de personnalité (DISC, MBTI, RIASEC). En entretien, savoir parler de soi avec précision, c'est un vrai atout. Lance-toi !",
                 "priority": "medium"
             })
         if experiences_count > 0 and experiences_count < 5:
             tips.append({
                 "icon": "plus",
-                "text": f"Vous avez {experiences_count} expérience(s). Plus vous en ajoutez (bénévolat, stages, missions), plus votre trajectoire professionnelle sera valorisée.",
+                "text": f"Tu as {experiences_count} expérience(s) renseignée(s). Pense aussi aux missions bénévoles, stages et projets perso — les recruteurs valorisent la diversité des parcours.",
                 "priority": "low"
             })
         if has_cv and cv_skills_count > 5:
             tips.append({
                 "icon": "target",
-                "text": f"Avec {cv_skills_count} compétences, explorez l'onglet Job Dating pour découvrir des événements emploi ciblés sur votre profil.",
+                "text": f"Avec {cv_skills_count} compétences, tu as un profil solide. Explore le Job Dating pour rencontrer directement des recruteurs qui cherchent ton profil.",
                 "priority": "medium"
             })
         # Always add tips — even after 4/4 completion
         if completed >= 3:
             tips.append({
                 "icon": "download",
-                "text": "Votre profil est suffisamment riche pour générer des CV optimisés ATS. Allez dans Trajectoire → Générer des CV.",
+                "text": "Ton profil est assez riche pour générer des CV ciblés et optimisés ATS. Un CV adapté à chaque offre multiplie tes chances de décrocher un entretien.",
                 "priority": "medium"
             })
 
-        # Advanced tips when all 4 steps are done
+        # Advanced CIP tips when all 4 steps are done
         if completed == 4:
             docs_count = await db.coffre_documents.count_documents({"token_id": token_doc["id"]})
             has_job_dating = bool(await db.job_dating_registrations.find_one({"token_id": token_doc["id"]}))
@@ -6305,65 +6305,65 @@ async def get_coach_progress(token: str):
             if docs_count == 0:
                 tips.insert(0, {
                     "icon": "shield",
-                    "text": "Déposez vos preuves (diplômes, attestations, certificats) dans votre Portefeuille pour certifier vos compétences et renforcer votre crédibilité.",
+                    "text": "Dépose tes preuves (diplômes, attestations, certificats) dans ton Portefeuille. En recherche d'emploi, un dossier de preuves structuré rassure les recruteurs et accélère le processus.",
                     "priority": "high"
                 })
             if not has_job_dating:
                 tips.insert(0, {
                     "icon": "calendar",
-                    "text": "Explorez le Job Dating pour participer à des événements emploi ciblés sur votre profil et rencontrer des recruteurs.",
+                    "text": "Le Job Dating, c'est l'occasion de te présenter en quelques minutes à un recruteur. Prépare ton pitch (2 min max) et inscris-toi à un événement !",
                     "priority": "high"
                 })
             tips.append({
                 "icon": "refresh",
-                "text": "Mettez à jour régulièrement vos compétences et expériences pour rester visible auprès des recruteurs.",
+                "text": "Le marché de l'emploi évolue vite. Mets à jour régulièrement tes compétences et expériences pour rester visible et pertinent.",
                 "priority": "low"
             })
             tips.append({
                 "icon": "compass",
-                "text": "Consultez l'Observatoire du Marché pour suivre les tendances d'emploi dans vos secteurs cibles.",
+                "text": "Consulte l'Observatoire du Marché pour repérer les secteurs qui recrutent et anticiper les compétences recherchées demain.",
                 "priority": "low"
             })
 
         # Build next_step — always provide one, even at 4/4
         advanced_next_steps = [
-            {"hint": "Déposez vos preuves (diplômes, attestations) dans le Portefeuille pour certifier votre profil.", "impact": "Les compétences certifiées augmentent votre score de confiance auprès des recruteurs.", "path": "/dashboard/coffre-fort"},
-            {"hint": "Explorez le Job Dating pour rencontrer des recruteurs lors d'événements ciblés.", "impact": "Le Job Dating met en relation directe avec les entreprises qui recrutent.", "path": "/dashboard/job-dating"},
-            {"hint": "Consultez l'Observatoire pour anticiper les mutations de votre secteur.", "impact": "Connaître les tendances du marché vous permet d'adapter votre stratégie.", "path": "/dashboard/marche"},
-            {"hint": "Générez un CV ciblé pour un poste spécifique en utilisant vos données enrichies.", "impact": "Un CV optimisé ATS augmente vos chances de passer les filtres automatiques.", "path": "/dashboard/trajectoire"},
+            {"hint": "Dépose tes preuves (diplômes, attestations) dans le Portefeuille. Un dossier solide, c'est ta carte de visite auprès des recruteurs.", "impact": "Les compétences certifiées renforcent ta crédibilité et accélèrent les recrutements.", "path": "/dashboard/coffre-fort"},
+            {"hint": "Inscris-toi à un Job Dating ! Prépare un pitch de 2 minutes et va à la rencontre des recruteurs.", "impact": "Le contact direct avec les employeurs est souvent plus efficace qu'une candidature en ligne.", "path": "/dashboard/job-dating"},
+            {"hint": "Consulte l'Observatoire pour repérer les secteurs porteurs et les compétences recherchées.", "impact": "Anticiper les tendances du marché te permet d'orienter ta montée en compétences.", "path": "/dashboard/marche"},
+            {"hint": "Génère un CV ciblé pour un poste précis. Un CV adapté à chaque offre, c'est la clé pour passer les filtres ATS.", "impact": "Les recruteurs passent 6 secondes en moyenne sur un CV — chaque mot compte.", "path": "/dashboard/trajectoire"},
         ]
 
-        # Build proactive "next step" message with clear guidance
+        # Build proactive "next step" message with clear CIP guidance
         next_step_messages = {
             1: {
-                "hint": "Déposez votre CV (PDF ou Word) dans Trajectoire → Mon CV. L'IA analysera automatiquement vos compétences, expériences et formations.",
-                "impact": "Cela alimentera tout votre parcours : passeport, trajectoire, matching emploi."
+                "hint": "Dépose ton CV (PDF ou Word) dans Trajectoire → Mon CV. L'IA va analyser tes compétences, expériences et formations automatiquement.",
+                "impact": "C'est la première étape pour construire ton portefeuille de compétences et cibler les bonnes offres."
             },
             2: {
-                "hint": "Documentez vos savoir-être (qualités relationnelles, rigueur, esprit d'équipe...) dans votre Portefeuille.",
-                "impact": "Les recruteurs valorisent autant les soft skills que les compétences techniques."
+                "hint": "Identifie et documente tes savoir-être (esprit d'équipe, rigueur, adaptabilité...) dans ton Portefeuille.",
+                "impact": "En entretien, les recruteurs évaluent autant tes qualités humaines que tes compétences techniques. Savoir en parler fait la différence."
             },
             3: {
-                "hint": "Passez le test D'CLIC PRO (5 minutes). Il révèle votre profil de personnalité (DISC, MBTI, RIASEC).",
-                "impact": "Ces données enrichissent vos CV générés et affinent les recommandations."
+                "hint": "Passe le test D'CLIC PRO (5 minutes). Il révèle ton profil de personnalité (DISC, MBTI, RIASEC).",
+                "impact": "Mieux te connaître te permet de cibler les postes et environnements qui te correspondent vraiment."
             },
             4: {
-                "hint": "Complétez votre trajectoire avec vos expériences, formations et compétences acquises.",
-                "impact": "Une trajectoire riche permet de générer des CV plus percutants et de mieux matcher les offres."
+                "hint": "Complète ta trajectoire avec tes expériences, formations et compétences acquises — même les expériences informelles comptent !",
+                "impact": "Une trajectoire riche, c'est la matière première pour générer des CV percutants et matcher les offres."
             },
         }
 
         next_info = next_step_messages.get(current_step, {})
 
         if not has_cv:
-            message = "Bienvenue ! Commencez par importer votre CV pour que l'IA analyse votre profil."
+            message = "Bienvenue ! Commence par importer ton CV pour que l'IA analyse ton profil. C'est la première étape vers ta recherche d'emploi efficace."
             emoji = "wave"
         elif completed == 4:
             emoji = "trophy"
-            message = f"Bravo ! Votre profil est complet avec {cv_skills_count} compétences et {experiences_count} expériences."
+            message = f"Bravo, ton profil est complet ! {cv_skills_count} compétences, {experiences_count} expériences — tu as de solides arguments. Passons maintenant à l'action : candidatures, Job Dating, entretiens."
         else:
             summary = ", ".join(achievements) if achievements else "profil en cours de construction"
-            message = f"Votre progression : {summary}."
+            message = f"Ta progression : {summary}. Continue comme ça, chaque étape te rapproche de ton objectif !"
 
             if current_step <= 2:
                 emoji = "star"
@@ -6436,6 +6436,7 @@ async def get_coach_progress(token: str):
 async def coach_chat(token: str, body: dict):
     token_doc = await get_current_token(token)
     user_msg = body.get("message", "")
+    history = body.get("history", [])
 
     # Gather user context — check all data sources
     profile_id = token_doc.get("profile_id")
@@ -6447,11 +6448,9 @@ async def coach_chat(token: str, body: dict):
     exp_count = len(passport.get("experiences", [])) if passport else 0
     has_cv = bool(profile.get("cv_analyzed")) if profile else False
     has_dclic = bool(profile.get("dclic_imported")) if profile else False
-    # Also check passport for dclic_results
     if not has_dclic and passport and passport.get("dclic_results"):
         has_dclic = True
 
-    # Also check cv_jobs for completed analysis
     last_analysis = await db.cv_jobs.find_one(
         {"token_id": token_doc["id"], "status": "completed"}, sort=[("created_at", -1)]
     )
@@ -6467,36 +6466,142 @@ async def coach_chat(token: str, body: dict):
         se_count = max(se_count, len(profile.get("savoir_etre", [])))
         exp_count = max(exp_count, len(profile.get("experiences", [])))
 
-    # Determine next step
+    # Build user context summary
     steps_done = []
-    if has_cv: steps_done.append("CV importé")
-    if se_count >= 3: steps_done.append("Soft skills documentés")
-    if has_dclic: steps_done.append("D'CLIC PRO complété")
-    if exp_count >= 3: steps_done.append("Trajectoire tracée")
+    if has_cv: steps_done.append("CV analysé par l'IA")
+    if se_count >= 3: steps_done.append(f"{se_count} savoir-être documentés")
+    if has_dclic: steps_done.append("Test D'CLIC PRO complété (DISC/MBTI/RIASEC)")
+    if exp_count >= 3: steps_done.append(f"{exp_count} expériences tracées")
 
-    next_action = "importer votre CV dans l'onglet Trajectoire → Mon CV"
-    next_actions_list = [
-        {"label": "Importer mon CV", "path": "/dashboard/trajectoire"},
-    ]
+    # Get DCLIC profile info if available
+    dclic_info = ""
+    if has_dclic and passport and passport.get("dclic_results"):
+        dr = passport["dclic_results"]
+        dclic_info = f"Profil D'CLIC : MBTI={dr.get('mbti','?')}, DISC dominant={dr.get('disc',{}).get('dominant','?')}, RIASEC={dr.get('riasec',{}).get('dominant','?')}."
+
+    # Get top skills
+    top_skills = []
+    if passport:
+        for sf in passport.get("savoir_faire", [])[:8]:
+            if isinstance(sf, dict):
+                top_skills.append(sf.get("name", sf.get("label", "")))
+            elif isinstance(sf, str):
+                top_skills.append(sf)
+
+    # Determine next priority action
+    next_action_ctx = "importer son CV"
     if has_cv and se_count < 3:
-        next_action = "valoriser vos savoir-être dans le Portefeuille de compétences"
-        next_actions_list = [{"label": "Valoriser mes soft skills", "path": "/dashboard/competences"}]
+        next_action_ctx = "documenter ses savoir-être"
     elif has_cv and not has_dclic:
-        next_action = "passer le test D'CLIC PRO pour révéler votre personnalité"
-        next_actions_list = [{"label": "Lancer D'CLIC PRO", "path": "dclic"}]
+        next_action_ctx = "passer le test D'CLIC PRO"
     elif has_cv and exp_count < 3:
-        next_action = "enrichir votre trajectoire avec plus d'expériences"
-        next_actions_list = [{"label": "Ma trajectoire", "path": "/dashboard/trajectoire"}]
+        next_action_ctx = "enrichir sa trajectoire professionnelle"
     elif len(steps_done) == 4:
-        next_action = "consulter vos opportunités et votre portefeuille certifié"
-        next_actions_list = [{"label": "Mes opportunités", "path": "/dashboard/opportunites"}]
+        next_action_ctx = "passer à l'action : candidatures ciblées, Job Dating, préparation entretiens"
 
-    context = f"Profil : {skills_count} savoir-faire, {se_count} savoir-être, {exp_count} expérience(s). Étapes complétées : {', '.join(steps_done) if steps_done else 'aucune'}."
+    user_context = f"""CONTEXTE DE L'UTILISATEUR :
+- Savoir-faire identifiés : {skills_count}
+- Savoir-être documentés : {se_count}
+- Expériences tracées : {exp_count}
+- CV analysé : {'oui' if has_cv else 'non'}
+- D'CLIC PRO : {'complété' if has_dclic else 'non fait'}
+{f'- {dclic_info}' if dclic_info else ''}
+{f'- Compétences clés : {", ".join(top_skills)}' if top_skills else ''}
+- Étapes complétées : {', '.join(steps_done) if steps_done else 'aucune (nouvel utilisateur)'}
+- Prochaine priorité : {next_action_ctx}"""
+
+    system_prompt = f"""Tu es le Coach RE'ACTIF PRO, un Conseiller en Insertion Professionnelle (CIP) expert, spécialiste RH qui maîtrise les techniques de recherche d'emploi et de préparation aux entretiens d'embauche.
+
+IDENTITÉ ET POSTURE :
+- Tu tutoies l'utilisateur avec bienveillance et encouragement (coach de proximité)
+- Tu es chaleureux, dynamique et concret dans tes conseils
+- Tu t'appuies sur ton expertise RH pour donner des conseils actionnables
+- Tu connais parfaitement la plateforme RE'ACTIF PRO et ses outils
+
+TES DOMAINES D'EXPERTISE :
+1. Techniques de recherche d'emploi (CV, lettre de motivation, réseau professionnel, candidature spontanée, réponse à annonces)
+2. Préparation aux entretiens d'embauche (simulation, posture, gestion du stress, questions pièges, négociation salariale)
+3. Connaissance du marché du travail et des métiers (secteurs porteurs, tendances, compétences recherchées)
+4. Accompagnement au projet professionnel (reconversion, bilan de compétences, montée en compétences, VAE)
+5. Valorisation du parcours (mise en avant des compétences transférables, storytelling professionnel)
+
+LES OUTILS DE LA PLATEFORME QUE TU PEUX RECOMMANDER :
+- "Trajectoire → Mon CV" : import et analyse IA du CV
+- "Portefeuille → Savoir-être" : documentation des qualités humaines
+- "D'CLIC PRO" : test de personnalité (DISC, MBTI, RIASEC) en 5 min
+- "Trajectoire" : construction du parcours professionnel
+- "Job Dating" : événements de recrutement en direct
+- "Opportunités" : offres d'emploi matchées avec le profil
+- "Observatoire du Marché" : tendances emploi et secteurs porteurs
+- "Portefeuille → Coffre-fort" : preuves et certifications
+- "Générer des CV" : CV ciblés et optimisés ATS par IA
+
+LIMITES STRICTES — TU NE DOIS PAS :
+- Donner de conseils juridiques en droit social ou du travail. Si on te pose une question juridique, réponds : "Ce sujet relève du droit du travail, ce n'est pas mon domaine d'expertise. Je te conseille de prendre contact avec les conseillers d'ALT&ACT qui pourront t'accompagner sur ces questions, ou de consulter un juriste spécialisé."
+- Traiter des problématiques psychologiques ou de santé mentale. Si on t'en parle, réponds avec empathie : "Je comprends que cette situation est difficile. Ce sujet dépasse mes compétences de coach emploi. Les conseillers d'ALT&ACT sont disponibles pour t'écouter et t'orienter vers les bons professionnels. N'hésite pas à les contacter."
+- Sortir de ton périmètre de compétences (pas de conseil médical, financier personnel, etc.). Si la question sort de ton domaine, dis-le poliment et oriente vers ALT&ACT.
+
+STYLE DE RÉPONSE :
+- Sois concis (3-5 phrases max, sauf si la question demande plus de détail)
+- Donne toujours un conseil actionnable et concret
+- Quand c'est pertinent, propose une action sur la plateforme
+- Utilise un ton motivant et positif, sans être condescendant
+- Si l'utilisateur semble bloqué ou découragé, rassure-le et propose une micro-action facile
+
+{user_context}"""
+
+    # Build suggested actions based on context
+    actions = []
+    if not has_cv:
+        actions = [{"label": "Importer mon CV", "path": "/dashboard/trajectoire?sub=cv"}]
+    elif se_count < 3:
+        actions = [{"label": "Mes savoir-être", "path": "/dashboard/competences"}]
+    elif not has_dclic:
+        actions = [{"label": "Lancer D'CLIC PRO", "path": "dclic"}]
+    elif exp_count < 3:
+        actions = [{"label": "Ma trajectoire", "path": "/dashboard/trajectoire"}]
+    else:
+        actions = [
+            {"label": "Mes opportunités", "path": "/dashboard/opportunites"},
+            {"label": "Générer un CV ciblé", "path": "/dashboard/trajectoire?sub=cv"},
+        ]
+
+    # Call GPT-5.2 for intelligent response
+    if EMERGENT_LLM_KEY:
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"coach-chat-{token_doc['id']}-{uuid.uuid4().hex[:8]}",
+                system_message=system_prompt
+            ).with_model("openai", "gpt-5.2")
+
+            # Build conversation with history
+            for msg in history[-4:]:
+                if msg.get("role") == "user":
+                    await run_llm_nonblocking(chat, UserMessage(text=msg["content"]))
+
+            response = await run_llm_nonblocking(chat, UserMessage(text=user_msg))
+            response_text = response.content if hasattr(response, 'content') else str(response)
+
+            return {
+                "response": response_text,
+                "suggestions": ["Comment préparer un entretien ?", "Quels secteurs recrutent ?", "Comment améliorer mon CV ?"],
+                "actions": actions,
+            }
+        except Exception as e:
+            logger.error(f"Coach chat LLM error: {e}")
+
+    # Fallback without LLM — CIP-style response
+    context_summary = f"{skills_count} savoir-faire, {se_count} savoir-être, {exp_count} expérience(s)"
+    if len(steps_done) == 4:
+        fallback = f"Ton profil est solide ({context_summary}). Pour avancer concrètement, je te recommande de {next_action_ctx}. Pose-moi une question précise sur ta recherche d'emploi, la préparation d'un entretien ou ta stratégie de candidature !"
+    else:
+        fallback = f"Avec ton profil actuel ({context_summary}), ta prochaine étape clé est de {next_action_ctx}. N'hésite pas à me poser des questions sur ta recherche d'emploi ou la préparation de tes entretiens !"
 
     return {
-        "response": f"Votre question : \"{user_msg}\"\n\n{context}\n\nJe vous recommande maintenant de {next_action}. N'hésitez pas à me poser d'autres questions !",
-        "suggestions": ["Comment avancer ?", "Quelles compétences améliorer ?", "Voir mon portefeuille"],
-        "actions": next_actions_list,
+        "response": fallback,
+        "suggestions": ["Comment préparer un entretien ?", "Quels secteurs recrutent ?", "Comment améliorer mon CV ?"],
+        "actions": actions,
     }
 
 # ============== TRAJECTORY ==============
