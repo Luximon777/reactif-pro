@@ -549,25 +549,25 @@ const CoffreFortView = ({ token }) => {
                   <div className="bg-gradient-to-br from-[#0f2744] via-[#1a3558] to-[#0f2744] p-5 space-y-3">
                     <div className="flex items-center gap-2">
                       <Globe className="w-5 h-5 text-cyan-400" />
-                      <h3 className="text-sm font-bold text-white tracking-wide uppercase" data-testid="opc-intro-title">
+                      <h3 className="text-lg font-bold text-white tracking-wide uppercase" data-testid="opc-intro-title">
                         Observatoire Prédictif des Compétences (OPC)
                       </h3>
                     </div>
-                    <p className="text-xs leading-relaxed text-slate-300">
+                    <p className="text-sm leading-relaxed text-slate-300">
                       L'<span className="text-cyan-300 font-semibold">OPC</span> est un dispositif collectif qui cartographie les compétences réelles du marché de l'emploi, à partir de <span className="text-white font-semibold">preuves concrètes fournies par les acteurs de la vie socio-professionnelle (VOUS)</span>. Contrairement aux référentiels théoriques (ROME, RNCP), l'OPC s'appuie sur des données terrain : tes expériences, tes preuves S.A.R.E et tes contrats de travail.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                       <div className="bg-white/8 rounded-lg p-3 border border-white/10">
-                        <p className="text-[10px] font-bold text-emerald-300 mb-1 flex items-center gap-1"><Target className="w-3 h-3" />Fiabilité</p>
-                        <p className="text-[10px] text-slate-300 leading-relaxed">Seules les compétences prouvées et certifiées alimentent l'Observatoire. Pas de déclaratif.</p>
+                        <p className="text-xs font-bold text-emerald-300 mb-1 flex items-center gap-1"><Target className="w-3.5 h-3.5" />Fiabilité</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">Seules les compétences prouvées et certifiées alimentent l'Observatoire. Pas de déclaratif.</p>
                       </div>
                       <div className="bg-white/8 rounded-lg p-3 border border-white/10">
-                        <p className="text-[10px] font-bold text-blue-300 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" />Prédictif</p>
-                        <p className="text-[10px] text-slate-300 leading-relaxed">L'OPC permet d'anticiper les compétences émergentes et les besoins réels des employeurs par secteur.</p>
+                        <p className="text-xs font-bold text-blue-300 mb-1 flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" />Prédictif</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">L'OPC permet d'anticiper les compétences émergentes et les besoins réels des employeurs par secteur.</p>
                       </div>
                       <div className="bg-white/8 rounded-lg p-3 border border-white/10">
-                        <p className="text-[10px] font-bold text-amber-300 mb-1 flex items-center gap-1"><Users className="w-3 h-3" />Collectif</p>
-                        <p className="text-[10px] text-slate-300 leading-relaxed">Chaque contributeur renforce la connaissance collective du marché. Ton parcours a de la valeur pour tous.</p>
+                        <p className="text-xs font-bold text-amber-300 mb-1 flex items-center gap-1"><Users className="w-3.5 h-3.5" />Collectif</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">Chaque contributeur renforce la connaissance collective du marché. Ton parcours a de la valeur pour tous.</p>
                       </div>
                     </div>
                   </div>
