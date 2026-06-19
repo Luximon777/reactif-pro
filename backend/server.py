@@ -7803,6 +7803,8 @@ Formation: {analyse.get('formation_requise', '')}"""
         system_message="Tu es un expert RH français. Compare un profil candidat avec une offre d'emploi."
     ).with_model("openai", "gpt-5.2")
     prompt = f"""Compare ce profil candidat avec cette offre d'emploi et évalue la compatibilité.
+IMPORTANT : Analyse séparément les HARD SKILLS (compétences techniques) et les SOFT SKILLS (compétences comportementales/transférables).
+Les soft skills sont essentiels dans une logique de RECONVERSION PROFESSIONNELLE : mets en avant leur valeur de transfert.
 
 PROFIL CANDIDAT:
 {user_context}
@@ -7817,13 +7819,16 @@ Retourne UNIQUEMENT un JSON valide:
   "details": {{
     "competences_techniques": {{
       "score": 0-100,
-      "forces": ["force 1", "force 2"],
-      "lacunes": ["lacune 1"]
+      "forces": ["hard skill qui matche 1", "hard skill qui matche 2"],
+      "lacunes": ["hard skill manquant 1"],
+      "matched_skills": ["Compétence A du profil → Compétence X de l'offre", "Compétence B → Y"]
     }},
     "soft_skills": {{
       "score": 0-100,
-      "forces": ["force 1"],
-      "lacunes": ["lacune 1"]
+      "forces": ["soft skill transférable 1", "soft skill transférable 2"],
+      "lacunes": ["soft skill à développer"],
+      "matched_skills": ["Qualité A du profil → Besoin X de l'offre"],
+      "transferability_message": "Explication en 2-3 phrases de pourquoi les soft skills de ce candidat sont particulièrement transférables et valorisables pour ce poste, même en reconversion."
     }},
     "experience": {{
       "score": 0-100,

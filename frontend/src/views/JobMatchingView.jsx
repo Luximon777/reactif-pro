@@ -425,28 +425,143 @@ const JobMatchingView = ({ token }) => {
       {/* STEP 4: Matching Results */}
       {step === 4 && matchResult && (
         <div className="space-y-4" data-testid="matching-step-4">
-          {/* Score global */}
-          <Card className={`border-2 ${matchResult.score_global >= 70 ? "border-emerald-300 bg-emerald-50/30" : matchResult.score_global >= 40 ? "border-amber-300 bg-amber-50/30" : "border-red-300 bg-red-50/30"}`}>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-4">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${
-                  matchResult.score_global >= 70 ? "bg-emerald-100 text-emerald-700" : matchResult.score_global >= 40 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
-                }`}>
-                  {matchResult.score_global}%
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-900">Score de compatibilité</h3>
-                  <p className="text-sm text-slate-600 mt-0.5">{matchResult.verdict}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Verdict */}
+          <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <p className="text-sm text-slate-600">{matchResult.verdict}</p>
+          </div>
 
-          {/* Detail scores */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* 2 Circular Gauges — Hard Skills vs Soft Skills */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Hard Skills Gauge */}
+            {(() => {
+              const hard = matchResult.details?.competences_techniques || {};
+              const hardScore = hard.score || 0;
+              const hardColor = hardScore >= 70 ? "#10b981" : hardScore >= 40 ? "#f59e0b" : "#ef4444";
+              return (
+                <Card className="border-2 border-slate-200" data-testid="hard-skills-gauge">
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex flex-col items-center">
+                      <svg width="140" height="140" viewBox="0 0 140 140" className="mb-3">
+                        <circle cx="70" cy="70" r="58" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                        <circle cx="70" cy="70" r="58" fill="none" stroke={hardColor} strokeWidth="10"
+                          strokeDasharray={`${(hardScore / 100) * 364.4} 364.4`}
+                          strokeLinecap="round" transform="rotate(-90 70 70)"
+                          style={{transition: "stroke-dasharray 1s ease"}} />
+                        <text x="70" y="62" textAnchor="middle" className="text-3xl font-bold" fill={hardColor}>{hardScore}</text>
+                        <text x="70" y="80" textAnchor="middle" className="text-xs" fill="#64748b">/ 100</text>
+                      </svg>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target className="w-5 h-5 text-slate-700" />
+                        <h3 className="text-base font-bold text-slate-900">Hard Skills</h3>
+                      </div>
+                      <p className="text-xs text-slate-400 text-center mb-3">Compétences techniques</p>
+                    </div>
+                    {/* Matched skills */}
+                    {(hard.matched_skills || []).length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1.5">Correspondances</p>
+                        {hard.matched_skills.slice(0, 4).map((s, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-xs text-blue-700 py-0.5">
+                            <ArrowRight className="w-3 h-3 shrink-0" /> <span className="truncate">{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Forces */}
+                    {(hard.forces || []).length > 0 && (
+                      <div className="mb-2">
+                        {hard.forces.slice(0, 3).map((f, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-xs text-emerald-700 py-0.5">
+                            <CheckCircle2 className="w-3 h-3 shrink-0 mt-0.5" /> <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Lacunes */}
+                    {(hard.lacunes || []).length > 0 && (
+                      <div>
+                        {hard.lacunes.slice(0, 2).map((l, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-xs text-red-500 py-0.5">
+                            <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" /> <span>{l}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Soft Skills Gauge */}
+            {(() => {
+              const soft = matchResult.details?.soft_skills || {};
+              const softScore = soft.score || 0;
+              const softColor = softScore >= 70 ? "#8b5cf6" : softScore >= 40 ? "#f59e0b" : "#ef4444";
+              return (
+                <Card className="border-2 border-purple-200 bg-purple-50/20" data-testid="soft-skills-gauge">
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex flex-col items-center">
+                      <svg width="140" height="140" viewBox="0 0 140 140" className="mb-3">
+                        <circle cx="70" cy="70" r="58" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                        <circle cx="70" cy="70" r="58" fill="none" stroke={softColor} strokeWidth="10"
+                          strokeDasharray={`${(softScore / 100) * 364.4} 364.4`}
+                          strokeLinecap="round" transform="rotate(-90 70 70)"
+                          style={{transition: "stroke-dasharray 1s ease"}} />
+                        <text x="70" y="62" textAnchor="middle" className="text-3xl font-bold" fill={softColor}>{softScore}</text>
+                        <text x="70" y="80" textAnchor="middle" className="text-xs" fill="#64748b">/ 100</text>
+                      </svg>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-5 h-5 text-purple-700" />
+                        <h3 className="text-base font-bold text-purple-900">Soft Skills</h3>
+                      </div>
+                      <p className="text-xs text-purple-400 text-center mb-3">Compétences transférables</p>
+                    </div>
+                    {/* Transferability message */}
+                    {soft.transferability_message && (
+                      <div className="bg-purple-100/60 border border-purple-200 rounded-lg p-2.5 mb-3">
+                        <p className="text-xs text-purple-800 leading-relaxed"><Zap className="w-3 h-3 inline mr-1 text-purple-600" />{soft.transferability_message}</p>
+                      </div>
+                    )}
+                    {/* Matched skills */}
+                    {(soft.matched_skills || []).length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1.5">Correspondances</p>
+                        {soft.matched_skills.slice(0, 4).map((s, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-xs text-purple-700 py-0.5">
+                            <ArrowRight className="w-3 h-3 shrink-0" /> <span className="truncate">{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Forces */}
+                    {(soft.forces || []).length > 0 && (
+                      <div className="mb-2">
+                        {soft.forces.slice(0, 3).map((f, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-xs text-emerald-700 py-0.5">
+                            <CheckCircle2 className="w-3 h-3 shrink-0 mt-0.5" /> <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Lacunes */}
+                    {(soft.lacunes || []).length > 0 && (
+                      <div>
+                        {soft.lacunes.slice(0, 2).map((l, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-xs text-red-500 py-0.5">
+                            <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" /> <span>{l}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+          </div>
+
+          {/* Secondary scores: Experience + Formation (compact) */}
+          <div className="grid grid-cols-2 gap-3">
             {[
-              { key: "competences_techniques", label: "Compétences", icon: Target },
-              { key: "soft_skills", label: "Soft Skills", icon: Users },
               { key: "experience", label: "Expérience", icon: Briefcase },
               { key: "formation", label: "Formation", icon: GraduationCap },
             ].map(({ key, label, icon: Icon }) => {
@@ -454,19 +569,20 @@ const JobMatchingView = ({ token }) => {
               const score = d.score || 0;
               return (
                 <Card key={key}>
-                  <CardContent className="pt-3 pb-3 px-3 text-center">
-                    <Icon className="w-5 h-5 mx-auto text-slate-400 mb-1" />
-                    <div className={`text-xl font-bold ${score >= 70 ? "text-emerald-600" : score >= 40 ? "text-amber-600" : "text-red-500"}`}>
-                      {score}%
-                    </div>
-                    <p className="text-xs text-slate-500">{label}</p>
-                    <div className="mt-2 space-y-0.5">
-                      {(d.forces || []).slice(0, 2).map((f, i) => (
-                        <p key={i} className="text-[10px] text-emerald-600 truncate">+ {f}</p>
-                      ))}
-                      {(d.lacunes || []).slice(0, 1).map((l, i) => (
-                        <p key={i} className="text-[10px] text-red-500 truncate">- {l}</p>
-                      ))}
+                  <CardContent className="pt-3 pb-3 px-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${score >= 70 ? "bg-emerald-100 text-emerald-700" : score >= 40 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                        {score}%
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 flex items-center gap-1"><Icon className="w-3.5 h-3.5" />{label}</p>
+                        {(d.forces || []).slice(0, 1).map((f, i) => (
+                          <p key={i} className="text-[10px] text-emerald-600 truncate">+ {f}</p>
+                        ))}
+                        {(d.lacunes || []).slice(0, 1).map((l, i) => (
+                          <p key={i} className="text-[10px] text-red-500 truncate">- {l}</p>
+                        ))}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
