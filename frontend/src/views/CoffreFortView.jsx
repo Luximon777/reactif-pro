@@ -554,7 +554,7 @@ const CoffreFortView = ({ token }) => {
                       </h3>
                     </div>
                     <p className="text-xs leading-relaxed text-slate-300">
-                      L'<span className="text-cyan-300 font-semibold">OPC</span> est un dispositif collectif qui cartographie les compétences réelles du marché de l'emploi, à partir de <span className="text-white font-semibold">preuves concrètes fournies par les professionnels</span>. Contrairement aux référentiels théoriques (ROME, RNCP), l'OPC s'appuie sur des données terrain : tes expériences, tes preuves S.A.R.E et tes contrats de travail.
+                      L'<span className="text-cyan-300 font-semibold">OPC</span> est un dispositif collectif qui cartographie les compétences réelles du marché de l'emploi, à partir de <span className="text-white font-semibold">preuves concrètes fournies par les acteurs de la vie socio-professionnelle (VOUS)</span>. Contrairement aux référentiels théoriques (ROME, RNCP), l'OPC s'appuie sur des données terrain : tes expériences, tes preuves S.A.R.E et tes contrats de travail.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                       <div className="bg-white/8 rounded-lg p-3 border border-white/10">
