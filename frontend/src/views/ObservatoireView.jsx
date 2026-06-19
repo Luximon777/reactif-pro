@@ -465,8 +465,8 @@ const ObservatoireView = ({ token, embedded }) => {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Emerging Skills - Personalized when available */}
+          {!personalizedData && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Emerging Skills - shown only when no personalized data */}
             <Card className="card-base">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -559,7 +559,7 @@ const ObservatoireView = ({ token, embedded }) => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div>}
 
           {/* Intelligence Collective Banner */}
           <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d4a6f] border-0">
@@ -645,7 +645,7 @@ const ObservatoireView = ({ token, embedded }) => {
                     {personalizedData.skill_gaps.filter(g => g.priority === "haute").slice(0, 8).map((g, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 truncate">{g.skill_name}</p>
+                          <p className="text-sm font-medium text-slate-900 truncate">{g.name || g.observatory_skill || "?"}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge className="text-[10px] bg-amber-100 text-amber-700">Priorité haute</Badge>
                             <span className="text-[10px] text-amber-600">+{Math.round((g.growth_rate || 0) * 100)}%</span>
@@ -1038,14 +1038,14 @@ const PersonalizedObservatoireCard = ({ data }) => {
                 {skill_gaps.filter(g => g.priority === "haute").slice(0, 5).map((g, i) => (
                   <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-amber-50 border border-amber-100">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{g.skill_name}</p>
+                      <p className="text-sm font-medium text-slate-900 truncate">{g.name || g.observatory_skill || "?"}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <Badge className="text-[10px] bg-amber-100 text-amber-700">Priorité haute</Badge>
-                        <span className="text-[10px] text-amber-600">+{Math.round(g.growth_rate * 100)}%</span>
+                        <span className="text-[10px] text-amber-600">+{Math.round((g.growth_rate || 0) * 100)}%</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-lg font-bold text-amber-700">{Math.round(g.emergence_score * 100)}</span>
+                      <span className="text-lg font-bold text-amber-700">{Math.round((g.emergence_score || g.score || 0) * 100)}</span>
                     </div>
                   </div>
                 ))}
@@ -1100,7 +1100,7 @@ const PersonalizedObservatoireCard = ({ data }) => {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {declining_alerts.map((d, i) => (
                     <Badge key={i} className="bg-rose-100 text-rose-700">
-                      {d.skill} <span className="opacity-60 ml-1">({d.sector})</span>
+                      {d.name || d.observatory_skill || d.skill || "?"} <span className="opacity-60 ml-1">({(d.sectors || [])[0] || d.sector || ""})</span>
                     </Badge>
                   ))}
                 </div>
