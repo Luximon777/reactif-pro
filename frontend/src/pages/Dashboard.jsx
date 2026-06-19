@@ -557,6 +557,7 @@ const Dashboard = () => {
                 pseudo={pseudo}
                 viewMode={location.pathname === "/dashboard/trajectoire" ? "trajectoire" : "accueil"}
                 onOpenDclic={() => setDclicOpen(true)}
+                onDclicReset={() => setDclicImported(false)}
               />
             </div>
           )}

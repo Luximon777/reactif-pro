@@ -974,7 +974,7 @@ const AccessRequestsNotifications = ({ token }) => {
 };
 
 // ===== MAIN COMPONENT =====
-const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
+const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, pseudo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = useState(null);
@@ -1065,6 +1065,8 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
     try {
       await axios.delete(`${API}/passport/reset?token=${token}&sections=${section}`);
       setResetModal(m => ({ ...m, progress: 60, phase: "reloading" }));
+      // Notify parent (Dashboard) if D'CLIC was reset
+      if ((section === "dclic" || section === "all") && onDclicReset) onDclicReset();
       await Promise.all([loadData(true), loadTrajectory()]);
       clearInterval(resetTimerRef.current);
       const finalElapsed = Math.floor((Date.now() - start) / 1000);
