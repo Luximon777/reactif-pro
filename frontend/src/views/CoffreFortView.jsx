@@ -497,12 +497,20 @@ const CoffreFortView = ({ token }) => {
                             if (e.target.checked) {
                               try {
                                 await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "valide" });
-                                toast.success("Preuve validée");
+                                // Auto-contribute to OPC if workplace is certified
+                                try {
+                                  const opcRes = await axios.post(`${API}/opc/contribute?token=${token}`, { document_id: doc.id });
+                                  toast.success(opcRes.data.message || "Preuve validée et envoyée à l'OPC");
+                                } catch {
+                                  toast.success("Preuve validée");
+                                }
                                 loadAll();
                               } catch { toast.error("Erreur"); }
                             } else {
                               try {
                                 await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "auto_declare" });
+                                // Remove OPC contribution
+                                try { await axios.delete(`${API}/opc/contribute/${doc.id}?token=${token}`); } catch {}
                                 loadAll();
                               } catch { toast.error("Erreur"); }
                             }

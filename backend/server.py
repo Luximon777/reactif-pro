@@ -9351,6 +9351,209 @@ async def set_opc_consent(token: str, body: dict):
     return {"success": True, "opc_consent": opc_consent}
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# OPC — CONTRIBUTIONS & FICHES MÉTIER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.post("/opc/contribute")
+async def opc_contribute(token: str, body: dict):
+    """
+    Contribute a validated + certified proof to the OPC.
+    Creates/updates the fiche métier for the job title and enriches the OPC database.
+    """
+    token_doc = await get_current_token(token)
+    document_id = body.get("document_id", "")
+
+    if not document_id:
+        raise HTTPException(400, "document_id requis")
+
+    # Get the coffre document
+    coffre_doc = await db.coffre_documents.find_one({"id": document_id, "token_id": token_doc["id"]})
+    if not coffre_doc:
+        raise HTTPException(404, "Document non trouvé")
+
+    if coffre_doc.get("trust_level") != "valide":
+        raise HTTPException(400, "Le document doit être validé avant de contribuer à l'OPC")
+
+    # Get the linked experience to check contract
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if not passport:
+        raise HTTPException(404, "Passeport non trouvé")
+
+    exp_id = coffre_doc.get("linked_experience_id")
+    experience = next((e for e in passport.get("experiences", []) if e.get("id") == exp_id), None)
+    if not experience:
+        raise HTTPException(404, "Expérience liée non trouvée")
+
+    if not experience.get("proof_document"):
+        raise HTTPException(400, "Un contrat de travail est nécessaire pour contribuer à l'OPC (niveau Certifié requis)")
+
+    # Get the illustration S.A.R.E data
+    soft_skill = coffre_doc.get("linked_soft_skill", "")
+    illustration = await db.skill_illustrations.find_one({
+        "token_id": token_doc["id"],
+        "experience_id": exp_id,
+        "soft_skill": soft_skill,
+    })
+
+    job_title = experience.get("title", "Non spécifié")
+    organization = coffre_doc.get("linked_organization", experience.get("organization", ""))
+
+    # Build contribution
+    contribution_id = str(uuid.uuid4())
+    contribution = {
+        "id": contribution_id,
+        "token_id": token_doc["id"],
+        "document_id": document_id,
+        "experience_id": exp_id,
+        "organization": organization,
+        "job_title": job_title,
+        "soft_skill": soft_skill,
+        "sare_situation": illustration.get("sare_situation", "") if illustration else "",
+        "sare_action": illustration.get("sare_action", "") if illustration else "",
+        "sare_resultat": illustration.get("sare_resultat", "") if illustration else "",
+        "sare_enseignement": illustration.get("sare_enseignement", "") if illustration else "",
+        "sare_text": illustration.get("sare_text", "") if illustration else "",
+        "contributed_at": datetime.now(timezone.utc).isoformat(),
+        "is_certified": True,
+    }
+
+    # Upsert contribution (avoid duplicates)
+    await db.opc_contributions.update_one(
+        {"token_id": token_doc["id"], "document_id": document_id},
+        {"$set": contribution},
+        upsert=True,
+    )
+
+    # Update/create fiche métier OPC
+    fiche = await db.fiches_metier_opc.find_one({"job_title": job_title})
+    if not fiche:
+        fiche = {
+            "id": str(uuid.uuid4()),
+            "job_title": job_title,
+            "competences": {},
+            "total_contributors": 0,
+            "organizations": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    # Update competences for this soft skill
+    competences = fiche.get("competences", {})
+    if soft_skill not in competences:
+        competences[soft_skill] = {"contributors_count": 0, "examples": []}
+
+    # Check if this contributor already added for this skill
+    existing_ids = [ex.get("contribution_id") for ex in competences[soft_skill]["examples"]]
+    if contribution_id not in existing_ids:
+        competences[soft_skill]["contributors_count"] += 1
+        competences[soft_skill]["examples"].append({
+            "contribution_id": contribution_id,
+            "sare_situation": contribution["sare_situation"],
+            "sare_action": contribution["sare_action"],
+            "sare_resultat": contribution["sare_resultat"],
+            "sare_enseignement": contribution["sare_enseignement"],
+            "organization": organization,
+            "contributed_at": contribution["contributed_at"],
+        })
+
+    # Update organizations list
+    orgs_set = set(fiche.get("organizations", []))
+    orgs_set.add(organization)
+
+    # Count unique contributors
+    all_contribs = await db.opc_contributions.distinct("token_id", {"job_title": job_title})
+
+    await db.fiches_metier_opc.update_one(
+        {"job_title": job_title},
+        {"$set": {
+            **fiche,
+            "competences": competences,
+            "total_contributors": len(all_contribs),
+            "organizations": list(orgs_set),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+
+    # Mark coffre doc as contributed to OPC
+    await db.coffre_documents.update_one(
+        {"id": document_id},
+        {"$set": {"opc_contributed": True, "opc_contribution_id": contribution_id}}
+    )
+
+    return {
+        "success": True,
+        "contribution_id": contribution_id,
+        "job_title": job_title,
+        "soft_skill": soft_skill,
+        "message": f"La compétence '{soft_skill}' a enrichi la fiche métier '{job_title}' dans l'OPC.",
+    }
+
+
+@api_router.delete("/opc/contribute/{document_id}")
+async def opc_remove_contribution(token: str, document_id: str):
+    """Remove a contribution from the OPC when user unchecks validation."""
+    token_doc = await get_current_token(token)
+
+    contribution = await db.opc_contributions.find_one({"token_id": token_doc["id"], "document_id": document_id})
+    if not contribution:
+        return {"success": True, "message": "Aucune contribution trouvée"}
+
+    job_title = contribution.get("job_title", "")
+    soft_skill = contribution.get("soft_skill", "")
+    contribution_id = contribution.get("id", "")
+
+    # Remove from fiche métier
+    fiche = await db.fiches_metier_opc.find_one({"job_title": job_title})
+    if fiche and soft_skill in fiche.get("competences", {}):
+        fiche["competences"][soft_skill]["examples"] = [
+            ex for ex in fiche["competences"][soft_skill]["examples"]
+            if ex.get("contribution_id") != contribution_id
+        ]
+        fiche["competences"][soft_skill]["contributors_count"] = len(fiche["competences"][soft_skill]["examples"])
+        if fiche["competences"][soft_skill]["contributors_count"] == 0:
+            del fiche["competences"][soft_skill]
+
+        all_contribs = await db.opc_contributions.distinct("token_id", {"job_title": job_title, "id": {"$ne": contribution_id}})
+        await db.fiches_metier_opc.update_one(
+            {"job_title": job_title},
+            {"$set": {
+                "competences": fiche["competences"],
+                "total_contributors": len(all_contribs),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+
+    # Remove contribution
+    await db.opc_contributions.delete_one({"id": contribution_id})
+
+    # Unmark coffre doc
+    await db.coffre_documents.update_one(
+        {"id": document_id},
+        {"$unset": {"opc_contributed": "", "opc_contribution_id": ""}}
+    )
+
+    return {"success": True}
+
+
+@api_router.get("/opc/fiche-metier/{job_title}")
+async def get_fiche_metier_opc(job_title: str):
+    """Get the OPC fiche métier for a given job title (public)."""
+    fiche = await db.fiches_metier_opc.find_one({"job_title": job_title})
+    if not fiche:
+        return {"found": False, "job_title": job_title}
+    fiche.pop("_id", None)
+    return {"found": True, **fiche}
+
+
+@api_router.get("/opc/fiches-metier")
+async def list_fiches_metier_opc():
+    """List all OPC fiches métier (public)."""
+    fiches = await db.fiches_metier_opc.find().to_list(500)
+    for f in fiches:
+        f.pop("_id", None)
+    return {"fiches": fiches, "total": len(fiches)}
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOCUMENT PROOF UPLOAD (Certification officielle des expériences)
