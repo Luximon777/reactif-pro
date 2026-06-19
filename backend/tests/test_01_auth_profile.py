@@ -1,7 +1,9 @@
 """Tests de régression — Auth & Profile"""
 import requests
 import pytest
-from conftest import BASE, TEST_USER
+import os
+BASE = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://cv-analyzer-53.preview.emergentagent.com')}/api"
+TEST_USER = {"pseudo": "test_regression", "password": "TestReg2026!"}
 
 
 class TestAuth:

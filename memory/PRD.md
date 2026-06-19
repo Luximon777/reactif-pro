@@ -86,8 +86,13 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - P3 : Micro-titres/badges
 
 
+### Phase 4c - Coach Virtuel continu (DONE - 19/06/2026)
+- Fix: Le coach affiche désormais des conseils avancés (Portefeuille, Job Dating, Observatoire, CV ciblé) quand les 4 étapes de base sont complétées
+- Backend: Endpoint `/api/coach/progress` enrichi avec `advanced_next_steps` et `tips` haute priorité pour `completed == 4`
+- Frontend: Nouveau banner "Continuez à enrichir votre profil" dans `CoachVirtuel.jsx` avec bouton d'action et conseils personnalisés
+
 ## Tests de Régression (19/06/2026)
-- 37 tests pytest couvrant: Auth (4), Profile (3), D'CLIC PRO submit/retrieve/claim/import (8), Coach (3), Passport reset (5), Observatoire/Evolution (6), Job Match (4)
+- 37 tests pytest couvrant: Auth (4), Profile (3), D'CLIC PRO submit/retrieve/claim/import (8), Coach (3), Passport reset (5+dclic), Observatoire/Evolution (6), Job Match (4)
 - Commande: `cd /app/backend/tests && python -m pytest -v`
 - Fichiers: test_01_auth_profile.py, test_02_dclic.py, test_03_coach_passport.py, test_04_observatoire.py
 - Bugs corrigés pendant les tests: `DISC_ADJACENT` et `calculate_vertu_coherence` manquants dans dclic_scoring.py (job-match 500)

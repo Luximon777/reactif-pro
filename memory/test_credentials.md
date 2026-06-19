@@ -4,6 +4,10 @@
 - Username: mike7
 - Password: Solerys777!
 
+## User Account (profil vierge)
+- Username: paul9
+- Password: Solerys777!
+
 ## Admin Account
 - Email: admin@reactifpro.fr
 - Password: Choukette@777

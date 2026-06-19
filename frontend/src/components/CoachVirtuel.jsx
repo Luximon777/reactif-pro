@@ -30,13 +30,14 @@ const STEP_NEXT_MESSAGES = {
   4: { msg: "Félicitations ! Toutes les étapes sont complétées. Votre profil RE'ACTIF PRO est complet !", icon: "trophy" },
 };
 
-const TIP_ICONS = { lightbulb: Lightbulb, rocket: Rocket, plus: Plus, target: Target, download: Download };
+const TIP_ICONS = { lightbulb: Lightbulb, rocket: Rocket, plus: Plus, target: Target, download: Download, shield: Award, calendar: Target, refresh: TrendingUp, compass: Target };
 
 /* ───── Steps View (compact) ───── */
 const StepsView = ({ progress, onAction }) => {
   const nextStep = progress.steps.find(s => s.id === progress.current_step && !s.complete);
   const tips = progress.tips || [];
   const nextInfo = progress.next_step;
+  const allComplete = progress.completed >= progress.total;
 
   return (
     <div className="p-3 space-y-2">
@@ -92,6 +93,38 @@ const StepsView = ({ progress, onAction }) => {
           )}
           {nextInfo.impact && (
             <p className="text-[10px] text-amber-600 mt-1 italic">{nextInfo.impact}</p>
+          )}
+        </motion.div>
+      )}
+
+      {/* Advanced continuation banner when ALL 4 steps are complete */}
+      {allComplete && nextInfo && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300/60 p-3 mb-1"
+          data-testid="advanced-next-step-banner"
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Trophy className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold text-emerald-800">Continuez à enrichir votre profil</span>
+          </div>
+          {nextInfo.hint && (
+            <p className="text-[11px] text-emerald-800 leading-relaxed">{nextInfo.hint}</p>
+          )}
+          {nextInfo.impact && (
+            <p className="text-[10px] text-emerald-600 mt-1 italic">{nextInfo.impact}</p>
+          )}
+          {nextInfo.path && (
+            <Button
+              size="sm"
+              className="mt-2 h-7 text-[11px] px-3 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm"
+              onClick={() => onAction({ action_type: "navigate", action_path: nextInfo.path, id: 5 })}
+              data-testid="advanced-next-step-action-btn"
+            >
+              Découvrir
+              <ArrowRight className="w-3 h-3 ml-1" />
+            </Button>
           )}
         </motion.div>
       )}
