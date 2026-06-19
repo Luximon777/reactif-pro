@@ -11,19 +11,20 @@ Plateforme full-stack d'analyse et de développement des compétences profession
 ## Architecture
 ```
 /app/backend/
-├── server.py             # API principal (~9539 lignes, en cours de refactoring)
+├── server.py             # API principal (~9570 lignes, en cours de refactoring)
 ├── database.py           # DB partagée, helpers (_infer_sectors, get_current_token)
 ├── routes/
 │   ├── __init__.py
 │   └── jobdating.py      # Module Job Dating extrait (337 lignes)
 ├── opc/                  # Modules OPC dédiés
 ├── scripts/
-│   └── enrich_ck1_ia.py  # Script enrichissement IA CK1
+│   ├── enrich_ck1_ia.py          # Script enrichissement CK1
+│   └── enrich_hard_soft_skills.py # Script enrichissement Hard/Soft Skills
 └── tests/
 
 /app/frontend/src/
 ├── pages/
-│   └── OpcDediePage.jsx  # Dashboard OPC + Référentiel Vivant (7 colonnes CK1)
+│   └── OpcDediePage.jsx  # Dashboard OPC + Référentiel Vivant (6 colonnes, badges validation, modale preuve)
 ├── views/
 │   ├── CoffreFortView.jsx # Coffre-fort S.A.R.E
 │   └── OpportunitesView.jsx
@@ -38,27 +39,25 @@ Plateforme full-stack d'analyse et de développement des compétences profession
 - Profil utilisateur, import CV, analyse IA
 
 ### Phase 2 — Coffre-fort & Preuves S.A.R.E
-- Portefeuille de compétences avec preuves S.A.R.E (Situation, Action, Résultat, Enseignement)
+- Portefeuille de compétences avec preuves S.A.R.E
 - Validation par case à cocher + envoi automatique à l'OPC si contrat certifié
-- Upload de contrats de travail, bouton d'actualisation
+- Upload de contrats de travail
 
 ### Phase 3 — OPC (Observatoire Prédictif des Compétences)
 - Page autonome /opc avec navigation sidebar
-- Tableau récapitulatif (Couche 2 Intelligence)
-- Référentiel Vivant avec 7 colonnes : Métier, Hard Skills, Soft Skills, Qualités humaines, Vertus, Valeurs, Source
-- Import de 68 fiches métiers depuis FILIERES PROFESSIONNELLES.ods
-- Enrichissement CK1 complet (68/68 fiches) : Vertus, Valeurs, Qualités humaines, Compétences cognitives/émotionnelles/sociales
-- Détail expansé avec sections CK1 colorées
+- Référentiel Vivant avec 6 colonnes : Métier, Hard Skills, Soft Skills, Qualités humaines, Vertus, Valeurs
+- 68 fiches métiers enrichies CK1 + Hard/Soft Skills via IA
+- **Badges de validation terrain** : compétences prouvées S.A.R.E en vert + compteur contributeurs
+- **Modale de preuve** : visualisation S.A.R.E complète au clic (Situation, Action, Résultat, Enseignement)
+- Recherche multi-mots avec scoring de pertinence (filtre résultats peu pertinents)
 
 ### Phase 4 — Job Matching & France Travail
-- Filtrage ROME automatique basé sur le profil utilisateur (expériences, compétences, D'CLIC)
+- Filtrage ROME automatique basé sur le profil utilisateur
 - Recherche manuelle de codes ROME avec dropdown autocomplete
-- Intégration API France Travail avec code ROME en paramètre
-- 12 suggestions ROME max par profil
+- Intégration API France Travail
 
 ### Phase 5 — Job Dating
 - Événements personnalisés avec scores de matching
-- Inscription, évaluation, historique
 - Module extrait dans routes/jobdating.py
 
 ### Phase 6 — Coach Virtuel & D'CLIC PRO
@@ -67,28 +66,24 @@ Plateforme full-stack d'analyse et de développement des compétences profession
 
 ### Phase 7 — Trajectoire & CV
 - Génération de CV ciblé par IA
-- Exploration de trajectoire professionnelle
 
 ## Endpoints clés
 - `POST /api/auth/login` — Connexion
-- `GET /api/opc/referentiel/search?q=` — Recherche référentiel OPC
+- `GET /api/opc/referentiel/search?q=` — Recherche référentiel OPC (avec skill_validations)
 - `GET /api/jobs/rome-suggestions?token=` — Suggestions ROME auto
 - `GET /api/jobs/rome-search?q=` — Recherche codes ROME
 - `POST /api/jobs/france-travail/search` — Recherche France Travail
 - `GET /api/jobdating/events` — Événements Job Dating
-- `PATCH /api/coffre/documents/{id}` — Mise à jour preuve
 
 ## Collections MongoDB clés
-- `users` — Comptes utilisateurs
-- `profiles` / `passports` — Profils et données professionnelles
-- `referentiel_opc` — 68 fiches métiers enrichies CK1
+- `referentiel_opc` — 68 fiches métiers enrichies CK1 + Hard/Soft Skills
+- `fiches_metier_opc` — Contributions terrain (preuves S.A.R.E par compétence)
 - `rome_metiers` — 1911 codes ROME France Travail
-- `skill_illustrations` — Preuves S.A.R.E
-- `opc_contributions` — Contributions terrain
+- `skill_illustrations` — Preuves S.A.R.E brutes
 
 ## Tâches futures (Backlog)
 - **P2**: Continuer le refactoring server.py (auth, coffre, opc, cv...)
-- **P2**: Modules Soft Skills (CSE) et Valeurs (VIA) indépendants
-- **P2**: Diagnostic fonctionnel CCSP
+- **P2**: Modules Soft Skills (CSE), Valeurs (VIA) indépendants
+- **P2**: Diagnostic CCSP
 - **P3**: Ateliers Codéveloppement
 - **P3**: Micro-titres/badges Ubuntoo

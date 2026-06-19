@@ -9340,6 +9340,26 @@ async def search_referentiel_opc(q: str = ""):
     contributions = await db.fiches_metier_opc.find({
         "job_title": regex
     }).to_list(50)
+
+    # Build a global skill validation map from ALL terrain contributions
+    all_contributions = await db.fiches_metier_opc.find({}, {"_id": 0}).to_list(200)
+    skill_validations = {}  # {"skill_name": {"count": N, "proofs": [...]}}
+    for contrib in all_contributions:
+        for skill_name, skill_data in (contrib.get("competences") or {}).items():
+            sk_lower = skill_name.strip().lower()
+            if sk_lower not in skill_validations:
+                skill_validations[sk_lower] = {"name": skill_name, "count": 0, "proofs": []}
+            skill_validations[sk_lower]["count"] += skill_data.get("contributors_count", 0)
+            for ex in (skill_data.get("examples") or []):
+                skill_validations[sk_lower]["proofs"].append({
+                    "job_title": contrib.get("job_title", ""),
+                    "organization": ex.get("organization", ""),
+                    "sare_situation": ex.get("sare_situation", ""),
+                    "sare_action": ex.get("sare_action", ""),
+                    "sare_resultat": ex.get("sare_resultat", ""),
+                    "sare_enseignement": ex.get("sare_enseignement", ""),
+                })
+
     for r in results:
         r.pop("_id", None)
         # Merge terrain contributions if matching
@@ -9348,9 +9368,12 @@ async def search_referentiel_opc(q: str = ""):
                 r["contributions_terrain"] = c.get("competences", {})
                 r["total_contributors"] = c.get("total_contributors", 0)
                 r["organizations"] = c.get("organizations", [])
+        # Attach skill validation counts to each result
+        r["skill_validations"] = skill_validations
+
     for c in contributions:
         c.pop("_id", None)
-    return {"results": results, "contributions": contributions, "total": len(results)}
+    return {"results": results, "contributions": contributions, "total": len(results), "skill_validations": skill_validations}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

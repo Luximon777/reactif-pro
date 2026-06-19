@@ -485,17 +485,44 @@ function DashboardModule({ stats, rncpStats, onRefresh, refreshLoading }) {
 function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
   const [opcResults, setOpcResults] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [skillValidations, setSkillValidations] = useState({});
+  const [proofModal, setProofModal] = useState(null); // {skillName, proofs}
 
   useEffect(() => {
-    if (!query || query.length < 2 || !results) { setOpcResults([]); return; }
+    if (!query || query.length < 2 || !results) { setOpcResults([]); setSkillValidations({}); return; }
     const fetchOpc = async () => {
       try {
         const res = await axios.get(`${API}/opc/referentiel/search?q=${encodeURIComponent(query)}`);
         setOpcResults(res.data?.results || []);
+        setSkillValidations(res.data?.skill_validations || {});
       } catch { setOpcResults([]); }
     };
     fetchOpc();
   }, [results, query]);
+
+  const getValidation = (skillName) => {
+    const key = (skillName || "").trim().toLowerCase();
+    return skillValidations[key] || null;
+  };
+
+  const SkillTag = ({ name, colorClass, borderClass }) => {
+    const validation = getValidation(name);
+    if (validation && validation.count > 0) {
+      return (
+        <button
+          onClick={(e) => { e.stopPropagation(); setProofModal({ skillName: validation.name || name, proofs: validation.proofs || [] }); }}
+          className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] border-2 font-semibold border-emerald-400 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer`}
+          title={`${validation.count} validation(s) terrain — Cliquer pour voir les preuves`}
+          data-testid={`skill-validated-${name}`}
+        >
+          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+          {name}
+          <span className="ml-0.5 px-1 py-0 rounded-full bg-emerald-600 text-white text-[8px] font-bold leading-tight">{validation.count}</span>
+        </button>
+      );
+    }
+    return <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] border ${colorClass} ${borderClass}`}>{name}</span>;
+  };
 
   const sections = [];
   if (results) {
@@ -563,11 +590,8 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
                             <span className="text-[9px] text-slate-400">{r.filiere} — {r.secteur}</span>
                             {hasContribs && <div className="flex items-center gap-1 mt-0.5"><Users className="w-3 h-3 text-cyan-500" /><span className="text-[9px] text-cyan-600 font-medium">{r.total_contributors} contributeur{r.total_contributors > 1 ? "s" : ""}</span></div>}
                           </td>
-                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{hardSkills.slice(0, 3).map((s, i) => <span key={i} className="inline-block bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-[10px] border border-blue-100">{s}</span>)}{hardSkills.length > 3 && <span className="text-[10px] text-slate-400">+{hardSkills.length - 3}</span>}{hardSkills.length === 0 && <span className="text-slate-400 italic text-[10px]">—</span>}</div></td>
-                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{softSkills.slice(0, 3).map((s, i) => {
-                            const isProved = contribSkills.includes(s);
-                            return <span key={i} className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] border font-medium ${isProved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-600 border-slate-200"}`}>{isProved && <CheckCircle2 className="w-3 h-3" />}{s}</span>;
-                          })}{softSkills.length > 3 && <span className="text-[10px] text-slate-400">+{softSkills.length - 3}</span>}{softSkills.length === 0 && <span className="text-slate-400 italic text-[10px]">—</span>}</div></td>
+                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{hardSkills.slice(0, 3).map((s, i) => <SkillTag key={i} name={s} colorClass="bg-blue-50 text-blue-700" borderClass="border-blue-100" />)}{hardSkills.length > 3 && <span className="text-[10px] text-slate-400">+{hardSkills.length - 3}</span>}{hardSkills.length === 0 && <span className="text-slate-400 italic text-[10px]">—</span>}</div></td>
+                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{softSkills.slice(0, 3).map((s, i) => <SkillTag key={i} name={s} colorClass="bg-slate-50 text-slate-600" borderClass="border-slate-200" />)}{softSkills.length > 3 && <span className="text-[10px] text-slate-400">+{softSkills.length - 3}</span>}{softSkills.length === 0 && <span className="text-slate-400 italic text-[10px]">—</span>}</div></td>
                           <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{allQualites.slice(0, 2).map((q, i) => <span key={i} className="inline-block bg-rose-50 text-rose-700 rounded px-1.5 py-0.5 text-[10px] border border-rose-100">{typeof q === "string" ? q.split(":")[0] : q}</span>)}{allQualites.length > 2 && <span className="text-[10px] text-slate-400">+{allQualites.length - 2}</span>}</div></td>
                           <td className="px-3 py-2.5">{hasCk1 ? <div className="flex flex-wrap gap-1">{(r.ck1_vertus || []).slice(0, 3).map((v, i) => <span key={i} className="inline-block bg-purple-50 text-purple-700 rounded px-1.5 py-0.5 text-[10px] border border-purple-100">{v}</span>)}{(r.ck1_vertus || []).length > 3 && <span className="text-[10px] text-slate-400">+{r.ck1_vertus.length - 3}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
                           <td className="px-3 py-2.5">{mergedValeurs.length > 0 ? <div className="flex flex-wrap gap-1">{mergedValeurs.slice(0, 2).map((v, i) => <span key={i} className="inline-block bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 text-[10px] border border-amber-100">{v}</span>)}{mergedValeurs.length > 2 && <span className="text-[10px] text-slate-400">+{mergedValeurs.length - 2}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
@@ -672,6 +696,64 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
             </div>
           ))}
           {sections.length === 0 && opcResults.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
+        </div>
+      )}
+
+      {/* Modale de visualisation de preuve S.A.R.E */}
+      {proofModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setProofModal(null)} data-testid="proof-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="proof-modal">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Preuves terrain : {proofModal.skillName}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">{proofModal.proofs.length} preuve{proofModal.proofs.length > 1 ? "s" : ""} S.A.R.E certifiée{proofModal.proofs.length > 1 ? "s" : ""}</p>
+              </div>
+              <button onClick={() => setProofModal(null)} className="text-slate-400 hover:text-slate-700 text-lg font-bold" data-testid="proof-modal-close">✕</button>
+            </div>
+            <div className="p-5 space-y-3">
+              {proofModal.proofs.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-4">Aucune preuve détaillée disponible</p>
+              )}
+              {proofModal.proofs.map((proof, i) => (
+                <div key={i} className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2" data-testid={`proof-card-${i}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-cyan-100 flex items-center justify-center"><Briefcase className="w-3.5 h-3.5 text-cyan-700" /></div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">{proof.job_title}</p>
+                      <p className="text-[10px] text-slate-500">{proof.organization}</p>
+                    </div>
+                  </div>
+                  {proof.sare_situation && (
+                    <div className="flex gap-2">
+                      <span className="w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 flex items-center justify-center shrink-0">S</span>
+                      <p className="text-[11px] text-slate-700 leading-relaxed">{proof.sare_situation}</p>
+                    </div>
+                  )}
+                  {proof.sare_action && (
+                    <div className="flex gap-2">
+                      <span className="w-5 h-5 rounded bg-blue-100 text-[9px] font-black text-blue-800 flex items-center justify-center shrink-0">A</span>
+                      <p className="text-[11px] text-slate-700 leading-relaxed">{proof.sare_action}</p>
+                    </div>
+                  )}
+                  {proof.sare_resultat && (
+                    <div className="flex gap-2">
+                      <span className="w-5 h-5 rounded bg-emerald-100 text-[9px] font-black text-emerald-800 flex items-center justify-center shrink-0">R</span>
+                      <p className="text-[11px] text-slate-700 leading-relaxed">{proof.sare_resultat}</p>
+                    </div>
+                  )}
+                  {proof.sare_enseignement && (
+                    <div className="flex gap-2">
+                      <span className="w-5 h-5 rounded bg-purple-100 text-[9px] font-black text-purple-800 flex items-center justify-center shrink-0">E</span>
+                      <p className="text-[11px] text-slate-700 leading-relaxed">{proof.sare_enseignement}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
