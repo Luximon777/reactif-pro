@@ -462,7 +462,7 @@ const CoffreFortView = ({ token }) => {
               {documents.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-6">Aucune preuve déposée. Ajoutez vos diplômes, attestations et certificats.</p>
               ) : documents.map(doc => {
-                const trustLabels = { auto_declare: { l: "Auto-déclaré", c: "slate" }, verifie: { l: "Vérifié", c: "blue" }, valide: { l: "Validé RE'ACTIF PRO", c: "amber" }, certifie: { l: "Certifié", c: "emerald" } };
+                const trustLabels = { auto_declare: { l: "En attente", c: "slate" }, verifie: { l: "Vérifié", c: "blue" }, valide: { l: "Validé", c: "emerald" }, certifie: { l: "Certifié", c: "emerald" } };
                 const sourceLabels = { utilisateur: "Utilisateur", organisme: "Organisme", employeur: "Employeur", conseiller: "Conseiller", systeme: "RE'ACTIF PRO" };
                 const tl = trustLabels[doc.trust_level] || trustLabels.auto_declare;
                 return (
