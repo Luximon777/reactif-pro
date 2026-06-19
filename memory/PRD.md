@@ -84,3 +84,10 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - P2 : Diagnostic CCSP
 - P3 : Ateliers Codéveloppement
 - P3 : Micro-titres/badges
+
+
+## Tests de Régression (19/06/2026)
+- 37 tests pytest couvrant: Auth (4), Profile (3), D'CLIC PRO submit/retrieve/claim/import (8), Coach (3), Passport reset (5), Observatoire/Evolution (6), Job Match (4)
+- Commande: `cd /app/backend/tests && python -m pytest -v`
+- Fichiers: test_01_auth_profile.py, test_02_dclic.py, test_03_coach_passport.py, test_04_observatoire.py
+- Bugs corrigés pendant les tests: `DISC_ADJACENT` et `calculate_vertu_coherence` manquants dans dclic_scoring.py (job-match 500)

@@ -1448,6 +1448,39 @@ def compute_profile(answers: Dict[str, str]) -> Dict[str, Any]:
     }
 
 
+DISC_ADJACENT = {
+    "D": {"I", "C"},
+    "I": {"D", "S"},
+    "S": {"I", "C"},
+    "C": {"D", "S"},
+}
+
+
+# Adjacence des Vertus pour calculer la cohérence
+VERTU_ADJACENT = {
+    "sagesse": {"temperance", "justice"},
+    "courage": {"justice", "transcendance"},
+    "humanite": {"justice", "transcendance"},
+    "justice": {"sagesse", "courage", "humanite"},
+    "temperance": {"sagesse", "courage"},
+    "transcendance": {"courage", "humanite"},
+}
+
+def calculate_vertu_coherence(user_vertu_key: str, metier_id: str) -> float:
+    """Calculate coherence between user's dominant virtue and job's natural virtue.
+    Returns: 1.0 (perfect match), 0.7 (adjacent), 0.3 (distant)
+    """
+    metier_vertu = get_vertu_for_metier(metier_id)
+    if not user_vertu_key or not metier_vertu:
+        return 0.5
+    if user_vertu_key == metier_vertu:
+        return 1.0
+    if metier_vertu in VERTU_ADJACENT.get(user_vertu_key, set()):
+        return 0.7
+    return 0.3
+
+
+
 def disc_similarity(user_disc: str, job_discs: List[str]) -> float:
     """Calculate DISC similarity score - optimisé pour des scores plus élevés."""
     user_disc = user_disc.upper()
