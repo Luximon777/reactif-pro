@@ -77,9 +77,18 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - GET /api/dclic/my-results — Résultats D'CLIC de l'utilisateur connecté
 - GET /api/dclic/filieres, /api/dclic/metiers, /api/dclic/vertus
 
+### Phase 4g - Archéologie des compétences CK1 (DONE - 19/06/2026)
+- Import de 68 fiches métiers depuis `FILIERES PROFESSIONNELLES.ods` dans `referentiel_opc`
+- Enrichissement de 8 fiches avec les données du `TABLEAU CK1.xlsx` (Vertus, Valeurs, Qualités humaines, Compétences cognitives/émotionnelles/sociales)
+- Endpoint `/api/opc/referentiel/search` enrichi : recherche sur champs CK1 (ck1_vertus, ck1_valeurs, ck1_qualites_humaines, ck1_comp_cognitives, ck1_comp_emotionnelles, ck1_comp_sociales)
+- Tableau Référentiel Vivant OPC : 7 colonnes (Métier, Hard Skills, Soft Skills, Qualités humaines, Vertus, Valeurs, Source)
+- Badge "Référentiel CK1" pour les fiches enrichies, "Référentiel RE'ACTIF PRO" pour les autres
+- Détail expansé avec sections CK1 (compétences cognitives, émotionnelles, sociales, qualités, valeurs, vertus)
+- Tests 100% backend + frontend (test_opc_referentiel_ck1.py)
+
 ## Tâches futures (Backlog)
 - P1 : Filtrage ROME automatique France Travail
-- P2 : Refactoring server.py → modules (~9500 lignes)
+- P2 : Refactoring server.py → modules (~9800 lignes)
 - P2 : Modules Soft Skills (CSE), Valeurs (VIA) indépendants
 - P2 : Diagnostic CCSP
 - P3 : Ateliers Codéveloppement
