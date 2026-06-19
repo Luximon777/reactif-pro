@@ -145,14 +145,24 @@ const AdminGate = ({ onAuthenticated }) => {
       toast.info("Les accès sont actuellement fermés par l'administrateur.");
       return;
     }
-    // Admin bypass for employer/partner only — personnel & vsi always shows auth modal
-    if (authenticated && selectedStatus?.key === "admin" && space.key !== "personnel" && space.key !== "vsi" && space.key !== "observatoire") {
+    // Observatoire is always public
+    if (space.key === "observatoire") {
+      window.location.href = "/observatoire";
+      return;
+    }
+    // Admin bypass for ALL spaces (auto-login)
+    if (authenticated && selectedStatus?.key === "admin") {
       setLoading(true);
       try {
         let loginData;
         if (space.key === "employeur") {
           const res = await axios.post(`${API}/auth/login-pro`, { pseudo: "rh@reactifpro.fr", password: "Reactif@pro2026!" });
           loginData = { ...res.data, role: "entreprise", authMode: "pseudo" };
+        } else if (space.key === "personnel" || space.key === "vsi") {
+          const res = await axios.post(`${API}/auth/login`, { pseudo: "admin@reactifpro.fr", password: "Choukette@777" });
+          const targetRole = space.key === "vsi" ? "vsi" : "particulier";
+          try { await axios.post(`${API}/auth/switch-role?token=${res.data.token}&new_role=${targetRole}`); } catch {}
+          loginData = { ...res.data, role: targetRole, authMode: "pseudo" };
         } else {
           const res = await axios.post(`${API}/auth/login-pro`, { pseudo: "admin@reactifpro.fr", password: "Choukette@777" });
           loginData = { ...res.data, role: "partenaire", authMode: "pseudo" };
@@ -189,9 +199,6 @@ const AdminGate = ({ onAuthenticated }) => {
     } else if (space.key === "vsi") {
       setAuthModalDefaultRole("vsi");
       setAuthModalOpen(true);
-    } else if (space.key === "observatoire") {
-      window.location.href = "/observatoire";
-      return;
     } else if (space.key === "employeur") {
       setProModalRole("entreprise");
       setProModalOpen(true);

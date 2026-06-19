@@ -7095,7 +7095,7 @@ async def on_startup():
                 logger.info("[Seed] ROME France Travail importé")
             except Exception as e:
                 logger.warning(f"[Seed] ROME non importé: {e}")
-        # Seed default users
+        # Seed default users (idempotent: update password+role if user already exists)
         for pseudo, pwd, role in [
             ("marc19", "Solerys777!", "particulier"),
             ("mike7", "Solerys777!", "particulier"),
@@ -7113,6 +7113,12 @@ async def on_startup():
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 })
                 logger.info(f"[Seed] Utilisateur {pseudo} créé")
+            else:
+                await db.users.update_one(
+                    {"pseudo": pseudo},
+                    {"$set": {"password": _hash_pw(pwd), "role": role}},
+                )
+                logger.info(f"[Seed] Utilisateur {pseudo} mis à jour (password+role)")
     except Exception as e:
         logger.error(f"[Startup error] {e}")
 
