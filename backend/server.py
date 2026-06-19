@@ -6152,7 +6152,7 @@ async def get_coach_progress(token: str):
         next_info = next_step_messages.get(current_step, {})
 
         if not has_cv:
-            message = f"Bienvenue ! {next_info.get('hint', '')} {next_info.get('impact', '')}"
+            message = "Bienvenue ! Commencez par importer votre CV pour que l'IA analyse votre profil."
             emoji = "wave"
         elif completed == 4:
             emoji = "trophy"
