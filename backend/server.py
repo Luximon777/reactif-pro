@@ -1280,6 +1280,81 @@ async def jobs_apply_early(token: str, body: dict = {}):
     return {"success": True, "already_applied": False, "message": "Candidature enregistrée", "application_id": app_doc["id"]}
 
 
+@api_router.get("/jobs/rome-suggestions")
+async def get_rome_suggestions(token: str):
+    """Suggère des codes ROME basés sur le profil utilisateur (expériences, compétences, D'CLIC)."""
+    import re as re_module
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
+    search_terms = []
+    for exp in (passport or {}).get("experiences", []):
+        if isinstance(exp, dict) and exp.get("title"):
+            search_terms.append(exp["title"])
+    for sec in (profile or {}).get("sectors", []):
+        if sec:
+            search_terms.append(sec)
+    for skill in (profile or {}).get("skills", [])[:10]:
+        name = skill.get("name", "") if isinstance(skill, dict) else str(skill)
+        if name and len(name) > 3:
+            search_terms.append(name)
+    dclic = await db.dclic_results.find_one({"token_id": token_doc["id"]}, {"_id": 0, "job_matches": 1})
+    if dclic:
+        for jm in (dclic.get("job_matches") or [])[:5]:
+            if isinstance(jm, dict) and jm.get("metier"):
+                search_terms.append(jm["metier"])
+
+    if not search_terms:
+        return {"suggestions": [], "message": "Complétez votre profil ou passez le test D'CLIC PRO pour obtenir des suggestions ROME."}
+
+    seen_codes = set()
+    suggestions = []
+    for term in search_terms[:15]:
+        words = [w for w in term.split() if len(w) > 3]
+        if not words:
+            words = [term]
+        escaped = [re_module.escape(w) for w in words[:3]]
+        regex_parts = "|".join(escaped)
+        regex = {"$regex": regex_parts, "$options": "i"}
+        try:
+            matches = await db.rome_metiers.find({"libelle": regex}, {"_id": 0}).to_list(3)
+        except Exception:
+            continue
+        for m in matches:
+            code = m.get("code_rome", "")
+            if code and code not in seen_codes:
+                seen_codes.add(code)
+                suggestions.append({
+                    "code_rome": code,
+                    "libelle": m.get("libelle", ""),
+                    "domaine": m.get("grand_domaine_nom", ""),
+                    "matched_from": term,
+                })
+    return {"suggestions": suggestions[:12]}
+
+
+@api_router.get("/jobs/rome-search")
+async def search_rome_codes(q: str = ""):
+    """Recherche de codes ROME par texte libre."""
+    import re as re_module
+    if not q or len(q) < 2:
+        return {"results": [], "total": 0}
+    escaped_q = re_module.escape(q)
+    regex = {"$regex": escaped_q, "$options": "i"}
+    metiers = await db.rome_metiers.find(
+        {"$or": [{"libelle": regex}, {"code_rome": regex}]},
+        {"_id": 0}
+    ).to_list(20)
+    results = [{
+        "code_rome": m.get("code_rome", ""),
+        "libelle": m.get("libelle", ""),
+        "domaine": m.get("grand_domaine_nom", ""),
+    } for m in metiers]
+    return {"results": results, "total": len(results)}
+
+
+
 @api_router.get("/jobs/{job_id}")
 async def get_job(job_id: str):
     """Get job details"""

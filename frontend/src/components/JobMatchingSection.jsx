@@ -129,13 +129,44 @@ const JobMatchingSection = ({ token }) => {
   const [ftDepartement, setFtDepartement] = useState("");
   const [ftMotsCles, setFtMotsCles] = useState("");
   const [ftVille, setFtVille] = useState("");
+  const [romeSuggestions, setRomeSuggestions] = useState([]);
+  const [selectedRome, setSelectedRome] = useState(null);
+  const [romeSearchQ, setRomeSearchQ] = useState("");
+  const [romeSearchResults, setRomeSearchResults] = useState([]);
+  const [loadingRome, setLoadingRome] = useState(false);
+  const [romeDropdownOpen, setRomeDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (token) {
       loadPreferences();
       loadApplications();
+      loadRomeSuggestions();
     }
   }, [token]);
+
+  const loadRomeSuggestions = async () => {
+    try {
+      const res = await axios.get(`${API}/jobs/rome-suggestions?token=${token}`);
+      setRomeSuggestions(res.data.suggestions || []);
+    } catch {}
+  };
+
+  const searchRomeCodes = async (q) => {
+    setRomeSearchQ(q);
+    if (q.length < 2) { setRomeSearchResults([]); return; }
+    try {
+      const res = await axios.get(`${API}/jobs/rome-search?q=${encodeURIComponent(q)}`);
+      setRomeSearchResults(res.data.results || []);
+      setRomeDropdownOpen(true);
+    } catch { setRomeSearchResults([]); }
+  };
+
+  const selectRomeCode = (rome) => {
+    setSelectedRome(rome);
+    setRomeSearchQ("");
+    setRomeSearchResults([]);
+    setRomeDropdownOpen(false);
+  };
 
   const loadApplications = async () => {
     try {
@@ -323,8 +354,8 @@ const JobMatchingSection = ({ token }) => {
   };
 
   const handleFTSearch = async () => {
-    if (!ftMotsCles && !ftDepartement && !ftVille) {
-      toast.info("Renseignez au moins un critère (métier, ville ou département)");
+    if (!ftMotsCles && !ftDepartement && !ftVille && !selectedRome) {
+      toast.info("Renseignez au moins un critère (métier, ville, département ou code ROME)");
       return;
     }
     setLoadingFT(true);
@@ -333,12 +364,13 @@ const JobMatchingSection = ({ token }) => {
       if (ftDepartement) payload.departement = ftDepartement;
       if (ftMotsCles) payload.motsCles = ftMotsCles;
       if (ftVille) payload.motsCles = ftMotsCles ? `${ftMotsCles} ${ftVille}` : ftVille;
+      if (selectedRome) payload.code_rome = selectedRome.code_rome;
       const res = await axios.post(`${API}/jobs/france-travail/search?token=${token}`, payload);
       setFtResults(res.data);
       if (res.data.message) {
         toast.info(res.data.message);
       } else {
-        toast.success(`${res.data.matches?.length || 0} offres France Travail trouvées`);
+        toast.success(`${res.data.matches?.length || 0} offres France Travail trouvées${selectedRome ? ` (ROME: ${selectedRome.code_rome})` : ""}`);
       }
     } catch (e) {
       console.error("FT search error:", e);
@@ -434,6 +466,82 @@ const JobMatchingSection = ({ token }) => {
               <p className="text-[11px] text-slate-500">Trouvez des offres d'emploi réelles liées à votre profil</p>
             </div>
           </div>
+
+          {/* ROME Code Selection */}
+          {(romeSuggestions.length > 0 || selectedRome) && (
+            <div className="mb-3" data-testid="rome-suggestions-section">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Target className="w-3.5 h-3.5 text-blue-600" />
+                <span className="text-[11px] font-semibold text-slate-700">Codes ROME détectés depuis votre profil</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedRome && (
+                  <button
+                    onClick={() => setSelectedRome(null)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-600 text-white border border-blue-700 transition-all hover:bg-blue-700"
+                    data-testid="selected-rome-badge"
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {selectedRome.code_rome} — {selectedRome.libelle}
+                    <span className="ml-1 text-blue-200">✕</span>
+                  </button>
+                )}
+                {!selectedRome && romeSuggestions.slice(0, 8).map((r, i) => (
+                  <button
+                    key={r.code_rome + i}
+                    onClick={() => selectRomeCode(r)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-white text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-400 transition-all"
+                    data-testid={`rome-suggestion-${i}`}
+                    title={`${r.domaine} — détecté depuis: ${r.matched_from}`}
+                  >
+                    <span className="font-mono text-blue-500">{r.code_rome}</span>
+                    <span className="text-slate-600 truncate max-w-[180px]">{r.libelle}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ROME Manual Search */}
+          <div className="mb-3 relative" data-testid="rome-manual-search">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input
+                  placeholder="Rechercher un code ROME (ex: K1801, agent entretien...)"
+                  value={romeSearchQ}
+                  onChange={(e) => searchRomeCodes(e.target.value)}
+                  onFocus={() => romeSearchResults.length > 0 && setRomeDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setRomeDropdownOpen(false), 200)}
+                  className="h-8 text-xs pl-8 border-blue-200"
+                  data-testid="rome-search-input"
+                />
+              </div>
+              {selectedRome && (
+                <Badge className="bg-blue-100 text-blue-700 border border-blue-200 text-[10px] shrink-0" data-testid="active-rome-filter">
+                  <Target className="w-3 h-3 mr-1" />
+                  Filtre ROME actif : {selectedRome.code_rome}
+                </Badge>
+              )}
+            </div>
+            {romeDropdownOpen && romeSearchResults.length > 0 && (
+              <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white border border-blue-200 rounded-lg shadow-lg max-h-48 overflow-y-auto" data-testid="rome-dropdown">
+                {romeSearchResults.map((r, i) => (
+                  <button
+                    key={r.code_rome + i}
+                    onMouseDown={() => selectRomeCode(r)}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-slate-100 last:border-0 flex items-center gap-2"
+                    data-testid={`rome-result-${i}`}
+                  >
+                    <span className="font-mono text-blue-600 font-bold shrink-0">{r.code_rome}</span>
+                    <span className="text-slate-700 truncate">{r.libelle}</span>
+                    <span className="text-slate-400 text-[10px] shrink-0 ml-auto">{r.domaine}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="flex-1 flex items-center gap-2">
               <div className="relative flex-1">
