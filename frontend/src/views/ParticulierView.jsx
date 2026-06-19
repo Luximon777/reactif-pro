@@ -1042,6 +1042,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
       formations: "les formations",
       profile: "le résumé, projet pro, motivations, environnements",
       passerelles: "les passerelles métiers",
+      dclic: "les résultats du test D'CLIC PRO",
     };
     setResetModal({ open: true, section: sections, label: sectionLabels[sections] || sections, phase: "confirm", elapsed: 0, progress: 0 });
   };
@@ -1356,6 +1357,15 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
               >
                 <Target className="w-4 h-4 mr-2" />
                 Effacer resume et projet pro
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-violet-600 focus:text-violet-700 focus:bg-violet-50 cursor-pointer"
+                onClick={() => openResetModal("dclic")}
+                disabled={resettingProfile}
+                data-testid="reset-dclic-btn"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Effacer profil D'CLIC PRO
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

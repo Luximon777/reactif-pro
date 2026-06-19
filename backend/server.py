@@ -3158,10 +3158,23 @@ async def reset_passport_sections(token: str, sections: str = "all"):
         })
     elif sections == "passerelles":
         set_fields["passerelles"] = []
+    elif sections == "dclic":
+        unset_fields["dclic_results"] = ""
+        unset_fields["dclic_imported_at"] = ""
+        # Reset dclic_imported flag in profiles
+        await db.profiles.update_one(
+            {"token_id": token_id},
+            {"$set": {"dclic_imported": False}, "$unset": {"dclic_imported_at": ""}}
+        )
+        # Delete D'CLIC test results from dclic_results collection
+        await db.dclic_results.delete_many({"claimed_by": token_id})
     else:
         raise HTTPException(status_code=400, detail=f"Section inconnue: {sections}")
 
-    await db.passports.update_one({"token_id": token_id}, {"$set": set_fields})
+    update_ops = {"$set": set_fields}
+    if unset_fields:
+        update_ops["$unset"] = unset_fields
+    await db.passports.update_one({"token_id": token_id}, update_ops)
 
     # Recalculate completeness
     updated = await db.passports.find_one({"token_id": token_id})
