@@ -65,6 +65,7 @@ const CoffreFortView = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("wallet");
   const [showAdnDetails, setShowAdnDetails] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState(null);
 
   // Share form
   const [showShareForm, setShowShareForm] = useState(false);
@@ -484,27 +485,25 @@ const CoffreFortView = ({ token }) => {
                       )}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`view-doc-${doc.id}`} onClick={async () => {
-                        if (doc.storage_path) {
-                          try {
-                            const res = await axios.get(`${API}/coffre/download/${doc.id}?token=${token}`, { responseType: 'blob' });
-                            const url = window.URL.createObjectURL(new Blob([res.data]));
-                            window.open(url, '_blank');
-                          } catch { toast.error("Erreur lors de la visualisation"); }
-                        } else {
-                          toast.info(doc.description || doc.title);
-                        }
-                      }}><Eye className="w-3.5 h-3.5 text-blue-600" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`view-doc-${doc.id}`} onClick={() => setViewingDoc(doc)}><Eye className="w-3.5 h-3.5 text-blue-600" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`edit-doc-${doc.id}`} onClick={() => {
                         window.location.href = "/dashboard/profil?tab=experiences";
                       }}><Pencil className="w-3.5 h-3.5 text-amber-600" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`validate-doc-${doc.id}`} onClick={async () => {
-                        try {
-                          await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "valide" });
-                          toast.success("Preuve validée");
-                          loadAll();
-                        } catch { toast.error("Erreur lors de la validation"); }
-                      }}><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /></Button>
+                      <label className="inline-flex items-center h-7 w-7 justify-center cursor-pointer" data-testid={`validate-doc-${doc.id}`}>
+                        <input
+                          type="checkbox"
+                          checked={doc.trust_level === "valide"}
+                          onChange={async (e) => {
+                            const newLevel = e.target.checked ? "valide" : "auto_declare";
+                            try {
+                              await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: newLevel });
+                              toast.success(e.target.checked ? "Preuve validée" : "Validation retirée");
+                              loadAll();
+                            } catch { toast.error("Erreur"); }
+                          }}
+                          className="w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        />
+                      </label>
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => handleDelete(doc.id)} data-testid={`delete-doc-${doc.id}`}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
                     </div>
                   </div>
@@ -513,7 +512,52 @@ const CoffreFortView = ({ token }) => {
             </CardContent>
           </Card>
 
-
+          {/* Dialog visualisation preuve */}
+          <Dialog open={!!viewingDoc} onOpenChange={(open) => { if (!open) setViewingDoc(null); }}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-sm">{viewingDoc?.title}</DialogTitle>
+                <DialogDescription className="text-xs">{viewingDoc?.description}</DialogDescription>
+              </DialogHeader>
+              {viewingDoc && (() => {
+                const matchedIllus = illustrations.find(il =>
+                  il.experience_id === viewingDoc.linked_experience_id &&
+                  il.soft_skill === viewingDoc.linked_soft_skill
+                );
+                if (matchedIllus) {
+                  return (
+                    <div className="space-y-3 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs font-bold">{matchedIllus.soft_skill}</Badge>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <div className="space-y-2">
+                        {matchedIllus.sare_situation && (
+                          <div className="flex gap-2"><span className="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-[10px] font-black text-amber-800 shrink-0">S</span><p className="text-sm text-slate-700">{matchedIllus.sare_situation}</p></div>
+                        )}
+                        {matchedIllus.sare_action && (
+                          <div className="flex gap-2"><span className="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-[10px] font-black text-amber-800 shrink-0">A</span><p className="text-sm text-slate-700">{matchedIllus.sare_action}</p></div>
+                        )}
+                        {matchedIllus.sare_resultat && (
+                          <div className="flex gap-2"><span className="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-[10px] font-black text-amber-800 shrink-0">R</span><p className="text-sm text-slate-700">{matchedIllus.sare_resultat}</p></div>
+                        )}
+                        {matchedIllus.sare_enseignement && (
+                          <div className="flex gap-2"><span className="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-[10px] font-black text-amber-800 shrink-0">E</span><p className="text-sm text-slate-700">{matchedIllus.sare_enseignement}</p></div>
+                        )}
+                      </div>
+                      {(matchedIllus.sare_text || matchedIllus.star_text) && (
+                        <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                          <p className="text-[10px] font-semibold text-emerald-700 mb-1 flex items-center gap-1"><Award className="w-3 h-3" />Reformulation IA</p>
+                          <p className="text-xs text-emerald-800 leading-relaxed">{matchedIllus.sare_text || matchedIllus.star_text}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return <p className="text-sm text-slate-500 py-4 text-center">Aucun contenu S.A.R.E disponible pour ce document.</p>;
+              })()}
+            </DialogContent>
+          </Dialog>
 
           {/* ═══ CERTIFICATION PAR LIEU DE TRAVAIL (Couche 1) ═══ */}
           {certStatus && certStatus.workplaces && certStatus.workplaces.length > 0 && (
