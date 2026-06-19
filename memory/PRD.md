@@ -79,12 +79,18 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 
 ## Tâches futures (Backlog)
 - P1 : Filtrage ROME automatique France Travail
-- P2 : Refactoring server.py → modules (~8800 lignes)
+- P2 : Refactoring server.py → modules (~9500 lignes)
 - P2 : Modules Soft Skills (CSE), Valeurs (VIA) indépendants
 - P2 : Diagnostic CCSP
 - P3 : Ateliers Codéveloppement
-- P3 : Micro-titres/badges
+- P3 : Micro-titres/badges Ubuntoo
 
+### Phase 4f - Tableau OPC & Récapitulatif Compétences (DONE - 19/06/2026)
+- Introduction OPC dans Couche 2 Intelligence du Coffre-fort : explication du dispositif (Fiabilité, Prédictif, Collectif)
+- Tableau récapitulatif des compétences par expérience : colonnes S.A.R.E, Contrat, Statut (En attente / Contributeur / Expert)
+- Légende 3 niveaux de badges : en attente de preuve, prouvées sans contrat, entièrement certifiées
+- Call-to-action personnalisé avec actions recommandées et liens vers Mon Passeport
+- Données exploitées depuis l'endpoint existant `/coffre/certification-status` (aucune modification backend requise)
 
 ### Phase 4e - Système de Certification & Badges (DONE - 19/06/2026)
 - Endpoints SARE illustrations créés : GET/POST/DELETE `/passport/illustrations`, `/passport/illustrations/suggest` (IA), `/passport/illustrations/sare` (reformulation IA)

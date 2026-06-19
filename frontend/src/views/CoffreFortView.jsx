@@ -528,6 +528,167 @@ const CoffreFortView = ({ token }) => {
             </CardContent>
           </Card>
 
+          {/* ═══ OPC INTRODUCTION + TABLEAU RÉCAPITULATIF ═══ */}
+          {certStatus && certStatus.workplaces && certStatus.workplaces.length > 0 && (() => {
+            // Build per-experience summary
+            const allExps = certStatus.workplaces.flatMap(wp =>
+              wp.experiences.map(exp => ({
+                ...exp,
+                organization: wp.organization,
+                orgHasContract: wp.has_contract,
+              }))
+            );
+            const pending_proof = allExps.filter(e => e.proofs_count === 0);
+            const proved_no_contract = allExps.filter(e => e.proofs_count > 0 && !e.has_contract);
+            const fully_certified = allExps.filter(e => e.proofs_count > 0 && e.has_contract);
+
+            return (
+              <Card data-testid="opc-recap-table" className="overflow-hidden">
+                <CardContent className="p-0">
+                  {/* ── Introduction OPC ── */}
+                  <div className="bg-gradient-to-br from-[#0f2744] via-[#1a3558] to-[#0f2744] p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-cyan-400" />
+                      <h3 className="text-sm font-bold text-white tracking-wide uppercase" data-testid="opc-intro-title">
+                        Observatoire Prédictif des Compétences (OPC)
+                      </h3>
+                    </div>
+                    <p className="text-xs leading-relaxed text-slate-300">
+                      L'<span className="text-cyan-300 font-semibold">OPC</span> est un dispositif collectif qui cartographie les compétences réelles du marché de l'emploi, à partir de <span className="text-white font-semibold">preuves concrètes fournies par les professionnels</span>. Contrairement aux référentiels théoriques (ROME, RNCP), l'OPC s'appuie sur des données terrain : tes expériences, tes preuves S.A.R.E et tes contrats de travail.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      <div className="bg-white/8 rounded-lg p-3 border border-white/10">
+                        <p className="text-[10px] font-bold text-emerald-300 mb-1 flex items-center gap-1"><Target className="w-3 h-3" />Fiabilité</p>
+                        <p className="text-[10px] text-slate-300 leading-relaxed">Seules les compétences prouvées et certifiées alimentent l'Observatoire. Pas de déclaratif.</p>
+                      </div>
+                      <div className="bg-white/8 rounded-lg p-3 border border-white/10">
+                        <p className="text-[10px] font-bold text-blue-300 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" />Prédictif</p>
+                        <p className="text-[10px] text-slate-300 leading-relaxed">L'OPC permet d'anticiper les compétences émergentes et les besoins réels des employeurs par secteur.</p>
+                      </div>
+                      <div className="bg-white/8 rounded-lg p-3 border border-white/10">
+                        <p className="text-[10px] font-bold text-amber-300 mb-1 flex items-center gap-1"><Users className="w-3 h-3" />Collectif</p>
+                        <p className="text-[10px] text-slate-300 leading-relaxed">Chaque contributeur renforce la connaissance collective du marché. Ton parcours a de la valeur pour tous.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Tableau récapitulatif ── */}
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2" data-testid="recap-table-title">
+                        <Search className="w-4 h-4 text-violet-600" />Récapitulatif de tes compétences
+                      </h4>
+                      <Badge className="bg-violet-100 text-violet-700 text-[10px]">{allExps.length} expérience{allExps.length > 1 ? "s" : ""}</Badge>
+                    </div>
+
+                    {/* Tableau */}
+                    <div className="overflow-x-auto rounded-xl border border-slate-200" data-testid="skills-recap-table">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="text-left px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Expérience</th>
+                            <th className="text-left px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">Lieu</th>
+                            <th className="text-center px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">
+                              <span className="inline-flex items-center gap-1"><MessageSquare className="w-3 h-3 text-emerald-600" />S.A.R.E</span>
+                            </th>
+                            <th className="text-center px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">
+                              <span className="inline-flex items-center gap-1"><Shield className="w-3 h-3 text-blue-600" />Contrat</span>
+                            </th>
+                            <th className="text-center px-3 py-2.5 font-semibold text-slate-700 border-b border-slate-200">
+                              <span className="inline-flex items-center gap-1"><Award className="w-3 h-3 text-amber-600" />Statut</span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allExps.map((exp, idx) => {
+                            const hasProof = exp.proofs_count > 0;
+                            const hasContract = exp.has_contract;
+                            let statusLabel, statusClass;
+                            if (hasProof && hasContract) {
+                              statusLabel = "Expert";
+                              statusClass = "bg-amber-100 text-amber-800 border-amber-300";
+                            } else if (hasProof && !hasContract) {
+                              statusLabel = "Contributeur";
+                              statusClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+                            } else {
+                              statusLabel = "En attente";
+                              statusClass = "bg-slate-100 text-slate-600 border-slate-200";
+                            }
+                            return (
+                              <tr key={exp.id || idx} className={`border-b border-slate-100 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`} data-testid={`recap-row-${idx}`}>
+                                <td className="px-3 py-2.5 font-medium text-slate-800">{exp.title || "Sans titre"}</td>
+                                <td className="px-3 py-2.5 text-slate-600">{exp.organization}</td>
+                                <td className="px-3 py-2.5 text-center">
+                                  {hasProof ? (
+                                    <span className="inline-flex items-center gap-0.5 text-emerald-600 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" />{exp.proofs_count}</span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-0.5 text-slate-400"><Clock className="w-3.5 h-3.5" />0</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  {hasContract ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 mx-auto" />
+                                  ) : (
+                                    <Clock className="w-3.5 h-3.5 text-slate-400 mx-auto" />
+                                  )}
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusClass}`}>{statusLabel}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Légende 3 niveaux */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className={`rounded-xl p-3 text-center border-2 ${pending_proof.length > 0 ? "bg-slate-50 border-slate-300" : "bg-emerald-50 border-emerald-200"}`}>
+                        <Clock className={`w-5 h-5 mx-auto mb-1 ${pending_proof.length > 0 ? "text-slate-500" : "text-emerald-500"}`} />
+                        <p className="text-lg font-black text-slate-800">{pending_proof.length}</p>
+                        <p className="text-[10px] text-slate-500 font-medium">En attente de preuve S.A.R.E</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">Niveau Contributeur non atteint</p>
+                      </div>
+                      <div className={`rounded-xl p-3 text-center border-2 ${proved_no_contract.length > 0 ? "bg-emerald-50 border-emerald-300" : "bg-blue-50 border-blue-200"}`}>
+                        <ArrowRight className={`w-5 h-5 mx-auto mb-1 ${proved_no_contract.length > 0 ? "text-emerald-600" : "text-blue-500"}`} />
+                        <p className="text-lg font-black text-slate-800">{proved_no_contract.length}</p>
+                        <p className="text-[10px] text-slate-500 font-medium">Prouvées, en attente de contrat</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">Niveau Certifié non atteint</p>
+                      </div>
+                      <div className={`rounded-xl p-3 text-center border-2 ${fully_certified.length > 0 ? "bg-amber-50 border-amber-300" : "bg-slate-50 border-slate-200"}`}>
+                        <Award className={`w-5 h-5 mx-auto mb-1 ${fully_certified.length > 0 ? "text-amber-600" : "text-slate-400"}`} />
+                        <p className="text-lg font-black text-slate-800">{fully_certified.length}</p>
+                        <p className="text-[10px] text-slate-500 font-medium">Entièrement certifiées</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">Prêtes pour l'OPC</p>
+                      </div>
+                    </div>
+
+                    {/* Call to action si des actions restent */}
+                    {(pending_proof.length > 0 || proved_no_contract.length > 0) && (
+                      <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3" data-testid="opc-cta">
+                        <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-blue-800">Actions recommandées pour contribuer à l'OPC</p>
+                          {pending_proof.length > 0 && (
+                            <p className="text-[11px] text-blue-700">
+                              <span className="font-semibold">{pending_proof.length} expérience{pending_proof.length > 1 ? "s" : ""}</span> {pending_proof.length > 1 ? "n'ont" : "n'a"} pas encore de preuve S.A.R.E — rends-toi dans <button onClick={() => window.location.href = "/dashboard/profil?tab=experiences"} className="underline font-bold hover:text-blue-900">Mon Passeport</button> pour les illustrer.
+                            </p>
+                          )}
+                          {proved_no_contract.length > 0 && (
+                            <p className="text-[11px] text-blue-700">
+                              <span className="font-semibold">{proved_no_contract.length} expérience{proved_no_contract.length > 1 ? "s" : ""}</span> {proved_no_contract.length > 1 ? "sont prouvées mais n'ont" : "est prouvée mais n'a"} pas de contrat — uploade un contrat de travail pour atteindre le niveau <span className="font-bold">Certifié</span>.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* ADN Pro */}
           {passport?.identity_adn && (
             <Card data-testid="adn-pro-wallet">
