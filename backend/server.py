@@ -9289,7 +9289,7 @@ async def search_referentiel_opc(q: str = ""):
     if not q or len(q) < 2:
         return {"results": [], "total": 0}
 
-    # Split query into words and build a regex that matches ANY word (OR logic)
+    # Split query into words and build regex
     words = [w.strip() for w in q.split() if len(w.strip()) >= 2]
     if not words:
         return {"results": [], "total": 0}
@@ -9298,21 +9298,43 @@ async def search_referentiel_opc(q: str = ""):
     regex = {"$regex": pattern, "$options": "i"}
 
     search_fields = [
-        "metier", "secteur", "filiere", "hard_skills", "soft_skills",
-        "qualites_humaines", "ck1_vertus", "ck1_valeurs",
-        "ck1_qualites_humaines", "ck1_comp_cognitives",
-        "ck1_comp_emotionnelles", "ck1_comp_sociales",
+        "metier", "secteur", "filiere", "mission", "hard_skills", "soft_skills",
+        "qualites_humaines", "capacites_professionnelles",
+        "ck1_vertus", "ck1_valeurs", "ck1_qualites_humaines",
+        "ck1_comp_cognitives", "ck1_comp_emotionnelles", "ck1_comp_sociales",
     ]
     results = await db.referentiel_opc.find({
         "$or": [{f: regex} for f in search_fields]
-    }).to_list(50)
+    }).to_list(100)
 
-    # Score results by how many query words match (better relevance)
+    # Score results: prioritize matches on metier and number of words matched
     def _score(doc):
-        text = " ".join(str(doc.get(f, "")) for f in search_fields).lower()
-        return sum(1 for w in words if w.lower() in text)
+        score = 0
+        metier = (doc.get("metier") or "").lower()
+        all_text = " ".join(str(doc.get(f, "")) for f in search_fields).lower()
+        words_matched = 0
+        for w in words:
+            wl = w.lower()
+            if wl in metier:
+                score += 10  # Strong bonus for metier match
+                words_matched += 1
+            elif wl in all_text:
+                score += 2   # Small bonus for other field match
+                words_matched += 1
+        # Bonus for matching ALL words
+        if words_matched == len(words):
+            score += 15
+        return score
 
-    results.sort(key=_score, reverse=True)
+    scored = [(r, _score(r)) for r in results]
+    # Filter: if multi-word query, remove results matching only 1 word when better ones exist
+    if len(words) > 1:
+        max_score = max((s for _, s in scored), default=0)
+        min_threshold = max(4, max_score * 0.3)
+        scored = [(r, s) for r, s in scored if s >= min_threshold]
+
+    scored.sort(key=lambda x: -x[1])
+    results = [r for r, _ in scored[:50]]
 
     # Also fetch terrain contributions
     contributions = await db.fiches_metier_opc.find({
