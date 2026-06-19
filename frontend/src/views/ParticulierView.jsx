@@ -1030,28 +1030,54 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
     setDeletingCv(false);
   };
 
-  const handleResetProfile = async (sections = "all") => {
+  // ── Reset with progress modal ──
+  const [resetModal, setResetModal] = useState({ open: false, section: "", label: "", phase: "confirm", elapsed: 0, progress: 0 });
+  const resetTimerRef = React.useRef(null);
+
+  const openResetModal = (sections) => {
     const sectionLabels = {
-      all: "TOUT le profil (competences, experiences, formations, resume, passerelles)",
-      competences: "les competences",
-      experiences: "les experiences (et la trajectoire associee)",
+      all: "TOUT le profil (compétences, expériences, formations, résumé, passerelles)",
+      competences: "les compétences",
+      experiences: "les expériences (et la trajectoire associée)",
       formations: "les formations",
-      profile: "le resume, projet pro, motivations, environnements",
-      passerelles: "les passerelles metiers",
+      profile: "le résumé, projet pro, motivations, environnements",
+      passerelles: "les passerelles métiers",
     };
-    const label = sectionLabels[sections] || sections;
-    if (!window.confirm(`Effacer ${label} ?\n\nCette action est irreversible.`)) return;
-    setResettingProfile(true);
+    setResetModal({ open: true, section: sections, label: sectionLabels[sections] || sections, phase: "confirm", elapsed: 0, progress: 0 });
+  };
+
+  const executeReset = async () => {
+    const { section, label } = resetModal;
+    setResetModal(m => ({ ...m, phase: "running", elapsed: 0, progress: 5 }));
+
+    // Start timer
+    const start = Date.now();
+    resetTimerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      setResetModal(m => {
+        if (m.phase === "done" || m.phase === "error") return m;
+        const progress = Math.min(90, 5 + elapsed * 8);
+        return { ...m, elapsed, progress };
+      });
+    }, 500);
+
     try {
-      await axios.delete(`${API}/passport/reset?token=${token}&sections=${sections}`);
-      toast.success(`Profil reinitialise (${label})`);
-      setShowResetDialog(false);
-      loadData(true);
-      loadTrajectory();
+      await axios.delete(`${API}/passport/reset?token=${token}&sections=${section}`);
+      setResetModal(m => ({ ...m, progress: 60, phase: "reloading" }));
+      await Promise.all([loadData(true), loadTrajectory()]);
+      clearInterval(resetTimerRef.current);
+      const finalElapsed = Math.floor((Date.now() - start) / 1000);
+      setResetModal(m => ({ ...m, phase: "done", progress: 100, elapsed: finalElapsed }));
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Erreur lors de la reinitialisation");
+      clearInterval(resetTimerRef.current);
+      setResetModal(m => ({ ...m, phase: "error" }));
+      toast.error(e.response?.data?.detail || "Erreur lors de la réinitialisation");
     }
-    setResettingProfile(false);
+  };
+
+  const closeResetModal = () => {
+    clearInterval(resetTimerRef.current);
+    setResetModal({ open: false, section: "", label: "", phase: "confirm", elapsed: 0, progress: 0 });
   };
 
   const handleRefreshTrajectory = async () => {
@@ -1288,7 +1314,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
-                onClick={() => handleResetProfile("all")}
+                onClick={() => openResetModal("all")}
                 disabled={resettingProfile}
                 data-testid="reset-all-btn"
               >
@@ -1297,7 +1323,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-amber-600 focus:text-amber-700 focus:bg-amber-50 cursor-pointer"
-                onClick={() => handleResetProfile("competences")}
+                onClick={() => openResetModal("competences")}
                 disabled={resettingProfile}
                 data-testid="reset-competences-btn"
               >
@@ -1315,7 +1341,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-amber-600 focus:text-amber-700 focus:bg-amber-50 cursor-pointer"
-                onClick={() => handleResetProfile("formations")}
+                onClick={() => openResetModal("formations")}
                 disabled={resettingProfile}
                 data-testid="reset-formations-btn"
               >
@@ -1324,7 +1350,7 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-amber-600 focus:text-amber-700 focus:bg-amber-50 cursor-pointer"
-                onClick={() => handleResetProfile("profile")}
+                onClick={() => openResetModal("profile")}
                 disabled={resettingProfile}
                 data-testid="reset-summary-btn"
               >
@@ -2185,6 +2211,77 @@ const ParticulierView = ({ token, section, onOpenDclic, viewMode, pseudo }) => {
       {/* Step Form Dialog */}
       <StepFormDialog open={stepDialogOpen} onOpenChange={setStepDialogOpen} step={editingStep} token={token} onSaved={loadTrajectory} />
       <ShareDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} token={token} />
+
+      {/* ── Reset Progress Modal ── */}
+      <Dialog open={resetModal.open} onOpenChange={(open) => { if (!open && resetModal.phase !== "running" && resetModal.phase !== "reloading") closeResetModal(); }}>
+        <DialogContent className="sm:max-w-md" data-testid="reset-progress-modal">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {resetModal.phase === "confirm" && <><AlertCircle className="w-5 h-5 text-red-500" />Confirmer la suppression</>}
+              {resetModal.phase === "running" && <><Loader2 className="w-5 h-5 text-amber-500 animate-spin" />Suppression en cours...</>}
+              {resetModal.phase === "reloading" && <><RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />Actualisation...</>}
+              {resetModal.phase === "done" && <><CheckCircle className="w-5 h-5 text-emerald-500" />Suppression terminée</>}
+              {resetModal.phase === "error" && <><AlertCircle className="w-5 h-5 text-red-500" />Erreur</>}
+            </DialogTitle>
+          </DialogHeader>
+
+          {resetModal.phase === "confirm" && (
+            <div className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800 font-medium">Vous allez effacer :</p>
+                <p className="text-sm text-red-700 mt-1">{resetModal.label}</p>
+                <p className="text-xs text-red-500 mt-2 font-semibold">Cette action est irréversible.</p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={closeResetModal} data-testid="reset-cancel-btn">Annuler</Button>
+                <Button variant="destructive" onClick={executeReset} data-testid="reset-confirm-btn">
+                  <Trash2 className="w-4 h-4 mr-1.5" />Confirmer la suppression
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {(resetModal.phase === "running" || resetModal.phase === "reloading") && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-600">
+                  {resetModal.phase === "running" ? "Suppression des données..." : "Mise à jour de l'interface..."}
+                </span>
+                <span className="font-mono text-lg font-bold text-slate-800" data-testid="reset-timer">
+                  {resetModal.elapsed}s
+                </span>
+              </div>
+              <Progress value={resetModal.progress} className="h-3" />
+              <p className="text-xs text-slate-400 text-center">Veuillez patienter, ne fermez pas cette fenêtre</p>
+            </div>
+          )}
+
+          {resetModal.phase === "done" && (
+            <div className="space-y-4 py-2">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
+                <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-emerald-800">Profil réinitialisé avec succès</p>
+                <p className="text-xs text-emerald-600 mt-1">Durée : {resetModal.elapsed} seconde{resetModal.elapsed > 1 ? "s" : ""}</p>
+              </div>
+              <Progress value={100} className="h-3" />
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={closeResetModal} data-testid="reset-done-btn">
+                <CheckCircle className="w-4 h-4 mr-1.5" />Terminé
+              </Button>
+            </div>
+          )}
+
+          {resetModal.phase === "error" && (
+            <div className="space-y-4 py-2">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-red-800">Une erreur est survenue</p>
+                <p className="text-xs text-red-600 mt-1">Veuillez réessayer</p>
+              </div>
+              <Button variant="outline" className="w-full" onClick={closeResetModal} data-testid="reset-error-close-btn">Fermer</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
