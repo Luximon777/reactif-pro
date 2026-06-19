@@ -9285,25 +9285,35 @@ async def list_fiches_metier_opc():
 @api_router.get("/opc/referentiel/search")
 async def search_referentiel_opc(q: str = ""):
     """Search the OPC reference base (filières, métiers, compétences)."""
+    import re as re_module
     if not q or len(q) < 2:
         return {"results": [], "total": 0}
-    regex = {"$regex": q, "$options": "i"}
+
+    # Split query into words and build a regex that matches ANY word (OR logic)
+    words = [w.strip() for w in q.split() if len(w.strip()) >= 2]
+    if not words:
+        return {"results": [], "total": 0}
+    escaped_words = [re_module.escape(w) for w in words]
+    pattern = "|".join(escaped_words)
+    regex = {"$regex": pattern, "$options": "i"}
+
+    search_fields = [
+        "metier", "secteur", "filiere", "hard_skills", "soft_skills",
+        "qualites_humaines", "ck1_vertus", "ck1_valeurs",
+        "ck1_qualites_humaines", "ck1_comp_cognitives",
+        "ck1_comp_emotionnelles", "ck1_comp_sociales",
+    ]
     results = await db.referentiel_opc.find({
-        "$or": [
-            {"metier": regex},
-            {"secteur": regex},
-            {"filiere": regex},
-            {"hard_skills": regex},
-            {"soft_skills": regex},
-            {"qualites_humaines": regex},
-            {"ck1_vertus": regex},
-            {"ck1_valeurs": regex},
-            {"ck1_qualites_humaines": regex},
-            {"ck1_comp_cognitives": regex},
-            {"ck1_comp_emotionnelles": regex},
-            {"ck1_comp_sociales": regex},
-        ]
+        "$or": [{f: regex} for f in search_fields]
     }).to_list(50)
+
+    # Score results by how many query words match (better relevance)
+    def _score(doc):
+        text = " ".join(str(doc.get(f, "")) for f in search_fields).lower()
+        return sum(1 for w in words if w.lower() in text)
+
+    results.sort(key=_score, reverse=True)
+
     # Also fetch terrain contributions
     contributions = await db.fiches_metier_opc.find({
         "job_title": regex
