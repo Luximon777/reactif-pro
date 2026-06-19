@@ -6039,7 +6039,7 @@ async def get_coach_progress(token: str):
                 cv_skills_count = len(profile.get("skills", []))
                 cv_savoir_etre_count = len(profile.get("savoir_etre", []))
                 experiences_count = len(profile.get("experiences", []))
-                has_dclic = bool(profile.get("dclic_result"))
+                has_dclic = bool(profile.get("dclic_imported"))
 
         # Check CV analysis status
         last_analysis = await db.cv_jobs.find_one(
@@ -6066,6 +6066,9 @@ async def get_coach_progress(token: str):
             cv_skills_count = max(cv_skills_count, passport_sf)
             cv_savoir_etre_count = max(cv_savoir_etre_count, passport_se)
             experiences_count = max(experiences_count, passport_exp)
+            # Check D'CLIC from passport too (dclic_results is stored here by import)
+            if not has_dclic and passport.get("dclic_results"):
+                has_dclic = True
 
         step1_complete = has_cv
         step2_complete = cv_savoir_etre_count >= 3
@@ -6239,7 +6242,10 @@ async def coach_chat(token: str, body: dict):
     se_count = len(passport.get("savoir_etre", [])) if passport else 0
     exp_count = len(passport.get("experiences", [])) if passport else 0
     has_cv = bool(profile.get("cv_analyzed")) if profile else False
-    has_dclic = bool(profile.get("dclic_result")) if profile else False
+    has_dclic = bool(profile.get("dclic_imported")) if profile else False
+    # Also check passport for dclic_results
+    if not has_dclic and passport and passport.get("dclic_results"):
+        has_dclic = True
 
     # Also check cv_jobs for completed analysis
     last_analysis = await db.cv_jobs.find_one(

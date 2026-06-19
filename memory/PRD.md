@@ -59,6 +59,7 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - Dashboard : bouton "Boost mon profil" (violet pulsant) → dialog → preview MBTI/DISC/Vertu/RIASEC/Ennéagramme → import avec barre de progression → toast succès
 - Après import : bouton passe en vert "Profil boosté", flag dclic_imported=true dans profiles
 - Fusion intelligente des compétences dans le passport (merge sans doublons)
+- Coach RE'ACTIF et GPS Dashboard détectent correctement le D'CLIC complété (vérifie `dclic_imported` dans profiles ET `dclic_results` dans passports)
 - Test complet validé à 100% (backend 17/17 + frontend OK)
 
 ### Phase 4-7 (DONE) — Auto-évaluation, Matching avancé, Analyse offre, ADN Pro
