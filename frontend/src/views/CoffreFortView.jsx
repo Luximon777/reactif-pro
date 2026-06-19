@@ -629,13 +629,41 @@ const CoffreFortView = ({ token }) => {
                           <OpcConsentToggle token={token} organization={wp.organization} onUpdate={loadAll} />
                         )}
                         {!orgCertified && (
-                          <button
-                            onClick={() => window.location.href = "/dashboard/profil?tab=experiences"}
-                            className="w-full text-center text-[10px] text-blue-600 hover:text-blue-800 py-1 rounded bg-white/50 hover:bg-white border border-dashed border-blue-200"
+                          <label
+                            className="w-full text-center text-[10px] text-blue-600 hover:text-blue-800 py-1 rounded bg-white/50 hover:bg-white border border-dashed border-blue-200 cursor-pointer block"
                             data-testid={`upload-contract-c1-${wi}`}
                           >
                             <Upload className="w-3 h-3 inline mr-1" />Ajouter un contrat de travail pour certifier
-                          </button>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 10 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 10 Mo)"); return; }
+                                const expId = wp.experiences[0]?.id;
+                                if (!expId) { toast.error("Aucune expérience trouvée"); return; }
+                                try {
+                                  toast.info("Upload en cours...");
+                                  const reader = new FileReader();
+                                  reader.onload = async () => {
+                                    const base64 = reader.result.split(",")[1];
+                                    await axios.post(`${API}/passport/experiences/upload-proof?token=${token}`, {
+                                      experience_id: expId,
+                                      file_data: base64,
+                                      file_name: file.name,
+                                      mime_type: file.type || "application/pdf",
+                                    });
+                                    toast.success("Contrat uploadé avec succès !");
+                                    loadAll();
+                                  };
+                                  reader.readAsDataURL(file);
+                                } catch { toast.error("Erreur lors de l'upload"); }
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
                         )}
                       </div>
                     );
