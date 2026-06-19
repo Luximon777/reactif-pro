@@ -110,6 +110,10 @@ const CoffreFortView = ({ token }) => {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
 
   const displayName = profile?.real_first_name || profile?.pseudo || "Utilisateur";
+  const displayFullName = (profile?.real_first_name && profile?.real_last_name)
+    ? `${profile.real_first_name} ${profile.real_last_name}`
+    : profile?.pseudo || "Utilisateur";
+  const avatarLetter = (profile?.real_first_name || profile?.pseudo || "U")[0].toUpperCase();
   const totalDocs = documents.length;
   const totalSkillsProved = illustrations.length;
   const activeShares = shares.filter(s => s.active).length;
@@ -230,9 +234,9 @@ const CoffreFortView = ({ token }) => {
           <Card className="border-0 bg-gradient-to-r from-blue-50 to-cyan-50 overflow-hidden" data-testid="identity-card">
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-[#1e3a5f] flex items-center justify-center text-white text-xl font-bold">{(profile?.real_first_name || profile?.pseudo || "?")[0].toUpperCase()}</div>
+                <div className="w-14 h-14 rounded-xl bg-[#1e3a5f] flex items-center justify-center text-white text-xl font-bold">{avatarLetter}</div>
                 <div className="flex-1">
-                  <h3 className="text-base font-bold text-slate-900">{profile?.real_first_name} {profile?.real_last_name}</h3>
+                  <h3 className="text-base font-bold text-slate-900">{displayFullName}</h3>
                   <p className="text-xs text-slate-500">Identifiant RE'ACTIF PRO : {profile?.pseudo}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge className={`bg-${trustColor}-50 text-${trustColor}-700 border border-${trustColor}-200 text-[10px]`}>

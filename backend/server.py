@@ -683,6 +683,9 @@ async def get_profile(token: str):
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not profile:
         raise HTTPException(status_code=404, detail="Profil non trouvé")
+    # Enrich with pseudo from token doc (always available)
+    if not profile.get("pseudo"):
+        profile["pseudo"] = token_doc.get("pseudo") or profile.get("name")
     return profile
 
 @api_router.put("/profile")
@@ -705,6 +708,73 @@ async def update_profile(token: str, request: UpdateProfileRequest):
         await db.profiles.update_one({"token_id": token_doc["id"]}, {"$set": update_data})
     
     return await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+
+
+@api_router.get("/profile/confidence-scores/simple")
+async def get_confidence_scores_simple(token: str):
+    """Calculate trust/confidence scores based on profile completeness"""
+    token_doc = await get_current_token(token)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    docs_count = await db.coffre_documents.count_documents({"token_id": token_doc["id"]})
+
+    # Calculate 4 dimensions
+    # 1. Identité: pseudo, real_name, CV analysé
+    identite_score = 0
+    if profile:
+        if profile.get("cv_analyzed"): identite_score += 40
+        if profile.get("real_first_name"): identite_score += 20
+        if profile.get("real_last_name"): identite_score += 20
+        if profile.get("dclic_imported"): identite_score += 20
+    identite_score = min(100, identite_score)
+
+    # 2. Compétences: skills, savoir_faire, savoir_etre
+    comp_score = 0
+    skills_count = len((profile or {}).get("skills", []))
+    sf_count = len((passport or {}).get("savoir_faire", []))
+    se_count = len((passport or {}).get("savoir_etre", []))
+    comp_count = len((passport or {}).get("competences", []))
+    total_skills = skills_count + sf_count + se_count + comp_count
+    if total_skills >= 20: comp_score = 100
+    elif total_skills >= 10: comp_score = 70
+    elif total_skills >= 5: comp_score = 50
+    elif total_skills >= 1: comp_score = 25
+
+    # 3. Expériences
+    exp_score = 0
+    exp_count = len((passport or {}).get("experiences", []))
+    if exp_count >= 5: exp_score = 100
+    elif exp_count >= 3: exp_score = 70
+    elif exp_count >= 1: exp_score = 40
+
+    # 4. Preuves (documents dans le coffre)
+    preuves_score = 0
+    if docs_count >= 5: preuves_score = 100
+    elif docs_count >= 3: preuves_score = 70
+    elif docs_count >= 1: preuves_score = 40
+
+    global_pct = int((identite_score + comp_score + exp_score + preuves_score) / 4)
+    level = "eleve" if global_pct >= 70 else "moyen" if global_pct >= 40 else "faible"
+
+    tips = []
+    if identite_score < 60: tips.append("Ajoutez votre vrai nom et prénom pour renforcer votre identité")
+    if comp_score < 50: tips.append("Enrichissez vos compétences via l'analyse CV ou D'CLIC PRO")
+    if exp_score < 40: tips.append("Ajoutez vos expériences professionnelles")
+    if preuves_score < 40: tips.append("Déposez des preuves (diplômes, attestations) dans votre portefeuille")
+
+    return {
+        "global_pct": global_pct,
+        "level": level,
+        "dimensions": [
+            {"key": "identite", "label": "Identité", "pct": identite_score},
+            {"key": "competences", "label": "Compétences", "pct": comp_score},
+            {"key": "experiences", "label": "Expériences", "pct": exp_score},
+            {"key": "preuves", "label": "Preuves", "pct": preuves_score},
+        ],
+        "tips": tips,
+    }
+
+
 
 
 @api_router.post("/profile/identity-adn")
