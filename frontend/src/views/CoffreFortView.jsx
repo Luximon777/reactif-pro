@@ -14,7 +14,7 @@ import {
   Shield, Lock, Share2, FileText, GraduationCap, Briefcase, Award, Target,
   Users, BookOpen, Search, Upload, Download, Trash2, Plus, Eye, FolderLock,
   CheckCircle2, Clock, AlertTriangle, QrCode, ArrowRight, Sparkles, Brain,
-  TrendingUp, Loader2, X, Zap, FileIcon, ExternalLink, History, Compass, Globe
+  TrendingUp, Loader2, X, Zap, FileIcon, ExternalLink, History, Compass, Globe, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -309,6 +309,96 @@ const CoffreFortView = ({ token }) => {
             </Card>
           )}
 
+          {/* ═══ MANIFESTE & BADGES À GAGNER ═══ */}
+          {certStatus && certStatus.workplaces && certStatus.workplaces.length > 0 && (
+            <Card data-testid="certification-schema-couche1" className="overflow-hidden">
+              <CardContent className="p-0">
+
+                {/* ── MANIFESTE ── */}
+                <div className="bg-gradient-to-br from-slate-800 via-[#1a2e4a] to-slate-900 p-6 text-white space-y-4">
+                  <h3 className="text-base font-bold tracking-wide uppercase text-amber-400">Pourquoi prouver ses compétences ?</h3>
+                  <p className="text-sm leading-relaxed text-slate-200">
+                    Aujourd'hui, <span className="text-white font-bold">le diplôme ne suffit plus</span>. Les recruteurs veulent des <span className="text-amber-300 font-bold">preuves concrètes</span> : ce que tu as fait, comment tu l'as fait, et quel impact tu as eu. Ce sont tes <span className="text-emerald-300 font-bold">compétences prouvées par l'action</span> qui font la différence.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10">
+                      <p className="text-sm font-bold text-emerald-300 mb-2 flex items-center gap-2"><Target className="w-4 h-4" />Pour toi</p>
+                      <p className="text-xs text-slate-300 leading-relaxed">Valorise tes acquis auprès des recruteurs grâce à des exemples concrets (méthode S.A.R.E). Un CV qui raconte des actions vaut <span className="text-white font-semibold">10x plus</span> qu'une simple liste de diplômes.</p>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10">
+                      <p className="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2"><Globe className="w-4 h-4" />Pour la société</p>
+                      <p className="text-xs text-slate-300 leading-relaxed">En partageant tes preuves certifiées, tu contribues à cartographier les <span className="text-white font-semibold">compétences réelles</span> du marché de l'emploi. Tu deviens un <span className="text-blue-300 font-semibold">contributeur sociétal</span>.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── BADGES À GAGNER ── */}
+                <div className="p-6 space-y-5">
+                  <div className="text-center">
+                    <h3 className="text-base font-bold text-slate-800">Badges à gagner</h3>
+                    <p className="text-xs text-slate-500 mt-1">Complète les étapes pour débloquer tes badges et renforcer ta crédibilité</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Badge 1 — Contributeur */}
+                    <div className={`relative rounded-2xl p-5 text-center space-y-3 transition-all ${certStatus.badge.level >= 1 ? "bg-emerald-50 border-2 border-emerald-400 shadow-md shadow-emerald-100" : "bg-slate-50 border-2 border-dashed border-slate-200"}`}>
+                      {certStatus.badge.level >= 1 && <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-white" /></div>}
+                      <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${certStatus.badge.level >= 1 ? "bg-emerald-500 shadow-lg shadow-emerald-200" : "bg-slate-200"}`}>
+                        <MessageSquare className={`w-7 h-7 ${certStatus.badge.level >= 1 ? "text-white" : "text-slate-400"}`} />
+                      </div>
+                      <p className={`text-sm font-bold ${certStatus.badge.level >= 1 ? "text-emerald-800" : "text-slate-500"}`}>Contributeur</p>
+                      <p className={`text-xs leading-snug ${certStatus.badge.level >= 1 ? "text-emerald-700" : "text-slate-400"}`}>Prouve <strong>3 soft skills</strong> par la méthode S.A.R.E</p>
+                      <div className={`rounded-lg p-2 ${certStatus.badge.level >= 1 ? "bg-emerald-100" : "bg-slate-100"}`}>
+                        <p className={`text-[11px] font-semibold ${certStatus.badge.level >= 1 ? "text-emerald-700" : "text-slate-500"}`}>Situation — Action</p>
+                        <p className={`text-[11px] font-semibold ${certStatus.badge.level >= 1 ? "text-emerald-700" : "text-slate-500"}`}>Résultat — Enseignement</p>
+                      </div>
+                      <p className={`text-xs font-bold ${certStatus.badge.level >= 1 ? "text-emerald-600" : "text-slate-400"}`}>{certStatus.stats.total_proved}/3</p>
+                    </div>
+
+                    {/* Badge 2 — Certifié */}
+                    <div className={`relative rounded-2xl p-5 text-center space-y-3 transition-all ${certStatus.badge.level >= 2 ? "bg-blue-50 border-2 border-blue-400 shadow-md shadow-blue-100" : "bg-slate-50 border-2 border-dashed border-slate-200"}`}>
+                      {certStatus.badge.level >= 2 && <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-white" /></div>}
+                      <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${certStatus.badge.level >= 2 ? "bg-blue-500 shadow-lg shadow-blue-200" : "bg-slate-200"}`}>
+                        <Shield className={`w-7 h-7 ${certStatus.badge.level >= 2 ? "text-white" : "text-slate-400"}`} />
+                      </div>
+                      <p className={`text-sm font-bold ${certStatus.badge.level >= 2 ? "text-blue-800" : "text-slate-500"}`}>Certifié</p>
+                      <p className={`text-xs leading-snug ${certStatus.badge.level >= 2 ? "text-blue-700" : "text-slate-400"}`}>Uploade <strong>au moins 1 contrat</strong> de travail ou attestation</p>
+                      <div className={`rounded-lg p-2 ${certStatus.badge.level >= 2 ? "bg-blue-100" : "bg-slate-100"}`}>
+                        <p className={`text-[11px] font-semibold ${certStatus.badge.level >= 2 ? "text-blue-700" : "text-slate-500"}`}>Contrat, attestation,</p>
+                        <p className={`text-[11px] font-semibold ${certStatus.badge.level >= 2 ? "text-blue-700" : "text-slate-500"}`}>certificat de travail</p>
+                      </div>
+                      <p className={`text-xs font-bold ${certStatus.badge.level >= 2 ? "text-blue-600" : "text-slate-400"}`}>{certStatus.stats.total_with_contract} contrat(s)</p>
+                    </div>
+
+                    {/* Badge 3 — Expert Certifié */}
+                    <div className={`relative rounded-2xl p-5 text-center space-y-3 transition-all ${certStatus.badge.level >= 3 ? "bg-amber-50 border-2 border-amber-400 shadow-md shadow-amber-100" : "bg-slate-50 border-2 border-dashed border-slate-200"}`}>
+                      {certStatus.badge.level >= 3 && <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-white" /></div>}
+                      <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${certStatus.badge.level >= 3 ? "bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-200" : "bg-slate-200"}`}>
+                        <Award className={`w-7 h-7 ${certStatus.badge.level >= 3 ? "text-white" : "text-slate-400"}`} />
+                      </div>
+                      <p className={`text-sm font-bold ${certStatus.badge.level >= 3 ? "text-amber-800" : "text-slate-500"}`}>Expert Certifié</p>
+                      <p className={`text-xs leading-snug ${certStatus.badge.level >= 3 ? "text-amber-700" : "text-slate-400"}`}><strong>100% prouvé</strong> + tous les contrats + Contributeur OPC</p>
+                      <div className={`rounded-lg p-2 ${certStatus.badge.level >= 3 ? "bg-amber-100" : "bg-slate-100"}`}>
+                        <p className={`text-[11px] font-semibold ${certStatus.badge.level >= 3 ? "text-amber-700" : "text-slate-500"}`}>Profil complet certifié</p>
+                        <p className={`text-[11px] font-semibold ${certStatus.badge.level >= 3 ? "text-amber-700" : "text-slate-500"}`}>+ Impact sociétal</p>
+                      </div>
+                      <p className={`text-xs font-bold ${certStatus.badge.level >= 3 ? "text-amber-600" : "text-slate-400"}`}>
+                        {certStatus.stats.total_proved === certStatus.stats.total_experiences && certStatus.stats.total_with_contract === certStatus.stats.total_experiences ? "Atteint !" : `${certStatus.stats.total_proved}/${certStatus.stats.total_experiences} + ${certStatus.stats.total_with_contract}/${certStatus.stats.total_experiences}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-emerald-50 rounded-xl p-3"><p className="text-2xl font-black text-emerald-700">{certStatus.stats.total_proved}</p><p className="text-xs text-slate-500">Exp. prouvées</p></div>
+                    <div className="bg-blue-50 rounded-xl p-3"><p className="text-2xl font-black text-blue-700">{certStatus.stats.total_with_contract}</p><p className="text-xs text-slate-500">Avec contrat</p></div>
+                    <div className="bg-amber-50 rounded-xl p-3"><p className="text-2xl font-black text-amber-700">{certStatus.stats.total_experiences}</p><p className="text-xs text-slate-500">Total exp.</p></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Mes preuves */}
           <Card data-testid="proofs-section">
             <CardHeader className="pb-2">
@@ -375,64 +465,6 @@ const CoffreFortView = ({ token }) => {
           </Card>
 
 
-          {/* ═══ CERTIFICATION — SCHÉMA & BADGES (Couche 1) ═══ */}
-          {certStatus && certStatus.workplaces && certStatus.workplaces.length > 0 && (
-            <Card data-testid="certification-schema-couche1">
-              <CardContent className="p-4 space-y-5">
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 text-white space-y-3">
-                  <p className="text-xs font-bold tracking-wide uppercase text-amber-400">Pourquoi prouver ses compétences ?</p>
-                  <p className="text-[11px] leading-relaxed text-slate-200">
-                    Aujourd'hui, <span className="text-white font-semibold">le diplôme ne suffit plus</span>. Les recruteurs veulent des <span className="text-amber-300 font-semibold">preuves concrètes</span> : ce que tu as fait, comment tu l'as fait, et quel impact tu as eu. Ce sont tes <span className="text-emerald-300 font-semibold">compétences prouvées par l'action</span> qui font la différence.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
-                      <p className="text-[10px] font-bold text-emerald-300 mb-1 flex items-center gap-1"><Target className="w-3 h-3" />Pour toi</p>
-                      <p className="text-[10px] text-slate-300 leading-relaxed">Valorise tes acquis auprès des recruteurs grâce à des exemples concrets (méthode S.A.R.E). Un CV qui raconte des actions vaut 10x plus qu'une liste de diplômes.</p>
-                    </div>
-                    <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
-                      <p className="text-[10px] font-bold text-blue-300 mb-1 flex items-center gap-1"><Globe className="w-3 h-3" />Pour la société</p>
-                      <p className="text-[10px] text-slate-300 leading-relaxed">En partageant tes preuves certifiées sur l'Observatoire (OPC), tu contribues à cartographier les compétences réelles du marché de l'emploi. Tu deviens un contributeur sociétal.</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-slate-50 rounded-xl p-4 space-y-4">
-                  <p className="text-xs font-bold text-slate-800 text-center">Parcours de certification en 3 étapes</p>
-                  <div className="flex items-stretch gap-0">
-                    <div className={`flex-1 rounded-l-xl p-3 border-2 text-center space-y-1.5 ${certStatus.badge.level >= 1 ? "bg-emerald-50 border-emerald-300" : "bg-white border-slate-200"}`}>
-                      <div className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center text-sm font-black ${certStatus.badge.level >= 1 ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>1</div>
-                      <p className={`text-[10px] font-bold ${certStatus.badge.level >= 1 ? "text-emerald-800" : "text-slate-500"}`}>Contributeur</p>
-                      <p className="text-[9px] text-slate-500 leading-tight">Prouve 3 soft skills avec la méthode S.A.R.E</p>
-                      <p className="text-[9px] text-slate-600">Situation — Action<br/>Résultat — Enseignement</p>
-                      <p className={`text-[9px] italic ${certStatus.badge.level >= 1 ? "text-emerald-600" : "text-slate-400"}`}>{certStatus.stats.total_proved}/3 prouvées</p>
-                    </div>
-                    <div className="flex items-center -mx-1 z-10"><ArrowRight className={`w-5 h-5 ${certStatus.badge.level >= 2 ? "text-blue-500" : "text-slate-300"}`} /></div>
-                    <div className={`flex-1 p-3 border-2 text-center space-y-1.5 ${certStatus.badge.level >= 2 ? "bg-blue-50 border-blue-300" : "bg-white border-slate-200"}`}>
-                      <div className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center text-sm font-black ${certStatus.badge.level >= 2 ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-500"}`}>2</div>
-                      <p className={`text-[10px] font-bold ${certStatus.badge.level >= 2 ? "text-blue-800" : "text-slate-500"}`}>Certifié</p>
-                      <p className="text-[9px] text-slate-500 leading-tight">Uploade au moins 1 contrat de travail ou attestation</p>
-                      <p className="text-[9px] text-slate-600">Contrat, attestation,<br/>certificat de travail</p>
-                      <p className={`text-[9px] italic ${certStatus.badge.level >= 2 ? "text-blue-600" : "text-slate-400"}`}>{certStatus.stats.total_with_contract} contrat(s)</p>
-                    </div>
-                    <div className="flex items-center -mx-1 z-10"><ArrowRight className={`w-5 h-5 ${certStatus.badge.level >= 3 ? "text-amber-500" : "text-slate-300"}`} /></div>
-                    <div className={`flex-1 rounded-r-xl p-3 border-2 text-center space-y-1.5 ${certStatus.badge.level >= 3 ? "bg-amber-50 border-amber-300" : "bg-white border-slate-200"}`}>
-                      <div className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center text-sm font-black ${certStatus.badge.level >= 3 ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-500"}`}>3</div>
-                      <p className={`text-[10px] font-bold ${certStatus.badge.level >= 3 ? "text-amber-800" : "text-slate-500"}`}>Expert Certifié</p>
-                      <p className="text-[9px] text-slate-500 leading-tight">Toutes les expériences prouvées + tous les contrats</p>
-                      <p className="text-[9px] text-slate-600">Profil 100% certifié<br/>+ Contributeur OPC</p>
-                      <p className={`text-[9px] italic ${certStatus.badge.level >= 3 ? "text-amber-600" : "text-slate-400"}`}>
-                        {certStatus.stats.total_proved === certStatus.stats.total_experiences && certStatus.stats.total_with_contract === certStatus.stats.total_experiences ? "Atteint !" : `${certStatus.stats.total_proved}/${certStatus.stats.total_experiences} + ${certStatus.stats.total_with_contract}/${certStatus.stats.total_experiences}`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="bg-emerald-50 rounded-lg p-2"><p className="text-lg font-bold text-emerald-700">{certStatus.stats.total_proved}</p><p className="text-[10px] text-slate-500">Exp. prouvées</p></div>
-                  <div className="bg-blue-50 rounded-lg p-2"><p className="text-lg font-bold text-blue-700">{certStatus.stats.total_with_contract}</p><p className="text-[10px] text-slate-500">Avec contrat</p></div>
-                  <div className="bg-amber-50 rounded-lg p-2"><p className="text-lg font-bold text-amber-700">{certStatus.stats.total_experiences}</p><p className="text-[10px] text-slate-500">Total exp.</p></div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Roadmap EUDI */}
           <Card className="border-dashed border-2 border-blue-200 bg-blue-50/30" data-testid="eudi-roadmap">
