@@ -6,60 +6,68 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 ## Architecture
 - Frontend: React + Tailwind + Shadcn/UI (SPA)
 - Backend: FastAPI + MongoDB
-- IA: GPT-5.2 via Emergentintegrations (LlmChat) — appels exécutés via `asyncio.to_thread`
+- IA: GPT-5.2 via Emergentintegrations (LlmChat)
 - API France Travail: OAuth2 client_credentials (ROME 4.0 + Offres d'emploi v2)
+
+## D'CLIC PRO — Version GitHub intégrale (19/06/2026)
+
+### Questionnaire Visuel (26 questions, 8 blocs)
+- **Bloc 1** : Énergie E/I (2q visuelles)
+- **Bloc 2** : Perception S/N (1q visuelle + 1q ranking)
+- **Bloc 3** : Décision T/F (2q visuelles)
+- **Bloc 4** : Organisation J/P (2q visuelles)
+- **Bloc 5** : Style DISC (2q ranking)
+- **Bloc 6** : Motivation Ennéagramme (2q ranking)
+- **Bloc 7** : Intérêts RIASEC (5q visuelles + 3q ranking)
+- **Bloc 8** : Vertus & Valeurs (3q visuelles + 2q ranking + 1q visuelle)
+
+### Scoring déterministe
+- MBTI (4 axes croisés) + DISC (4 scores) + Ennéagramme (9 types) + RIASEC (6 dimensions) + Vertus Seligman&Peterson (6 vertus)
+- Croisement Ennéagramme × Vertus pour vertu dominante enrichie
+
+### Restitution
+- Narrative IA (GPT-5.2) : portrait, fonctionnement, forces/vigilance, conseil
+- Référentiel scientifique injecté (6 Vertus → Forces → Valeurs → Qualités → CPS OMS → Compétences transférables → Métiers → Citations → Penseurs)
+- Zones de vigilance, Compas de fonctionnement, Analyse intégrée
+- Cadran d'Ofman (3 quadrants), Pistes de vie professionnelle
+- 10 sections navigables dans la sidebar (Archéologie, Comportemental, Boussole, RIASEC, Vertus, Intégré, Ofman, Pistes, Croisé, Carte d'identité)
+
+### Modules backend
+- `/app/backend/dclic_data.py` (3664 lignes) — Questions visuelles, legacy, VERTUS, FILIERES, METIERS, ENNEA, RIASEC, LIFE_PATHS
+- `/app/backend/dclic_scoring.py` (2116 lignes) — Moteur de scoring complet (compute_profile, vertus, riasec, ofman, etc.)
+- `/app/backend/dclic_referentiel.py` — Référentiel scientifique enrichi + citations
+- `/app/backend/dclic_routes.py` — Routes API (/questionnaire/visual, /submit, /job-match, /explore, /results, /filieres, /metiers, /vertus)
 
 ## Fonctionnalités implémentées
 
 ### Phase 1 - Core (DONE)
-- Authentification JWT, GPS Dashboard, analyse de CV, Coach Virtuel, Portefeuille de compétences, Job Dating/Matching
+- Auth JWT, GPS Dashboard, Analyse CV, Coach Virtuel, Portefeuille, Job Dating/Matching
 
-### Phase 2 - Observatoire et Marché (DONE)
-- OPC autonome, Vue "Le Marché" (4 onglets personnalisés par IA)
+### Phase 2 - OPC (DONE)
+- Observatoire autonome, Vue "Le Marché" (4 onglets personnalisés par IA)
 
-### Phase 3 - D'CLIC PRO v2 avec Restitution IA Riche (DONE - 19/06/2026)
-- **Questionnaire** : 45 questions / 5 blocs (Archéologie 10q texte, RIASEC 10q échelle, Valeurs 10q échelle, Savoir-être 10q échelle, Projection 5q mixtes)
-- **Scoring déterministe** : RIASEC code, valeurs Schwartz, forces savoir-être, catégorisation archéologique (5 catégories)
-- **Analyse IA enrichie (GPT-5.2)** : Génère MBTI, DISC, Boussole de Fonctionnement (4 axes), Profil de Vertus (6 vertus Seligman&Peterson), Generic Skills Approach (Cognition/Conation/Affection), RIASEC enrichi (traits, environnements), Analyse intégrée (3 niveaux), Analyse croisée, Cadran d'Ofman (3 quadrants: qualité→piège→défi→allergie), Pistes d'action
-- **Référentiel scientifique intégré (19/06/2026)** : Matrices issues des fichiers Excel/ODS de l'utilisateur (archeologie_competences.ods, tableau_ck1.xlsx, tableau_ck.ods). Le prompt GPT-5.2 injecte le référentiel complet (6 Vertus → Forces de caractère → Valeurs Schwartz → Qualités humaines → CPS OMS → Savoirs-être pro → Compétences transférables → Métiers associés → Citations philosophiques → Penseurs Orient/Occident). L'IA est contrainte d'utiliser EXCLUSIVEMENT les correspondances du référentiel.
-- **Restitution graphique** : 10 sections navigables via sidebar (Archéologie, Profil Comportemental avec radars, Boussole MBTI, Analyse Intégrée, RIASEC, Vertus enrichi [citation, forces, compétences transférables, métiers, penseurs], Pistes, Analyse Croisée, Cadran d'Ofman, Carte d'Identité Pro avec QR code)
-- **Fallback** : Si l'IA échoue, profil enrichi déterministe de secours (utilise aussi le référentiel)
-- Backend: `/app/backend/dclic_routes.py`, `/app/backend/dclic_referentiel.py` | Frontend: `/app/frontend/src/pages/DclicTestPage.jsx`
+### Phase 3 - D'CLIC PRO v3 GitHub (DONE - 19/06/2026)
+- Questionnaire visuel 26 questions / 8 blocs (remplace l'ancien 45 questions)
+- Scoring MBTI+DISC+Ennéagramme+RIASEC+Vertus croisé
+- Narrative IA + Référentiel scientifique (Seligman & Peterson)
+- Job matching avec FILIERES et METIERS (54 métiers + scoring)
+- Exploration de carrières
 
-### Phase 4 - Auto-évaluation (DONE)
-- POST /api/passport/diagnostic/auto-evaluate
+### Phase 4-7 (DONE) — Auto-évaluation, Matching avancé, Analyse offre, ADN Pro
 
-### Phase 5 - Job Matching avancé (DONE)
-- Scoring avancé, France Travail par ville/métier, liens directs offres
-
-### Phase 6 - Analyser une offre (DONE)
-- Analyse URL, texte collé, matching IA profil/offre, historique
-
-### Phase 7 - ADN Pro + Candidatures (DONE)
-- Génération ADN Pro, sauvegarde candidatures depuis Job Matching
+## Key Endpoints
+- GET /api/dclic/questionnaire/visual — 26 questions visuelles
+- GET /api/dclic/questionnaire — 15 questions legacy
+- POST /api/dclic/submit — Scoring + narrative IA → profil complet
+- POST /api/dclic/job-match — Matching métiers
+- POST /api/dclic/explore — Exploration de carrières
+- GET /api/dclic/results/{code} — Résultats par code
+- GET /api/dclic/filieres, /api/dclic/metiers, /api/dclic/vertus
 
 ## Tâches futures (Backlog)
-- P1 : Filtrage ROME automatique pour France Travail
-- P2 : Refactoring server.py → modules (routes, models) — ~8800 lignes, critique
-- P2 : Soft Skills (CSE), Valeurs (VIA) — modules d'auto-évaluation indépendants
+- P1 : Filtrage ROME automatique France Travail
+- P2 : Refactoring server.py → modules (~8800 lignes)
+- P2 : Modules Soft Skills (CSE), Valeurs (VIA) indépendants
 - P2 : Diagnostic CCSP
 - P3 : Ateliers Codéveloppement
 - P3 : Micro-titres/badges
-
-## Key Endpoints
-- GET /api/dclic/questionnaire — 5 blocs, 45 questions
-- POST /api/dclic/submit — Scoring + analyse IA → profil riche (MBTI, DISC, Ofman, Vertus référentiel, etc.)
-- GET /api/dclic/results/{code} — Résultats par code d'accès
-- GET /api/dclic/my-results?token= — Résultats liés au profil utilisateur
-- POST /api/jobs/matching/search, POST /api/jobs/france-travail/search
-- POST /api/matching/analyze-offer-url, POST /api/matching/match-profile
-- POST /api/profile/identity-adn, POST /api/jobs/apply
-- GET /api/observatoire/personalized — OPC personnalisé avec cache 24h
-
-## Key Files
-- `/app/backend/dclic_routes.py` — Routes D'CLIC PRO + prompt IA enrichi avec référentiel
-- `/app/backend/dclic_referentiel.py` — Module référentiel scientifique (MATRICE_VERTUS, CITATIONS_VERTUS)
-- `/app/backend/server.py` — API monolithique (~8800 lignes)
-- `/app/frontend/src/pages/DclicTestPage.jsx` — Page D'CLIC PRO complète (questionnaire + restitution)
-- `/app/frontend/src/views/JobMatchingView.jsx` — Vue Job Matching avec double jauge
-- `/app/frontend/src/views/ObservatoireView.jsx` — Vue Observatoire personnalisé
