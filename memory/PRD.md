@@ -86,7 +86,14 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - P3 : Micro-titres/badges
 
 
-### Phase 4d - Fix Trajectoire + Téléchargement CV (DONE - 19/06/2026)
+### Phase 4e - Système de Certification & Badges (DONE - 19/06/2026)
+- Endpoints SARE illustrations créés : GET/POST/DELETE `/passport/illustrations`, `/passport/illustrations/suggest` (IA), `/passport/illustrations/sare` (reformulation IA)
+- Auto-injection dans le coffre-fort : chaque illustration S.A.R.E crée une entrée "experience_prouvee"
+- Upload contrat : certifie TOUTES les expériences du même lieu de travail automatiquement
+- Endpoint `/coffre/certification-status` : stats + badges progressifs par lieu de travail
+- Coffre-fort : nouvelle section "Certification par lieu de travail" avec badges Contributeur/Certifié/Expert Certifié
+- Profil : titre "Mon Passeport de Compétences" renommé en "Mon parcours professionnel"
+
 - Bug fix: Les uploads multiples de CV accumulaient les expériences dans la trajectoire au lieu de les remplacer
 - Fix: Nettoyage des entrées `ia_detectee`/`ia_suggeree` avant chaque nouvelle auto-population depuis le CV
 - Bug fix: Bouton "Télécharger mon CV" inopérant (fichier jamais stocké)

@@ -9033,6 +9033,264 @@ async def learning_recommendations(token: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SOFT SKILLS ILLUSTRATIONS (S.A.R.E) — Preuves concrètes
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/passport/illustrations")
+async def get_illustrations(token: str):
+    """Get all SARE illustrations for the user."""
+    token_doc = await get_current_token(token)
+    illustrations = await db.skill_illustrations.find(
+        {"token_id": token_doc["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    return {"illustrations": illustrations}
+
+
+@api_router.post("/passport/illustrations")
+async def save_illustration(token: str, body: dict):
+    """Save a SARE illustration for a soft skill on an experience. Auto-adds to coffre-fort."""
+    token_doc = await get_current_token(token)
+    exp_id = body.get("experience_id", "")
+    soft_skill = body.get("soft_skill", "").strip()
+    if not exp_id or not soft_skill:
+        raise HTTPException(400, "experience_id et soft_skill requis")
+
+    # Find the experience in passport
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    exp_data = None
+    if passport:
+        for exp in passport.get("experiences", []):
+            if exp.get("id") == exp_id:
+                exp_data = exp
+                break
+
+    illus_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    illustration = {
+        "id": illus_id,
+        "token_id": token_doc["id"],
+        "experience_id": exp_id,
+        "soft_skill": soft_skill,
+        "situation_text": body.get("situation_text", ""),
+        "sare_situation": body.get("sare_situation", ""),
+        "sare_action": body.get("sare_action", ""),
+        "sare_resultat": body.get("sare_resultat", ""),
+        "sare_enseignement": body.get("sare_enseignement", ""),
+        "opc_consent": body.get("opc_consent", False),
+        "created_at": now,
+    }
+    await db.skill_illustrations.insert_one(illustration)
+
+    # Auto-add experience proof entry to coffre-fort (1st certification step)
+    if exp_data:
+        org = exp_data.get("organization", "")
+        title = exp_data.get("title", "")
+        coffre_title = f"Preuve S.A.R.E — {title}"
+        if org:
+            coffre_title += f" ({org})"
+
+        await db.coffre_documents.update_one(
+            {"token_id": token_doc["id"], "linked_experience_id": exp_id, "category": "experience_prouvee", "linked_soft_skill": soft_skill},
+            {"$set": {
+                "id": str(uuid.uuid4()),
+                "token_id": token_doc["id"],
+                "title": coffre_title,
+                "category": "experience_prouvee",
+                "document_type": "sare_proof",
+                "trust_level": "auto_declare",
+                "source_type": "utilisateur",
+                "linked_experience_id": exp_id,
+                "linked_soft_skill": soft_skill,
+                "linked_organization": org,
+                "description": f"Soft skill '{soft_skill}' prouvé par méthode S.A.R.E",
+                "uploaded_at": now,
+            }},
+            upsert=True,
+        )
+
+    return {"success": True, "id": illus_id}
+
+
+@api_router.delete("/passport/illustrations/{illus_id}")
+async def delete_illustration(illus_id: str, token: str):
+    """Delete a SARE illustration."""
+    token_doc = await get_current_token(token)
+    illus = await db.skill_illustrations.find_one({"id": illus_id, "token_id": token_doc["id"]})
+    if not illus:
+        raise HTTPException(404, "Illustration non trouvée")
+
+    await db.skill_illustrations.delete_one({"id": illus_id, "token_id": token_doc["id"]})
+
+    # Also remove the coffre entry for this specific proof
+    await db.coffre_documents.delete_one({
+        "token_id": token_doc["id"],
+        "linked_experience_id": illus.get("experience_id"),
+        "linked_soft_skill": illus.get("soft_skill"),
+        "category": "experience_prouvee",
+    })
+
+    return {"success": True}
+
+
+@api_router.post("/passport/illustrations/suggest")
+async def suggest_illustrations(token: str, body: dict):
+    """AI suggests SARE illustrations for an experience."""
+    token_doc = await get_current_token(token)
+    exp_id = body.get("experience_id", "")
+
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if not passport:
+        raise HTTPException(404, "Passeport non trouvé")
+
+    exp_data = None
+    for exp in passport.get("experiences", []):
+        if exp.get("id") == exp_id:
+            exp_data = exp
+            break
+    if not exp_data:
+        raise HTTPException(404, "Expérience non trouvée")
+
+    soft_skills = passport.get("savoir_etre", [])
+    skills_list = [s.get("name", s) if isinstance(s, dict) else s for s in soft_skills[:10]]
+
+    if EMERGENT_LLM_KEY and skills_list:
+        try:
+            prompt = f"""Pour l'expérience "{exp_data.get('title','')}" chez "{exp_data.get('organization','')}" ({exp_data.get('description','')}),
+suggère 3 soft skills parmi cette liste : {', '.join(skills_list)}.
+Pour chaque soft skill, propose une illustration S.A.R.E réaliste et concrète.
+Réponds en JSON : [{{"soft_skill":"...", "situation":"...", "action":"...", "resultat":"...", "enseignement":"..."}}]"""
+
+            chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"sare-suggest-{uuid.uuid4().hex[:8]}",
+                           system_message="Tu es un expert en bilan de compétences. Réponds uniquement en JSON.").with_model("openai", "gpt-5.2")
+            response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+            text = response.content if hasattr(response, 'content') else str(response)
+
+            import json as json_mod
+            # Extract JSON from response
+            start = text.find("[")
+            end = text.rfind("]") + 1
+            if start >= 0 and end > start:
+                suggestions = json_mod.loads(text[start:end])
+                return {"suggestions": suggestions}
+        except Exception as e:
+            logger.error(f"SARE suggest error: {e}")
+
+    # Fallback
+    return {"suggestions": [{"soft_skill": s, "situation": "", "action": "", "resultat": "", "enseignement": ""} for s in skills_list[:3]]}
+
+
+@api_router.post("/passport/illustrations/sare")
+async def rewrite_sare(token: str, body: dict):
+    """AI reformulates an illustration into proper SARE format."""
+    token_doc = await get_current_token(token)
+    illus_id = body.get("illustration_id", "")
+    illus = await db.skill_illustrations.find_one({"id": illus_id, "token_id": token_doc["id"]})
+    if not illus:
+        raise HTTPException(404, "Illustration non trouvée")
+
+    raw_text = illus.get("sare_situation", "") or illus.get("situation_text", "")
+    action = illus.get("sare_action", "")
+    resultat = illus.get("sare_resultat", "")
+
+    if EMERGENT_LLM_KEY:
+        try:
+            prompt = f"""Reformule cette preuve de compétence en méthode S.A.R.E professionnelle (3-4 lignes max).
+Soft skill : {illus.get('soft_skill','')}
+Situation : {raw_text}
+Action : {action}
+Résultat : {resultat}
+Reformule en un texte fluide et percutant pour un recruteur."""
+
+            chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"sare-rewrite-{uuid.uuid4().hex[:8]}",
+                           system_message="Tu es un CIP expert en valorisation de compétences. Réponds directement avec le texte reformulé.").with_model("openai", "gpt-5.2")
+            response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+            sare_text = response.content if hasattr(response, 'content') else str(response)
+
+            await db.skill_illustrations.update_one(
+                {"id": illus_id},
+                {"$set": {"sare_text": sare_text.strip()}}
+            )
+            return {"success": True, "sare_text": sare_text.strip()}
+        except Exception as e:
+            logger.error(f"SARE rewrite error: {e}")
+
+    return {"success": False, "message": "Service IA indisponible"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CERTIFICATION STATUS & BADGES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/coffre/certification-status")
+async def get_certification_status(token: str):
+    """Get certification status grouped by workplace with progressive badges."""
+    token_doc = await get_current_token(token)
+
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    experiences = passport.get("experiences", []) if passport else []
+    illustrations = await db.skill_illustrations.find({"token_id": token_doc["id"]}).to_list(500)
+
+    # Group experiences by organization
+    orgs = {}
+    for exp in experiences:
+        org = exp.get("organization", "Non spécifié") or "Non spécifié"
+        if org not in orgs:
+            orgs[org] = {"organization": org, "experiences": [], "has_contract": False, "total_proofs": 0}
+        exp_illus = [i for i in illustrations if i.get("experience_id") == exp.get("id")]
+        orgs[org]["experiences"].append({
+            "id": exp.get("id"),
+            "title": exp.get("title", ""),
+            "is_certified": exp.get("is_certified", False),
+            "has_contract": bool(exp.get("proof_document")),
+            "proofs_count": len(exp_illus),
+            "soft_skills_proved": [i.get("soft_skill") for i in exp_illus],
+        })
+        orgs[org]["total_proofs"] += len(exp_illus)
+        if exp.get("proof_document"):
+            orgs[org]["has_contract"] = True
+
+    # Compute global stats
+    total_exp = len(experiences)
+    total_proved = sum(1 for exp in experiences
+                       if any(i.get("experience_id") == exp.get("id") for i in illustrations))
+    total_certified = sum(1 for exp in experiences if exp.get("is_certified"))
+    total_with_contract = sum(1 for exp in experiences if exp.get("proof_document"))
+
+    # Determine global badge level
+    badge_level = 0
+    badge_label = "Débutant"
+    badge_color = "slate"
+    if total_proved >= 3:
+        badge_level = 1
+        badge_label = "Contributeur"
+        badge_color = "emerald"
+    if total_with_contract >= 1:
+        badge_level = 2
+        badge_label = "Certifié"
+        badge_color = "blue"
+    if total_exp > 0 and total_proved == total_exp and total_with_contract == total_exp:
+        badge_level = 3
+        badge_label = "Expert Certifié"
+        badge_color = "amber"
+
+    return {
+        "workplaces": list(orgs.values()),
+        "stats": {
+            "total_experiences": total_exp,
+            "total_proved": total_proved,
+            "total_certified": total_certified,
+            "total_with_contract": total_with_contract,
+        },
+        "badge": {
+            "level": badge_level,
+            "label": badge_label,
+            "color": badge_color,
+        },
+    }
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # DOCUMENT PROOF UPLOAD (Certification officielle des expériences)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -9120,16 +9378,51 @@ async def upload_experience_proof_document(token: str, payload: ProofUploadPaylo
     experiences[exp_index]["is_certified"] = True
     experiences[exp_index]["certification_date"] = datetime.now(timezone.utc).isoformat()
 
+    # Also certify ALL other experiences at the same organization
+    certified_org = experiences[exp_index].get("organization", "")
+    certified_count = 1
+    if certified_org:
+        for i, exp in enumerate(experiences):
+            if i != exp_index and exp.get("organization") == certified_org and not exp.get("is_certified"):
+                experiences[i]["is_certified"] = True
+                experiences[i]["certification_date"] = datetime.now(timezone.utc).isoformat()
+                experiences[i]["certified_by_org_contract"] = True
+                certified_count += 1
+
     await db.passports.update_one(
         {"token_id": token_doc["id"]},
         {"$set": {"experiences": experiences, "last_updated": datetime.now(timezone.utc).isoformat()}}
     )
 
+    # Also add contract to coffre-fort
+    coffre_title = f"Contrat — {experiences[exp_index].get('title', '')} ({certified_org})" if certified_org else f"Contrat — {experiences[exp_index].get('title', '')}"
+    await db.coffre_documents.update_one(
+        {"token_id": token_doc["id"], "linked_experience_id": payload.experience_id, "category": "contrat_travail"},
+        {"$set": {
+            "id": str(uuid.uuid4()),
+            "token_id": token_doc["id"],
+            "title": coffre_title,
+            "category": "contrat_travail",
+            "document_type": "contrat",
+            "trust_level": "certifie",
+            "source_type": "utilisateur",
+            "linked_experience_id": payload.experience_id,
+            "linked_organization": certified_org,
+            "filename": payload.file_name,
+            "storage_path": stored_filename,
+            "grid_id": str(grid_id),
+            "description": f"Document certifiant {certified_count} expérience(s) chez {certified_org}" if certified_org else "Document de certification",
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+
     return {
         "success": True,
         "file_id": file_id,
-        "message": f"Document '{payload.file_name}' rattaché à l'expérience avec succès",
+        "message": f"Document '{payload.file_name}' rattaché. {certified_count} expérience(s) certifiée(s) chez {certified_org}." if certified_org else f"Document '{payload.file_name}' rattaché à l'expérience avec succès",
         "proof_document": proof_doc,
+        "certified_count": certified_count,
     }
 
 

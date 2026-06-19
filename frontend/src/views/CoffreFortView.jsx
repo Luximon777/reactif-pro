@@ -26,6 +26,7 @@ const CoffreFortView = ({ token }) => {
   const [scores, setScores] = useState(null);
   const [shares, setShares] = useState([]);
   const [illustrations, setIllustrations] = useState([]);
+  const [certStatus, setCertStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("wallet");
 
@@ -43,13 +44,14 @@ const CoffreFortView = ({ token }) => {
 
   const loadAll = useCallback(async () => {
     try {
-      const [docsRes, profRes, passRes, scoreRes, sharesRes, illusRes] = await Promise.all([
+      const [docsRes, profRes, passRes, scoreRes, sharesRes, illusRes, certRes] = await Promise.all([
         axios.get(`${API}/coffre/documents?token=${token}`),
         axios.get(`${API}/profile?token=${token}`),
         axios.get(`${API}/passport?token=${token}`),
         axios.get(`${API}/profile/confidence-scores/simple?token=${token}`).catch(() => ({ data: null })),
         axios.get(`${API}/shares?token=${token}`).catch(() => ({ data: { shares: [] } })),
         axios.get(`${API}/passport/illustrations?token=${token}`).catch(() => ({ data: { illustrations: [] } })),
+        axios.get(`${API}/coffre/certification-status?token=${token}`).catch(() => ({ data: null })),
       ]);
       setDocuments(docsRes.data || []);
       setProfile(profRes.data);
@@ -57,6 +59,7 @@ const CoffreFortView = ({ token }) => {
       setScores(scoreRes.data);
       setShares(sharesRes.data.shares || []);
       setIllustrations(illusRes.data.illustrations || []);
+      setCertStatus(certRes.data);
     } catch { /* silent */ }
     setLoading(false);
   }, [token]);
@@ -496,6 +499,119 @@ const CoffreFortView = ({ token }) => {
                       )}
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ═══ CERTIFICATION PAR LIEU DE TRAVAIL ═══ */}
+          {certStatus && certStatus.workplaces && certStatus.workplaces.length > 0 && (
+            <Card data-testid="certification-workplaces">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-blue-600" />Certification par lieu de travail
+                  </h4>
+                  {certStatus.badge && (
+                    <Badge data-testid="global-cert-badge" className={`text-[10px] font-bold ${
+                      certStatus.badge.level === 3 ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                      certStatus.badge.level === 2 ? "bg-blue-100 text-blue-800 border border-blue-300" :
+                      certStatus.badge.level === 1 ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                      "bg-slate-100 text-slate-600 border border-slate-200"
+                    }`}>
+                      {certStatus.badge.level === 3 && <Award className="w-3 h-3 mr-1" />}
+                      {certStatus.badge.level === 2 && <Shield className="w-3 h-3 mr-1" />}
+                      {certStatus.badge.level === 1 && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                      {certStatus.badge.label}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Progress bar global */}
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-emerald-50 rounded-lg p-2">
+                    <p className="text-lg font-bold text-emerald-700">{certStatus.stats.total_proved}</p>
+                    <p className="text-[10px] text-slate-500">Exp. prouvées</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-2">
+                    <p className="text-lg font-bold text-blue-700">{certStatus.stats.total_with_contract}</p>
+                    <p className="text-[10px] text-slate-500">Avec contrat</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg p-2">
+                    <p className="text-lg font-bold text-amber-700">{certStatus.stats.total_experiences}</p>
+                    <p className="text-[10px] text-slate-500">Total exp.</p>
+                  </div>
+                </div>
+
+                {/* Badge progress explanation */}
+                <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold text-slate-700">Progression des badges</p>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${certStatus.badge.level >= 1 ? "bg-emerald-500" : "bg-slate-200"}`}>
+                      {certStatus.badge.level >= 1 && <CheckCircle2 className="w-3 h-3 text-white" />}
+                    </div>
+                    <p className={`text-[10px] ${certStatus.badge.level >= 1 ? "text-emerald-700 font-medium" : "text-slate-400"}`}>Contributeur — 3 expériences prouvées (S.A.R.E)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${certStatus.badge.level >= 2 ? "bg-blue-500" : "bg-slate-200"}`}>
+                      {certStatus.badge.level >= 2 && <Shield className="w-3 h-3 text-white" />}
+                    </div>
+                    <p className={`text-[10px] ${certStatus.badge.level >= 2 ? "text-blue-700 font-medium" : "text-slate-400"}`}>Certifié — Au moins 1 contrat de travail uploadé</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${certStatus.badge.level >= 3 ? "bg-amber-500" : "bg-slate-200"}`}>
+                      {certStatus.badge.level >= 3 && <Award className="w-3 h-3 text-white" />}
+                    </div>
+                    <p className={`text-[10px] ${certStatus.badge.level >= 3 ? "text-amber-700 font-medium" : "text-slate-400"}`}>Expert Certifié — Toutes les expériences prouvées + contrats</p>
+                  </div>
+                </div>
+
+                {/* Workplaces grouped */}
+                <div className="space-y-3">
+                  {certStatus.workplaces.map((wp, wi) => {
+                    const orgProved = wp.experiences.filter(e => e.proofs_count > 0).length;
+                    const orgCertified = wp.has_contract;
+                    return (
+                      <div key={wi} className={`rounded-xl border p-3 space-y-2 ${
+                        orgCertified ? "bg-blue-50 border-blue-200" : orgProved > 0 ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200"
+                      }`} data-testid={`workplace-${wi}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className={`w-4 h-4 ${orgCertified ? "text-blue-600" : orgProved > 0 ? "text-emerald-600" : "text-slate-400"}`} />
+                            <h5 className="text-xs font-bold text-slate-800">{wp.organization}</h5>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {orgCertified && <Badge className="bg-blue-100 text-blue-700 text-[9px]"><Shield className="w-2.5 h-2.5 mr-0.5" />Contrat</Badge>}
+                            <Badge className={`text-[9px] ${orgProved > 0 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                              {orgProved}/{wp.experiences.length} prouvée{orgProved > 1 ? "s" : ""}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          {wp.experiences.map((exp, ei) => (
+                            <div key={ei} className="flex items-center justify-between py-1 px-2 rounded bg-white/60 text-[11px]">
+                              <span className="text-slate-700">{exp.title}</span>
+                              <div className="flex items-center gap-1">
+                                {exp.proofs_count > 0 && (
+                                  <span className="flex items-center gap-0.5 text-emerald-600"><CheckCircle2 className="w-3 h-3" />{exp.proofs_count} S.A.R.E</span>
+                                )}
+                                {exp.has_contract && <Shield className="w-3 h-3 text-blue-500" />}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {!orgCertified && (
+                          <button
+                            onClick={() => window.location.href = "/dashboard/profil?tab=experiences"}
+                            className="w-full text-center text-[10px] text-blue-600 hover:text-blue-800 py-1 rounded bg-white/50 hover:bg-white border border-dashed border-blue-200"
+                            data-testid={`upload-contract-${wi}`}
+                          >
+                            <Upload className="w-3 h-3 inline mr-1" />Ajouter un contrat de travail pour certifier
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
