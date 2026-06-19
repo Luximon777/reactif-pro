@@ -493,16 +493,15 @@ const CoffreFortView = ({ token }) => {
                         <input
                           type="checkbox"
                           checked={doc.trust_level === "valide"}
-                          disabled={doc.trust_level === "valide"}
                           onChange={async (e) => {
-                            if (!e.target.checked) return;
+                            const newLevel = e.target.checked ? "valide" : "auto_declare";
                             try {
-                              await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "valide" });
-                              toast.success("Preuve validée");
+                              await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: newLevel });
+                              toast.success(e.target.checked ? "Preuve validée" : "Validation retirée");
                               loadAll();
                             } catch { toast.error("Erreur"); }
                           }}
-                          className={`w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 ${doc.trust_level === "valide" ? "cursor-default opacity-70" : "cursor-pointer"}`}
+                          className="w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         />
                       </label>
                       <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => handleDelete(doc.id)} data-testid={`delete-doc-${doc.id}`}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
