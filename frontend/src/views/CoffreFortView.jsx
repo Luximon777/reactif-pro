@@ -489,7 +489,7 @@ const CoffreFortView = ({ token }) => {
                       <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`edit-doc-${doc.id}`} onClick={() => {
                         window.location.href = "/dashboard/profil?tab=experiences";
                       }}><Pencil className="w-3.5 h-3.5 text-amber-600" /></Button>
-                      <label className="inline-flex items-center h-7 w-7 justify-center cursor-pointer" data-testid={`validate-doc-${doc.id}`} title={doc.trust_level === "valide" ? "Validé" : "Cocher pour valider"}>
+                      <label className="inline-flex items-center h-7 w-7 justify-center cursor-pointer" data-testid={`validate-doc-${doc.id}`} title={doc.trust_level === "valide" ? "Validé" : "En attente de validation"}>
                         <input
                           type="checkbox"
                           checked={doc.trust_level === "valide"}
@@ -497,7 +497,7 @@ const CoffreFortView = ({ token }) => {
                             const newLevel = e.target.checked ? "valide" : "auto_declare";
                             try {
                               await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: newLevel });
-                              toast.success(e.target.checked ? "Preuve validée" : "Validation retirée");
+                              toast.success(e.target.checked ? "Preuve validée" : "En attente de validation");
                               loadAll();
                             } catch { toast.error("Erreur"); }
                           }}
