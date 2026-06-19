@@ -415,7 +415,7 @@ const Dashboard = () => {
                           </div>
                           {dclicPreview.ennea_profile?.name && (
                             <div className="bg-white rounded p-2 text-center col-span-2">
-                              <p className="text-xs text-slate-500">Ennéagramme</p>
+                              <p className="text-xs text-slate-500">Profil Motivationnel</p>
                               <p className="font-bold text-rose-700">Type {dclicPreview.ennea_dominant} — {dclicPreview.ennea_profile.name}</p>
                             </div>
                           )}

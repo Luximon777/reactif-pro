@@ -519,7 +519,7 @@ const DclicProProfileCard = ({ profile }) => {
           {dp.mbti && <Badge className="bg-indigo-100 text-indigo-700">Version inspirée du MBTI : {dp.mbti}</Badge>}
           {dp.disc && <Badge className="bg-purple-100 text-purple-700">DISC : {dp.disc}</Badge>}
           {riasec.code_3 && <Badge className="bg-teal-100 text-teal-700">RIASEC : {riasec.code_3}</Badge>}
-          {dp.ennea_dominant && <Badge className="bg-amber-100 text-amber-700">Ennéagramme : {dp.ennea_dominant}</Badge>}
+          {dp.ennea_dominant && <Badge className="bg-amber-100 text-amber-700">Profil Motivationnel : {dp.ennea_dominant}</Badge>}
           {vertus.dominant_name && <Badge className="bg-sky-100 text-sky-700">Vertu : {vertus.dominant_name}</Badge>}
         </div>
 

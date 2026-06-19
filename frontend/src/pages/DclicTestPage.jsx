@@ -36,7 +36,7 @@ const DEFINITIONS = {
   vertus: "Le modèle des Vertus de Seligman & Peterson identifie 6 vertus fondamentales : Sagesse, Courage, Humanité, Justice, Tempérance et Transcendance. Chaque vertu regroupe des forces de caractère qui sont universellement valorisées.",
   ofman: "Le Cadran d'Ofman est un modèle créé par Daniel Ofman (années 1990) qui relie 4 éléments : votre Qualité fondamentale (force naturelle), le Piège (excès de cette qualité), le Challenge (ce que vous devez développer) et l'Allergie (ce qui vous irrite chez les autres). Il montre que chaque force a une faiblesse symétrique.",
   integrated: "L'Analyse Intégrée examine votre profil sur 3 niveaux : Niveau 1 (compétences prouvées), Niveau 2 (style de travail et environnement) et Niveau 3 (régulation, moteur interne et signaux de stress). Elle offre une vision complète et nuancée.",
-  cross: "L'Analyse Croisée met en relation vos différents profils (DISC, Ennéagramme, version inspirée du MBTI) pour identifier les synergies naturelles et les tensions potentielles entre vos différentes facettes.",
+  cross: "L'Analyse Croisée met en relation vos différents profils (DISC, Profil Motivationnel, version inspirée du MBTI) pour identifier les synergies naturelles et les tensions potentielles entre vos différentes facettes.",
 };
 
 // ============================================================================
@@ -198,8 +198,8 @@ const DclicProLogo = ({ size = 120, animated = true }) => (
 // ============================================================================
 const SECTIONS = [
   { id: "archeologie", label: "Archéologie des Compétences", icon: "1" },
-  { id: "comportemental", label: "Profil Comportemental", icon: "2" },
-  { id: "boussole", label: "Boussole de Fonctionnement", icon: "3" },
+  { id: "comportemental", label: "DISC & Comportement", icon: "2" },
+  { id: "boussole", label: "MBTI & Boussole", icon: "3" },
   { id: "integrated", label: "Analyse Intégrée", icon: "4" },
   { id: "riasec", label: "Profil RIASEC", icon: "5" },
   { id: "vertus", label: "Profil de Vertus", icon: "6" },
@@ -501,15 +501,133 @@ const PistesSection = ({ profile }) => {
 
 const CrossSection = ({ profile }) => {
   const ca = profile.cross_analysis || {};
-  if (!ca.has_cross_analysis) return <p className="text-sm text-slate-500">Renseignez votre date de naissance pour accéder à l'analyse croisée.</p>;
+  const disc = profile.disc || "?";
+  const discScores = profile.disc_scores || {};
+  const mbti = profile.mbti || "?";
+  const mbtiDetails = profile.mbti_details || {};
+  const ennea = profile.ennea_dominant || "?";
+  const enneaProfile = profile.ennea_profile || {};
+  const riasecMajor = profile.riasec_profile?.major_name || "?";
+  const riasecMinor = profile.riasec_profile?.minor_name || "";
+  const dominantVertu = profile.vertus_profile?.dominant_name || "?";
+
+  // Cross-reference matrices
+  const discMbtiCross = {
+    "D-E": "Leadership naturel : votre Dominance (DISC) et votre Extraversion (MBTI) se renforcent pour un style de leadership direct et énergique.",
+    "D-I": "Stratège discret : votre Dominance (DISC) combinée à votre Introversion (MBTI) crée un profil de décideur réfléchi et stratégique.",
+    "I-E": "Communicant né : votre Influence (DISC) et votre Extraversion (MBTI) font de vous un fédérateur naturel et un excellent networker.",
+    "I-I": "Créatif empathique : votre Influence (DISC) et votre Introversion (MBTI) créent un profil d'écoute profonde avec une capacité d'influence subtile.",
+    "S-F": "Facilitateur bienveillant : votre Stabilité (DISC) et votre Feeling (MBTI) vous orientent naturellement vers l'accompagnement et le soutien d'équipe.",
+    "S-J": "Pilier organisationnel : votre Stabilité (DISC) et votre Jugement (MBTI) font de vous un garant de la continuité et de la fiabilité.",
+    "C-T": "Analyste rigoureux : votre Conformité (DISC) et votre Thinking (MBTI) se combinent pour une excellence dans l'analyse et le contrôle qualité.",
+    "C-N": "Visionnaire méthodique : votre Conformité (DISC) et votre Intuition (MBTI) créent un profil unique d'innovation structurée.",
+  };
+
+  const discRiasecCross = {
+    "D-Entreprenant": "Double moteur d'action : votre style D (DISC) et votre profil Entreprenant (RIASEC) vous destinent à des rôles de direction et d'entrepreneuriat.",
+    "D-Réaliste": "Pragmatique efficace : Dominance + Réaliste = exécution rapide et résultats concrets.",
+    "I-Social": "Catalyseur humain : votre Influence (DISC) et votre profil Social (RIASEC) font de vous un acteur clé dans les métiers relationnels.",
+    "I-Artistique": "Créatif expressif : Influence + Artistique = talent pour la communication créative et le storytelling.",
+    "S-Social": "Accompagnant de confiance : Stabilité + Social = excellence dans les métiers d'aide et d'accompagnement.",
+    "S-Conventionnel": "Gestionnaire fiable : Stabilité + Conventionnel = rigueur administrative et sens du service.",
+    "C-Investigateur": "Chercheur méthodique : Conformité + Investigateur = excellence en recherche et analyse de données.",
+    "C-Conventionnel": "Expert qualité : Conformité + Conventionnel = maîtrise des processus et des normes.",
+  };
+
+  // Find best cross-reference matches
+  const ei = mbtiDetails.E > mbtiDetails.I ? "E" : "I";
+  const sn = mbtiDetails.S > mbtiDetails.N ? "S" : "N";
+  const tf = mbtiDetails.T > mbtiDetails.F ? "T" : "F";
+  const jp = mbtiDetails.J > mbtiDetails.P ? "J" : "P";
+  const discMbtiKey = `${disc}-${ei}`;
+  const discMbtiKey2 = `${disc}-${tf}`;
+  const discRiasecKey = `${disc}-${riasecMajor}`;
+
+  const crossInsightDM = discMbtiCross[discMbtiKey] || discMbtiCross[discMbtiKey2] || `Votre profil ${disc} (DISC) croisé avec votre type ${mbti} (MBTI) crée une combinaison unique de traits comportementaux.`;
+  const crossInsightDR = discRiasecCross[discRiasecKey] || `Votre style ${disc} (DISC) associé au profil ${riasecMajor} (RIASEC) ouvre des perspectives dans des métiers combinant ${disc === "D" ? "leadership" : disc === "I" ? "influence" : disc === "S" ? "stabilité" : "rigueur"} et ${riasecMajor.toLowerCase()}.`;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <h3 className="text-lg font-bold text-white">
-        <HoverTooltip content={DEFINITIONS.cross}>Analyse Croisée</HoverTooltip>
+        <HoverTooltip content={DEFINITIONS.cross}>Analyse Croisée Multi-Méthodes</HoverTooltip>
       </h3>
-      <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4"><h4 className="text-sm font-semibold text-blue-300 mb-1">Synergie - Style de travail</h4><p className="text-sm text-blue-200">{ca.synergy_disc}</p></div>
-      <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4"><h4 className="text-sm font-semibold text-emerald-300 mb-1">Synergie - Moteur intérieur</h4><p className="text-sm text-emerald-200">{ca.synergy_ennea}</p></div>
-      {ca.tension && <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4"><h4 className="text-sm font-semibold text-amber-300 mb-1">Tension à transformer</h4><p className="text-sm text-amber-200">{ca.tension}</p></div>}
+
+      {/* Synthèse visuelle des profils */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-red-500/10 border border-red-400/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-red-400 font-semibold uppercase tracking-wider">DISC</p>
+          <p className="text-2xl font-bold text-red-300 mt-1">{disc}</p>
+          <p className="text-[10px] text-red-400/70">{disc === "D" ? "Dominance" : disc === "I" ? "Influence" : disc === "S" ? "Stabilité" : disc === "C" ? "Conformité" : disc}</p>
+        </div>
+        <div className="bg-violet-500/10 border border-violet-400/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">MBTI</p>
+          <p className="text-2xl font-bold text-violet-300 mt-1">{mbti}</p>
+          <p className="text-[10px] text-violet-400/70">Version inspirée</p>
+        </div>
+        <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Profil Motivationnel</p>
+          <p className="text-2xl font-bold text-amber-300 mt-1">Type {ennea}</p>
+          <p className="text-[10px] text-amber-400/70">{enneaProfile.name || ""}</p>
+        </div>
+        <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">RIASEC</p>
+          <p className="text-2xl font-bold text-emerald-300 mt-1">{riasecMajor}</p>
+          <p className="text-[10px] text-emerald-400/70">{riasecMinor ? `+ ${riasecMinor}` : ""}</p>
+        </div>
+      </div>
+
+      {/* Croisement DISC × MBTI */}
+      <div className="rounded-xl border border-violet-400/20 bg-gradient-to-r from-red-500/5 to-violet-500/5 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 text-xs font-bold">DISC</span>
+          <span className="text-slate-500 text-xs">×</span>
+          <span className="px-2 py-0.5 rounded-md bg-violet-500/20 text-violet-300 text-xs font-bold">MBTI</span>
+        </div>
+        <p className="text-sm text-slate-200">{crossInsightDM}</p>
+      </div>
+
+      {/* Croisement DISC × RIASEC */}
+      <div className="rounded-xl border border-emerald-400/20 bg-gradient-to-r from-red-500/5 to-emerald-500/5 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 text-xs font-bold">DISC</span>
+          <span className="text-slate-500 text-xs">×</span>
+          <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-xs font-bold">RIASEC</span>
+        </div>
+        <p className="text-sm text-slate-200">{crossInsightDR}</p>
+      </div>
+
+      {/* Croisement Profil Motivationnel × Vertus */}
+      <div className="rounded-xl border border-amber-400/20 bg-gradient-to-r from-amber-500/5 to-cyan-500/5 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-xs font-bold">Profil Motivationnel</span>
+          <span className="text-slate-500 text-xs">×</span>
+          <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 text-xs font-bold">Vertus</span>
+        </div>
+        <p className="text-sm text-slate-200">
+          En tant que Type {ennea} ({enneaProfile.name || "?"}) dont le moteur est "{enneaProfile.moteur || "?"}", votre vertu dominante "{dominantVertu}" agit comme un levier naturel.
+          {enneaProfile.vertu && ` La vertu associée à votre profil motivationnel est "${enneaProfile.vertu}", ce qui ${enneaProfile.vertu === dominantVertu ? "renforce naturellement votre profil de manière cohérente." : `crée une complémentarité enrichissante avec "${dominantVertu}".`}`}
+        </p>
+      </div>
+
+      {/* Existing cross_analysis from backend if available */}
+      {ca.synergy_disc && (
+        <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4">
+          <h4 className="text-sm font-semibold text-blue-300 mb-1">Synergie — Style de travail (IA)</h4>
+          <p className="text-sm text-blue-200">{ca.synergy_disc}</p>
+        </div>
+      )}
+      {ca.synergy_ennea && (
+        <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4">
+          <h4 className="text-sm font-semibold text-emerald-300 mb-1">Synergie — Moteur intérieur (IA)</h4>
+          <p className="text-sm text-emerald-200">{ca.synergy_ennea}</p>
+        </div>
+      )}
+      {ca.tension && (
+        <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4">
+          <h4 className="text-sm font-semibold text-amber-300 mb-1">Tension à transformer</h4>
+          <p className="text-sm text-amber-200">{ca.tension}</p>
+        </div>
+      )}
       {ca.integration_insight && <p className="text-sm text-violet-300 italic bg-violet-500/5 p-3 rounded-lg">{ca.integration_insight}</p>}
     </div>
   );
