@@ -448,20 +448,37 @@ const RiasecSection = ({ profile }) => {
 const VertusSection = ({ profile }) => {
   const vp = profile.vertus_profile || {};
   const scores = vp.vertus_scores || {};
-  const labels = { sagesse: "Sagesse", courage: "Courage", humanite: "Humanite", justice: "Justice", temperance: "Temperance", transcendance: "Transcendance" };
+  const labels = { sagesse: "Sagesse", courage: "Courage", humanite: "Humanité", justice: "Justice", temperance: "Tempérance", transcendance: "Transcendance" };
   const colors = { sagesse: "bg-blue-500", courage: "bg-red-500", humanite: "bg-rose-500", justice: "bg-emerald-500", temperance: "bg-amber-500", transcendance: "bg-purple-500" };
   const maxScore = Math.max(...Object.values(scores), 1);
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white">
+      <h3 className="text-lg font-bold text-white" data-testid="vertus-title">
         <HoverTooltip content={DEFINITIONS.vertus}>Profil de Vertus</HoverTooltip>
       </h3>
       <p className="text-sm text-slate-400">Seligman & Peterson - Les 6 vertus fondamentales</p>
       <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-400/30">
-        <p className="text-sm font-semibold text-emerald-300">Vertu dominante : {vp.dominant_name || vp.vertu_dominante_name || labels[vp.dominant] || "?"}</p>
+        <p className="text-sm font-semibold text-emerald-300" data-testid="vertu-dominante">Vertu dominante : {vp.dominant_name || vp.vertu_dominante_name || labels[vp.dominant] || "?"}</p>
+        {vp.description && <p className="text-xs text-emerald-200/70 mt-1">{vp.description}</p>}
       </div>
+      {vp.citation && (
+        <div className="bg-slate-800/50 rounded-lg p-3 border-l-2 border-amber-400/60" data-testid="vertu-citation">
+          <p className="text-xs text-amber-200/80 italic leading-relaxed">{vp.citation}</p>
+        </div>
+      )}
       <div className="space-y-2">{Object.entries(scores).sort((a, b) => b[1] - a[1]).map(([key, val]) => <Bar key={key} label={labels[key] || key} value={Math.round((val / maxScore) * 100)} color={colors[key] || "bg-[#4f6df5]"} />)}</div>
-      {vp.qualites_dominantes?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Qualités humaines associées</p><div className="flex flex-wrap gap-1.5">{vp.qualites_dominantes.map((q, i) => <Badge key={i} className="bg-emerald-500/20 text-emerald-300 text-xs border-0">{typeof q === "string" ? q : q.name || ""}</Badge>)}</div></div>}
+      {vp.forces_caractere?.length > 0 && <div><p className="text-sm font-semibold text-blue-300 mb-1">Forces de caractère</p><div className="flex flex-wrap gap-1.5">{vp.forces_caractere.map((f, i) => <Badge key={i} className="bg-blue-500/20 text-blue-300 text-xs border-0">{f}</Badge>)}</div></div>}
+      {vp.qualites_dominantes?.length > 0 && <div><p className="text-sm font-semibold text-slate-300 mb-1">Qualités humaines</p><div className="flex flex-wrap gap-1.5">{vp.qualites_dominantes.map((q, i) => <Badge key={i} className="bg-emerald-500/20 text-emerald-300 text-xs border-0">{typeof q === "string" ? q : q.name || ""}</Badge>)}</div></div>}
+      {vp.competences_transferables?.length > 0 && <div><p className="text-sm font-semibold text-violet-300 mb-1">Compétences transférables</p><div className="flex flex-wrap gap-1.5">{vp.competences_transferables.map((c, i) => <Badge key={i} className="bg-violet-500/20 text-violet-300 text-xs border-0">{c}</Badge>)}</div></div>}
+      {vp.competences_oms?.length > 0 && <div><p className="text-sm font-semibold text-cyan-300 mb-1">Compétences psychosociales (OMS)</p><div className="flex flex-wrap gap-1.5">{vp.competences_oms.map((c, i) => <Badge key={i} className="bg-cyan-500/20 text-cyan-300 text-xs border-0">{c}</Badge>)}</div></div>}
+      {vp.metiers_associes?.length > 0 && <div><p className="text-sm font-semibold text-amber-300 mb-1">Métiers associés</p><div className="flex flex-wrap gap-1.5">{vp.metiers_associes.map((m, i) => <Badge key={i} variant="outline" className="text-xs border-amber-400/30 text-amber-300">{m}</Badge>)}</div></div>}
+      {vp.penseurs && (vp.penseurs.orientaux?.length > 0 || vp.penseurs.occidentaux?.length > 0) && (
+        <div className="bg-slate-800/30 rounded-lg p-3 space-y-1.5">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Penseurs de référence</p>
+          {vp.penseurs.orientaux?.length > 0 && <p className="text-xs text-slate-300"><span className="text-amber-400">Orient :</span> {vp.penseurs.orientaux.join(", ")}</p>}
+          {vp.penseurs.occidentaux?.length > 0 && <p className="text-xs text-slate-300"><span className="text-blue-400">Occident :</span> {vp.penseurs.occidentaux.join(", ")}</p>}
+        </div>
+      )}
     </div>
   );
 };

@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from pathlib import Path
 from dotenv import load_dotenv
+from dclic_referentiel import MATRICE_VERTUS, CITATIONS_VERTUS, format_referentiel_for_prompt
 import asyncio, json, logging, os, secrets, string, uuid
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -239,8 +240,14 @@ async def generate_rich_profile(answers: dict, basic_profile: dict) -> dict:
     sep_text = ", ".join([f"{s['code']}({s['score']})" for s in basic_profile["savoir_etre"]["all"]])
     proj = basic_profile["projection"]
 
+    # Injecter le référentiel scientifique complet
+    referentiel_text = format_referentiel_for_prompt()
+
     prompt = f"""Tu es un expert en psychologie du travail et en orientation professionnelle.
-À partir des réponses D'CLIC PRO ci-dessous, génère une analyse complète en JSON.
+À partir des réponses D'CLIC PRO ci-dessous et du RÉFÉRENTIEL SCIENTIFIQUE fourni,
+génère une analyse complète en JSON.
+
+{referentiel_text}
 
 === RÉPONSES ARCHÉOLOGIE DES COMPÉTENCES ===
 {arche_text}
@@ -262,6 +269,12 @@ Préfère travailler avec: {proj['preference_travail']}
 Environnement: {proj['environnement']}
 Vision 5 ans: {proj['vision_5_ans']}
 
+=== INSTRUCTIONS POUR L'ANALYSE DES VERTUS ===
+1. Identifie les 2-3 vertus dominantes du candidat en croisant ses réponses d'archéologie, ses valeurs Schwartz et ses savoir-être.
+2. Pour chaque vertu dominante, utilise EXCLUSIVEMENT les correspondances du référentiel ci-dessus (forces de caractère, qualités humaines, compétences transférables, métiers associés).
+3. Ne génère JAMAIS de qualités ou compétences qui ne figurent pas dans le référentiel pour la vertu concernée.
+4. La citation de référence de la vertu dominante doit être incluse dans vertus_profile.citation.
+
 === FORMAT JSON ATTENDU ===
 Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentaires) contenant :
 
@@ -280,22 +293,28 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentai
     ]
   }},
   "vertus_profile": {{
-    "dominant": "nom_vertu",
-    "dominant_name": "Nom affiché",
+    "dominant": "code_vertu (sagesse|courage|humanite|justice|temperance|transcendance)",
+    "dominant_name": "Nom affiché (ex: Sagesse et Connaissance)",
+    "description": "Description de la vertu dominante issue du référentiel",
+    "citation": "Citation philosophique de référence pour cette vertu",
     "vertus_scores": {{"sagesse": 0-100, "courage": 0-100, "humanite": 0-100, "justice": 0-100, "temperance": 0-100, "transcendance": 0-100}},
-    "qualites_dominantes": ["Qualité 1", "Qualité 2", "Qualité 3", "Qualité 4"],
-    "valeurs_dominantes": ["Valeur 1", "Valeur 2", "Valeur 3"],
-    "savoirs_etre_dominants": ["Savoir-être 1", "Savoir-être 2", "Savoir-être 3", "Savoir-être 4"],
-    "competences_oms": ["Compétence OMS 1", "Compétence OMS 2", "Compétence OMS 3"]
+    "forces_caractere": ["Force 1 du référentiel", "Force 2", "Force 3"],
+    "qualites_dominantes": ["Qualité du référentiel 1", "Qualité 2", "Qualité 3", "Qualité 4"],
+    "valeurs_dominantes": ["Valeur Schwartz du référentiel 1", "Valeur 2", "Valeur 3"],
+    "savoirs_etre_dominants": ["Savoir-être pro du référentiel 1", "Savoir-être 2", "Savoir-être 3"],
+    "competences_oms": ["Compétence psychosociale OMS 1", "CPS 2", "CPS 3"],
+    "competences_transferables": ["Compétence transférable du référentiel 1", "CT 2", "CT 3", "CT 4"],
+    "metiers_associes": ["Métier associé du référentiel 1", "Métier 2", "Métier 3"],
+    "penseurs": {{"orientaux": ["Penseur 1", "Penseur 2"], "occidentaux": ["Penseur 1", "Penseur 2"]}}
   }},
   "vertu_data": {{
     "name": "Nom de la vertu dominante",
     "cognition": ["Force cognitive 1", "Force cognitive 2", "Force cognitive 3"],
     "conation": ["Force conationale 1", "Force conationale 2", "Force conationale 3"],
     "affection": ["Force affective 1", "Force affective 2", "Force affective 3"],
-    "valeurs_schwartz": ["Valeur Schwartz 1", "Valeur Schwartz 2", "Valeur Schwartz 3"],
-    "forces": ["Force de caractère 1", "Force 2", "Force 3", "Force 4"],
-    "savoirs_etre": ["Savoir-être FT 1", "Savoir-être FT 2", "Savoir-être FT 3", "Savoir-être FT 4"]
+    "valeurs_schwartz": ["Valeur Schwartz du référentiel 1", "Valeur 2", "Valeur 3"],
+    "forces": ["Force de caractère du référentiel 1", "Force 2", "Force 3", "Force 4"],
+    "savoirs_etre": ["Savoir-être FT du référentiel 1", "Savoir-être 2", "Savoir-être 3", "Savoir-être 4"]
   }},
   "riasec_profile": {{
     "major": "X",
@@ -309,19 +328,19 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentai
   }},
   "integrated_analysis": {{
     "niveau_1_preuves": {{
-      "competences_prouvees": ["Compétence 1", "Compétence 2", "Compétence 3"],
-      "forces_cles": ["Force 1", "Force 2", "Force 3"]
+      "competences_prouvees": ["Compétence du référentiel 1", "Compétence 2", "Compétence 3"],
+      "forces_cles": ["Force du référentiel 1", "Force 2", "Force 3"]
     }},
     "niveau_2_fonctionnement": {{
-      "style_travail": "Description du style de travail (2-3 phrases)",
+      "style_travail": "Description du style de travail basée sur les vertus dominantes (2-3 phrases)",
       "environnement_favorable": ["Caractéristique 1", "Caractéristique 2", "Caractéristique 3"]
     }},
     "niveau_3_regulation": {{
-      "moteur_interne": "Ce qui motive cette personne (1-2 phrases)",
+      "moteur_interne": "Ce qui motive cette personne selon ses vertus dominantes (1-2 phrases)",
       "leviers_croissance": ["Levier 1", "Levier 2", "Levier 3"],
       "signaux_stress": ["Signal 1", "Signal 2"]
     }},
-    "synthese": "Synthèse globale du profil intégré (4-5 phrases)"
+    "synthese": "Synthèse globale intégrant les vertus dominantes identifiées (4-5 phrases)"
   }},
   "cross_analysis": {{
     "has_cross_analysis": true,
@@ -332,11 +351,11 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentai
   }},
   "ofman_quadrant": [
     {{
-      "qualite": "Qualité fondamentale 1",
+      "qualite": "Qualité fondamentale issue des vertus dominantes",
       "piege": "L'excès de cette qualité",
       "defi": "Ce qu'il faut développer pour équilibrer",
       "allergie": "Ce qui irrite chez les autres",
-      "source": "RIASEC/Valeurs/Savoir-être",
+      "source": "Vertu / RIASEC / Valeurs",
       "recommandation": "Conseil pratique (1-2 phrases)"
     }},
     {{
@@ -344,7 +363,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentai
       "piege": "L'excès",
       "defi": "L'équilibre",
       "allergie": "L'irritant",
-      "source": "RIASEC/Valeurs/Savoir-être",
+      "source": "Vertu / RIASEC / Valeurs",
       "recommandation": "Conseil"
     }},
     {{
@@ -352,13 +371,13 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentai
       "piege": "L'excès",
       "defi": "L'équilibre",
       "allergie": "L'irritant",
-      "source": "RIASEC/Valeurs/Savoir-être",
+      "source": "Vertu / RIASEC / Valeurs",
       "recommandation": "Conseil"
     }}
   ],
   "life_path": {{
-    "label": "Titre du chemin de vie professionnelle",
-    "strengths": ["Force naturelle 1", "Force 2", "Force 3"],
+    "label": "Titre du chemin de vie professionnelle lié aux vertus dominantes",
+    "strengths": ["Force naturelle du référentiel 1", "Force 2", "Force 3"],
     "watchouts": ["Point de vigilance 1", "Point 2"],
     "micro_actions": [
       {{"focus": "Domaine", "action": "Action concrète à mettre en place"}},
@@ -368,13 +387,17 @@ Réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de commentai
   }}
 }}
 
-IMPORTANT: Base ton analyse sur les réponses réelles. Sois précis, personnalisé, cohérent entre les différentes dimensions. Le profil doit refléter fidèlement les réponses données."""
+IMPORTANT:
+- Base ton analyse sur les réponses réelles du candidat.
+- Les vertus, forces, qualités, compétences et métiers DOIVENT provenir du référentiel scientifique fourni ci-dessus.
+- Sois précis, personnalisé et cohérent entre les différentes dimensions.
+- Le profil doit refléter fidèlement les réponses données tout en s'appuyant sur le cadre scientifique du référentiel."""
 
     try:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"dclic-{uuid.uuid4()}",
-            system_message="Tu es un psychologue du travail expert en orientation professionnelle, spécialisé dans les modèles RIASEC, MBTI, DISC, Schwartz, et le Cadran d'Ofman. Tu génères des analyses précises et personnalisées en JSON pur."
+            system_message="Tu es un psychologue du travail expert en orientation professionnelle, spécialisé dans les modèles RIASEC, MBTI, DISC, Schwartz, Seligman & Peterson (6 Vertus), et le Cadran d'Ofman. Tu t'appuies sur le référentiel scientifique fourni pour ancrer ton analyse. Tu génères des analyses précises et personnalisées en JSON pur."
         ).with_model("openai", "gpt-5.2")
 
         response = await run_llm(chat, UserMessage(text=prompt))
@@ -394,7 +417,7 @@ IMPORTANT: Base ton analyse sur les réponses réelles. Sois précis, personnali
 
 
 def _fallback_rich_profile(bp: dict) -> dict:
-    """Profil enrichi de secours si l'IA échoue."""
+    """Profil enrichi de secours si l'IA échoue — utilise le référentiel scientifique."""
     riasec = bp.get("riasec", {})
     scores = riasec.get("scores", {})
     code = riasec.get("code", "SEC")
@@ -412,6 +435,12 @@ def _fallback_rich_profile(bp: dict) -> dict:
     top_vals = [v["code"] for v in vals.get("dominantes", [])[:3]]
     top_sep = [s["code"] for s in sep.get("forces", [])[:4]]
 
+    # Déduire la vertu dominante depuis les scores RIASEC + valeurs
+    vertu_mapping = {"S": "humanite", "I": "sagesse", "A": "transcendance", "E": "justice", "C": "temperance", "R": "courage"}
+    vertu_code = vertu_mapping.get(dom, "humanite")
+    vertu = MATRICE_VERTUS[vertu_code]
+    citation_data = CITATIONS_VERTUS.get(vertu_code, {})
+
     return {
         "mbti": mbti,
         "disc": dom + (code[1] if len(code) > 1 else ""),
@@ -427,21 +456,31 @@ def _fallback_rich_profile(bp: dict) -> dict:
             ],
         },
         "vertus_profile": {
-            "dominant": "humanite", "dominant_name": "Humanité",
-            "vertus_scores": {"sagesse": 60, "courage": 55, "humanite": 75, "justice": 65, "temperance": 50, "transcendance": 60},
-            "qualites_dominantes": ["Empathie", "Persévérance", "Curiosité", "Coopération"],
-            "valeurs_dominantes": [VALEUR_LABELS.get(v, v) for v in top_vals],
-            "savoirs_etre_dominants": [SEP_LABELS.get(s, s) for s in top_sep],
-            "competences_oms": ["Communication", "Esprit critique", "Gestion des émotions"],
+            "dominant": vertu_code,
+            "dominant_name": vertu["nom"],
+            "description": vertu["description"],
+            "citation": citation_data.get("citations", [""])[0],
+            "vertus_scores": {k: 60 + (10 if k == vertu_code else 0) for k in MATRICE_VERTUS},
+            "forces_caractere": vertu["forces_caractere"],
+            "qualites_dominantes": vertu["qualites_humaines"][:4],
+            "valeurs_dominantes": [VALEUR_LABELS.get(v, v) for v in top_vals] or vertu["valeurs_schwartz"][:3],
+            "savoirs_etre_dominants": [SEP_LABELS.get(s, s) for s in top_sep] or vertu["savoirs_etre_professionnels"],
+            "competences_oms": vertu["competences_psychosociales_oms"],
+            "competences_transferables": vertu["competences_transferables"][:4],
+            "metiers_associes": vertu["metiers_associes"][:3],
+            "penseurs": {
+                "orientaux": citation_data.get("penseurs_orientaux", [])[:3],
+                "occidentaux": citation_data.get("penseurs_occidentaux", [])[:3],
+            },
         },
         "vertu_data": {
-            "name": "Humanité",
-            "cognition": ["Pensée analytique", "Vision systémique", "Créativité"],
-            "conation": ["Persévérance", "Engagement", "Initiative"],
-            "affection": ["Empathie", "Bienveillance", "Écoute active"],
-            "valeurs_schwartz": [VALEUR_LABELS.get(v, v) for v in top_vals],
-            "forces": ["Empathie", "Persévérance", "Curiosité", "Leadership"],
-            "savoirs_etre": [SEP_LABELS.get(s, s) for s in top_sep],
+            "name": vertu["nom"],
+            "cognition": vertu["forces_caractere"][:3],
+            "conation": vertu["competences_transferables"][:3],
+            "affection": vertu["qualites_humaines"][:3],
+            "valeurs_schwartz": [VALEUR_LABELS.get(v, v) for v in top_vals] or vertu["valeurs_schwartz"],
+            "forces": vertu["forces_caractere"],
+            "savoirs_etre": [SEP_LABELS.get(s, s) for s in top_sep] or vertu["savoirs_etre_professionnels"],
         },
         "riasec_profile": {
             "major": code[0] if code else "S", "minor": code[1] if len(code) > 1 else "E",
@@ -449,32 +488,32 @@ def _fallback_rich_profile(bp: dict) -> dict:
             "minor_name": RIASEC_LABELS.get(code[1], "").split("—")[0].strip() if len(code) > 1 else "Entreprenant",
             "major_description": RIASEC_LABELS.get(code[0], "") if code else "",
             "scores": {k: min(v * 10, 100) for k, v in scores.items()},
-            "traits": ["Collaboratif", "Organisé", "Empathique", "Proactif"],
+            "traits": vertu["qualites_detaillees"][:4],
             "environnements_preferes": ["Équipe pluridisciplinaire", "Contact humain", "Structure souple"],
         },
         "integrated_analysis": {
-            "niveau_1_preuves": {"competences_prouvees": [SEP_LABELS.get(s, s) for s in top_sep[:3]], "forces_cles": ["Adaptabilité", "Communication", "Engagement"]},
-            "niveau_2_fonctionnement": {"style_travail": "Profil orienté vers la collaboration et l'action concrète.", "environnement_favorable": ["Travail en équipe", "Missions variées", "Autonomie encadrée"]},
-            "niveau_3_regulation": {"moteur_interne": "Le sens et l'utilité sociale du travail.", "leviers_croissance": ["Prise de recul", "Gestion des priorités"], "signaux_stress": ["Surcharge", "Manque de reconnaissance"]},
-            "synthese": "Un profil polyvalent orienté vers les relations humaines et l'action concrète.",
+            "niveau_1_preuves": {"competences_prouvees": vertu["competences_transferables"][:3], "forces_cles": vertu["forces_caractere"][:3]},
+            "niveau_2_fonctionnement": {"style_travail": f"Profil orienté vers la {vertu['nom'].lower()}, avec des compétences en {', '.join(vertu['competences_transferables'][:2])}.", "environnement_favorable": ["Travail en équipe", "Missions variées", "Autonomie encadrée"]},
+            "niveau_3_regulation": {"moteur_interne": f"Le sens et les valeurs de {vertu['valeurs_schwartz'][0].lower()} guident cette personne.", "leviers_croissance": ["Prise de recul", "Gestion des priorités"], "signaux_stress": ["Surcharge", "Manque de reconnaissance"]},
+            "synthese": f"Un profil ancré dans la vertu de {vertu['nom']}, avec des forces en {', '.join(vertu['forces_caractere'][:3])}.",
         },
         "cross_analysis": {
             "has_cross_analysis": True,
             "synergy_disc": "Le style comportemental et les préférences cognitives convergent vers un profil collaboratif.",
-            "synergy_ennea": "Les valeurs de bienveillance renforcent la motivation intrinsèque.",
+            "synergy_ennea": f"Les valeurs de {vertu['valeurs_schwartz'][0].lower()} renforcent la motivation intrinsèque.",
             "tension": "Risque de sur-engagement au détriment de l'équilibre personnel.",
             "integration_insight": "Développer la capacité à dire non pour préserver son énergie.",
         },
         "ofman_quadrant": [
-            {"qualite": "Empathie", "piege": "Fusion émotionnelle", "defi": "Distance juste", "allergie": "Indifférence", "source": "Savoir-être", "recommandation": "Apprendre à écouter sans absorber."},
-            {"qualite": "Organisation", "piege": "Rigidité", "defi": "Flexibilité", "allergie": "Chaos", "source": "RIASEC C", "recommandation": "Accepter l'imprévu comme source d'opportunité."},
-            {"qualite": "Initiative", "piege": "Impatience", "defi": "Patience stratégique", "allergie": "Passivité", "source": "RIASEC E", "recommandation": "Attendre le bon moment avant d'agir."},
+            {"qualite": vertu["qualites_humaines"][0], "piege": "Excès d'implication", "defi": "Distance juste", "allergie": "Indifférence", "source": f"Vertu {vertu['nom']}", "recommandation": "Apprendre à équilibrer engagement et recul."},
+            {"qualite": vertu["qualites_humaines"][1] if len(vertu["qualites_humaines"]) > 1 else "Organisation", "piege": "Rigidité", "defi": "Flexibilité", "allergie": "Chaos", "source": "RIASEC", "recommandation": "Accepter l'imprévu comme source d'opportunité."},
+            {"qualite": vertu["qualites_humaines"][2] if len(vertu["qualites_humaines"]) > 2 else "Initiative", "piege": "Impatience", "defi": "Patience stratégique", "allergie": "Passivité", "source": "Valeurs", "recommandation": "Attendre le bon moment avant d'agir."},
         ],
         "life_path": {
-            "label": "Parcours orienté relations humaines",
-            "strengths": ["Empathie", "Adaptabilité", "Communication"],
+            "label": f"Parcours orienté {vertu['nom'].lower()}",
+            "strengths": vertu["forces_caractere"][:3],
             "watchouts": ["Surcharge émotionnelle", "Difficulté à déléguer"],
-            "micro_actions": [{"focus": "Équilibre", "action": "Définir des limites claires dans les relations professionnelles."}, {"focus": "Développement", "action": "Explorer des formations en médiation ou coaching."}],
+            "micro_actions": [{"focus": "Équilibre", "action": "Définir des limites claires dans les relations professionnelles."}, {"focus": "Développement", "action": f"Explorer des métiers liés à la {vertu['nom'].lower()} : {', '.join(vertu['metiers_associes'][:3])}."}],
             "work_preferences": ["Travail en équipe", "Contact humain", "Missions à impact social"],
         },
     }
