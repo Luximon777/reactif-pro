@@ -1,17 +1,17 @@
-# Test Credentials
+# Test Credentials — Ré'Actif Pro
 
-## User Account
-- Username: mike7
-- Password: Solerys777!
+## Utilisateurs de test
+| Pseudonyme | Mot de passe | Rôle | Notes |
+|---|---|---|---|
+| mike7 | Solerys777! | Utilisateur | Profil vide (pas de suggestions ROME) |
+| pierre7 | Solerys777! | Utilisateur | Profil riche : expériences, preuves S.A.R.E, données OPC, 12 suggestions ROME |
+| marc19 | Solerys777! | Utilisateur | |
+| admin@reactifpro.fr | Choukette@777 | Admin | Accès admin complet |
+| rh@reactifpro.fr | Solerys777! | RH | Espace employeur |
 
-## User Account (profil vierge)
-- Username: paul9
-- Password: Solerys777!
-
-## Admin Account
-- Email: admin@reactifpro.fr
-- Password: Choukette@777
-
-## D'CLIC PRO
-- Public access (no auth required): /test-dclic
-- Sample access code for results: Generated per test submission via POST /api/dclic/submit
+## API Login
+```bash
+curl -X POST "$API_URL/api/auth/login" -H "Content-Type: application/json" \
+  -d '{"pseudo":"pierre7","password":"Solerys777!"}'
+```
+Note: Le champ est `pseudo` (pas `pseudonyme` ni `username`).

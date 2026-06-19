@@ -1,129 +1,94 @@
-# Ré'Actif Pro - PRD
+# Ré'Actif Pro - Product Requirements Document (PRD)
 
-## Problème original
-Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace personnel, coach virtuel, Job Matching, portefeuille de compétences et questionnaire D'CLIC PRO.
+## Vision produit
+Plateforme full-stack d'analyse et de développement des compétences professionnelles.
+
+## Stack technique
+- **Frontend**: React, Tailwind CSS, Shadcn/UI, React Router
+- **Backend**: FastAPI, MongoDB (Motor), Emergent LLM Key (GPT-5.2)
+- **Data**: Pandas/Openpyxl/Odfpy pour traitement fichiers utilisateur
 
 ## Architecture
-- Frontend: React + Tailwind + Shadcn/UI (SPA)
-- Backend: FastAPI + MongoDB
-- IA: GPT-5.2 via Emergentintegrations (LlmChat)
-- API France Travail: OAuth2 client_credentials (ROME 4.0 + Offres d'emploi v2)
+```
+/app/backend/
+├── server.py             # API principal (~9539 lignes, en cours de refactoring)
+├── database.py           # DB partagée, helpers (_infer_sectors, get_current_token)
+├── routes/
+│   ├── __init__.py
+│   └── jobdating.py      # Module Job Dating extrait (337 lignes)
+├── opc/                  # Modules OPC dédiés
+├── scripts/
+│   └── enrich_ck1_ia.py  # Script enrichissement IA CK1
+└── tests/
 
-## D'CLIC PRO — Version GitHub intégrale (19/06/2026)
-
-### Questionnaire Visuel (26 questions, 8 blocs)
-- **Bloc 1** : Énergie E/I (2q visuelles)
-- **Bloc 2** : Perception S/N (1q visuelle + 1q ranking)
-- **Bloc 3** : Décision T/F (2q visuelles)
-- **Bloc 4** : Organisation J/P (2q visuelles)
-- **Bloc 5** : Style DISC (2q ranking)
-- **Bloc 6** : Motivation Ennéagramme (2q ranking)
-- **Bloc 7** : Intérêts RIASEC (5q visuelles + 3q ranking)
-- **Bloc 8** : Vertus & Valeurs (3q visuelles + 2q ranking + 1q visuelle)
-
-### Scoring déterministe
-- MBTI (4 axes croisés) + DISC (4 scores) + Ennéagramme (9 types) + RIASEC (6 dimensions) + Vertus Seligman&Peterson (6 vertus)
-- Croisement Ennéagramme × Vertus pour vertu dominante enrichie
-
-### Restitution
-- Narrative IA (GPT-5.2) : portrait, fonctionnement, forces/vigilance, conseil
-- Référentiel scientifique injecté (6 Vertus → Forces → Valeurs → Qualités → CPS OMS → Compétences transférables → Métiers → Citations → Penseurs)
-- Zones de vigilance, Compas de fonctionnement, Analyse intégrée
-- Cadran d'Ofman (3 quadrants), Pistes de vie professionnelle
-- 10 sections navigables dans la sidebar (Archéologie, Comportemental, Boussole, RIASEC, Vertus, Intégré, Ofman, Pistes, Croisé, Carte d'identité)
-
-### Modules backend
-- `/app/backend/dclic_data.py` (3664 lignes) — Questions visuelles, legacy, VERTUS, FILIERES, METIERS, ENNEA, RIASEC, LIFE_PATHS
-- `/app/backend/dclic_scoring.py` (2116 lignes) — Moteur de scoring complet (compute_profile, vertus, riasec, ofman, etc.)
-- `/app/backend/dclic_referentiel.py` — Référentiel scientifique enrichi + citations
-- `/app/backend/dclic_routes.py` — Routes API (/questionnaire/visual, /submit, /job-match, /explore, /results, /filieres, /metiers, /vertus)
+/app/frontend/src/
+├── pages/
+│   └── OpcDediePage.jsx  # Dashboard OPC + Référentiel Vivant (7 colonnes CK1)
+├── views/
+│   ├── CoffreFortView.jsx # Coffre-fort S.A.R.E
+│   └── OpportunitesView.jsx
+└── components/
+    └── JobMatchingSection.jsx # France Travail + Filtrage ROME automatique
+```
 
 ## Fonctionnalités implémentées
 
-### Phase 1 - Core (DONE)
-- Auth JWT, GPS Dashboard, Analyse CV, Coach Virtuel, Portefeuille, Job Dating/Matching
+### Phase 1 — Authentification & Profil
+- Login pseudonyme, création de compte, rôles (admin/dev/utilisateur)
+- Profil utilisateur, import CV, analyse IA
 
-### Phase 2 - OPC (DONE)
-- Observatoire autonome, Vue "Le Marché" (4 onglets personnalisés par IA)
+### Phase 2 — Coffre-fort & Preuves S.A.R.E
+- Portefeuille de compétences avec preuves S.A.R.E (Situation, Action, Résultat, Enseignement)
+- Validation par case à cocher + envoi automatique à l'OPC si contrat certifié
+- Upload de contrats de travail, bouton d'actualisation
 
-### Phase 3 - D'CLIC PRO v3 GitHub (DONE - 19/06/2026)
-- Questionnaire visuel 26 questions / 8 blocs (remplace l'ancien 45 questions)
-- Scoring MBTI+DISC+Ennéagramme+RIASEC+Vertus croisé
-- Narrative IA + Référentiel scientifique (Seligman & Peterson)
-- Job matching avec FILIERES et METIERS (54 métiers + scoring)
-- Exploration de carrières
+### Phase 3 — OPC (Observatoire Prédictif des Compétences)
+- Page autonome /opc avec navigation sidebar
+- Tableau récapitulatif (Couche 2 Intelligence)
+- Référentiel Vivant avec 7 colonnes : Métier, Hard Skills, Soft Skills, Qualités humaines, Vertus, Valeurs, Source
+- Import de 68 fiches métiers depuis FILIERES PROFESSIONNELLES.ods
+- Enrichissement CK1 complet (68/68 fiches) : Vertus, Valeurs, Qualités humaines, Compétences cognitives/émotionnelles/sociales
+- Détail expansé avec sections CK1 colorées
 
-### Phase 3b - Import D'CLIC PRO "Booster mon profil" (DONE - 19/06/2026)
-- Flow complet : test → code d'accès → Dashboard → aperçu → import → profil mis à jour
-- Endpoints : /api/dclic/retrieve, /api/dclic/claim, /api/profile/import-dclic
-- Dashboard : bouton "Boost mon profil" (violet pulsant) → dialog → preview MBTI/DISC/Vertu/RIASEC/Ennéagramme → import avec barre de progression → toast succès
-- Après import : bouton passe en vert "Profil boosté", flag dclic_imported=true dans profiles
-- Fusion intelligente des compétences dans le passport (merge sans doublons)
-- Coach RE'ACTIF et GPS Dashboard détectent correctement le D'CLIC complété (vérifie `dclic_imported` dans profiles ET `dclic_results` dans passports)
-- Test complet validé à 100% (backend 17/17 + frontend OK)
+### Phase 4 — Job Matching & France Travail
+- Filtrage ROME automatique basé sur le profil utilisateur (expériences, compétences, D'CLIC)
+- Recherche manuelle de codes ROME avec dropdown autocomplete
+- Intégration API France Travail avec code ROME en paramètre
+- 12 suggestions ROME max par profil
 
-### Phase 4-7 (DONE) — Auto-évaluation, Matching avancé, Analyse offre, ADN Pro
+### Phase 5 — Job Dating
+- Événements personnalisés avec scores de matching
+- Inscription, évaluation, historique
+- Module extrait dans routes/jobdating.py
 
-## Key Endpoints
-- GET /api/dclic/questionnaire/visual — 26 questions visuelles
-- GET /api/dclic/questionnaire — 15 questions legacy
-- POST /api/dclic/submit — Scoring + narrative IA → profil complet
-- POST /api/dclic/job-match — Matching métiers
-- POST /api/dclic/explore — Exploration de carrières
-- GET /api/dclic/results/{code} — Résultats par code
-- POST /api/dclic/retrieve — Récupérer profil via code (pour Dashboard)
-- POST /api/dclic/claim — Marquer un code comme utilisé
-- POST /api/profile/import-dclic — Importer les résultats D'CLIC dans le passport
-- GET /api/dclic/my-results — Résultats D'CLIC de l'utilisateur connecté
-- GET /api/dclic/filieres, /api/dclic/metiers, /api/dclic/vertus
+### Phase 6 — Coach Virtuel & D'CLIC PRO
+- Coach interactif (CIP) avec GPT-5.2
+- Questionnaire D'CLIC PRO avec scoring RIASEC
 
-### Phase 4g - Archéologie des compétences CK1 (DONE - 19/06/2026)
-- Import de 68 fiches métiers depuis `FILIERES PROFESSIONNELLES.ods` dans `referentiel_opc`
-- Enrichissement de 8 fiches avec les données du `TABLEAU CK1.xlsx` (Vertus, Valeurs, Qualités humaines, Compétences cognitives/émotionnelles/sociales)
-- Endpoint `/api/opc/referentiel/search` enrichi : recherche sur champs CK1 (ck1_vertus, ck1_valeurs, ck1_qualites_humaines, ck1_comp_cognitives, ck1_comp_emotionnelles, ck1_comp_sociales)
-- Tableau Référentiel Vivant OPC : 7 colonnes (Métier, Hard Skills, Soft Skills, Qualités humaines, Vertus, Valeurs, Source)
-- Badge "Référentiel CK1" pour les fiches enrichies, "Référentiel RE'ACTIF PRO" pour les autres
-- Détail expansé avec sections CK1 (compétences cognitives, émotionnelles, sociales, qualités, valeurs, vertus)
-- Tests 100% backend + frontend (test_opc_referentiel_ck1.py)
+### Phase 7 — Trajectoire & CV
+- Génération de CV ciblé par IA
+- Exploration de trajectoire professionnelle
+
+## Endpoints clés
+- `POST /api/auth/login` — Connexion
+- `GET /api/opc/referentiel/search?q=` — Recherche référentiel OPC
+- `GET /api/jobs/rome-suggestions?token=` — Suggestions ROME auto
+- `GET /api/jobs/rome-search?q=` — Recherche codes ROME
+- `POST /api/jobs/france-travail/search` — Recherche France Travail
+- `GET /api/jobdating/events` — Événements Job Dating
+- `PATCH /api/coffre/documents/{id}` — Mise à jour preuve
+
+## Collections MongoDB clés
+- `users` — Comptes utilisateurs
+- `profiles` / `passports` — Profils et données professionnelles
+- `referentiel_opc` — 68 fiches métiers enrichies CK1
+- `rome_metiers` — 1911 codes ROME France Travail
+- `skill_illustrations` — Preuves S.A.R.E
+- `opc_contributions` — Contributions terrain
 
 ## Tâches futures (Backlog)
-- P1 : Filtrage ROME automatique France Travail
-- P2 : Refactoring server.py → modules (~9800 lignes)
-- P2 : Modules Soft Skills (CSE), Valeurs (VIA) indépendants
-- P2 : Diagnostic CCSP
-- P3 : Ateliers Codéveloppement
-- P3 : Micro-titres/badges Ubuntoo
-
-### Phase 4f - Tableau OPC & Récapitulatif Compétences (DONE - 19/06/2026)
-- Introduction OPC dans Couche 2 Intelligence du Coffre-fort : explication du dispositif (Fiabilité, Prédictif, Collectif)
-- Tableau récapitulatif des compétences par expérience : colonnes S.A.R.E, Contrat, Statut (En attente / Contributeur / Expert)
-- Légende 3 niveaux de badges : en attente de preuve, prouvées sans contrat, entièrement certifiées
-- Call-to-action personnalisé avec actions recommandées et liens vers Mon Passeport
-- Données exploitées depuis l'endpoint existant `/coffre/certification-status` (aucune modification backend requise)
-
-### Phase 4e - Système de Certification & Badges (DONE - 19/06/2026)
-- Endpoints SARE illustrations créés : GET/POST/DELETE `/passport/illustrations`, `/passport/illustrations/suggest` (IA), `/passport/illustrations/sare` (reformulation IA)
-- Auto-injection dans le coffre-fort : chaque illustration S.A.R.E crée une entrée "experience_prouvee"
-- Upload contrat : certifie TOUTES les expériences du même lieu de travail automatiquement
-- Endpoint `/coffre/certification-status` : stats + badges progressifs par lieu de travail
-- Coffre-fort : nouvelle section "Certification par lieu de travail" avec badges Contributeur/Certifié/Expert Certifié
-- Profil : titre "Mon Passeport de Compétences" renommé en "Mon parcours professionnel"
-
-- Bug fix: Les uploads multiples de CV accumulaient les expériences dans la trajectoire au lieu de les remplacer
-- Fix: Nettoyage des entrées `ia_detectee`/`ia_suggeree` avant chaque nouvelle auto-population depuis le CV
-- Bug fix: Bouton "Télécharger mon CV" inopérant (fichier jamais stocké)
-- Fix: Le CV original est stocké dans le coffre-fort GridFS lors de l'upload, avec endpoint `GET /coffre/download/{id}`
-- Note: Les CV uploadés AVANT ce fix ne sont pas téléchargeables (message informatif affiché)
-- Le Coach est désormais un Conseiller en Insertion Professionnelle (CIP) expert RH
-- Chat IA GPT-5.2 avec prompt système CIP complet : techniques de recherche d'emploi, préparation entretiens, connaissance du marché, accompagnement projet professionnel
-- Tutoiement bienveillant, ton motivant et conseils actionnables
-- Limites strictes : redirige vers ALT&ACT pour questions juridiques (droit social/travail) et psychologiques
-- Tips personnalisés en langage CIP professionnel
-- Conseils continus après complétion des 4 étapes (Portefeuille, Job Dating, Observatoire, CV ciblé)
-- Renommé "Coach RE'ACTIF PRO" partout dans l'interface
-
-## Tests de Régression (19/06/2026)
-- 37 tests pytest couvrant: Auth (4), Profile (3), D'CLIC PRO submit/retrieve/claim/import (8), Coach (3), Passport reset (5+dclic), Observatoire/Evolution (6), Job Match (4)
-- Commande: `cd /app/backend/tests && python -m pytest -v`
-- Fichiers: test_01_auth_profile.py, test_02_dclic.py, test_03_coach_passport.py, test_04_observatoire.py
-- Bugs corrigés pendant les tests: `DISC_ADJACENT` et `calculate_vertu_coherence` manquants dans dclic_scoring.py (job-match 500)
+- **P2**: Continuer le refactoring server.py (auth, coffre, opc, cv...)
+- **P2**: Modules Soft Skills (CSE) et Valeurs (VIA) indépendants
+- **P2**: Diagnostic fonctionnel CCSP
+- **P3**: Ateliers Codéveloppement
+- **P3**: Micro-titres/badges Ubuntoo
