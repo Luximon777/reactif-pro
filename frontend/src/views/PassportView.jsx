@@ -2757,7 +2757,6 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <ChevronRight className={`w-3.5 h-3.5 text-emerald-500 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} />
                     <Badge className="bg-emerald-100 text-emerald-700 text-[10px] shrink-0">{illus.soft_skill}</Badge>
-                    {illus.opc_consent && <Badge className="bg-blue-100 text-blue-600 text-[8px] shrink-0">OPC</Badge>}
                     {!isOpen && <span className="text-[10px] text-slate-500 truncate">{preview.substring(0, 60)}...</span>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
@@ -2941,14 +2940,6 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
                       <span className="font-bold">Exemple :</span> "Lors d'un pic d'activité, nous avions un retard important. J'ai priorisé les tâches et redistribué les missions. Nous avons rattrapé le retard en 3 jours sans erreur. Cela montre ma capacité à gérer le stress et rester efficace sous pression."
                     </p>
                   </div>
-                  {/* OPC Consent checkbox */}
-                  <label className="flex items-start gap-2 cursor-pointer bg-blue-50 border border-blue-100 rounded-lg p-2" data-testid={`opc-consent-${exp.id}`}>
-                    <input type="checkbox" checked={opcConsent} onChange={e => setOpcConsent(e.target.checked)} className="mt-0.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500" />
-                    <div>
-                      <span className="text-[11px] font-semibold text-blue-800">Contribuer à l'Observatoire des Compétences</span>
-                      <p className="text-[9px] text-blue-600 leading-tight mt-0.5">J'autorise la diffusion anonyme de cet exemple dans l'Observatoire Prédictif des Compétences pour enrichir les fiches métiers (aucune donnée personnelle ne sera partagée).</p>
-                    </div>
-                  </label>
                   <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 w-full" onClick={handleSave} disabled={saving || (!sareSituation.trim() && !sareAction.trim())} data-testid={`save-illus-${exp.id}`}>
                     {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Check className="w-3 h-3 mr-1" />}
                     {editingId ? "Mettre à jour la preuve S.A.R.E" : "Enregistrer la preuve S.A.R.E"}

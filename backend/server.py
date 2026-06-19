@@ -9290,6 +9290,51 @@ async def get_certification_status(token: str):
 
 
 
+@api_router.get("/coffre/opc-consent")
+async def get_opc_consent(token: str, organization: str):
+    """Get OPC consent status for a certified organization."""
+    token_doc = await get_current_token(token)
+    consent = await db.opc_consents.find_one(
+        {"token_id": token_doc["id"], "organization": organization}
+    )
+    return {"opc_consent": bool(consent and consent.get("opc_consent"))}
+
+
+@api_router.post("/coffre/opc-consent")
+async def set_opc_consent(token: str, body: dict):
+    """Set OPC consent for a certified organization's illustrations."""
+    token_doc = await get_current_token(token)
+    organization = body.get("organization", "")
+    opc_consent = body.get("opc_consent", False)
+
+    if not organization:
+        raise HTTPException(400, "Organization requis")
+
+    await db.opc_consents.update_one(
+        {"token_id": token_doc["id"], "organization": organization},
+        {"$set": {
+            "token_id": token_doc["id"],
+            "organization": organization,
+            "opc_consent": opc_consent,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+
+    # Update all illustrations for this org
+    passport = await db.passports.find_one({"token_id": token_doc["id"]})
+    if passport:
+        org_exp_ids = [e.get("id") for e in passport.get("experiences", []) if e.get("organization") == organization]
+        if org_exp_ids:
+            await db.skill_illustrations.update_many(
+                {"token_id": token_doc["id"], "experience_id": {"$in": org_exp_ids}},
+                {"$set": {"opc_consent": opc_consent}}
+            )
+
+    return {"success": True, "opc_consent": opc_consent}
+
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOCUMENT PROOF UPLOAD (Certification officielle des expériences)
 # ═══════════════════════════════════════════════════════════════════════════════

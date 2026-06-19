@@ -19,6 +19,40 @@ import {
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
+// OPC Consent Toggle — visible in coffre-fort only when org is certified
+const OpcConsentToggle = ({ token, organization, onUpdate }) => {
+  const [consent, setConsent] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get(`${API}/coffre/opc-consent?token=${token}&organization=${encodeURIComponent(organization)}`)
+      .then(r => setConsent(r.data.opc_consent || false))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [token, organization]);
+
+  const toggle = async () => {
+    const newVal = !consent;
+    setConsent(newVal);
+    try {
+      await axios.post(`${API}/coffre/opc-consent?token=${token}`, { organization, opc_consent: newVal });
+      toast.success(newVal ? "Contribution OPC activée" : "Contribution OPC désactivée");
+      if (onUpdate) onUpdate();
+    } catch { toast.error("Erreur"); setConsent(!newVal); }
+  };
+
+  if (loading) return null;
+  return (
+    <label className="flex items-start gap-2 cursor-pointer bg-blue-50 border border-blue-200 rounded-lg p-2 mt-1" data-testid={`opc-consent-${organization}`}>
+      <input type="checkbox" checked={consent} onChange={toggle} className="mt-0.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500" />
+      <div>
+        <span className="text-[11px] font-semibold text-blue-800">Contribuer à l'Observatoire des Compétences</span>
+        <p className="text-[9px] text-blue-600 leading-tight mt-0.5">J'autorise la diffusion anonyme de mes preuves certifiées chez {organization} dans l'Observatoire Prédictif pour enrichir les fiches métiers.</p>
+      </div>
+    </label>
+  );
+};
+
 const CoffreFortView = ({ token }) => {
   const [documents, setDocuments] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -567,7 +601,7 @@ const CoffreFortView = ({ token }) => {
                 </div>
 
                 {/* Workplaces grouped */}
-                <div className="space-y-3">
+                      <div className="space-y-3">
                   {certStatus.workplaces.map((wp, wi) => {
                     const orgProved = wp.experiences.filter(e => e.proofs_count > 0).length;
                     const orgCertified = wp.has_contract;
@@ -600,6 +634,10 @@ const CoffreFortView = ({ token }) => {
                             </div>
                           ))}
                         </div>
+                        {/* OPC consent — only visible when org is certified (contract uploaded) */}
+                        {orgCertified && orgProved > 0 && (
+                          <OpcConsentToggle token={token} organization={wp.organization} onUpdate={loadAll} />
+                        )}
                         {!orgCertified && (
                           <button
                             onClick={() => window.location.href = "/dashboard/profil?tab=experiences"}
