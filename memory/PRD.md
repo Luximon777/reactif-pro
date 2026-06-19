@@ -53,6 +53,14 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - Job matching avec FILIERES et METIERS (54 métiers + scoring)
 - Exploration de carrières
 
+### Phase 3b - Import D'CLIC PRO "Booster mon profil" (DONE - 19/06/2026)
+- Flow complet : test → code d'accès → Dashboard → aperçu → import → profil mis à jour
+- Endpoints : /api/dclic/retrieve, /api/dclic/claim, /api/profile/import-dclic
+- Dashboard : bouton "Boost mon profil" (violet pulsant) → dialog → preview MBTI/DISC/Vertu/RIASEC/Ennéagramme → import avec barre de progression → toast succès
+- Après import : bouton passe en vert "Profil boosté", flag dclic_imported=true dans profiles
+- Fusion intelligente des compétences dans le passport (merge sans doublons)
+- Test complet validé à 100% (backend 17/17 + frontend OK)
+
 ### Phase 4-7 (DONE) — Auto-évaluation, Matching avancé, Analyse offre, ADN Pro
 
 ## Key Endpoints
@@ -62,6 +70,10 @@ Plateforme full-stack "Ré'Actif Pro" d'analyse de compétences avec OPC, espace
 - POST /api/dclic/job-match — Matching métiers
 - POST /api/dclic/explore — Exploration de carrières
 - GET /api/dclic/results/{code} — Résultats par code
+- POST /api/dclic/retrieve — Récupérer profil via code (pour Dashboard)
+- POST /api/dclic/claim — Marquer un code comme utilisé
+- POST /api/profile/import-dclic — Importer les résultats D'CLIC dans le passport
+- GET /api/dclic/my-results — Résultats D'CLIC de l'utilisateur connecté
 - GET /api/dclic/filieres, /api/dclic/metiers, /api/dclic/vertus
 
 ## Tâches futures (Backlog)
