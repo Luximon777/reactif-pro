@@ -162,7 +162,7 @@ def get_cross_analysis(life_path_data: Dict[str, Any], profile: Dict[str, Any], 
         "has_cross_analysis": True,
         "synergy_disc": synergies_disc.get(synergy_key_disc, "Votre style de travail et votre profil personnel se complètent, créant un équilibre unique et constructif."),
         "synergy_ennea": synergies_ennea.get(synergy_key_ennea, "Votre essence profonde résonne avec votre moteur intérieur, renforçant votre cohérence personnelle."),
-        "tension": tensions_disc.get(synergy_key_disc),
+        "tension": tensions_disc.get(synergy_key_disc, "L'équilibre entre vos différentes facettes constitue à la fois un défi et une richesse. Apprenez à valoriser cette complémentarité."),
         "integration_insight": None
     }
     
@@ -175,6 +175,9 @@ def get_cross_analysis(life_path_data: Dict[str, Any], profile: Dict[str, Any], 
         cross_analysis["integration_insight"] = "Votre sens de l'organisation est un atout majeur pour concrétiser vos ambitions et construire durablement."
     elif structure == "P" and path_number in ["3", "5", "7", "11"]:
         cross_analysis["integration_insight"] = "Votre flexibilité naturelle vous permet d'explorer pleinement les possibilités qui s'offrent à vous."
+    
+    if not cross_analysis["integration_insight"]:
+        cross_analysis["integration_insight"] = "Votre profil unique combine des forces complémentaires. Cultivez cette diversité comme un avantage professionnel."
     
     return cross_analysis
 

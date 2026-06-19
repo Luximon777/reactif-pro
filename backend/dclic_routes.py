@@ -276,8 +276,29 @@ def register_dclic_routes(app, db):
         # Fonctionnel
         zones_vigilance = get_zones_vigilance_for_profile(profile, vertu_data)
         functioning_compass = get_functioning_compass(profile)
+
+        # Life path — from birth date or from profile
         life_path_data = None
-        cross_analysis = None
+        if "birth_date" in answers and answers.get("birth_date"):
+            life_path_data = get_life_path_data(answers["birth_date"])
+        if not life_path_data:
+            # Generate a default life path from ennéagramme dominant
+            ennea_dom = profile.get("ennea_dominant", 5)
+            life_path_data = {
+                "path_number": str(ennea_dom),
+                "label": f"Parcours orienté {vertu_data.get('name', 'Humanité')}",
+                "strengths": vertu_data.get("forces", [])[:3],
+                "watchouts": [z.get("qualite", "") + " (excès : " + z.get("piege", "") + ")" for z in zones_vigilance[:2]] if zones_vigilance else ["Surcharge émotionnelle", "Difficulté à déléguer"],
+                "micro_actions": [
+                    {"focus": "Développement", "action": f"Explorer des métiers liés à vos forces : {', '.join(vertu_data.get('competences_pro', vertu_data.get('forces', []))[:3])}."},
+                    {"focus": "Équilibre", "action": "Définir des limites claires entre engagement professionnel et temps personnel."},
+                    {"focus": "Compétences", "action": f"Renforcer vos savoirs-être clés : {', '.join(vertu_data.get('savoirs_etre', [])[:3])}."},
+                ],
+                "work_preferences": get_favorable_environment(profile.get("disc", "S"), profile),
+            }
+
+        # Cross analysis
+        cross_analysis = get_cross_analysis(life_path_data, profile, profile.get("ennea_dominant", 5))
         integrated_analysis = get_integrated_analysis(profile, vertu_data, life_path_data, zones_vigilance)
 
         # Narrative IA

@@ -780,7 +780,9 @@ const DclicTestPage = () => {
         return prev.filter(v => v !== choiceValue);
       }
       const next = [...prev, choiceValue];
-      if (currentQuestion && next.length === currentQuestion.choices.length) {
+      // For ennéagramme questions (9 choices), only require top 4
+      const requiredCount = currentQuestion && currentQuestion.choices.length > 6 ? 4 : currentQuestion.choices.length;
+      if (next.length === requiredCount) {
         setAnswers(a => ({ ...a, [currentQuestion.id]: next.join(",") }));
       }
       return next;
@@ -1387,10 +1389,15 @@ const DclicTestPage = () => {
           </div>
         )}
 
-        {isRanking && (
+        {isRanking && (() => {
+          const requiredCount = currentQuestion.choices.length > 6 ? 4 : currentQuestion.choices.length;
+          const allDone = rankingSelection.length >= requiredCount;
+          return (
           <div className="space-y-3" data-testid="ranking-choices">
             <p className="text-center text-sm text-slate-400 mb-2">
-              Cliquez dans l'ordre de votre préférence (1 = le plus naturel)
+              {currentQuestion.choices.length > 6
+                ? `Sélectionnez vos 4 choix préférés dans l'ordre (1 = le plus naturel)`
+                : `Classez dans l'ordre de votre préférence (1 = le plus naturel)`}
               {rankingSelection.length > 0 && (
                 <button onClick={() => { setRankingSelection([]); setAnswers(a => { const n = {...a}; delete n[currentQuestion.id]; return n; }); }}
                   className="ml-2 text-red-400 hover:text-red-300 underline text-xs">Réinitialiser</button>
@@ -1400,11 +1407,10 @@ const DclicTestPage = () => {
               const rankIdx = rankingSelection.indexOf(c.value);
               const isSelected = rankIdx !== -1;
               const rank = rankIdx + 1;
-              const allDone = rankingSelection.length === currentQuestion.choices.length;
               const imgSrc = c.image && c.image.startsWith("http") ? c.image : null;
               return (
                 <button key={c.id}
-                  onClick={() => !allDone && handleRankingToggle(c.value)}
+                  onClick={() => !allDone && !isSelected ? handleRankingToggle(c.value) : isSelected ? handleRankingToggle(c.value) : null}
                   disabled={allDone && !isSelected}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${isSelected ? "border-[#4f6df5] bg-[#4f6df5]/10" : allDone ? "border-white/5 bg-white/5 opacity-40" : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"}`}
                   data-testid={`ranking-choice-${c.value}`}>
@@ -1412,8 +1418,8 @@ const DclicTestPage = () => {
                     {isSelected ? rank : "?"}
                   </div>
                   {imgSrc && (
-                    <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-700">
-                      <img src={imgSrc} alt={c.alt || c.label} className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    <div className="w-32 h-20 rounded-lg overflow-hidden shrink-0 bg-slate-700">
+                      <img src={imgSrc} alt={c.alt || c.label} className="w-full h-full object-cover" onError={e => { e.target.parentElement.style.display = "none"; }} />
                     </div>
                   )}
                   <p className={`text-left font-medium flex-1 ${isSelected ? "text-white" : "text-white/70"}`}>{c.label}</p>
@@ -1421,8 +1427,10 @@ const DclicTestPage = () => {
                 </button>
               );
             })}
+            <p className="text-center text-xs text-slate-500 mt-1">{rankingSelection.length} / {requiredCount} sélectionné{rankingSelection.length > 1 ? "s" : ""}</p>
           </div>
-        )}
+          );
+        })()}
 
         <div className="flex justify-between mt-6">
           <button className="px-6 py-3 rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-all flex items-center gap-2 text-sm"
