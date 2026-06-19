@@ -494,12 +494,18 @@ const CoffreFortView = ({ token }) => {
                           type="checkbox"
                           checked={doc.trust_level === "valide"}
                           onChange={async (e) => {
-                            const newLevel = e.target.checked ? "valide" : "auto_declare";
-                            try {
-                              await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: newLevel });
-                              toast.success(e.target.checked ? "Preuve validée" : "En attente de validation");
-                              loadAll();
-                            } catch { toast.error("Erreur"); }
+                            if (e.target.checked) {
+                              try {
+                                await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "valide" });
+                                toast.success("Preuve validée");
+                                loadAll();
+                              } catch { toast.error("Erreur"); }
+                            } else {
+                              try {
+                                await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "auto_declare" });
+                                loadAll();
+                              } catch { toast.error("Erreur"); }
+                            }
                           }}
                           className="w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         />
