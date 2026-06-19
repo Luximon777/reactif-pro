@@ -6,7 +6,7 @@ import {
   MapPin, Brain, Search, ChevronRight, Loader2, FileText, Target,
   Layers, Building2, AlertTriangle, CheckCircle2, ArrowLeft, RefreshCw,
   Sparkles, Clock, Award, Filter, X, ExternalLink, Zap,
-  ArrowUpRight, ArrowDownRight, Minus
+  ArrowUpRight, ArrowDownRight, Minus, Users, Globe, Briefcase, ChevronDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -483,6 +483,25 @@ function DashboardModule({ stats, rncpStats, onRefresh, refreshLoading }) {
 // Module 1: RÉFÉRENTIEL VIVANT DES COMPÉTENCES
 // ═══════════════════════════════════════════════════════════════════════════════
 function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
+  const [opcFiche, setOpcFiche] = useState(null);
+  const [selectedMetier, setSelectedMetier] = useState(null);
+
+  // Fetch OPC contributions when searching
+  useEffect(() => {
+    if (!query || !results) { setOpcFiche(null); return; }
+    const fetchOpc = async () => {
+      try {
+        const res = await axios.get(`${API}/opc/fiches-metier`);
+        const fiches = res.data?.fiches || [];
+        // Find fiches matching search query
+        const q = query.toLowerCase();
+        const matched = fiches.filter(f => f.job_title.toLowerCase().includes(q));
+        setOpcFiche(matched.length > 0 ? matched : null);
+      } catch { setOpcFiche(null); }
+    };
+    fetchOpc();
+  }, [results, query]);
+
   // Flatten all result categories into sections for display
   const sections = [];
   if (results) {
@@ -491,7 +510,6 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
     if (results.capacites_techniques?.length > 0) sections.push({ title: "Compétences techniques", badge: "Technique", color: "amber", items: results.capacites_techniques.map(c => ({ name: c.nom, sub: c.description || "", source: "Compétence" })) });
     if (results.savoir_etre?.length > 0) sections.push({ title: "Savoir-être", badge: "Soft Skill", color: "emerald", items: results.savoir_etre.map(s => ({ name: s.nom, sub: s.description || "", source: "Savoir-être" })) });
     if (results.filieres?.length > 0) sections.push({ title: "Filières", badge: "Filière", color: "cyan", items: results.filieres.map(f => ({ name: f.nom, sub: `${f.secteurs?.length || 0} secteurs`, source: "Filière" })) });
-    // Also check if there's a flat "results" key (from RNCP search)
     if (results.results?.length > 0) sections.push({ title: "Résultats", badge: "Résultat", color: "slate", items: results.results.map(r => ({ name: r.metier || r.nom || r.libelle || r.intitule, sub: `${r.filiere_nom || r.grand_domaine_nom || r.secteur || ""} ${r.code_rome ? `(${r.code_rome})` : ""}`, detail: r.mission, source: r.source === "france_travail_rome_4" ? "ROME" : "OPC" })) });
   }
 
@@ -507,6 +525,92 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
           Rechercher
         </Button>
       </div>
+
+      {/* Contributions OPC terrain */}
+      {opcFiche && opcFiche.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-cyan-700 flex items-center gap-2">
+            <Badge className="bg-cyan-100 text-cyan-700 text-[9px]">OPC Terrain</Badge>
+            Compétences prouvées par les contributeurs ({opcFiche.length} fiche{opcFiche.length > 1 ? "s" : ""})
+          </h3>
+          {opcFiche.map((fiche, fi) => (
+            <Card key={fi} className="border-2 border-cyan-200 bg-gradient-to-br from-cyan-50/60 to-white" data-testid={`opc-fiche-terrain-${fi}`}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-cyan-600" />
+                    <span className="text-sm font-bold text-slate-800">{fiche.job_title}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-cyan-100 text-cyan-700 text-[10px]">
+                      <Users className="w-3 h-3 mr-1" />{fiche.total_contributors} contributeur{fiche.total_contributors > 1 ? "s" : ""}
+                    </Badge>
+                    <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />{Object.keys(fiche.competences || {}).length} compétence{Object.keys(fiche.competences || {}).length > 1 ? "s" : ""} prouvée{Object.keys(fiche.competences || {}).length > 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                </div>
+                {(fiche.organizations || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-[10px] text-slate-500">Organisations :</span>
+                    {fiche.organizations.map((org, i) => (
+                      <span key={i} className="text-[10px] bg-white border border-slate-200 text-slate-600 rounded-full px-2 py-0.5">{org}</span>
+                    ))}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {Object.entries(fiche.competences || {}).map(([skill, info]) => (
+                    <div key={skill} className="rounded-lg border border-cyan-100 bg-white p-3 space-y-2">
+                      <div className="flex items-center gap-2 cursor-pointer" onClick={() => setSelectedMetier(selectedMetier === `${fi}-${skill}` ? null : `${fi}-${skill}`)}>
+                        <Award className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-semibold text-slate-800">{skill}</span>
+                        <Badge className="bg-emerald-50 text-emerald-700 text-[10px] border border-emerald-200">
+                          {info.contributors_count} preuve{info.contributors_count > 1 ? "s" : ""} certifiée{info.contributors_count > 1 ? "s" : ""}
+                        </Badge>
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-auto transition-transform ${selectedMetier === `${fi}-${skill}` ? "rotate-180" : ""}`} />
+                      </div>
+                      {selectedMetier === `${fi}-${skill}` && info.examples.slice(0, 5).map((ex, i) => (
+                        <div key={i} className="bg-slate-50 rounded-lg p-3 space-y-1.5 border border-slate-100">
+                          <p className="text-[10px] text-slate-400 font-medium">{ex.organization}</p>
+                          {ex.sare_situation && (
+                            <div className="flex gap-2">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">S</span>
+                              <p className="text-xs text-slate-700">{ex.sare_situation}</p>
+                            </div>
+                          )}
+                          {ex.sare_action && (
+                            <div className="flex gap-2">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">A</span>
+                              <p className="text-xs text-slate-700">{ex.sare_action}</p>
+                            </div>
+                          )}
+                          {ex.sare_resultat && (
+                            <div className="flex gap-2">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">R</span>
+                              <p className="text-xs text-slate-700">{ex.sare_resultat}</p>
+                            </div>
+                          )}
+                          {ex.sare_enseignement && (
+                            <div className="flex gap-2">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">E</span>
+                              <p className="text-xs text-slate-700">{ex.sare_enseignement}</p>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1 pt-1">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                            <span className="text-[10px] text-emerald-600 font-medium">Certifié par contrat de travail</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {results && (
         <div className="space-y-4">
           <div className="text-xs text-slate-500">{results.total ?? 0} résultat(s)</div>
@@ -534,7 +638,7 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
               </div>
             </div>
           ))}
-          {sections.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
+          {sections.length === 0 && !opcFiche && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
         </div>
       )}
     </div>
