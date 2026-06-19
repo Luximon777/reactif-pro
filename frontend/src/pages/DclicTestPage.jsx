@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { API, useAuth } from "@/App";
 import { ArrowLeft, ArrowRight, CheckCircle, Copy, Check, Home, ChevronRight, Calendar, GraduationCap, BookOpen, Sparkles, Info, AlertTriangle, Download, QrCode, Layers, Target, User, Network, TrendingUp, Eye, Award, Compass, Shield, Settings, Users, Map, Globe, CheckCircle2, Upload, FileText, Key } from "lucide-react";
@@ -819,6 +819,7 @@ const CarteSection = ({ profile, accessCode }) => {
 // ============================================================================
 const DclicTestPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [questions, setQuestions] = useState([]);
   const [currentQIdx, setCurrentQIdx] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -835,6 +836,7 @@ const DclicTestPage = () => {
   const [importStatus, setImportStatus] = useState(null);
   const [showCvPrompt, setShowCvPrompt] = useState(false);
   const [rankingSelection, setRankingSelection] = useState([]);
+  const [loadingResults, setLoadingResults] = useState(false);
   const { token: authToken } = useAuth();
   const resultRef = useRef(null);
   const [activeSection, setActiveSection] = useState("archeologie");
@@ -873,6 +875,24 @@ const DclicTestPage = () => {
     };
     loadQuestions();
   }, []);
+
+  // Load results from URL ?code=XXXX
+  useEffect(() => {
+    const codeParam = searchParams.get("code");
+    if (codeParam && !result) {
+      setLoadingResults(true);
+      fetch(`${API}/dclic/results/${codeParam.toUpperCase().trim()}`)
+        .then(r => r.ok ? r.json() : Promise.reject("Code introuvable"))
+        .then(data => {
+          if (data.success && data.profile) {
+            setResult({ access_code: data.access_code || codeParam, profile: data.profile });
+            setStep("results");
+          }
+        })
+        .catch(e => console.error("Chargement résultats:", e))
+        .finally(() => setLoadingResults(false));
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentQuestion = questions[currentQIdx];
   const totalQuestions = questions.length;
@@ -950,6 +970,10 @@ const DclicTestPage = () => {
       const data = await res.json();
       setResult(data);
       setStep("results");
+      // Update URL with code for bookmarkability
+      if (data.access_code) {
+        navigate(`/test-dclic?code=${data.access_code}`, { replace: true });
+      }
     } catch (e) { console.error(e); setStep("questionnaire"); }
     setIsSubmitting(false);
   };
@@ -990,6 +1014,19 @@ const DclicTestPage = () => {
   };
 
   const blocIcons = {};
+
+  // ===================== LOADING FROM URL =====================
+  if (loadingResults) {
+    return (
+      <div className="min-h-screen bg-[#0b1a2e] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin mx-auto" />
+          <p className="text-white text-lg font-medium">Chargement de votre rapport...</p>
+          <p className="text-slate-400 text-sm">Code : {searchParams.get("code")}</p>
+        </div>
+      </div>
+    );
+  }
 
   // ===================== RESULTS SCREEN (Rich Restitution) =====================
   if (step === "results" && result?.profile) {
