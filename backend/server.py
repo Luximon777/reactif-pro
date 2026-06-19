@@ -1871,10 +1871,20 @@ async def get_personalized_observatory(token: str):
     exp_titles = [e.get("titre", e.get("poste", "")) for e in experiences if e.get("titre") or e.get("poste")]
     metier_cible = (passport or {}).get("metier_cible", "")
 
-    # ---- Use AI to generate truly personalized analysis ----
+    # ---- Use AI to generate truly personalized analysis (with cache) ----
     if EMERGENT_LLM_KEY:
         try:
             import json as json_lib
+
+            # Check cache first (valid for 24h)
+            cache_key = f"obs_perso_{token_doc['id']}"
+            cached = await db.observatory_cache.find_one({"cache_key": cache_key})
+            if cached:
+                cache_age = (datetime.now(timezone.utc) - datetime.fromisoformat(cached["created_at"])).total_seconds()
+                if cache_age < 86400:  # 24h
+                    cached.pop("_id", None)
+                    return cached["data"]
+
             skills_text = ", ".join(list(set(user_skill_names))[:20])
             sectors_text = ", ".join(user_sectors) if user_sectors else "non précisés"
             exp_text = ", ".join(exp_titles[:5]) if exp_titles else "non précisées"
@@ -1882,27 +1892,31 @@ async def get_personalized_observatory(token: str):
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"obs-perso-{token_doc['id'][:8]}",
-                system_message="""Tu es un expert du marché de l'emploi en France. Analyse le profil et génère un JSON strict avec:
-{
-  "matches": [{"name":"compétence détectée comme émergente/en demande","score":0.0-1.0,"growth_rate":0.01-0.30,"trend":"croissance|stable|declin","sectors":["secteurs liés"]}],
-  "skill_gaps": [{"name":"compétence à acquérir pertinente pour ce profil","score":0.0-1.0,"growth_rate":0.01-0.30,"priority":"haute|moyenne","sectors":["secteurs liés"]}],
-  "sector_relevance": [{"name":"nom du secteur pertinent pour ce profil","relevance":0.0-1.0,"trend":"croissance|stable|declin","growth_rate":0.01-0.15,"skill_matches":N,"your_emerging_skills":["compétences du profil pertinentes"]}],
-  "declining_alerts": [{"name":"compétence du profil potentiellement en déclin","score":0.0-1.0,"growth_rate":-0.05,"trend":"declin"}]
-}
-IMPORTANT: 
-- Les secteurs et lacunes DOIVENT correspondre au profil réel de l'utilisateur. Ne suggère PAS des compétences IT à un profil opérationnel terrain sauf si c'est pertinent.
-- growth_rate est un nombre décimal (ex: 0.12 = +12% de croissance). Utilise des valeurs réalistes.
-- score est la pertinence/émergence (0.0 à 1.0)
-- Base-toi sur les compétences, expériences et secteurs réels."""
-            ).with_model("openai", "gpt-5.2")
+                system_message=f"""Tu es un conseiller en emploi expert du marché du travail en France.
 
-            prompt = f"""Profil utilisateur :
+PROFIL DE L'UTILISATEUR :
 - Compétences : {skills_text}
-- Secteurs d'activité : {sectors_text}
+- Secteurs : {sectors_text}
 - Expériences : {exp_text}
 - Métier cible : {metier_cible or 'non défini'}
 
-Génère l'analyse personnalisée JSON du marché pour CE profil spécifique."""
+RÈGLES STRICTES :
+1. TOUTES les compétences émergentes (matches) DOIVENT être directement liées aux compétences, secteurs et expériences listés ci-dessus. 
+2. NE PROPOSE JAMAIS de compétences sans rapport avec le profil (ex: pas de cybersécurité pour un profil propreté, pas d'IA pour un profil restauration basique).
+3. Les "skill_gaps" sont les compétences QUE CE PROFIL SPÉCIFIQUE devrait développer pour évoluer dans SES secteurs.
+4. Les "sector_relevance" sont UNIQUEMENT les secteurs où les compétences de ce profil sont valorisables.
+5. Reste réaliste et concret — pas de buzzwords déconnectés du terrain.
+
+Génère un JSON strict :
+{{
+  "matches": [{{"name":"compétence émergente LIÉE AU PROFIL","score":0.0-1.0,"growth_rate":0.01-0.30,"trend":"croissance|stable","sectors":["secteur lié"]}}],
+  "skill_gaps": [{{"name":"compétence à acquérir pour CE profil","score":0.0-1.0,"growth_rate":0.01-0.20,"priority":"haute|moyenne","sectors":["secteur"]}}],
+  "sector_relevance": [{{"name":"secteur pertinent","relevance":0.0-1.0,"trend":"croissance|stable|declin","growth_rate":0.01-0.15,"skill_matches":3,"your_emerging_skills":["compétences du profil utiles ici"]}}],
+  "declining_alerts": [{{"name":"compétence potentiellement en déclin","score":0.0-1.0,"growth_rate":-0.05,"trend":"declin"}}]
+}}"""
+            ).with_model("openai", "gpt-5.2")
+
+            prompt = f"Génère l'analyse JSON personnalisée du marché pour ce profil. Maximum 6 matches, 5 skill_gaps, 4 sector_relevance, 2 declining_alerts. JSON uniquement, pas de markdown."
 
             response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
             clean = response.strip()
@@ -1962,12 +1976,12 @@ Génère l'analyse personnalisée JSON du marché pour CE profil spécifique."""
             norm_declining = [normalize_item(a) for a in ai_data.get("declining_alerts", [])]
             norm_sectors = [normalize_sector(s) for s in ai_data.get("sector_relevance", [])]
 
-            return {
+            result_data = {
                 "has_cv": True,
-                "matches": norm_matches[:20],
-                "skill_gaps": norm_gaps[:20],
-                "declining_alerts": norm_declining,
-                "sector_relevance": norm_sectors[:10],
+                "matches": norm_matches[:6],
+                "skill_gaps": norm_gaps[:5],
+                "declining_alerts": norm_declining[:2],
+                "sector_relevance": norm_sectors[:4],
                 "emerging_from_cv": [m["name"] for m in norm_matches[:5]],
                 "summary": {
                     "total_skills_analyzed": len(user_skills),
@@ -1976,6 +1990,15 @@ Génère l'analyse personnalisée JSON du marché pour CE profil spécifique."""
                     "skills_declining": len(norm_declining),
                 }
             }
+
+            # Cache result for 24h
+            await db.observatory_cache.update_one(
+                {"cache_key": cache_key},
+                {"$set": {"cache_key": cache_key, "data": result_data, "created_at": datetime.now(timezone.utc).isoformat()}},
+                upsert=True,
+            )
+
+            return result_data
         except Exception as e:
             logger.error(f"Observatory personalized AI error: {e}")
 
