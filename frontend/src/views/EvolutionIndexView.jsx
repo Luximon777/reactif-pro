@@ -57,10 +57,10 @@ const EvolutionIndexView = ({ token, embedded }) => {
   const { sectors = [], top_transforming_jobs = [], most_stable_jobs = [] } = dashboard || {};
   const hasUserData = userAnalysis && (userAnalysis.relevant_jobs?.length > 0 || userAnalysis.has_cv);
 
-  const personalTopTransforming = hasUserData && userAnalysis.relevant_jobs?.length > 0
+  const personalTopTransforming = userAnalysis?.relevant_jobs?.length > 0
     ? [...userAnalysis.relevant_jobs].sort((a, b) => (b.evolution_index || 0) - (a.evolution_index || 0))
     : top_transforming_jobs;
-  const personalMostStable = hasUserData && userAnalysis.relevant_jobs?.length > 0
+  const personalMostStable = userAnalysis?.relevant_jobs?.length > 0
     ? [...userAnalysis.relevant_jobs].sort((a, b) => (a.evolution_index || 0) - (b.evolution_index || 0))
     : most_stable_jobs;
 

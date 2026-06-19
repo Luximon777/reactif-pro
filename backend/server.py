@@ -2362,9 +2362,10 @@ async def get_user_evolution_analysis(token: str):
 
     # Also try matching by user's job title / metier_cible from passport
     metier_cible = (passport or {}).get("metier_cible", "") or (passport or {}).get("career_project", "")
-    if metier_cible and len(relevant_jobs) < 3:
+    metier_words = metier_cible.strip().split() if metier_cible else []
+    if metier_words and len(relevant_jobs) < 3:
         extra = await db.job_evolution_indices.find(
-            {"job_name": {"$regex": metier_cible.split()[0] if metier_cible else "", "$options": "i"}},
+            {"job_name": {"$regex": metier_words[0], "$options": "i"}},
             {"_id": 0}
         ).to_list(5)
         for j in extra:
