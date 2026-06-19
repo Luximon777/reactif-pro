@@ -682,9 +682,8 @@ const CarteSection = ({ profile, accessCode }) => {
 // ============================================================================
 const DclicTestPage = () => {
   const navigate = useNavigate();
-  const [blocs, setBlocs] = useState([]);
-  const [currentBloc, setCurrentBloc] = useState(0);
-  const [currentQ, setCurrentQ] = useState(0);
+  const [questions, setQuestions] = useState([]);
+  const [currentQIdx, setCurrentQIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState(null);
@@ -698,6 +697,7 @@ const DclicTestPage = () => {
   const [questionsError, setQuestionsError] = useState("");
   const [importStatus, setImportStatus] = useState(null);
   const [showCvPrompt, setShowCvPrompt] = useState(false);
+  const [rankingSelection, setRankingSelection] = useState([]);
   const { token: authToken } = useAuth();
   const resultRef = useRef(null);
   const [activeSection, setActiveSection] = useState("archeologie");
@@ -723,10 +723,10 @@ const DclicTestPage = () => {
     const loadQuestions = async () => {
       setQuestionsLoading(true);
       try {
-        const r = await fetch(`${API}/dclic/questionnaire`);
+        const r = await fetch(`${API}/dclic/questionnaire/visual`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
-        setBlocs(d.blocs || []);
+        setQuestions(d.questions || []);
       } catch (e) {
         console.error("Erreur chargement questionnaire:", e);
         setQuestionsError("Impossible de charger le questionnaire.");
@@ -737,50 +737,73 @@ const DclicTestPage = () => {
     loadQuestions();
   }, []);
 
-  const bloc = blocs[currentBloc];
-  const questions = bloc?.questions || [];
-  const totalQuestions = blocs.reduce((acc, b) => acc + (b.questions?.length || 0), 0);
-  const answeredBefore = blocs.slice(0, currentBloc).reduce((acc, b) => acc + (b.questions?.length || 0), 0);
-  const progress = totalQuestions ? ((answeredBefore + currentQ + 1) / totalQuestions) * 100 : 0;
+  const currentQuestion = questions[currentQIdx];
+  const totalQuestions = questions.length;
+  const progress = totalQuestions ? ((currentQIdx + 1) / totalQuestions) * 100 : 0;
 
-  const handleAnswer = (qid, val) => setAnswers(prev => ({ ...prev, [qid]: val }));
+  // Category labels
+  const CATEGORY_LABELS = {
+    energie: "Source d'Énergie",
+    perception: "Traitement de l'Information",
+    decision: "Mode de Décision",
+    structure: "Organisation",
+    disc: "Style Comportemental",
+    ennea: "Motivation",
+    riasec: "Intérêts Professionnels",
+    vertus: "Vertus & Valeurs",
+    valeurs: "Valeurs",
+    qualites: "Qualités Humaines",
+    savoirs_etre: "Savoirs-Être",
+  };
+  const CATEGORY_ICONS = {
+    energie: "⚡", perception: "👁️", decision: "⚖️", structure: "📐",
+    disc: "🎭", ennea: "🔮", riasec: "🧭", vertus: "💎",
+    valeurs: "🌟", qualites: "🤝", savoirs_etre: "🛡️",
+  };
 
-  const isScaleBloc = bloc?.type === "scale";
-  const allScaleAnswered = isScaleBloc ? questions.every(q => answers[q.id] !== undefined) : true;
-  const currentQuestion = !isScaleBloc ? questions[currentQ] : null;
+  const handleAnswer = (qid, val) => {
+    setAnswers(prev => ({ ...prev, [qid]: val }));
+    // Auto-advance for visual (non-ranking) questions
+    if (currentQuestion?.type === "visual") {
+      setTimeout(() => {
+        if (currentQIdx < totalQuestions - 1) {
+          setCurrentQIdx(i => i + 1);
+          setRankingSelection([]);
+        }
+      }, 400);
+    }
+  };
 
-  const canProceed = isScaleBloc
-    ? allScaleAnswered
-    : currentQuestion && (currentQuestion.type === "open_text"
-      ? (answers[currentQuestion.id] || "").length >= 3
-      : !!answers[currentQuestion.id]);
+  const handleRankingToggle = (choiceValue) => {
+    setRankingSelection(prev => {
+      if (prev.includes(choiceValue)) {
+        return prev.filter(v => v !== choiceValue);
+      }
+      const next = [...prev, choiceValue];
+      if (currentQuestion && next.length === currentQuestion.choices.length) {
+        setAnswers(a => ({ ...a, [currentQuestion.id]: next.join(",") }));
+      }
+      return next;
+    });
+  };
+
+  const canProceed = currentQuestion
+    ? currentQuestion.type === "ranking"
+      ? answers[currentQuestion.id] !== undefined
+      : !!answers[currentQuestion.id]
+    : false;
 
   const handleNext = async () => {
-    if (isScaleBloc) {
-      // Scale bloc: advance to next bloc
-      if (currentBloc < blocs.length - 1) {
-        setCurrentBloc(b => b + 1);
-        setCurrentQ(0);
-        return;
-      }
-    } else {
-      // Single question: advance within bloc
-      if (currentQ < questions.length - 1) {
-        setCurrentQ(q => q + 1);
-        return;
-      }
-      // End of bloc: advance to next bloc
-      if (currentBloc < blocs.length - 1) {
-        setCurrentBloc(b => b + 1);
-        setCurrentQ(0);
-        return;
-      }
+    if (currentQIdx < totalQuestions - 1) {
+      setCurrentQIdx(i => i + 1);
+      setRankingSelection([]);
+      return;
     }
     // Final submit
     setIsSubmitting(true);
     setStep("loading");
     try {
-      const payload = { answers, token: authToken || null, birth_date: birthDate || null, education_level: educationLevel || null, target_job: targetJob || null };
+      const payload = { answers };
       const res = await fetch(`${API}/dclic/submit`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -793,13 +816,11 @@ const DclicTestPage = () => {
   };
 
   const handleBack = () => {
-    if (isScaleBloc) {
-      if (currentBloc > 0) { setCurrentBloc(b => b - 1); setCurrentQ(blocs[currentBloc - 1]?.questions?.length - 1 || 0); }
-      else setStep("intro");
+    if (currentQIdx > 0) {
+      setCurrentQIdx(i => i - 1);
+      setRankingSelection([]);
     } else {
-      if (currentQ > 0) setCurrentQ(q => q - 1);
-      else if (currentBloc > 0) { setCurrentBloc(b => b - 1); const prevBloc = blocs[currentBloc - 1]; setCurrentQ(prevBloc?.type === "scale" ? 0 : (prevBloc?.questions?.length - 1 || 0)); }
-      else setStep("intro");
+      setStep("intro");
     }
   };
 
@@ -811,7 +832,7 @@ const DclicTestPage = () => {
     }
   };
 
-  const blocIcons = { archeologie: "⛏️", riasec: "🧭", valeurs: "💎", savoir_etre: "🤝", projection: "🚀" };
+  const blocIcons = {};
 
   // ===================== RESULTS SCREEN (Rich Restitution) =====================
   if (step === "results" && result?.profile) {
@@ -836,13 +857,12 @@ const DclicTestPage = () => {
     return (
       <div ref={resultRef} className="min-h-screen bg-[#0f1b2d]" data-testid="dclic-results">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {/* Header */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
             <div className="flex items-center gap-3">
               <DclicProLogo size={50} animated={false} />
               <div>
                 <h1 className="text-2xl font-bold text-white">Résultats D'CLIC PRO</h1>
-                <p className="text-sm text-slate-400">Votre profil de personnalité et compétences professionnelles</p>
+                <p className="text-sm text-slate-400">Votre profil de personnalité et compétences</p>
               </div>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -858,42 +878,17 @@ const DclicTestPage = () => {
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  {importStatus === "done" && <span className="text-emerald-400 text-xs flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" />Importé dans votre profil</span>}
-                  <button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:from-[#6366f1] hover:to-[#22c55e] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-[#4f6df5]/20" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Sparkles className="w-4 h-4" />Mon espace personnel</button>
+                  {importStatus === "done" && <span className="text-emerald-400 text-xs flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" />Importé</span>}
+                  <button className="bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5" onClick={() => navigate("/dashboard")} data-testid="go-dashboard-btn"><Sparkles className="w-4 h-4" />Mon espace</button>
                 </div>
               )}
-              <button className="border border-white/20 text-white/60 hover:text-white hover:border-white/40 font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 text-sm" onClick={() => { setResult(null); setAnswers({}); setCurrentBloc(0); setCurrentQ(0); setStep("intro"); setReportValidated(false); setActiveSection("archeologie"); }} data-testid="redo-test-btn"><ArrowLeft className="w-4 h-4" />Refaire le test</button>
+              <button className="border border-white/20 text-white/60 hover:text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5 text-sm" onClick={() => { setResult(null); setAnswers({}); setCurrentQIdx(0); setStep("intro"); setReportValidated(false); setActiveSection("archeologie"); setRankingSelection([]); }} data-testid="redo-test-btn"><ArrowLeft className="w-4 h-4" />Refaire</button>
             </div>
           </div>
-
-          {/* Disclaimer */}
-          <div className="bg-[#152a45]/60 border border-amber-500/20 rounded-xl px-5 py-3 flex items-start gap-3 mb-6" data-testid="results-disclaimer">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm text-slate-400 font-light leading-relaxed">Cette restitution repose sur des méthodes d'analyse de la personnalité et des compétences. Elle a une valeur indicative et ne constitue pas une évaluation certifiée ou officielle.</p>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">L'IA reste un outil d'aide à la décision, jamais un substitut au conseiller. Pour une évaluation approfondie, un accompagnement personnalisé est disponible via la plateforme <strong className="text-white font-medium">RE'ACTIF PRO</strong>.</p>
-            </div>
-          </div>
-
+          <div className="bg-[#152a45]/60 border border-amber-500/20 rounded-xl px-5 py-3 flex items-start gap-3 mb-6"><AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" /><p className="text-sm text-slate-400">Restitution indicative. L'IA est un outil d'aide, pas un substitut au conseiller.</p></div>
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Sidebar */}
-            <nav className="lg:w-64 shrink-0">
-              <div className="bg-[#152a45] rounded-xl border border-white/10 p-2 lg:sticky lg:top-4 space-y-0.5">
-                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-400 border-b border-white/10 mb-1"><BookOpen className="w-4 h-4" />Navigation</div>
-                {SECTIONS.map((s) => (
-                  <button key={s.id} onClick={() => setActiveSection(s.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-all ${activeSection === s.id ? "bg-[#4f6df5]/15 text-[#818cf8] font-semibold" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
-                    data-testid={`nav-${s.id}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${activeSection === s.id ? "bg-[#4f6df5] text-white" : "bg-white/10 text-slate-500"}`}>{s.icon}</span>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </nav>
-            {/* Content */}
-            <main className="flex-1 bg-[#152a45] rounded-xl border border-white/10 p-6" data-testid="results-content">
-              {renderSection()}
-            </main>
+            <nav className="lg:w-64 shrink-0"><div className="bg-[#152a45] rounded-xl border border-white/10 p-2 lg:sticky lg:top-4 space-y-0.5"><div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-400 border-b border-white/10 mb-1"><BookOpen className="w-4 h-4" />Navigation</div>{SECTIONS.map((s) => (<button key={s.id} onClick={() => setActiveSection(s.id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-all ${activeSection === s.id ? "bg-[#4f6df5]/15 text-[#818cf8] font-semibold" : "text-slate-400 hover:bg-white/5 hover:text-white"}`} data-testid={`nav-${s.id}`}><span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${activeSection === s.id ? "bg-[#4f6df5] text-white" : "bg-white/10 text-slate-500"}`}>{s.icon}</span>{s.label}</button>))}</div></nav>
+            <main className="flex-1 bg-[#152a45] rounded-xl border border-white/10 p-6" data-testid="results-content">{renderSection()}</main>
           </div>
         </div>
       </div>
@@ -1301,18 +1296,9 @@ const DclicTestPage = () => {
 
   // (Old results section removed — new results are rendered at lines 798-993)
 
-  // ===================== QUESTIONNAIRE =====================
-  if (step !== "questionnaire") return (
-    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 border-3 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin" />
-        <p className="text-slate-400 text-lg">Chargement...</p>
-      </div>
-    </div>
-  );
-
+  // ===================== QUESTIONNAIRE (Visual format - GitHub D'CLIC PRO) =====================
   if (questionsLoading) return (
-    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center">
+    <div className="min-h-screen bg-[#0f1b2d] flex items-center justify-center">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 border-3 border-[#4f6df5]/30 border-t-[#4f6df5] rounded-full animate-spin" />
         <p className="text-slate-400 text-lg">Chargement du questionnaire...</p>
@@ -1321,7 +1307,7 @@ const DclicTestPage = () => {
   );
 
   if (questionsError) return (
-    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0f1b2d] flex items-center justify-center p-4">
       <div className="text-center space-y-4">
         <AlertTriangle className="w-10 h-10 text-red-400 mx-auto" />
         <p className="text-red-300 text-lg">{questionsError}</p>
@@ -1330,16 +1316,19 @@ const DclicTestPage = () => {
     </div>
   );
 
-  if (!bloc) return (
-    <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
+  if (!currentQuestion) return (
+    <div className="min-h-screen bg-[#0f1b2d] flex items-center justify-center p-4">
       <div className="text-center space-y-4">
-        <p className="text-slate-300 text-lg">Aucune question n'a été chargée.</p>
-        <button className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold" onClick={() => setStep("intro")} data-testid="back-to-intro-btn">Revenir à l'accueil</button>
+        <p className="text-slate-300 text-lg">Aucune question chargée.</p>
+        <button className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] text-white font-semibold" onClick={() => setStep("intro")} data-testid="back-to-intro-btn">Revenir</button>
       </div>
     </div>
   );
 
-  const scaleLabels = bloc.scale_labels || {};
+  const categoryLabel = CATEGORY_LABELS[currentQuestion.category] || currentQuestion.category;
+  const categoryIcon = CATEGORY_ICONS[currentQuestion.category] || "";
+  const isRanking = currentQuestion.type === "ranking";
+  const isVisual = currentQuestion.type === "visual";
 
   return (
     <div className="min-h-screen bg-[#0f1b2d] relative overflow-hidden" data-testid="dclic-questionnaire">
@@ -1348,95 +1337,106 @@ const DclicTestPage = () => {
         <div className="absolute bottom-[10%] right-[15%] w-[300px] h-[300px] rounded-full bg-[#6c5ce7]/6 blur-[80px]" />
       </div>
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-6">
-        {/* Header */}
         <header className="flex items-center justify-between mb-4">
           <button className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm" onClick={handleBack} data-testid="back-btn">
             <ArrowLeft className="w-5 h-5" />Retour
           </button>
-          <span className="text-white/50 text-sm font-medium">Bloc {currentBloc + 1} / {blocs.length}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-white/70 text-sm font-medium">{categoryIcon} {categoryLabel}</span>
+          </div>
+          <span className="text-white/50 text-sm font-medium">{currentQIdx + 1} / {totalQuestions}</span>
         </header>
 
-        {/* Progress Bar */}
         <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-6">
           <div className="h-full rounded-full bg-gradient-to-r from-[#4f6df5] to-[#10b981] transition-all duration-500" style={{ width: `${progress}%` }} data-testid="progress-bar" />
         </div>
 
-        {/* Bloc Title */}
         <div className="text-center mb-6">
-          <span className="text-3xl mb-2 block">{blocIcons[bloc.id] || "📋"}</span>
-          <h2 className="text-xl md:text-2xl font-bold text-white">{bloc.title}</h2>
-          <p className="text-sm text-slate-400 mt-1">{bloc.subtitle}</p>
+          <h2 className="text-xl md:text-2xl font-bold text-white leading-relaxed" data-testid="question-text">{currentQuestion.question}</h2>
+          {currentQuestion.instruction && (
+            <p className="text-sm text-[#fbbf24] mt-2 font-medium">{currentQuestion.instruction}</p>
+          )}
         </div>
 
-        {/* ── SCALE BLOC: Show all questions at once ── */}
-        {isScaleBloc && (
-          <div className="space-y-4" data-testid={`bloc-${bloc.id}`}>
-            {questions.map((q, qi) => (
-              <div key={q.id} className="bg-[#152a45]/80 backdrop-blur-xl rounded-xl border border-white/10 p-5" data-testid={`question-${q.id}`}>
-                <p className="text-white font-medium mb-3">{qi + 1}. {q.text}</p>
-                <div className="flex gap-2 flex-wrap">
-                  {Array.from({ length: (bloc.scale_max || 5) - (bloc.scale_min || 1) + 1 }, (_, i) => i + (bloc.scale_min || 1)).map(n => (
-                    <button key={n} onClick={() => handleAnswer(q.id, n)}
-                      className={`flex-1 min-w-[50px] py-2.5 rounded-lg text-sm font-semibold transition-all ${answers[q.id] === n ? "bg-[#4f6df5] text-white shadow-lg shadow-[#4f6df5]/30" : "bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white"}`}
-                      data-testid={`scale-${q.id}-${n}`}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-500 mt-1 px-1">
-                  <span>{scaleLabels["1"] || ""}</span>
-                  <span>{scaleLabels["5"] || scaleLabels[String(bloc.scale_max)] || ""}</span>
-                </div>
-              </div>
-            ))}
+        {isVisual && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-testid="visual-choices">
+            {currentQuestion.choices.map(c => {
+              const sel = answers[currentQuestion.id] === c.value;
+              const imgSrc = c.image && c.image.startsWith("http") ? c.image : null;
+              return (
+                <button key={c.id} onClick={() => handleAnswer(currentQuestion.id, c.value)}
+                  className={`group relative rounded-2xl overflow-hidden border-3 transition-all duration-300 ${sel ? "border-[#4f6df5] shadow-xl shadow-[#4f6df5]/30 scale-[1.02]" : "border-white/10 hover:border-white/30 hover:scale-[1.01]"}`}
+                  data-testid={`visual-choice-${c.value}`}>
+                  {imgSrc && (
+                    <div className="aspect-[4/3] bg-slate-800 overflow-hidden">
+                      <img src={imgSrc} alt={c.alt || c.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={e => { e.target.style.display = "none"; }} />
+                    </div>
+                  )}
+                  <div className={`p-4 ${sel ? "bg-[#4f6df5]/20" : "bg-[#152a45]"}`}>
+                    <p className={`font-semibold text-base ${sel ? "text-[#818cf8]" : "text-white"}`}>{c.label}</p>
+                  </div>
+                  {sel && (
+                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#4f6df5] flex items-center justify-center shadow-lg">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* ── NON-SCALE BLOC: Show one question at a time ── */}
-        {!isScaleBloc && currentQuestion && (
-          <div className="bg-[#152a45]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl" data-testid={`question-${currentQuestion.id}`}>
-            <p className="text-xs text-slate-500 mb-2">Question {currentQ + 1} / {questions.length}</p>
-            <h3 className="text-xl md:text-2xl font-bold text-white mb-6">{currentQuestion.text}</h3>
-
-            {/* Open text */}
-            {currentQuestion.type === "open_text" && (
-              <textarea
-                value={answers[currentQuestion.id] || ""}
-                onChange={e => handleAnswer(currentQuestion.id, e.target.value)}
-                placeholder={currentQuestion.placeholder || "Votre réponse..."}
-                rows={4}
-                className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#4f6df5] resize-none"
-                data-testid={`textarea-${currentQuestion.id}`}
-              />
-            )}
-
-            {/* Choice */}
-            {currentQuestion.type === "choice" && currentQuestion.choices && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {currentQuestion.choices.map(c => {
-                  const sel = answers[currentQuestion.id] === c.value;
-                  return (
-                    <button key={c.value} onClick={() => handleAnswer(currentQuestion.id, c.value)}
-                      className={`rounded-xl border-2 p-4 text-left transition-all ${sel ? "border-[#4f6df5] bg-[#4f6df5]/10 shadow-lg shadow-[#4f6df5]/15" : "border-white/10 hover:border-white/20 bg-white/5"}`}
-                      data-testid={`choice-${c.value}`}>
-                      <p className="text-sm font-semibold text-white/90">{c.label}</p>
-                      {sel && <CheckCircle className="w-5 h-5 text-[#4f6df5] mt-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+        {isRanking && (
+          <div className="space-y-3" data-testid="ranking-choices">
+            <p className="text-center text-sm text-slate-400 mb-2">
+              Cliquez dans l'ordre de votre préférence (1 = le plus naturel)
+              {rankingSelection.length > 0 && (
+                <button onClick={() => { setRankingSelection([]); setAnswers(a => { const n = {...a}; delete n[currentQuestion.id]; return n; }); }}
+                  className="ml-2 text-red-400 hover:text-red-300 underline text-xs">Réinitialiser</button>
+              )}
+            </p>
+            {currentQuestion.choices.map(c => {
+              const rankIdx = rankingSelection.indexOf(c.value);
+              const isSelected = rankIdx !== -1;
+              const rank = rankIdx + 1;
+              const allDone = rankingSelection.length === currentQuestion.choices.length;
+              const imgSrc = c.image && c.image.startsWith("http") ? c.image : null;
+              return (
+                <button key={c.id}
+                  onClick={() => !allDone && handleRankingToggle(c.value)}
+                  disabled={allDone && !isSelected}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${isSelected ? "border-[#4f6df5] bg-[#4f6df5]/10" : allDone ? "border-white/5 bg-white/5 opacity-40" : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"}`}
+                  data-testid={`ranking-choice-${c.value}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 ${isSelected ? "bg-[#4f6df5] text-white" : "bg-white/10 text-slate-500"}`}>
+                    {isSelected ? rank : "?"}
+                  </div>
+                  {imgSrc && (
+                    <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-700">
+                      <img src={imgSrc} alt={c.alt || c.label} className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    </div>
+                  )}
+                  <p className={`text-left font-medium flex-1 ${isSelected ? "text-white" : "text-white/70"}`}>{c.label}</p>
+                  {isSelected && <CheckCircle className="w-5 h-5 text-[#4f6df5] shrink-0" />}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* Navigation */}
-        <div className="flex justify-end mt-6">
-          <button
-            className={`px-8 py-3 rounded-full font-semibold text-white flex items-center gap-2 transition-all ${canProceed && !isSubmitting ? "bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:shadow-lg hover:shadow-[#4f6df5]/25" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
-            disabled={!canProceed || isSubmitting}
-            onClick={handleNext} data-testid="next-btn">
-            {isSubmitting ? "Analyse en cours..." : (isScaleBloc ? (currentBloc === blocs.length - 1 ? <>Terminer <CheckCircle className="w-4 h-4" /></> : <>Bloc suivant <ArrowRight className="w-4 h-4" /></>) : (currentQ === questions.length - 1 && currentBloc === blocs.length - 1 ? <>Terminer <CheckCircle className="w-4 h-4" /></> : <>Suivant <ArrowRight className="w-4 h-4" /></>))}
+        <div className="flex justify-between mt-6">
+          <button className="px-6 py-3 rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-all flex items-center gap-2 text-sm"
+            onClick={handleBack} data-testid="prev-btn">
+            <ArrowLeft className="w-4 h-4" /> Précédent
           </button>
+          {(isRanking || (!isVisual && !isRanking)) && (
+            <button
+              className={`px-8 py-3 rounded-full font-semibold text-white flex items-center gap-2 transition-all ${canProceed && !isSubmitting ? "bg-gradient-to-r from-[#4f6df5] to-[#10b981] hover:shadow-lg hover:shadow-[#4f6df5]/25" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
+              disabled={!canProceed || isSubmitting}
+              onClick={handleNext} data-testid="next-btn">
+              {isSubmitting ? "Analyse en cours..." : (currentQIdx === totalQuestions - 1 ? <>Terminer <CheckCircle className="w-4 h-4" /></> : <>Suivant <ArrowRight className="w-4 h-4" /></>)}
+            </button>
+          )}
         </div>
       </div>
     </div>
