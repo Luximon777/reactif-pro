@@ -6404,7 +6404,7 @@ async def get_coach_progress(token: str):
 
         # Build next_step — always provide one, even at 4/4
         advanced_next_steps = [
-            {"hint": "Dépose tes preuves (diplômes, attestations) dans le Portefeuille. Un dossier solide, c'est ta carte de visite auprès des recruteurs.", "impact": "Les compétences certifiées renforcent ta crédibilité et accélèrent les recrutements.", "path": "/dashboard/coffre-fort"},
+            {"hint": "Prouve tes compétences avec des exemples concrets (situation, action, résultat) dans ton Passeport. C'est ce qui fait la différence en entretien.", "impact": "Les recruteurs veulent des preuves concrètes — pas juste une liste de compétences.", "path": "/dashboard/competences?sub=experiences"},
             {"hint": "Inscris-toi à un Job Dating ! Prépare un pitch de 2 minutes et va à la rencontre des recruteurs.", "impact": "Le contact direct avec les employeurs est souvent plus efficace qu'une candidature en ligne.", "path": "/dashboard/job-dating"},
             {"hint": "Consulte l'Observatoire pour repérer les secteurs porteurs et les compétences recherchées.", "impact": "Anticiper les tendances du marché te permet d'orienter ta montée en compétences.", "path": "/dashboard/marche"},
             {"hint": "Génère un CV ciblé pour un poste précis. Un CV adapté à chaque offre, c'est la clé pour passer les filtres ATS.", "impact": "Les recruteurs passent 6 secondes en moyenne sur un CV — chaque mot compte.", "path": "/dashboard/trajectoire"},
