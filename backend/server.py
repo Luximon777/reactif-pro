@@ -3092,6 +3092,86 @@ async def delete_passport_experience(exp_id: str, token: str):
         raise HTTPException(status_code=404, detail="Passeport non trouvé")
     return {"message": "Expérience supprimée"}
 
+
+@api_router.delete("/passport/reset")
+async def reset_passport_sections(token: str, sections: str = "all"):
+    """Reset specific sections of the passport"""
+    token_doc = await get_current_token(token)
+    token_id = token_doc["id"]
+    passport = await db.passports.find_one({"token_id": token_id})
+    if not passport:
+        raise HTTPException(status_code=404, detail="Passeport non trouvé")
+
+    unset_fields = {}
+    set_fields = {"last_updated": datetime.now(timezone.utc).isoformat()}
+
+    if sections == "all":
+        set_fields.update({
+            "competences": [],
+            "experiences": [],
+            "learning_path": [],
+            "passerelles": [],
+            "professional_summary": "",
+            "career_project": "",
+            "motivations": [],
+            "compatible_environments": [],
+            "target_sectors": [],
+            "offres_emploi": [],
+            "competences_transversales": [],
+            "competences_transferables": [],
+        })
+        # Also reset profile flags
+        await db.profiles.update_one(
+            {"token_id": token_id},
+            {"$set": {"cv_analyzed": False, "skills": [], "savoir_etre": [], "experiences": [], "strengths": [], "gaps": []}}
+        )
+        # Reset CV data
+        await db.cv_jobs.delete_many({"token_id": token_id})
+        await db.cv_models.delete_many({"token_id": token_id})
+    elif sections == "competences":
+        set_fields.update({
+            "competences": [],
+            "competences_transversales": [],
+            "competences_transferables": [],
+        })
+        await db.profiles.update_one(
+            {"token_id": token_id},
+            {"$set": {"skills": [], "savoir_etre": []}}
+        )
+    elif sections == "experiences":
+        set_fields["experiences"] = []
+        await db.profiles.update_one(
+            {"token_id": token_id},
+            {"$set": {"experiences": []}}
+        )
+        # Also clear trajectory
+        await db.trajectories.delete_many({"token_id": token_id})
+    elif sections == "formations":
+        set_fields["learning_path"] = []
+    elif sections == "profile":
+        set_fields.update({
+            "professional_summary": "",
+            "career_project": "",
+            "motivations": [],
+            "compatible_environments": [],
+            "target_sectors": [],
+        })
+    elif sections == "passerelles":
+        set_fields["passerelles"] = []
+    else:
+        raise HTTPException(status_code=400, detail=f"Section inconnue: {sections}")
+
+    await db.passports.update_one({"token_id": token_id}, {"$set": set_fields})
+
+    # Recalculate completeness
+    updated = await db.passports.find_one({"token_id": token_id})
+    if updated:
+        score = calculate_completeness(updated)
+        await db.passports.update_one({"token_id": token_id}, {"$set": {"completeness_score": score}})
+
+    return {"success": True, "message": f"Section '{sections}' réinitialisée"}
+
+
 @api_router.get("/passport/passerelles")
 async def get_passport_passerelles(token: str):
     """Get AI-suggested career pathways"""
@@ -3468,8 +3548,8 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
 
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences..."}})
 
-        # CALL 1: Analyse des compétences
-        analysis = await _llm_call_with_retry(
+        # Run BOTH LLM calls in PARALLEL to cut total time in half
+        analysis_task = asyncio.create_task(_llm_call_with_retry(
             system_msg="""Tu es un expert RH. Analyse ce CV. Réponds UNIQUEMENT en JSON valide (pas de markdown).
 Structure exacte:
 {
@@ -3505,21 +3585,24 @@ Pour offres_emploi: génère 5-8 offres réalistes et pertinentes.
 Valeurs IDs: autonomie, stimulation, hedonisme, realisation_de_soi, pouvoir, securite, conformite, tradition, bienveillance, universalisme.
 Vertus: sagesse, courage, humanite, justice, temperance, transcendance.""",
             user_msg=f"Analyse ce CV:\n\n{cv_excerpt}"
-        )
+        ))
 
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Génération des modèles de CV..."}})
-
-        # CALL 2: Génération des 4 modèles de CV
-        try:
-            cv_gen = await _llm_call_with_retry(
-                system_msg="""Tu es un rédacteur de CV professionnel. Génère 4 versions d'un CV. Réponds UNIQUEMENT en JSON valide.
+        cv_gen_task = asyncio.create_task(_llm_call_with_retry(
+            system_msg="""Tu es un rédacteur de CV professionnel. Génère 4 versions d'un CV. Réponds UNIQUEMENT en JSON valide.
 Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", "cv_fonctionnel": "texte complet", "cv_mixte": "texte complet"}
 - cv_classique: chronologique, sobre, professionnel
 - cv_competences: axé savoir-faire et savoir-être par domaine
 - cv_fonctionnel: par domaines de compétences, sans chronologie
 - cv_mixte: parcours + compétences transférables""",
-                user_msg=f"Génère 4 versions de CV pour ce profil:\n\n{cv_excerpt}"
-            )
+            user_msg=f"Génère 4 versions de CV pour ce profil:\n\n{cv_excerpt}"
+        ))
+
+        # Wait for analysis first (critical), then CV gen
+        analysis = await analysis_task
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Génération des modèles de CV..."}})
+
+        try:
+            cv_gen = await cv_gen_task
         except Exception:
             logging.warning("CV model generation failed, continuing with analysis only")
             cv_gen = {"cv_classique": "", "cv_competences": "", "cv_fonctionnel": "", "cv_mixte": ""}
