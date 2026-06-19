@@ -512,15 +512,129 @@ def register_dclic_routes(app, db):
     async def get_my_results(token: str = ""):
         if not token:
             raise HTTPException(status_code=401, detail="Token requis")
-        import jwt as pyjwt
-        try:
-            payload = pyjwt.decode(token, os.environ.get("JWT_SECRET", "secret"), algorithms=["HS256"])
-            user_id = payload.get("user_id", payload.get("sub"))
-        except Exception:
+        token_doc = await db["tokens"].find_one({"token": token}, {"_id": 0})
+        if not token_doc:
             raise HTTPException(status_code=401, detail="Token invalide")
-        passport = await passports_col.find_one({"user_id": user_id})
+        token_id = token_doc["id"]
+        passport = await passports_col.find_one({"token_id": token_id})
         if not passport or "dclic_results" not in passport:
             raise HTTPException(status_code=404, detail="Aucun résultat D'CLIC PRO trouvé")
         return {"success": True, "profile": passport["dclic_results"]}
 
+    # ── POST /retrieve (alias for Dashboard compatibility) ──
+    @router.post("/retrieve")
+    async def retrieve_for_dashboard(payload: AccessCodeRequest):
+        code = payload.access_code.upper().strip()
+        doc = await dclic_results_col.find_one({"access_code": code})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Code introuvable")
+        profile = doc.get("profile", {})
+        # Return profile with flattened fields for Dashboard compatibility
+        return {
+            "success": True,
+            "access_code": code,
+            "profile": profile,
+        }
+
+    # ── POST /claim ──
+    @router.post("/claim")
+    async def claim_code(access_code: str = "", user_id: str = "", body: dict = {}):
+        # Support both query params and body
+        code = (access_code or body.get("access_code", "")).upper().strip()
+        uid = user_id or body.get("user_id", "")
+        if not code:
+            raise HTTPException(status_code=400, detail="Code requis")
+        doc = await dclic_results_col.find_one({"access_code": code})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Code introuvable")
+        await dclic_results_col.update_one(
+            {"access_code": code},
+            {"$set": {"is_claimed": True, "claimed_by": uid, "claimed_at": datetime.now(timezone.utc)}},
+        )
+        return {"success": True, "message": "Code validé"}
+
     app.include_router(router)
+
+    # ── POST /api/profile/import-dclic (on main app, not dclic router) ──
+    @app.post("/api/profile/import-dclic")
+    async def import_dclic_profile(token: str = "", body: dict = {}):
+        if not token:
+            raise HTTPException(status_code=401, detail="Token requis")
+
+        # Use the same token lookup as the rest of the app
+        token_doc = await db["tokens"].find_one({"token": token}, {"_id": 0})
+        if not token_doc:
+            raise HTTPException(status_code=401, detail="Token invalide")
+        token_id = token_doc["id"]
+
+        dclic_profile = body.get("dclic_profile", {})
+        if not dclic_profile:
+            raise HTTPException(status_code=400, detail="Profil D'CLIC requis")
+
+        # Build skills from D'CLIC data
+        vp = dclic_profile.get("vertus_profile", {})
+        skills = []
+        for comp in dclic_profile.get("competences_fortes", []):
+            skills.append({"name": comp, "category": "comportementale", "declared_level": 4, "status": "declaree"})
+        for comp in vp.get("competences_transferables", []):
+            skills.append({"name": comp, "category": "transferable", "declared_level": 4, "status": "declaree"})
+
+        # Also include skills from body payload
+        for s in body.get("skills", []):
+            if s.get("name") and s["name"] not in [sk["name"] for sk in skills]:
+                skills.append(s)
+
+        # Update passport (using token_id, consistent with the rest of the app)
+        update_data = {
+            "dclic_results": dclic_profile,
+            "dclic_imported_at": datetime.now(timezone.utc).isoformat(),
+            "skills": skills,
+            "target_job": body.get("target_job", ""),
+        }
+
+        evidences = body.get("evidences", [])
+        if evidences:
+            update_data["evidences"] = evidences
+
+        passport = await db["passports"].find_one({"token_id": token_id})
+        if passport:
+            existing_skills = passport.get("skills", [])
+            existing_names = {s["name"] for s in existing_skills}
+            new_skills = [s for s in skills if s["name"] not in existing_names]
+            update_data["skills"] = existing_skills + new_skills
+
+            existing_ev = passport.get("evidences", [])
+            update_data["evidences"] = existing_ev + evidences
+
+            await db["passports"].update_one(
+                {"token_id": token_id},
+                {"$set": update_data},
+            )
+        else:
+            update_data["token_id"] = token_id
+            update_data["created_at"] = datetime.now(timezone.utc).isoformat()
+            await db["passports"].insert_one(update_data)
+
+        # Also set dclic_imported flag on the profiles collection (for Dashboard detection)
+        await db["profiles"].update_one(
+            {"token_id": token_id},
+            {"$set": {"dclic_imported": True, "dclic_imported_at": datetime.now(timezone.utc).isoformat()}},
+        )
+
+        # Calculate completion
+        updated = await db["passports"].find_one({"token_id": token_id})
+        filled = 0
+        total = 6
+        if updated.get("dclic_results"): filled += 1
+        if updated.get("skills") and len(updated["skills"]) > 0: filled += 1
+        if updated.get("target_job"): filled += 1
+        if updated.get("experiences") and len(updated.get("experiences", [])) > 0: filled += 1
+        if updated.get("evidences") and len(updated.get("evidences", [])) > 0: filled += 1
+        if updated.get("summary"): filled += 1
+        completion = int((filled / total) * 100)
+
+        return {
+            "success": True,
+            "message": "Profil D'CLIC PRO importé avec succès",
+            "profile_completion": completion,
+        }

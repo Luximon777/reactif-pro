@@ -399,26 +399,32 @@ const Dashboard = () => {
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="bg-white rounded p-2 text-center">
                             <p className="text-xs text-slate-500">Version inspirée du MBTI</p>
-                            <p className="font-bold text-violet-700">{dclicPreview.mbti}</p>
+                            <p className="font-bold text-violet-700">{dclicPreview.mbti || "—"}</p>
                           </div>
                           <div className="bg-white rounded p-2 text-center">
                             <p className="text-xs text-slate-500">DISC</p>
-                            <p className="font-bold text-blue-700">{dclicPreview.disc_dominant_name}</p>
+                            <p className="font-bold text-blue-700">{dclicPreview.disc_label || `Profil ${dclicPreview.disc || "—"}`}</p>
                           </div>
                           <div className="bg-white rounded p-2 text-center">
                             <p className="text-xs text-slate-500">Vertu</p>
-                            <p className="font-bold text-emerald-700">{dclicPreview.vertu_dominante_name}</p>
+                            <p className="font-bold text-emerald-700">{dclicPreview.vertus_profile?.dominant_name || dclicPreview.vertu_data?.name || "—"}</p>
                           </div>
                           <div className="bg-white rounded p-2 text-center">
                             <p className="text-xs text-slate-500">RIASEC</p>
-                            <p className="font-bold text-amber-700">{dclicPreview.riasec_major_name}</p>
+                            <p className="font-bold text-amber-700">{dclicPreview.riasec_profile?.major_name || "—"}</p>
                           </div>
+                          {dclicPreview.ennea_profile?.name && (
+                            <div className="bg-white rounded p-2 text-center col-span-2">
+                              <p className="text-xs text-slate-500">Ennéagramme</p>
+                              <p className="font-bold text-rose-700">Type {dclicPreview.ennea_dominant} — {dclicPreview.ennea_profile.name}</p>
+                            </div>
+                          )}
                         </div>
-                        {dclicPreview.competences_fortes?.length > 0 && (
+                        {(dclicPreview.competences_fortes?.length > 0 || dclicPreview.vertus_profile?.competences_transferables?.length > 0) && (
                           <div>
                             <p className="text-xs font-medium text-slate-600 mb-1">Compétences :</p>
                             <div className="flex flex-wrap gap-1">
-                              {dclicPreview.competences_fortes.map((c, i) => (
+                              {(dclicPreview.competences_fortes || dclicPreview.vertus_profile?.competences_transferables || []).map((c, i) => (
                                 <Badge key={i} className="bg-indigo-100 text-indigo-700 text-xs">{c}</Badge>
                               ))}
                             </div>
