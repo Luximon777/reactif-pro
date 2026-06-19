@@ -1585,6 +1585,23 @@ async def update_coffre_document(token: str, document_id: str, request: CreateDo
     
     return await db.coffre_documents.find_one({"id": document_id}, {"_id": 0})
 
+@api_router.patch("/coffre/documents/{document_id}")
+async def patch_coffre_document(token: str, document_id: str, body: dict):
+    """Partial update of a document (e.g. trust_level validation)."""
+    token_doc = await get_current_token(token)
+    allowed = {"trust_level", "description", "title", "category"}
+    update_data = {k: v for k, v in body.items() if k in allowed}
+    if not update_data:
+        raise HTTPException(400, "Aucun champ modifiable")
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.coffre_documents.update_one(
+        {"id": document_id, "token_id": token_doc["id"]},
+        {"$set": update_data}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(404, "Document non trouvé")
+    return {"success": True}
+
 @api_router.delete("/coffre/documents/{document_id}")
 async def delete_coffre_document(token: str, document_id: str):
     """Delete a document"""

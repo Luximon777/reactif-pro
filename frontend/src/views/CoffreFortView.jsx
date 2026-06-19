@@ -15,7 +15,7 @@ import {
   Users, BookOpen, Search, Upload, Download, Trash2, Plus, Eye, FolderLock,
   CheckCircle2, Clock, AlertTriangle, QrCode, ArrowRight, Sparkles, Brain,
   TrendingUp, Loader2, X, Zap, FileIcon, ExternalLink, History, Compass, Globe, MessageSquare,
-  ChevronDown
+  ChevronDown, Pencil
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -484,31 +484,28 @@ const CoffreFortView = ({ token }) => {
                       )}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
-                      {doc.storage_path && <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`download-doc-${doc.id}`} onClick={async () => {
-                        try {
-                          const res = await axios.get(`${API}/coffre/download/${doc.id}?token=${token}`, { responseType: 'blob' });
-                          const url = window.URL.createObjectURL(new Blob([res.data]));
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = doc.file_name || doc.title?.split(' — ')[1] || 'document';
-                          document.body.appendChild(a);
-                          a.click();
-                          a.remove();
-                          window.URL.revokeObjectURL(url);
-                        } catch (e) {
-                          toast.error("Erreur lors du téléchargement");
+                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`view-doc-${doc.id}`} onClick={async () => {
+                        if (doc.storage_path) {
+                          try {
+                            const res = await axios.get(`${API}/coffre/download/${doc.id}?token=${token}`, { responseType: 'blob' });
+                            const url = window.URL.createObjectURL(new Blob([res.data]));
+                            window.open(url, '_blank');
+                          } catch { toast.error("Erreur lors de la visualisation"); }
+                        } else {
+                          toast.info(doc.description || doc.title);
                         }
-                      }}><Download className="w-3.5 h-3.5 text-emerald-600" /></Button>}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`share-doc-${doc.id}`} onClick={async () => {
+                      }}><Eye className="w-3.5 h-3.5 text-blue-600" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`edit-doc-${doc.id}`} onClick={() => {
+                        window.location.href = "/dashboard/profil?tab=experiences";
+                      }}><Pencil className="w-3.5 h-3.5 text-amber-600" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`validate-doc-${doc.id}`} onClick={async () => {
                         try {
-                          const shareUrl = `${window.location.origin}/shared/proof/${doc.id}`;
-                          await navigator.clipboard.writeText(shareUrl);
-                          toast.success("Lien de partage copié dans le presse-papier");
-                        } catch {
-                          toast.error("Impossible de copier le lien");
-                        }
-                      }}><Share2 className="w-3.5 h-3.5 text-blue-600" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => handleDelete(doc.id)}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
+                          await axios.patch(`${API}/coffre/documents/${doc.id}?token=${token}`, { trust_level: "valide" });
+                          toast.success("Preuve validée");
+                          loadAll();
+                        } catch { toast.error("Erreur lors de la validation"); }
+                      }}><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => handleDelete(doc.id)} data-testid={`delete-doc-${doc.id}`}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
                     </div>
                   </div>
                 );
