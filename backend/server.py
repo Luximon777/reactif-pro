@@ -9399,6 +9399,29 @@ async def opc_contribute(token: str, body: dict):
     job_title = experience.get("title", "Non spécifié")
     organization = coffre_doc.get("linked_organization", experience.get("organization", ""))
 
+    # Collect hard skills from the experience
+    exp_skills = experience.get("skills", [])
+    hard_skills = [s for s in exp_skills if isinstance(s, str)] if exp_skills else []
+
+    # Collect qualités humaines & valeurs from user profile (D'CLIC PRO)
+    profile = await db.profiles.find_one({"token_id": token_doc["id"]})
+    qualites_humaines = []
+    valeurs = []
+    if profile:
+        dp = profile.get("dclic_profile", {})
+        vd = dp.get("vertu_data", {})
+        vp = dp.get("vertus_profile", {})
+        # Qualités humaines from forces principales (ADN Pro)
+        adn = None
+        if passport:
+            adn = passport.get("identity_adn", {})
+        if adn:
+            qualites_humaines = (adn.get("forces_principales", []) or [])[:5]
+        # Valeurs from D'CLIC PRO
+        valeurs = (vd.get("valeurs_schwartz", []) or [])[:5]
+        if vp.get("dominant_name"):
+            valeurs = [vp["dominant_name"]] + valeurs
+
     # Build contribution
     contribution_id = str(uuid.uuid4())
     contribution = {
@@ -9409,6 +9432,10 @@ async def opc_contribute(token: str, body: dict):
         "organization": organization,
         "job_title": job_title,
         "soft_skill": soft_skill,
+        "hard_skills": hard_skills,
+        "qualites_humaines": qualites_humaines,
+        "valeurs": valeurs,
+        "source": "Contributeur sociétal",
         "sare_situation": illustration.get("sare_situation", "") if illustration else "",
         "sare_action": illustration.get("sare_action", "") if illustration else "",
         "sare_resultat": illustration.get("sare_resultat", "") if illustration else "",
@@ -9453,6 +9480,10 @@ async def opc_contribute(token: str, body: dict):
             "sare_resultat": contribution["sare_resultat"],
             "sare_enseignement": contribution["sare_enseignement"],
             "organization": organization,
+            "hard_skills": hard_skills,
+            "qualites_humaines": qualites_humaines,
+            "valeurs": valeurs,
+            "source": "Contributeur sociétal",
             "contributed_at": contribution["contributed_at"],
         })
 

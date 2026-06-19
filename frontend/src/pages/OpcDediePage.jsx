@@ -483,26 +483,31 @@ function DashboardModule({ stats, rncpStats, onRefresh, refreshLoading }) {
 // Module 1: RÉFÉRENTIEL VIVANT DES COMPÉTENCES
 // ═══════════════════════════════════════════════════════════════════════════════
 function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
-  const [opcFiche, setOpcFiche] = useState(null);
-  const [selectedMetier, setSelectedMetier] = useState(null);
+  const [opcFiches, setOpcFiches] = useState([]);
+  const [expandedRow, setExpandedRow] = useState(null);
 
-  // Fetch OPC contributions when searching
   useEffect(() => {
-    if (!query || !results) { setOpcFiche(null); return; }
+    if (!query || !results) { setOpcFiches([]); return; }
     const fetchOpc = async () => {
       try {
         const res = await axios.get(`${API}/opc/fiches-metier`);
         const fiches = res.data?.fiches || [];
-        // Find fiches matching search query
         const q = query.toLowerCase();
-        const matched = fiches.filter(f => f.job_title.toLowerCase().includes(q));
-        setOpcFiche(matched.length > 0 ? matched : null);
-      } catch { setOpcFiche(null); }
+        setOpcFiches(fiches.filter(f => f.job_title.toLowerCase().includes(q)));
+      } catch { setOpcFiches([]); }
     };
     fetchOpc();
   }, [results, query]);
 
-  // Flatten all result categories into sections for display
+  const opcRows = [];
+  opcFiches.forEach(fiche => {
+    Object.entries(fiche.competences || {}).forEach(([skill, info]) => {
+      info.examples.forEach((ex, i) => {
+        opcRows.push({ key: `${fiche.job_title}-${skill}-${i}`, metier: fiche.job_title, soft_skill: skill, hard_skills: ex.hard_skills || [], qualites_humaines: ex.qualites_humaines || [], valeurs: ex.valeurs || [], source: ex.source || "Contributeur sociétal", organization: ex.organization || "", sare: ex });
+      });
+    });
+  });
+
   const sections = [];
   if (results) {
     if (results.rome?.length > 0) sections.push({ title: "Fiches ROME", badge: "ROME", color: "blue", items: results.rome.map(r => ({ name: r.nom || r.libelle, sub: `${r.code_rome || ""} — ${r.grand_domaine || ""}`, source: "ROME" })) });
@@ -526,89 +531,61 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
         </Button>
       </div>
 
-      {/* Contributions OPC terrain */}
-      {opcFiche && opcFiche.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-cyan-700 flex items-center gap-2">
-            <Badge className="bg-cyan-100 text-cyan-700 text-[9px]">OPC Terrain</Badge>
-            Compétences prouvées par les contributeurs ({opcFiche.length} fiche{opcFiche.length > 1 ? "s" : ""})
-          </h3>
-          {opcFiche.map((fiche, fi) => (
-            <Card key={fi} className="border-2 border-cyan-200 bg-gradient-to-br from-cyan-50/60 to-white" data-testid={`opc-fiche-terrain-${fi}`}>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-cyan-600" />
-                    <span className="text-sm font-bold text-slate-800">{fiche.job_title}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-cyan-100 text-cyan-700 text-[10px]">
-                      <Users className="w-3 h-3 mr-1" />{fiche.total_contributors} contributeur{fiche.total_contributors > 1 ? "s" : ""}
-                    </Badge>
-                    <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />{Object.keys(fiche.competences || {}).length} compétence{Object.keys(fiche.competences || {}).length > 1 ? "s" : ""} prouvée{Object.keys(fiche.competences || {}).length > 1 ? "s" : ""}
-                    </Badge>
-                  </div>
-                </div>
-                {(fiche.organizations || []).length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-[10px] text-slate-500">Organisations :</span>
-                    {fiche.organizations.map((org, i) => (
-                      <span key={i} className="text-[10px] bg-white border border-slate-200 text-slate-600 rounded-full px-2 py-0.5">{org}</span>
-                    ))}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  {Object.entries(fiche.competences || {}).map(([skill, info]) => (
-                    <div key={skill} className="rounded-lg border border-cyan-100 bg-white p-3 space-y-2">
-                      <div className="flex items-center gap-2 cursor-pointer" onClick={() => setSelectedMetier(selectedMetier === `${fi}-${skill}` ? null : `${fi}-${skill}`)}>
-                        <Award className="h-4 w-4 text-amber-500" />
-                        <span className="text-sm font-semibold text-slate-800">{skill}</span>
-                        <Badge className="bg-emerald-50 text-emerald-700 text-[10px] border border-emerald-200">
-                          {info.contributors_count} preuve{info.contributors_count > 1 ? "s" : ""} certifiée{info.contributors_count > 1 ? "s" : ""}
-                        </Badge>
-                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-auto transition-transform ${selectedMetier === `${fi}-${skill}` ? "rotate-180" : ""}`} />
-                      </div>
-                      {selectedMetier === `${fi}-${skill}` && info.examples.slice(0, 5).map((ex, i) => (
-                        <div key={i} className="bg-slate-50 rounded-lg p-3 space-y-1.5 border border-slate-100">
-                          <p className="text-[10px] text-slate-400 font-medium">{ex.organization}</p>
-                          {ex.sare_situation && (
-                            <div className="flex gap-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">S</span>
-                              <p className="text-xs text-slate-700">{ex.sare_situation}</p>
-                            </div>
-                          )}
-                          {ex.sare_action && (
-                            <div className="flex gap-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">A</span>
-                              <p className="text-xs text-slate-700">{ex.sare_action}</p>
-                            </div>
-                          )}
-                          {ex.sare_resultat && (
-                            <div className="flex gap-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">R</span>
-                              <p className="text-xs text-slate-700">{ex.sare_resultat}</p>
-                            </div>
-                          )}
-                          {ex.sare_enseignement && (
-                            <div className="flex gap-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">E</span>
-                              <p className="text-xs text-slate-700">{ex.sare_enseignement}</p>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1 pt-1">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                            <span className="text-[10px] text-emerald-600 font-medium">Certifié par contrat de travail</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+      {/* Tableau OPC terrain */}
+      {opcRows.length > 0 && (
+        <Card className="border-2 border-cyan-200" data-testid="opc-terrain-table">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Globe className="w-4 h-4 text-cyan-600" />Compétences prouvées — Données terrain OPC
+              </CardTitle>
+              <Badge className="bg-cyan-100 text-cyan-700 text-[10px]">{opcRows.length} contribution{opcRows.length > 1 ? "s" : ""}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs" data-testid="opc-referentiel-table">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200">
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Métier</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Hard Skills</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Soft Skills</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Qualités humaines</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Valeurs</th>
+                    <th className="text-center px-3 py-2.5 font-semibold text-slate-700">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {opcRows.map((row, idx) => (
+                    <React.Fragment key={row.key}>
+                      <tr className={`border-b border-slate-100 cursor-pointer hover:bg-cyan-50/40 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`} onClick={() => setExpandedRow(expandedRow === row.key ? null : row.key)} data-testid={`opc-row-${idx}`}>
+                        <td className="px-3 py-2.5">
+                          <div className="font-medium text-slate-800 flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5 text-cyan-600 shrink-0" />{row.metier}</div>
+                          <span className="text-[9px] text-slate-400">{row.organization}</span>
+                        </td>
+                        <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{row.hard_skills.length > 0 ? row.hard_skills.slice(0, 4).map((s, i) => <span key={i} className="inline-block bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-[10px] border border-blue-100">{s}</span>) : <span className="text-slate-400 italic">—</span>}</div></td>
+                        <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 rounded px-1.5 py-0.5 text-[10px] border border-emerald-100 font-medium"><CheckCircle2 className="w-3 h-3" />{row.soft_skill}</span></td>
+                        <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{row.qualites_humaines.length > 0 ? row.qualites_humaines.slice(0, 3).map((q, i) => <span key={i} className="inline-block bg-rose-50 text-rose-700 rounded px-1.5 py-0.5 text-[10px] border border-rose-100">{q}</span>) : <span className="text-slate-400 italic">—</span>}</div></td>
+                        <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{row.valeurs.length > 0 ? row.valeurs.slice(0, 3).map((v, i) => <span key={i} className="inline-block bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 text-[10px] border border-amber-100">{v}</span>) : <span className="text-slate-400 italic">—</span>}</div></td>
+                        <td className="px-3 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${row.source === "Entreprise Service RH" ? "bg-violet-100 text-violet-800 border-violet-300" : row.source === "Organisme de l'emploi" ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-cyan-100 text-cyan-800 border-cyan-300"}`}>{row.source}</span></td>
+                      </tr>
+                      {expandedRow === row.key && (
+                        <tr className="bg-cyan-50/30"><td colSpan={6} className="px-4 py-3"><div className="space-y-1.5 max-w-2xl">
+                          <p className="text-[10px] font-bold text-cyan-700 uppercase tracking-wide mb-1">Preuve S.A.R.E — {row.soft_skill}</p>
+                          {row.sare.sare_situation && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">S</span><p className="text-xs text-slate-700">{row.sare.sare_situation}</p></div>}
+                          {row.sare.sare_action && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">A</span><p className="text-xs text-slate-700">{row.sare.sare_action}</p></div>}
+                          {row.sare.sare_resultat && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">R</span><p className="text-xs text-slate-700">{row.sare.sare_resultat}</p></div>}
+                          {row.sare.sare_enseignement && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">E</span><p className="text-xs text-slate-700">{row.sare.sare_enseignement}</p></div>}
+                          <div className="flex items-center gap-1 pt-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[10px] text-emerald-600 font-medium">Certifié par contrat de travail</span></div>
+                        </div></td></tr>
+                      )}
+                    </React.Fragment>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {results && (
@@ -638,7 +615,7 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
               </div>
             </div>
           ))}
-          {sections.length === 0 && !opcFiche && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
+          {sections.length === 0 && opcRows.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
         </div>
       )}
     </div>
