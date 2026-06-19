@@ -9586,6 +9586,45 @@ async def list_fiches_metier_opc():
     return {"fiches": fiches, "total": len(fiches)}
 
 
+@api_router.get("/opc/referentiel/search")
+async def search_referentiel_opc(q: str = ""):
+    """Search the OPC reference base (filières, métiers, compétences)."""
+    if not q or len(q) < 2:
+        return {"results": [], "total": 0}
+    regex = {"$regex": q, "$options": "i"}
+    results = await db.referentiel_opc.find({
+        "$or": [
+            {"metier": regex},
+            {"secteur": regex},
+            {"filiere": regex},
+            {"hard_skills": regex},
+            {"soft_skills": regex},
+            {"qualites_humaines": regex},
+            {"ck1_vertus": regex},
+            {"ck1_valeurs": regex},
+            {"ck1_qualites_humaines": regex},
+            {"ck1_comp_cognitives": regex},
+            {"ck1_comp_emotionnelles": regex},
+            {"ck1_comp_sociales": regex},
+        ]
+    }).to_list(50)
+    # Also fetch terrain contributions
+    contributions = await db.fiches_metier_opc.find({
+        "job_title": regex
+    }).to_list(50)
+    for r in results:
+        r.pop("_id", None)
+        # Merge terrain contributions if matching
+        for c in contributions:
+            if c.get("job_title", "").lower() in r.get("metier", "").lower() or r.get("metier", "").lower() in c.get("job_title", "").lower():
+                r["contributions_terrain"] = c.get("competences", {})
+                r["total_contributors"] = c.get("total_contributors", 0)
+                r["organizations"] = c.get("organizations", [])
+    for c in contributions:
+        c.pop("_id", None)
+    return {"results": results, "contributions": contributions, "total": len(results)}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOCUMENT PROOF UPLOAD (Certification officielle des expériences)
 # ═══════════════════════════════════════════════════════════════════════════════

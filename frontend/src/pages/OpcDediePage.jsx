@@ -483,30 +483,19 @@ function DashboardModule({ stats, rncpStats, onRefresh, refreshLoading }) {
 // Module 1: RÉFÉRENTIEL VIVANT DES COMPÉTENCES
 // ═══════════════════════════════════════════════════════════════════════════════
 function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
-  const [opcFiches, setOpcFiches] = useState([]);
+  const [opcResults, setOpcResults] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
 
   useEffect(() => {
-    if (!query || !results) { setOpcFiches([]); return; }
+    if (!query || query.length < 2 || !results) { setOpcResults([]); return; }
     const fetchOpc = async () => {
       try {
-        const res = await axios.get(`${API}/opc/fiches-metier`);
-        const fiches = res.data?.fiches || [];
-        const q = query.toLowerCase();
-        setOpcFiches(fiches.filter(f => f.job_title.toLowerCase().includes(q)));
-      } catch { setOpcFiches([]); }
+        const res = await axios.get(`${API}/opc/referentiel/search?q=${encodeURIComponent(query)}`);
+        setOpcResults(res.data?.results || []);
+      } catch { setOpcResults([]); }
     };
     fetchOpc();
   }, [results, query]);
-
-  const opcRows = [];
-  opcFiches.forEach(fiche => {
-    Object.entries(fiche.competences || {}).forEach(([skill, info]) => {
-      info.examples.forEach((ex, i) => {
-        opcRows.push({ key: `${fiche.job_title}-${skill}-${i}`, metier: fiche.job_title, soft_skill: skill, hard_skills: ex.hard_skills || [], qualites_humaines: ex.qualites_humaines || [], valeurs: ex.valeurs || [], source: ex.source || "Contributeur sociétal", organization: ex.organization || "", sare: ex });
-      });
-    });
-  });
 
   const sections = [];
   if (results) {
@@ -531,15 +520,13 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
         </Button>
       </div>
 
-      {/* Tableau OPC terrain */}
-      {opcRows.length > 0 && (
+      {/* Tableau Référentiel OPC */}
+      {opcResults.length > 0 && (
         <Card className="border-2 border-cyan-200" data-testid="opc-terrain-table">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Globe className="w-4 h-4 text-cyan-600" />Compétences prouvées — Données terrain OPC
-              </CardTitle>
-              <Badge className="bg-cyan-100 text-cyan-700 text-[10px]">{opcRows.length} contribution{opcRows.length > 1 ? "s" : ""}</Badge>
+              <CardTitle className="text-sm flex items-center gap-2"><Globe className="w-4 h-4 text-cyan-600" />Référentiel des compétences OPC</CardTitle>
+              <Badge className="bg-cyan-100 text-cyan-700 text-[10px]">{opcResults.length} fiche{opcResults.length > 1 ? "s" : ""}</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -551,36 +538,103 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Hard Skills</th>
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Soft Skills</th>
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Qualités humaines</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Vertus</th>
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Valeurs</th>
                     <th className="text-center px-3 py-2.5 font-semibold text-slate-700">Source</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {opcRows.map((row, idx) => (
-                    <React.Fragment key={row.key}>
-                      <tr className={`border-b border-slate-100 cursor-pointer hover:bg-cyan-50/40 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`} onClick={() => setExpandedRow(expandedRow === row.key ? null : row.key)} data-testid={`opc-row-${idx}`}>
-                        <td className="px-3 py-2.5">
-                          <div className="font-medium text-slate-800 flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5 text-cyan-600 shrink-0" />{row.metier}</div>
-                          <span className="text-[9px] text-slate-400">{row.organization}</span>
-                        </td>
-                        <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{row.hard_skills.length > 0 ? row.hard_skills.slice(0, 4).map((s, i) => <span key={i} className="inline-block bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-[10px] border border-blue-100">{s}</span>) : <span className="text-slate-400 italic">—</span>}</div></td>
-                        <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 rounded px-1.5 py-0.5 text-[10px] border border-emerald-100 font-medium"><CheckCircle2 className="w-3 h-3" />{row.soft_skill}</span></td>
-                        <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{row.qualites_humaines.length > 0 ? row.qualites_humaines.slice(0, 3).map((q, i) => <span key={i} className="inline-block bg-rose-50 text-rose-700 rounded px-1.5 py-0.5 text-[10px] border border-rose-100">{q}</span>) : <span className="text-slate-400 italic">—</span>}</div></td>
-                        <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{row.valeurs.length > 0 ? row.valeurs.slice(0, 3).map((v, i) => <span key={i} className="inline-block bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 text-[10px] border border-amber-100">{v}</span>) : <span className="text-slate-400 italic">—</span>}</div></td>
-                        <td className="px-3 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${row.source === "Entreprise Service RH" ? "bg-violet-100 text-violet-800 border-violet-300" : row.source === "Organisme de l'emploi" ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-cyan-100 text-cyan-800 border-cyan-300"}`}>{row.source}</span></td>
-                      </tr>
-                      {expandedRow === row.key && (
-                        <tr className="bg-cyan-50/30"><td colSpan={6} className="px-4 py-3"><div className="space-y-1.5 max-w-2xl">
-                          <p className="text-[10px] font-bold text-cyan-700 uppercase tracking-wide mb-1">Preuve S.A.R.E — {row.soft_skill}</p>
-                          {row.sare.sare_situation && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">S</span><p className="text-xs text-slate-700">{row.sare.sare_situation}</p></div>}
-                          {row.sare.sare_action && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">A</span><p className="text-xs text-slate-700">{row.sare.sare_action}</p></div>}
-                          {row.sare.sare_resultat && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">R</span><p className="text-xs text-slate-700">{row.sare.sare_resultat}</p></div>}
-                          {row.sare.sare_enseignement && <div className="flex gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-[9px] font-black text-amber-800 shrink-0">E</span><p className="text-xs text-slate-700">{row.sare.sare_enseignement}</p></div>}
-                          <div className="flex items-center gap-1 pt-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[10px] text-emerald-600 font-medium">Certifié par contrat de travail</span></div>
-                        </div></td></tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+                  {opcResults.map((r, idx) => {
+                    const hasContribs = r.total_contributors > 0;
+                    const contribSkills = Object.keys(r.contributions_terrain || {});
+                    const hasCk1 = (r.ck1_vertus || []).length > 0;
+                    const allQualites = (r.qualites_humaines || []).length > 0 ? r.qualites_humaines : (r.ck1_qualites_humaines || []);
+                    const allValeurs = (r.ck1_valeurs || []);
+                    const contribValeurs = hasContribs ? Object.values(r.contributions_terrain || {}).flatMap(c => (c.examples || []).flatMap(ex => ex.valeurs || [])).filter(Boolean) : [];
+                    const mergedValeurs = [...new Set([...allValeurs, ...contribValeurs])];
+                    return (
+                      <React.Fragment key={r.id || idx}>
+                        <tr className={`border-b border-slate-100 cursor-pointer hover:bg-cyan-50/40 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`} onClick={() => setExpandedRow(expandedRow === idx ? null : idx)} data-testid={`opc-row-${idx}`}>
+                          <td className="px-3 py-2.5">
+                            <div className="font-medium text-slate-800 flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5 text-cyan-600 shrink-0" />{r.metier}</div>
+                            <span className="text-[9px] text-slate-400">{r.filiere} — {r.secteur}</span>
+                            {hasContribs && <div className="flex items-center gap-1 mt-0.5"><Users className="w-3 h-3 text-cyan-500" /><span className="text-[9px] text-cyan-600 font-medium">{r.total_contributors} contributeur{r.total_contributors > 1 ? "s" : ""}</span></div>}
+                          </td>
+                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{(r.hard_skills || []).slice(0, 3).map((s, i) => <span key={i} className="inline-block bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-[10px] border border-blue-100">{s}</span>)}{(r.hard_skills || []).length > 3 && <span className="text-[10px] text-slate-400">+{r.hard_skills.length - 3}</span>}</div></td>
+                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{(r.soft_skills || []).slice(0, 3).map((s, i) => {
+                            const isProved = contribSkills.includes(s);
+                            return <span key={i} className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] border font-medium ${isProved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-600 border-slate-200"}`}>{isProved && <CheckCircle2 className="w-3 h-3" />}{s}</span>;
+                          })}{(r.soft_skills || []).length > 3 && <span className="text-[10px] text-slate-400">+{r.soft_skills.length - 3}</span>}</div></td>
+                          <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{allQualites.slice(0, 2).map((q, i) => <span key={i} className="inline-block bg-rose-50 text-rose-700 rounded px-1.5 py-0.5 text-[10px] border border-rose-100">{typeof q === "string" ? q.split(":")[0] : q}</span>)}{allQualites.length > 2 && <span className="text-[10px] text-slate-400">+{allQualites.length - 2}</span>}</div></td>
+                          <td className="px-3 py-2.5">{hasCk1 ? <div className="flex flex-wrap gap-1">{(r.ck1_vertus || []).slice(0, 3).map((v, i) => <span key={i} className="inline-block bg-purple-50 text-purple-700 rounded px-1.5 py-0.5 text-[10px] border border-purple-100">{v}</span>)}{(r.ck1_vertus || []).length > 3 && <span className="text-[10px] text-slate-400">+{r.ck1_vertus.length - 3}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
+                          <td className="px-3 py-2.5">{mergedValeurs.length > 0 ? <div className="flex flex-wrap gap-1">{mergedValeurs.slice(0, 2).map((v, i) => <span key={i} className="inline-block bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 text-[10px] border border-amber-100">{v}</span>)}{mergedValeurs.length > 2 && <span className="text-[10px] text-slate-400">+{mergedValeurs.length - 2}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
+                          <td className="px-3 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${hasCk1 ? "bg-purple-100 text-purple-800 border-purple-300" : hasContribs ? "bg-cyan-100 text-cyan-800 border-cyan-300" : "bg-slate-100 text-slate-600 border-slate-200"}`}>{hasCk1 ? "Référentiel CK1" : hasContribs ? "Contributeur sociétal" : "Référentiel RE'ACTIF PRO"}</span></td>
+                        </tr>
+                        {expandedRow === idx && (
+                          <tr className="bg-cyan-50/20"><td colSpan={7} className="px-4 py-3 space-y-3">
+                            <p className="text-xs text-slate-700"><strong>Mission :</strong> {r.mission}</p>
+                            {(r.capacites_techniques || []).length > 0 && (
+                              <div><p className="text-[10px] font-bold text-blue-700 mb-1">Capacités techniques détaillées</p>{r.capacites_techniques.map((c, i) => <p key={i} className="text-[10px] text-slate-600 ml-2 mb-0.5">• {c}</p>)}</div>
+                            )}
+                            {(r.capacites_professionnelles || []).length > 0 && (
+                              <div><p className="text-[10px] font-bold text-indigo-700 mb-1">Capacités professionnelles</p>{r.capacites_professionnelles.map((c, i) => <p key={i} className="text-[10px] text-slate-600 ml-2 mb-0.5">• {c}</p>)}</div>
+                            )}
+                            {hasCk1 && (
+                              <div className="border-t border-purple-200 pt-2 space-y-2">
+                                <p className="text-[10px] font-bold text-purple-700">Données référentiel CK1 (Archéologie des compétences)</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                  {(r.ck1_comp_cognitives || []).length > 0 && (
+                                    <div className="bg-white rounded-lg p-2 border border-purple-100">
+                                      <p className="text-[9px] font-bold text-purple-600 mb-1">Compétences cognitives</p>
+                                      <div className="flex flex-wrap gap-1">{r.ck1_comp_cognitives.map((c, i) => <span key={i} className="inline-block bg-purple-50 text-purple-700 rounded px-1 py-0.5 text-[9px]">{c}</span>)}</div>
+                                    </div>
+                                  )}
+                                  {(r.ck1_comp_emotionnelles || []).length > 0 && (
+                                    <div className="bg-white rounded-lg p-2 border border-pink-100">
+                                      <p className="text-[9px] font-bold text-pink-600 mb-1">Compétences émotionnelles</p>
+                                      <div className="flex flex-wrap gap-1">{r.ck1_comp_emotionnelles.map((c, i) => <span key={i} className="inline-block bg-pink-50 text-pink-700 rounded px-1 py-0.5 text-[9px]">{c}</span>)}</div>
+                                    </div>
+                                  )}
+                                  {(r.ck1_comp_sociales || []).length > 0 && (
+                                    <div className="bg-white rounded-lg p-2 border border-teal-100">
+                                      <p className="text-[9px] font-bold text-teal-600 mb-1">Compétences sociales</p>
+                                      <div className="flex flex-wrap gap-1">{r.ck1_comp_sociales.map((c, i) => <span key={i} className="inline-block bg-teal-50 text-teal-700 rounded px-1 py-0.5 text-[9px]">{c}</span>)}</div>
+                                    </div>
+                                  )}
+                                </div>
+                                {(r.ck1_qualites_humaines || []).length > 0 && (
+                                  <div><p className="text-[9px] font-bold text-rose-600 mb-1">Qualités humaines (CK1)</p><div className="flex flex-wrap gap-1">{r.ck1_qualites_humaines.map((q, i) => <span key={i} className="inline-block bg-rose-50 text-rose-700 rounded px-1 py-0.5 text-[9px]">{q}</span>)}</div></div>
+                                )}
+                                {(r.ck1_valeurs || []).length > 0 && (
+                                  <div><p className="text-[9px] font-bold text-amber-600 mb-1">Valeurs (CK1)</p><div className="flex flex-wrap gap-1">{r.ck1_valeurs.map((v, i) => <span key={i} className="inline-block bg-amber-50 text-amber-700 rounded px-1 py-0.5 text-[9px]">{v}</span>)}</div></div>
+                                )}
+                                {(r.ck1_vertus || []).length > 0 && (
+                                  <div><p className="text-[9px] font-bold text-purple-600 mb-1">Vertus (CK1)</p><div className="flex flex-wrap gap-1">{r.ck1_vertus.map((v, i) => <span key={i} className="inline-block bg-purple-50 text-purple-700 rounded px-1 py-0.5 text-[9px]">{v}</span>)}</div></div>
+                                )}
+                              </div>
+                            )}
+                            {contribSkills.length > 0 && (
+                              <div className="border-t border-cyan-200 pt-2"><p className="text-[10px] font-bold text-cyan-700 mb-1">Preuves terrain (S.A.R.E)</p>
+                                {contribSkills.map(skill => {
+                                  const info = r.contributions_terrain[skill];
+                                  return (info.examples || []).map((ex, i) => (
+                                    <div key={`${skill}-${i}`} className="bg-white rounded-lg p-2.5 mb-1.5 border border-cyan-100 space-y-1">
+                                      <div className="flex items-center gap-1.5"><Award className="w-3 h-3 text-amber-500" /><span className="text-[10px] font-bold text-slate-800">{skill}</span><span className="text-[9px] text-slate-400">— {ex.organization}</span></div>
+                                      {ex.sare_situation && <div className="flex gap-1.5"><span className="w-4 h-4 rounded bg-amber-100 text-[8px] font-black text-amber-800 flex items-center justify-center shrink-0">S</span><p className="text-[10px] text-slate-700">{ex.sare_situation}</p></div>}
+                                      {ex.sare_action && <div className="flex gap-1.5"><span className="w-4 h-4 rounded bg-amber-100 text-[8px] font-black text-amber-800 flex items-center justify-center shrink-0">A</span><p className="text-[10px] text-slate-700">{ex.sare_action}</p></div>}
+                                      {ex.sare_resultat && <div className="flex gap-1.5"><span className="w-4 h-4 rounded bg-amber-100 text-[8px] font-black text-amber-800 flex items-center justify-center shrink-0">R</span><p className="text-[10px] text-slate-700">{ex.sare_resultat}</p></div>}
+                                      {ex.sare_enseignement && <div className="flex gap-1.5"><span className="w-4 h-4 rounded bg-amber-100 text-[8px] font-black text-amber-800 flex items-center justify-center shrink-0">E</span><p className="text-[10px] text-slate-700">{ex.sare_enseignement}</p></div>}
+                                      <div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[9px] text-emerald-600 font-medium">Certifié par contrat</span></div>
+                                    </div>
+                                  ));
+                                })}
+                              </div>
+                            )}
+                          </td></tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -615,7 +669,7 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
               </div>
             </div>
           ))}
-          {sections.length === 0 && opcRows.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
+          {sections.length === 0 && opcResults.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun résultat trouvé</div>}
         </div>
       )}
     </div>
