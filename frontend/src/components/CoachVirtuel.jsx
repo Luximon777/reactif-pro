@@ -399,7 +399,12 @@ const CoachVirtuel = ({ token, onOpenDclic, refreshKey }) => {
         4: "/dashboard/trajectoire?sub=trajectoire",
       };
       const path = STEP_PATHS[step.id] || step.action_path || "/dashboard";
-      navigate(path);
+      // Use window.location for paths with query params to ensure full navigation
+      if (path.includes("?")) {
+        window.location.href = path;
+      } else {
+        navigate(path);
+      }
       setOpen(false);
     }
   };
