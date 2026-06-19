@@ -455,7 +455,10 @@ const CoffreFortView = ({ token }) => {
           {/* Mes preuves */}
           <Card data-testid="proofs-section">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-blue-600" />Mes preuves ({totalDocs})</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-blue-600" />Mes preuves ({totalDocs})</CardTitle>
+                <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="refresh-proofs" onClick={() => loadAll()}><History className="w-3.5 h-3.5 text-slate-500" /></Button>
+              </div>
               <CardDescription className="text-xs">Documents certifiés qui fondent votre identité professionnelle</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
