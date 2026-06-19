@@ -425,6 +425,41 @@ const JobMatchingView = ({ token }) => {
       {/* STEP 4: Matching Results */}
       {step === 4 && matchResult && (
         <div className="space-y-4" data-testid="matching-step-4">
+          {/* Job Title & Reference */}
+          <Card className="bg-[#1e3a5f] border-none">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                  <Briefcase className="w-5 h-5 text-white/80" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-white truncate" data-testid="matching-job-title">
+                    {analysis?.analyse?.titre_poste || "Offre analysée"}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    {analysis?.analyse?.entreprise && (
+                      <span className="text-sm text-white/70">{analysis.analyse.entreprise}</span>
+                    )}
+                    {analysis?.analysis_id && (
+                      <Badge className="bg-white/15 text-white/80 text-[10px] font-mono" data-testid="matching-job-ref">
+                        Réf. {analysis.analysis_id.slice(0, 8).toUpperCase()}
+                      </Badge>
+                    )}
+                    {analysis?.analyse?.type_contrat && (
+                      <Badge className="bg-amber-500/20 text-amber-200 text-[10px]">{analysis.analyse.type_contrat}</Badge>
+                    )}
+                    {analysis?.analyse?.localisation && (
+                      <span className="text-xs text-white/50">{analysis.analyse.localisation}</span>
+                    )}
+                  </div>
+                </div>
+                <div className={`px-3 py-1.5 rounded-lg font-bold text-lg ${matchResult.score_global >= 70 ? "bg-emerald-500/20 text-emerald-300" : matchResult.score_global >= 40 ? "bg-amber-500/20 text-amber-300" : "bg-red-500/20 text-red-300"}`}>
+                  {matchResult.score_global}%
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Verdict */}
           <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
             <p className="text-sm text-slate-600">{matchResult.verdict}</p>
