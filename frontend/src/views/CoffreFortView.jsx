@@ -264,15 +264,18 @@ const CoffreFortView = ({ token }) => {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                    <Compass className="w-3.5 h-3.5" />ADN Professionnel
+                  <h4 className="text-sm font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                    <Compass className="w-4 h-4" />ADN Professionnel
                   </h4>
-                  <p className={`text-xs text-slate-300 leading-relaxed ${!showAdnDetails ? "line-clamp-2" : ""}`}>
+                  <p className={`text-sm text-slate-300 leading-relaxed ${!showAdnDetails ? "line-clamp-2" : ""}`}>
                     {passport.identity_adn.synthese_adn}
                   </p>
+                  {!showAdnDetails && (
+                    <span className="text-sm text-cyan-400 font-medium mt-0.5 inline-block">... suite du texte</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 text-cyan-400 shrink-0 mt-0.5">
-                  <span className="text-[10px] font-medium">{showAdnDetails ? "Réduire" : "Voir plus"}</span>
+                  <span className="text-xs font-medium">{showAdnDetails ? "Réduire" : "Voir plus"}</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAdnDetails ? "rotate-180" : ""}`} />
                 </div>
               </div>
@@ -280,21 +283,21 @@ const CoffreFortView = ({ token }) => {
             {showAdnDetails && (
               <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-white/10">
                 <div>
-                  <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1.5">Forces</p>
+                  <p className="text-xs font-bold text-emerald-400 uppercase mb-1.5">Forces</p>
                   {(passport.identity_adn.forces_principales || []).slice(0, 4).map((f, i) => (
-                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-300 mb-1"><CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />{f}</div>
+                    <div key={i} className="flex items-start gap-1.5 text-xs text-slate-300 mb-1"><CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />{f}</div>
                   ))}
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-blue-400 uppercase mb-1.5">Environnements</p>
+                  <p className="text-xs font-bold text-blue-400 uppercase mb-1.5">Environnements</p>
                   {(passport.identity_adn.environnements_favorables || []).slice(0, 3).map((e, i) => (
-                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-300 mb-1"><Target className="w-3 h-3 text-blue-400 shrink-0 mt-0.5" />{e}</div>
+                    <div key={i} className="flex items-start gap-1.5 text-xs text-slate-300 mb-1"><Target className="w-3 h-3 text-blue-400 shrink-0 mt-0.5" />{e}</div>
                   ))}
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-violet-400 uppercase mb-1.5">Projection</p>
+                  <p className="text-xs font-bold text-violet-400 uppercase mb-1.5">Projection</p>
                   {(passport.identity_adn.axes_projection || []).slice(0, 3).map((a, i) => (
-                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-300 mb-1"><TrendingUp className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />{a}</div>
+                    <div key={i} className="flex items-start gap-1.5 text-xs text-slate-300 mb-1"><TrendingUp className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />{a}</div>
                   ))}
                 </div>
               </div>
