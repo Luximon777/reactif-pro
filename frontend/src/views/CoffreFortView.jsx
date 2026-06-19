@@ -253,6 +253,56 @@ const CoffreFortView = ({ token }) => {
         </div>
       </div>
 
+      {/* ═══ ADN PROFESSIONNEL (dans le bandeau) ═══ */}
+      {passport?.identity_adn && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f2744] via-[#1e3a5f] to-[#0f2744] px-6 py-4 -mt-4" data-testid="adn-pro-banner">
+          <div className="relative z-10">
+            <button
+              onClick={() => setShowAdnDetails(!showAdnDetails)}
+              className="w-full text-left"
+              data-testid="adn-pro-toggle"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                    <Compass className="w-3.5 h-3.5" />ADN Professionnel
+                  </h4>
+                  <p className={`text-xs text-slate-300 leading-relaxed ${!showAdnDetails ? "line-clamp-2" : ""}`}>
+                    {passport.identity_adn.synthese_adn}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-cyan-400 shrink-0 mt-0.5">
+                  <span className="text-[10px] font-medium">{showAdnDetails ? "Réduire" : "Voir plus"}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAdnDetails ? "rotate-180" : ""}`} />
+                </div>
+              </div>
+            </button>
+            {showAdnDetails && (
+              <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-white/10">
+                <div>
+                  <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1.5">Forces</p>
+                  {(passport.identity_adn.forces_principales || []).slice(0, 4).map((f, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-300 mb-1"><CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />{f}</div>
+                  ))}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-blue-400 uppercase mb-1.5">Environnements</p>
+                  {(passport.identity_adn.environnements_favorables || []).slice(0, 3).map((e, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-300 mb-1"><Target className="w-3 h-3 text-blue-400 shrink-0 mt-0.5" />{e}</div>
+                  ))}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-violet-400 uppercase mb-1.5">Projection</p>
+                  {(passport.identity_adn.axes_projection || []).slice(0, 3).map((a, i) => (
+                    <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-300 mb-1"><TrendingUp className="w-3 h-3 text-violet-400 shrink-0 mt-0.5" />{a}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* === 3 LAYERS TABS === */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid grid-cols-3 h-auto p-1 bg-slate-100">
@@ -467,45 +517,6 @@ const CoffreFortView = ({ token }) => {
           </Card>
 
 
-
-          {/* ═══ ADN PROFESSIONNEL (collapsible) ═══ */}
-          {passport?.identity_adn && (
-            <Card data-testid="adn-pro-couche1">
-              <CardContent className="p-4">
-                <button
-                  onClick={() => setShowAdnDetails(!showAdnDetails)}
-                  className="w-full flex items-center justify-between"
-                  data-testid="adn-pro-toggle"
-                >
-                  <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Compass className="w-4 h-4 text-[#1e3a5f]" />ADN Professionnel</h4>
-                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${showAdnDetails ? "rotate-180" : ""}`} />
-                </button>
-                <p className="text-xs text-slate-600 italic mt-2">{passport.identity_adn.synthese_adn}</p>
-                {showAdnDetails && (
-                  <div className="grid grid-cols-3 gap-3 mt-3 animate-in fade-in duration-200">
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Forces</p>
-                      {(passport.identity_adn.forces_principales || []).slice(0, 4).map((f, i) => (
-                        <div key={i} className="flex items-center gap-1 text-[10px] text-slate-700"><CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />{f}</div>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Environnements</p>
-                      {(passport.identity_adn.environnements_favorables || []).slice(0, 3).map((e, i) => (
-                        <div key={i} className="flex items-center gap-1 text-[10px] text-slate-700"><Target className="w-3 h-3 text-blue-500 shrink-0" />{e}</div>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1">Projection</p>
-                      {(passport.identity_adn.axes_projection || []).slice(0, 3).map((a, i) => (
-                        <div key={i} className="flex items-center gap-1 text-[10px] text-slate-700"><TrendingUp className="w-3 h-3 text-violet-500 shrink-0" />{a}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           {/* ═══ CERTIFICATION PAR LIEU DE TRAVAIL (Couche 1) ═══ */}
           {certStatus && certStatus.workplaces && certStatus.workplaces.length > 0 && (
