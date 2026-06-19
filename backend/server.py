@@ -6289,12 +6289,49 @@ async def get_coach_progress(token: str):
                 "text": f"Avec {cv_skills_count} compétences, explorez l'onglet Job Dating pour découvrir des événements emploi ciblés sur votre profil.",
                 "priority": "medium"
             })
+        # Always add tips — even after 4/4 completion
         if completed >= 3:
             tips.append({
                 "icon": "download",
                 "text": "Votre profil est suffisamment riche pour générer des CV optimisés ATS. Allez dans Trajectoire → Générer des CV.",
                 "priority": "medium"
             })
+
+        # Advanced tips when all 4 steps are done
+        if completed == 4:
+            docs_count = await db.coffre_documents.count_documents({"token_id": token_doc["id"]})
+            has_job_dating = bool(await db.job_dating_registrations.find_one({"token_id": token_doc["id"]}))
+
+            if docs_count == 0:
+                tips.insert(0, {
+                    "icon": "shield",
+                    "text": "Déposez vos preuves (diplômes, attestations, certificats) dans votre Portefeuille pour certifier vos compétences et renforcer votre crédibilité.",
+                    "priority": "high"
+                })
+            if not has_job_dating:
+                tips.insert(0, {
+                    "icon": "calendar",
+                    "text": "Explorez le Job Dating pour participer à des événements emploi ciblés sur votre profil et rencontrer des recruteurs.",
+                    "priority": "high"
+                })
+            tips.append({
+                "icon": "refresh",
+                "text": "Mettez à jour régulièrement vos compétences et expériences pour rester visible auprès des recruteurs.",
+                "priority": "low"
+            })
+            tips.append({
+                "icon": "compass",
+                "text": "Consultez l'Observatoire du Marché pour suivre les tendances d'emploi dans vos secteurs cibles.",
+                "priority": "low"
+            })
+
+        # Build next_step — always provide one, even at 4/4
+        advanced_next_steps = [
+            {"hint": "Déposez vos preuves (diplômes, attestations) dans le Portefeuille pour certifier votre profil.", "impact": "Les compétences certifiées augmentent votre score de confiance auprès des recruteurs.", "path": "/dashboard/coffre-fort"},
+            {"hint": "Explorez le Job Dating pour rencontrer des recruteurs lors d'événements ciblés.", "impact": "Le Job Dating met en relation directe avec les entreprises qui recrutent.", "path": "/dashboard/job-dating"},
+            {"hint": "Consultez l'Observatoire pour anticiper les mutations de votre secteur.", "impact": "Connaître les tendances du marché vous permet d'adapter votre stratégie.", "path": "/dashboard/marche"},
+            {"hint": "Générez un CV ciblé pour un poste spécifique en utilisant vos données enrichies.", "impact": "Un CV optimisé ATS augmente vos chances de passer les filtres automatiques.", "path": "/dashboard/trajectoire"},
+        ]
 
         # Build proactive "next step" message with clear guidance
         next_step_messages = {
@@ -6323,7 +6360,7 @@ async def get_coach_progress(token: str):
             emoji = "wave"
         elif completed == 4:
             emoji = "trophy"
-            message = f"Bravo ! Vous avez complété les 4 étapes. Votre profil est complet avec {cv_skills_count} compétences et {experiences_count} expériences. Explorez maintenant le Job Dating et générez vos CV !"
+            message = f"Bravo ! Votre profil est complet avec {cv_skills_count} compétences et {experiences_count} expériences."
         else:
             summary = ", ".join(achievements) if achievements else "profil en cours de construction"
             message = f"Votre progression : {summary}."
@@ -6356,7 +6393,7 @@ async def get_coach_progress(token: str):
                 "step": current_step,
                 "hint": next_info.get("hint", ""),
                 "impact": next_info.get("impact", ""),
-            } if completed < 4 else None,
+            } if completed < 4 else (advanced_next_steps[completed % len(advanced_next_steps)] if advanced_next_steps else None),
             "achievements": achievements,
             "tips": tips[:3],
             "steps": [
