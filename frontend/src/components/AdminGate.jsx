@@ -132,8 +132,7 @@ const AdminGate = ({ onAuthenticated }) => {
       setAuthenticated(true);
       setShowPasswordFor(null);
       setError("");
-      toast.success(`Connexion ${showPasswordFor.fullLabel || showPasswordFor.label} réussie`);
-      // Admin auto-opens the platform for all users
+      // Admin auto-opens the platform silently
       if (showPasswordFor.key === "admin") {
         try {
           const res = await axios.post(`${API}/admin/gate-state`, {
@@ -141,7 +140,6 @@ const AdminGate = ({ onAuthenticated }) => {
             spaces_open: true,
           });
           setSpacesOpen(res.data.spaces_open === true);
-          toast.success("Plateforme ouverte — tous les utilisateurs peuvent accéder aux espaces");
         } catch (err) {
           console.error("Erreur ouverture automatique gate:", err);
         }
@@ -163,10 +161,11 @@ const AdminGate = ({ onAuthenticated }) => {
       window.location.href = "/observatoire";
       return;
     }
-    // Admin bypass — block personal space for admin, allow others
+    // Admin bypass — open login modal for personnel, auto-login for other spaces
     if (authenticated && selectedStatus?.key === "admin") {
       if (space.key === "personnel") {
-        toast.info("Le compte administrateur n'a pas d'espace personnel. Utilisez un compte utilisateur pour accéder à cet espace.");
+        setAuthModalDefaultRole("particulier");
+        setAuthModalOpen(true);
         return;
       }
       setLoading(true);
