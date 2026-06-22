@@ -92,13 +92,13 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="one-time-code">
       <div className="space-y-2">
         <Label>Email professionnel</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input placeholder="votre@email-pro.fr" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(false); }}
-            className={`pl-10 ${loginError ? "border-red-300" : ""}`} data-testid={`pro-login-email-${roleType}`} autoComplete="off" />
+            className={`pl-10 ${loginError ? "border-red-300" : ""}`} data-testid={`pro-login-email-${roleType}`} autoComplete="one-time-code" />
         </div>
       </div>
       <div className="space-y-2">
@@ -107,7 +107,7 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Votre mot de passe" value={password}
             onChange={(e) => { setPassword(e.target.value); setLoginError(false); }} className={`pl-10 pr-10 ${loginError ? "border-red-300" : ""}`}
-            data-testid={`pro-login-password-${roleType}`} autoComplete="off" />
+            data-testid={`pro-login-password-${roleType}`} autoComplete="one-time-code" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -286,7 +286,7 @@ const EntrepriseForm = ({ onSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="one-time-code">
       <div className="space-y-2">
         <Label>Nom de l'entreprise <span className="text-red-500">*</span></Label>
         <Input placeholder="Ex: ACME SAS" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
@@ -301,7 +301,7 @@ const EntrepriseForm = ({ onSuccess }) => {
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type="email" placeholder="referent@entreprise.fr" value={email}
-            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="ent-email" autoComplete="off" />
+            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="ent-email" autoComplete="one-time-code" />
         </div>
         <EmailWarning email={email} />
       </div>
@@ -311,7 +311,7 @@ const EntrepriseForm = ({ onSuccess }) => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Minimum 6 caractères" value={password}
-            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="ent-password" autoComplete="off" />
+            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="ent-password" autoComplete="one-time-code" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -415,7 +415,7 @@ const PartenaireForm = ({ onSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="one-time-code">
       <div className="space-y-2">
         <Label>Nom de la structure <span className="text-red-500">*</span></Label>
         <Input placeholder="Ex: Mission Locale de Strasbourg" value={structureName}
@@ -446,7 +446,7 @@ const PartenaireForm = ({ onSuccess }) => {
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type="email" placeholder="referent@structure.fr" value={email}
-            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="part-email" autoComplete="off" />
+            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="part-email" autoComplete="one-time-code" />
         </div>
       </div>
 
@@ -455,7 +455,7 @@ const PartenaireForm = ({ onSuccess }) => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Minimum 6 caractères" value={password}
-            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="part-password" autoComplete="off" />
+            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="part-password" autoComplete="one-time-code" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

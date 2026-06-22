@@ -186,14 +186,14 @@ const LoginModal = ({ open, onClose, onSuccess, loginWithPseudonyme }) => {
         </div>
         {/* Form */}
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="one-time-code">
             <div className="space-y-2">
               <label className="text-sm leading-none text-slate-700 font-medium" htmlFor="login-pseudo">Pseudonyme</label>
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input id="login-pseudo" value={pseudo} onChange={(e) => setPseudo(e.target.value)} required
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-10"
-                  placeholder="Votre pseudonyme" data-testid="login-pseudo-input" autoComplete="off" />
+                  placeholder="Votre pseudonyme" data-testid="login-pseudo-input" autoComplete="one-time-code" />
               </div>
             </div>
             <div className="space-y-2">
@@ -203,7 +203,7 @@ const LoginModal = ({ open, onClose, onSuccess, loginWithPseudonyme }) => {
                 <input id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} required
                   type={showPw ? "text" : "password"}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-10 pr-10"
-                  placeholder="Votre mot de passe" data-testid="login-password-input" autoComplete="off" />
+                  placeholder="Votre mot de passe" data-testid="login-password-input" autoComplete="one-time-code" />
                 <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                   <Eye className="w-4 h-4" />
                 </button>

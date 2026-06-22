@@ -99,7 +99,7 @@ const LoginForm = ({ onSuccess, loginPseudo, targetRole }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="one-time-code">
       <div className="space-y-2">
         <Label htmlFor="login-pseudo" className="text-slate-700 font-medium">Pseudonyme</Label>
         <div className="relative">
@@ -111,7 +111,7 @@ const LoginForm = ({ onSuccess, loginPseudo, targetRole }) => {
             onChange={(e) => { setPseudo(e.target.value); setLoginError(false); }}
             className={`pl-10 ${loginError ? "border-red-300" : ""}`}
             data-testid="login-pseudo-input"
-            autoComplete="off"
+            autoComplete="one-time-code"
           />
         </div>
       </div>
@@ -127,7 +127,7 @@ const LoginForm = ({ onSuccess, loginPseudo, targetRole }) => {
             onChange={(e) => { setPassword(e.target.value); setLoginError(false); }}
             className={`pl-10 pr-10 ${loginError ? "border-red-300" : ""}`}
             data-testid="login-password-input"
-            autoComplete="off"
+            autoComplete="one-time-code"
           />
           <button
             type="button"
@@ -193,7 +193,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1" autoComplete="one-time-code">
       {/* Privacy reassurance */}
       <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
         <Shield className="w-5 h-5 text-[#1e3a5f] mt-0.5 flex-shrink-0" />
@@ -218,7 +218,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setPseudo(e.target.value)}
             className="pl-10"
             data-testid="register-pseudo-input"
-            autoComplete="off"
+            autoComplete="one-time-code"
           />
         </div>
         {pseudo.length > 0 && pseudo.length < 3 && (
@@ -240,7 +240,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setPassword(e.target.value)}
             className="pl-10 pr-10"
             data-testid="register-password-input"
-            autoComplete="off"
+            autoComplete="one-time-code"
           />
           <button
             type="button"
@@ -266,7 +266,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setConfirmPwd(e.target.value)}
             className="pl-10"
             data-testid="register-confirm-input"
-            autoComplete="off"
+            autoComplete="one-time-code"
           />
         </div>
         {confirmPwd && password !== confirmPwd && (
@@ -289,7 +289,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10"
             data-testid="register-email-input"
-            autoComplete="off"
+            autoComplete="one-time-code"
           />
         </div>
         <p className="text-xs text-slate-400 flex items-center gap-1">
