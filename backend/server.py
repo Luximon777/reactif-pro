@@ -7822,6 +7822,7 @@ async def on_startup():
         for pseudo, pwd, role in [
             ("marc19", "Solerys777!", "particulier"),
             ("mike7", "Solerys777!", "particulier"),
+            ("peter7", "Solerys777!", "particulier"),
             ("rh@reactifpro.fr", "Reactif@pro2026!", "entreprise"),
             ("admin@reactifpro.fr", "Choukette@777", "partenaire"),
         ]:

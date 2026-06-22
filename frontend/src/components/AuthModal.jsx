@@ -111,7 +111,7 @@ const LoginForm = ({ onSuccess, loginPseudo, targetRole }) => {
             onChange={(e) => { setPseudo(e.target.value); setLoginError(false); }}
             className={`pl-10 ${loginError ? "border-red-300" : ""}`}
             data-testid="login-pseudo-input"
-            autoComplete="username"
+            autoComplete="off"
           />
         </div>
       </div>
@@ -127,7 +127,7 @@ const LoginForm = ({ onSuccess, loginPseudo, targetRole }) => {
             onChange={(e) => { setPassword(e.target.value); setLoginError(false); }}
             className={`pl-10 pr-10 ${loginError ? "border-red-300" : ""}`}
             data-testid="login-password-input"
-            autoComplete="current-password"
+            autoComplete="off"
           />
           <button
             type="button"
@@ -218,7 +218,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setPseudo(e.target.value)}
             className="pl-10"
             data-testid="register-pseudo-input"
-            autoComplete="username"
+            autoComplete="off"
           />
         </div>
         {pseudo.length > 0 && pseudo.length < 3 && (
@@ -240,7 +240,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setPassword(e.target.value)}
             className="pl-10 pr-10"
             data-testid="register-password-input"
-            autoComplete="new-password"
+            autoComplete="off"
           />
           <button
             type="button"
@@ -266,7 +266,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setConfirmPwd(e.target.value)}
             className="pl-10"
             data-testid="register-confirm-input"
-            autoComplete="new-password"
+            autoComplete="off"
           />
         </div>
         {confirmPwd && password !== confirmPwd && (
@@ -289,7 +289,7 @@ const RegisterForm = ({ onSuccess, register, defaultRole }) => {
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10"
             data-testid="register-email-input"
-            autoComplete="email"
+            autoComplete="off"
           />
         </div>
         <p className="text-xs text-slate-400 flex items-center gap-1">

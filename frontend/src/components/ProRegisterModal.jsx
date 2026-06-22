@@ -98,7 +98,7 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input placeholder="votre@email-pro.fr" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(false); }}
-            className={`pl-10 ${loginError ? "border-red-300" : ""}`} data-testid={`pro-login-email-${roleType}`} autoComplete="email" />
+            className={`pl-10 ${loginError ? "border-red-300" : ""}`} data-testid={`pro-login-email-${roleType}`} autoComplete="off" />
         </div>
       </div>
       <div className="space-y-2">
@@ -107,7 +107,7 @@ const ProLoginForm = ({ onSuccess, roleType }) => {
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Votre mot de passe" value={password}
             onChange={(e) => { setPassword(e.target.value); setLoginError(false); }} className={`pl-10 pr-10 ${loginError ? "border-red-300" : ""}`}
-            data-testid={`pro-login-password-${roleType}`} autoComplete="current-password" />
+            data-testid={`pro-login-password-${roleType}`} autoComplete="off" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -301,7 +301,7 @@ const EntrepriseForm = ({ onSuccess }) => {
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type="email" placeholder="referent@entreprise.fr" value={email}
-            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="ent-email" autoComplete="email" />
+            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="ent-email" autoComplete="off" />
         </div>
         <EmailWarning email={email} />
       </div>
@@ -311,7 +311,7 @@ const EntrepriseForm = ({ onSuccess }) => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Minimum 6 caractères" value={password}
-            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="ent-password" autoComplete="new-password" />
+            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="ent-password" autoComplete="off" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -446,7 +446,7 @@ const PartenaireForm = ({ onSuccess }) => {
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type="email" placeholder="referent@structure.fr" value={email}
-            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="part-email" autoComplete="email" />
+            onChange={(e) => setEmail(e.target.value)} className="pl-10" data-testid="part-email" autoComplete="off" />
         </div>
       </div>
 
@@ -455,7 +455,7 @@ const PartenaireForm = ({ onSuccess }) => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input type={showPwd ? "text" : "password"} placeholder="Minimum 6 caractères" value={password}
-            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="part-password" autoComplete="new-password" />
+            onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" data-testid="part-password" autoComplete="off" />
           <button type="button" onClick={() => setShowPwd(!showPwd)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
