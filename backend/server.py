@@ -7845,13 +7845,78 @@ async def check_offer_match(token: str, body: dict = {}):
     last_cv = await db.cv_jobs.find_one({"token_id": token_doc["id"], "status": "completed"}, sort=[("created_at", -1)])
     cv_skills = []
     cv_experiences = []
+    cv_profile_summary = ""
     if last_cv and last_cv.get("result"):
         r = last_cv["result"]
         cv_skills = [s.get("name", "") if isinstance(s, dict) else str(s) for s in r.get("competences", r.get("skills", []))[:15]]
         cv_experiences = [e.get("title", "") for e in r.get("experiences", [])[:5]]
+        cv_profile_summary = r.get("profile", {}).get("professional_summary", "")
 
-    all_skills = list(set(s.lower() for s in (user_skills + cv_skills) if s))
+    # Get passport data for richer matching
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    passport_competences = []
+    passport_formations = []
+    passport_exp_titles = []
+    if passport:
+        passport_competences = [c.get("name", "") for c in passport.get("competences", [])[:20]]
+        passport_formations = [f.get("title", "") for f in passport.get("formations", [])[:10]]
+        passport_exp_titles = [e.get("title", "") for e in passport.get("experiences", [])[:10]]
+        if not cv_profile_summary:
+            cv_profile_summary = passport.get("professional_summary", "")
+
+    all_skills = list(set(s.lower() for s in (user_skills + cv_skills + passport_competences) if s))
+    all_exp_titles = list(set(t for t in (cv_experiences + passport_exp_titles) if t))
     offer_lower = offer_text.lower()
+
+    # --- AI-powered scoring if available ---
+    if EMERGENT_LLM_KEY and cv_profile_summary:
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"offer-match-{uuid.uuid4()}",
+                system_message="Tu es un expert RH français spécialisé dans le matching candidat/offre d'emploi. Évalue la compatibilité globale en tenant compte de l'expérience, des compétences techniques et comportementales, du secteur, du niveau de responsabilité. Réponds UNIQUEMENT en JSON: {\"score\": int(0-100), \"matched_skills\": [\"liste des compétences en commun\"], \"message\": \"explication courte\"}."
+            ).with_model("openai", "gpt-5.2")
+
+            prompt = f"""PROFIL CANDIDAT:
+Résumé: {cv_profile_summary[:300]}
+Compétences: {', '.join(all_skills[:20])}
+Expériences: {', '.join(all_exp_titles[:8])}
+Formations: {', '.join(passport_formations[:5])}
+
+OFFRE D'EMPLOI:
+{offer_text[:800]}
+
+Évalue la compatibilité réelle (0-100). Un score > 70 = le candidat est qualifié. Un chef de cuisine expérimenté pour un poste de chef de partie = haute compatibilité."""
+
+            response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+            import json as _json
+            try:
+                result = _json.loads(response)
+                score = max(0, min(100, result.get("score", 50)))
+                matched = result.get("matched_skills", [])[:10]
+                msg = result.get("message", "")
+                offer_title = ""
+                first_line = offer_text.split("\n")[0].strip()
+                if first_line.upper().startswith("POSTE:"):
+                    offer_title = first_line.split(":", 1)[1].strip()
+                elif 5 < len(first_line) < 100:
+                    offer_title = first_line
+                return {
+                    "score": score,
+                    "matched_skills": matched,
+                    "total_user_skills": len(all_skills),
+                    "offer_title": offer_title,
+                    "alert": score < 50,
+                    "message": msg if msg else (
+                        f"Compatibilité de {score}% — {len(matched)} compétence(s) en commun."
+                    )
+                }
+            except:
+                pass
+        except Exception as e:
+            logging.error(f"AI offer scoring error: {e}")
+
+    # --- Fallback: improved keyword matching ---
 
     # Extract significant keywords from user skills (words > 3 chars, excluding stop words)
     stop_words = {"avec", "dans", "pour", "plus", "très", "sans", "sous", "chez", "entre", "comme", "après", "avant", "leur", "cette", "mais", "aussi", "même", "tout", "tous", "être", "avoir", "faire", "dire", "aller", "voir", "bien", "fait", "sont", "nous", "vous", "autres", "base", "selon", "travail", "poste", "offre", "emploi", "recherche", "candidat", "expérience", "profil", "compétences", "savoir"}
