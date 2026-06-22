@@ -7798,6 +7798,9 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def on_startup():
     try:
+        # Run migrations first (ensures data schema integrity)
+        from migrations import run_migrations
+        await run_migrations(db)
         await opc_create_indexes()
         await seed_if_empty()
         # Seed filières professionnelles if empty
