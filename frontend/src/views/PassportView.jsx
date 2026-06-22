@@ -1369,9 +1369,12 @@ const PassportView = ({ token, viewMode }) => {
 
         {/* Formations / Certifications Tab */}
         <TabsContent value="formations" className="space-y-4 mt-4">
-          <h3 className="font-semibold text-slate-900">
-            Formations et Certifications ({(passport?.formations || []).length + (dclicProfile?.dclic_imported ? 1 : 0)})
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-900">
+              Formations et Certifications ({(passport?.formations || []).length + (dclicProfile?.dclic_imported ? 1 : 0)})
+            </h3>
+            <AddFormationButton token={token} onAdded={(f) => setPassport(prev => ({ ...prev, formations: [...(prev.formations || []), f] }))} />
+          </div>
 
           {/* Toggle visibilité totale */}
           {(passport?.formations || []).length > 0 && (
@@ -1426,14 +1429,16 @@ const PassportView = ({ token, viewMode }) => {
             </Card>
           )}
 
-          {/* Formations from CV */}
+          {/* Formations from CV or manual */}
           {(passport?.formations || []).map((f, idx) => {
             const typeConfig = {
               diplome: { color: "border-l-blue-400", bg: "bg-blue-100", icon: "text-blue-600", badge: "bg-blue-50 text-blue-700", label: "Diplôme" },
               certification: { color: "border-l-amber-400", bg: "bg-amber-100", icon: "text-amber-600", badge: "bg-amber-50 text-amber-700", label: "Certification" },
-              stage_formation: { color: "border-l-purple-400", bg: "bg-purple-100", icon: "text-purple-600", badge: "bg-purple-50 text-purple-700", label: "Formation" },
+              formation_pro: { color: "border-l-purple-400", bg: "bg-purple-100", icon: "text-purple-600", badge: "bg-purple-50 text-purple-700", label: "Formation pro" },
+              mooc: { color: "border-l-teal-400", bg: "bg-teal-100", icon: "text-teal-600", badge: "bg-teal-50 text-teal-700", label: "MOOC" },
+              autre: { color: "border-l-slate-400", bg: "bg-slate-100", icon: "text-slate-600", badge: "bg-slate-50 text-slate-700", label: "Autre" },
             };
-            const cfg = typeConfig[f.type] || typeConfig.diplome;
+            const cfg = typeConfig[f.type] || typeConfig.autre;
             const isVisible = f.visibility === "public";
             return (
             <Card key={f.id || idx} className={`border-l-4 ${cfg.color}`} data-testid={`formation-card-${idx}`}>
@@ -1444,11 +1449,14 @@ const PassportView = ({ token, viewMode }) => {
                       <GraduationCap className={`w-5 h-5 ${cfg.icon}`} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-slate-900">{f.diplome}</h4>
+                      <h4 className="font-semibold text-slate-900">{f.title}</h4>
                       <p className="text-sm text-slate-500">
-                        {f.etablissement}{f.annee ? ` — ${f.annee}` : ""}
+                        {f.institution}{f.year ? ` — ${f.year}` : ""}
                       </p>
-                      {f.domaine && <Badge variant="outline" className="text-xs mt-1">{f.domaine}</Badge>}
+                      <div className="flex gap-1 mt-1">
+                        {f.level && <Badge variant="outline" className="text-xs">{f.level}</Badge>}
+                        {f.description && <span className="text-xs text-slate-400">{f.description}</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -1471,6 +1479,20 @@ const PassportView = ({ token, viewMode }) => {
                     >
                       {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </button>
+                    {f.source === "declaratif" && (
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500"
+                        data-testid={`delete-formation-${idx}`}
+                        onClick={async () => {
+                          try {
+                            await axios.delete(`${API}/passport/formations/${f.id}?token=${token}`);
+                            setPassport(prev => ({ ...prev, formations: (prev.formations || []).filter(fm => fm.id !== f.id) }));
+                            toast.success("Formation supprimée");
+                          } catch { toast.error("Erreur"); }
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -1479,7 +1501,7 @@ const PassportView = ({ token, viewMode }) => {
           })}
 
           {(passport?.formations || []).length === 0 && !dclicProfile?.dclic_imported && (
-            <EmptyState text="Vos formations et certifications apparaîtront ici après l'analyse de votre CV ou la complétion du test D'CLIC PRO" />
+            <EmptyState text="Aucune formation enregistrée. Ajoutez vos diplômes et certifications avec le bouton + Ajouter ci-dessus, ou importez votre CV dans Trajectoire." />
           )}
         </TabsContent>
 
@@ -2395,6 +2417,70 @@ const EvaluatedCompCard = ({ comp, onEvaluate }) => {
 };
 
 // ============== EXISTING SUB-COMPONENTS ==============
+
+const AddFormationButton = ({ token, onAdded }) => {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: "", institution: "", year: "", type: "diplome", level: "", description: "" });
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { toast.error("Le nom de la formation est requis"); return; }
+    setSaving(true);
+    try {
+      const res = await axios.post(`${API}/passport/formations?token=${token}`, form);
+      onAdded(res.data);
+      setForm({ title: "", institution: "", year: "", type: "diplome", level: "", description: "" });
+      setOpen(false);
+      toast.success("Formation ajoutée");
+    } catch { toast.error("Erreur lors de l'ajout"); }
+    setSaving(false);
+  };
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} data-testid="add-formation-btn">
+        <Plus className="w-4 h-4 mr-1" /> Ajouter
+      </Button>
+    );
+  }
+
+  return (
+    <Card className="border-dashed border-2 border-blue-200 bg-blue-50/30" data-testid="add-formation-form">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-slate-700">Nouvelle formation / certification</h4>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setOpen(false)}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Input placeholder="Nom du diplôme / certification *" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="text-sm h-9" data-testid="formation-title-input" />
+          <Input placeholder="Établissement" value={form.institution} onChange={e => setForm(p => ({ ...p, institution: e.target.value }))} className="text-sm h-9" data-testid="formation-institution-input" />
+          <Input placeholder="Année (ex: 2020)" value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))} className="text-sm h-9" data-testid="formation-year-input" />
+          <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v }))}>
+            <SelectTrigger className="h-9 text-sm" data-testid="formation-type-select"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="diplome">Diplôme</SelectItem>
+              <SelectItem value="certification">Certification</SelectItem>
+              <SelectItem value="formation_pro">Formation professionnelle</SelectItem>
+              <SelectItem value="mooc">MOOC / En ligne</SelectItem>
+              <SelectItem value="autre">Autre</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input placeholder="Niveau (Bac, Bac+2, etc.)" value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))} className="text-sm h-9" data-testid="formation-level-input" />
+          <Input placeholder="Description courte" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="text-sm h-9" data-testid="formation-desc-input" />
+        </div>
+        <div className="flex justify-end">
+          <Button size="sm" onClick={handleSave} disabled={saving} data-testid="formation-save-btn">
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+            Enregistrer
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 const StatCard = ({ icon: Icon, value, label, sublabel, color }) => (
   <Card>
