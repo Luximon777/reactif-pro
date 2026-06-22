@@ -9643,6 +9643,9 @@ async def search_referentiel_opc(q: str = ""):
                 "capacites_professionnelles": [],
                 "capacites_techniques": [],
                 "qualites_humaines": [],
+                "ck1_vertus": [],
+                "ck1_valeurs": [],
+                "ck1_qualites_humaines": [],
                 "secteur": "",
                 "filiere": "",
                 "mission": f"Fiche créée par contributions terrain ({contrib.get('total_contributors', 1)} contributeur(s))",
@@ -9654,6 +9657,55 @@ async def search_referentiel_opc(q: str = ""):
                     terrain_result["hard_skills"].append(skill_name)
                 else:
                     terrain_result["soft_skills"].append(skill_name)
+            
+            # Enrich from opc_contributions (qualites_humaines, valeurs from contributor profiles)
+            opc_contribs = await db.opc_contributions.find({"job_title": jt}).to_list(50)
+            all_qh = set()
+            all_valeurs = set()
+            all_vertus = set()
+            for oc in opc_contribs:
+                for qh in (oc.get("qualites_humaines") or []):
+                    if qh:
+                        all_qh.add(qh)
+                for val in (oc.get("valeurs") or []):
+                    if val:
+                        all_valeurs.add(val)
+                # Get vertus from contributor's passport D'CLIC
+                contrib_passport = await db.passports.find_one({"token_id": oc.get("token_id")})
+                if contrib_passport:
+                    dr = contrib_passport.get("dclic_results", {})
+                    vp = dr.get("vertus_profile", {})
+                    vs = vp.get("vertus_scores", {})
+                    for vname, vscore in vs.items():
+                        if vscore and vscore >= 60:
+                            all_vertus.add(vname.upper())
+            
+            # Enrich from matching opc_metiers (savoir_etre as qualites_humaines)
+            opc_metier = await db.opc_metiers.find_one({"metier": {"$regex": re_module.escape(jt.split(" ")[-1] if " " in jt else jt), "$options": "i"}})
+            if opc_metier:
+                terrain_result["secteur"] = opc_metier.get("sector_name", "")
+                terrain_result["filiere"] = opc_metier.get("filiere_nom", "")
+                for se in (opc_metier.get("savoir_etre") or []):
+                    if se:
+                        all_qh.add(se)
+            
+            # Enrich from matching referentiel_opc (ck1 data)
+            ref_match = await db.referentiel_opc.find_one({"metier": {"$regex": re_module.escape(jt.split(" ")[-1] if " " in jt else jt), "$options": "i"}})
+            if ref_match:
+                terrain_result["ck1_vertus"] = ref_match.get("ck1_vertus", [])
+                terrain_result["ck1_valeurs"] = ref_match.get("ck1_valeurs", [])
+                terrain_result["ck1_qualites_humaines"] = ref_match.get("ck1_qualites_humaines", [])
+                for qh in (ref_match.get("ck1_qualites_humaines") or []):
+                    if qh:
+                        all_qh.add(qh)
+                for val in (ref_match.get("ck1_valeurs") or []):
+                    if val:
+                        all_valeurs.add(val)
+            
+            terrain_result["qualites_humaines"] = list(all_qh)
+            terrain_result["ck1_valeurs"] = terrain_result["ck1_valeurs"] or list(all_valeurs)
+            terrain_result["ck1_vertus"] = terrain_result["ck1_vertus"] or list(all_vertus)
+            
             results.append(terrain_result)
             seen_metiers.add(jt.lower())
 
