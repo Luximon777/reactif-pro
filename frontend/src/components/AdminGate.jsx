@@ -125,7 +125,7 @@ const AdminGate = ({ onAuthenticated }) => {
     setError("");
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (password === GATE_PASSWORDS[showPasswordFor.key]) {
       setSelectedStatus(showPasswordFor);
@@ -133,6 +133,19 @@ const AdminGate = ({ onAuthenticated }) => {
       setShowPasswordFor(null);
       setError("");
       toast.success(`Connexion ${showPasswordFor.fullLabel || showPasswordFor.label} réussie`);
+      // Admin auto-opens the platform for all users
+      if (showPasswordFor.key === "admin") {
+        try {
+          const res = await axios.post(`${API}/admin/gate-state`, {
+            password: GATE_PASSWORDS.admin,
+            spaces_open: true,
+          });
+          setSpacesOpen(res.data.spaces_open === true);
+          toast.success("Plateforme ouverte — tous les utilisateurs peuvent accéder aux espaces");
+        } catch (err) {
+          console.error("Erreur ouverture automatique gate:", err);
+        }
+      }
     } else {
       setError("Mot de passe incorrect");
     }
@@ -150,19 +163,22 @@ const AdminGate = ({ onAuthenticated }) => {
       window.location.href = "/observatoire";
       return;
     }
-    // Admin bypass for ALL spaces (auto-login)
+    // Admin bypass — block personal space for admin, allow others
     if (authenticated && selectedStatus?.key === "admin") {
+      if (space.key === "personnel") {
+        toast.info("Le compte administrateur n'a pas d'espace personnel. Utilisez un compte utilisateur pour accéder à cet espace.");
+        return;
+      }
       setLoading(true);
       try {
         let loginData;
         if (space.key === "employeur") {
           const res = await axios.post(`${API}/auth/login-pro`, { pseudo: "rh@reactifpro.fr", password: "Reactif@pro2026!" });
           loginData = { ...res.data, role: "entreprise", authMode: "pseudo" };
-        } else if (space.key === "personnel" || space.key === "vsi") {
+        } else if (space.key === "vsi") {
           const res = await axios.post(`${API}/auth/login`, { pseudo: "admin@reactifpro.fr", password: "Choukette@777" });
-          const targetRole = space.key === "vsi" ? "vsi" : "particulier";
-          try { await axios.post(`${API}/auth/switch-role?token=${res.data.token}&new_role=${targetRole}`); } catch {}
-          loginData = { ...res.data, role: targetRole, authMode: "pseudo" };
+          try { await axios.post(`${API}/auth/switch-role?token=${res.data.token}&new_role=vsi`); } catch {}
+          loginData = { ...res.data, role: "vsi", authMode: "pseudo" };
         } else {
           const res = await axios.post(`${API}/auth/login-pro`, { pseudo: "admin@reactifpro.fr", password: "Choukette@777" });
           loginData = { ...res.data, role: "partenaire", authMode: "pseudo" };
