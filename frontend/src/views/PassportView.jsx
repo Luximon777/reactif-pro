@@ -2731,34 +2731,42 @@ const ExperienceCard = ({ exp, onDelete, softSkills, hardSkills, illustrations, 
               <span className="text-xs font-semibold">{expanded ? "Masquer" : "Prouver vos compétences"}</span>
             </Button>
             {!exp.proof_document && (
-              <label className="cursor-pointer" data-testid={`passport-upload-proof-${exp.id}`}>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (file.size > 10 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 10 Mo)"); return; }
-                    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
-                    if (!allowed.includes(file.type)) { toast.error("Format non accepté. Utilisez PDF, JPG ou PNG"); return; }
-                    try {
-                      toast.info("Upload en cours...");
-                      const reader = new FileReader();
-                      reader.onload = async () => {
-                        const b64 = reader.result.split(",")[1];
-                        await axios.post(`${API}/passport/experiences/upload-proof?token=${token}`, {
-                          experience_id: exp.id, file_data: b64, file_name: file.name, mime_type: file.type
-                        });
-                        toast.success(`Document "${file.name}" rattaché`);
-                        if (onIllustrationSaved) onIllustrationSaved();
-                      };
-                      reader.readAsDataURL(file);
-                    } catch { toast.error("Erreur lors de l'upload"); }
-                  }}
-                />
-                <div className="h-9 px-3 gap-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 flex items-center text-blue-600 transition-colors">
-                  <Upload className="w-4 h-4" />
-                  <span className="text-xs font-semibold">Certifier</span>
-                </div>
-              </label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 gap-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 text-blue-600 transition-colors"
+                data-testid={`certify-coffre-${exp.id}`}
+                onClick={async () => {
+                  try {
+                    const skills = exp.skills_detected || [];
+                    const title = `Certification — ${exp.title}${exp.organization ? ` (${exp.organization})` : ""}`;
+                    const description = [
+                      `Expérience : ${exp.title}`,
+                      exp.organization ? `Organisation : ${exp.organization}` : null,
+                      exp.period ? `Période : ${exp.period}` : null,
+                      skills.length > 0 ? `Compétences : ${skills.join(", ")}` : null,
+                    ].filter(Boolean).join("\n");
+
+                    await axios.post(`${API}/coffre/documents?token=${token}`, {
+                      title,
+                      category: "experience_prouvee",
+                      document_type: "certification_competences",
+                      trust_level: "auto_declare",
+                      source_type: "utilisateur",
+                      description,
+                      competences_liees: skills,
+                    });
+                    toast.success("Expérience transférée dans le Coffre-fort et le Portefeuille de compétences");
+                    if (onIllustrationSaved) onIllustrationSaved();
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Erreur lors du transfert vers le Coffre-fort");
+                  }
+                }}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-xs font-semibold">Certifier</span>
+              </Button>
             )}
             {exp.source === "declaratif" && (
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500" onClick={() => onDelete(exp.id)}>

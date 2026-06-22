@@ -132,7 +132,7 @@ class CoffreDocument(BaseModel):
     title: str
     category: str
     document_type: str
-    file_name: str
+    file_name: Optional[str] = None
     file_url: Optional[str] = None
     file_size: int = 0
     mime_type: str = "application/pdf"
@@ -176,7 +176,7 @@ class CreateDocumentRequest(BaseModel):
     title: str
     category: str
     document_type: str
-    file_name: str
+    file_name: Optional[str] = None
     file_url: Optional[str] = None
     date_document: Optional[str] = None
     metier_associe: Optional[str] = None
@@ -186,6 +186,8 @@ class CreateDocumentRequest(BaseModel):
     privacy_level: str = "private"
     date_expiration: Optional[str] = None
     is_sensitive: bool = False
+    trust_level: Optional[str] = None
+    source_type: Optional[str] = None
 
 # ============== OBSERVATOIRE MODELS ==============
 
