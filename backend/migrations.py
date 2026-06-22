@@ -17,6 +17,7 @@ async def run_migrations(db):
     await migrate_passports_ensure_dclic_fields(db)
     await migrate_coffre_optional_file_name(db)
     await migrate_illustrations_add_skill_type(db)
+    await migrate_fiches_opc_skill_type(db)
 
     logger.info("[Migrations] Migrations terminées.")
 
@@ -74,3 +75,33 @@ async def migrate_illustrations_add_skill_type(db):
     )
     if result.modified_count > 0:
         logger.info(f"[Migration] Ajout skill_type='soft' à {result.modified_count} illustrations")
+
+
+async def migrate_fiches_opc_skill_type(db):
+    """Backfill skill_type in fiches_metier_opc competences from coffre_documents (added 22 juin 2026)."""
+    fiches = await db.fiches_metier_opc.find().to_list(500)
+    updated = 0
+    for fiche in fiches:
+        competences = fiche.get("competences", {})
+        changed = False
+        for skill_name, skill_data in competences.items():
+            if isinstance(skill_data, dict) and "skill_type" not in skill_data:
+                # Try to find skill_type from coffre_documents
+                coffre = await db.coffre_documents.find_one({
+                    "linked_soft_skill": skill_name,
+                    "skill_type": {"$exists": True}
+                })
+                if coffre:
+                    skill_data["skill_type"] = coffre.get("skill_type", "soft")
+                else:
+                    skill_data["skill_type"] = "soft"
+                changed = True
+        if changed:
+            await db.fiches_metier_opc.update_one(
+                {"_id": fiche["_id"]},
+                {"$set": {"competences": competences}}
+            )
+            updated += 1
+    if updated > 0:
+        logger.info(f"[Migration] Ajout skill_type aux compétences de {updated} fiches métier OPC")
+

@@ -9443,10 +9443,16 @@ async def opc_contribute(token: str, body: dict):
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
-    # Update competences for this soft skill
+    # Determine skill type from coffre document
+    skill_type = coffre_doc.get("skill_type", "soft")
+
+    # Update competences for this skill
     competences = fiche.get("competences", {})
     if soft_skill not in competences:
-        competences[soft_skill] = {"contributors_count": 0, "examples": []}
+        competences[soft_skill] = {"contributors_count": 0, "examples": [], "skill_type": skill_type}
+    # Ensure skill_type is always set (backfill for existing data)
+    if "skill_type" not in competences[soft_skill]:
+        competences[soft_skill]["skill_type"] = skill_type
 
     # Check if this contributor already added for this skill
     existing_ids = [ex.get("contribution_id") for ex in competences[soft_skill]["examples"]]
@@ -9641,9 +9647,13 @@ async def search_referentiel_opc(q: str = ""):
                 "filiere": "",
                 "mission": f"Fiche créée par contributions terrain ({contrib.get('total_contributors', 1)} contributeur(s))",
             }
-            # Extract skills from the contributions
+            # Extract skills from contributions, respecting skill_type
             for skill_name, skill_data in (contrib.get("competences") or {}).items():
-                terrain_result["soft_skills"].append(skill_name)
+                st = skill_data.get("skill_type", "soft") if isinstance(skill_data, dict) else "soft"
+                if st == "hard":
+                    terrain_result["hard_skills"].append(skill_name)
+                else:
+                    terrain_result["soft_skills"].append(skill_name)
             results.append(terrain_result)
             seen_metiers.add(jt.lower())
 
