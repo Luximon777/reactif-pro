@@ -565,8 +565,8 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Hard Skills</th>
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Soft Skills</th>
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Qualités humaines</th>
-                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Vertus</th>
                     <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Valeurs</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-slate-700">Vertus</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -593,8 +593,8 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
                           <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{hardSkills.slice(0, 3).map((s, i) => <SkillTag key={i} name={s} colorClass="bg-blue-50 text-blue-700" borderClass="border-blue-100" />)}{hardSkills.length > 3 && <span className="text-[10px] text-slate-400">+{hardSkills.length - 3}</span>}{hardSkills.length === 0 && <span className="text-slate-400 italic text-[10px]">—</span>}</div></td>
                           <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{softSkills.slice(0, 3).map((s, i) => <SkillTag key={i} name={s} colorClass="bg-slate-50 text-slate-600" borderClass="border-slate-200" />)}{softSkills.length > 3 && <span className="text-[10px] text-slate-400">+{softSkills.length - 3}</span>}{softSkills.length === 0 && <span className="text-slate-400 italic text-[10px]">—</span>}</div></td>
                           <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{allQualites.slice(0, 2).map((q, i) => <span key={i} className="inline-block bg-rose-50 text-rose-700 rounded px-1.5 py-0.5 text-[10px] border border-rose-100">{typeof q === "string" ? q.split(":")[0] : q}</span>)}{allQualites.length > 2 && <span className="text-[10px] text-slate-400">+{allQualites.length - 2}</span>}</div></td>
-                          <td className="px-3 py-2.5">{hasCk1 ? <div className="flex flex-wrap gap-1">{(r.ck1_vertus || []).slice(0, 3).map((v, i) => <span key={i} className="inline-block bg-purple-50 text-purple-700 rounded px-1.5 py-0.5 text-[10px] border border-purple-100">{v}</span>)}{(r.ck1_vertus || []).length > 3 && <span className="text-[10px] text-slate-400">+{r.ck1_vertus.length - 3}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
                           <td className="px-3 py-2.5">{mergedValeurs.length > 0 ? <div className="flex flex-wrap gap-1">{mergedValeurs.slice(0, 2).map((v, i) => <span key={i} className="inline-block bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 text-[10px] border border-amber-100">{v}</span>)}{mergedValeurs.length > 2 && <span className="text-[10px] text-slate-400">+{mergedValeurs.length - 2}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
+                          <td className="px-3 py-2.5">{hasCk1 ? <div className="flex flex-wrap gap-1">{(r.ck1_vertus || []).slice(0, 3).map((v, i) => <span key={i} className="inline-block bg-purple-50 text-purple-700 rounded px-1.5 py-0.5 text-[10px] border border-purple-100">{v}</span>)}{(r.ck1_vertus || []).length > 3 && <span className="text-[10px] text-slate-400">+{r.ck1_vertus.length - 3}</span>}</div> : <span className="text-slate-400 italic">—</span>}</td>
                         </tr>
                         {expandedRow === idx && (
                           <tr className="bg-cyan-50/20"><td colSpan={6} className="px-4 py-3 space-y-3">
