@@ -37,6 +37,9 @@ Plateforme full-stack d'analyse et de développement des compétences profession
 ### Phase 1 — Authentification & Profil
 - Login pseudonyme, création de compte, rôles (admin/dev/utilisateur)
 - Profil utilisateur, import CV, analyse IA
+- **Admin gate** : Connexion admin auto-ouvre la plateforme (gate_state → spaces_open: true)
+- **Blocage admin** : L'admin ne peut pas accéder à l'Espace Personnel (toast informatif)
+- Modale de connexion (AuthModal) avec onglets Se connecter / Créer un compte
 
 ### Phase 2 — Coffre-fort & Preuves S.A.R.E
 - Portefeuille de compétences avec preuves S.A.R.E
@@ -68,7 +71,8 @@ Plateforme full-stack d'analyse et de développement des compétences profession
 - Génération de CV ciblé par IA
 
 ## Endpoints clés
-- `POST /api/auth/login` — Connexion
+- `POST /api/auth/login` — Connexion utilisateur
+- `GET/POST /api/admin/gate-state` — État de la porte admin (spaces_open)
 - `GET /api/opc/referentiel/search?q=` — Recherche référentiel OPC (avec skill_validations)
 - `GET /api/jobs/rome-suggestions?token=` — Suggestions ROME auto
 - `GET /api/jobs/rome-search?q=` — Recherche codes ROME
