@@ -3953,32 +3953,11 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             user_msg=f"Génère 4 versions de CV pour ce profil:\n\n{cv_excerpt}"
         ))
 
-        # Wait for analysis first (critical), then CV gen
+        # Wait for analysis (critical for passport) — DON'T wait for CV generation
         analysis = await analysis_task
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Génération des modèles de CV..."}})
-
-        try:
-            cv_gen = await cv_gen_task
-        except Exception:
-            logging.warning("CV model generation failed, continuing with analysis only")
-            cv_gen = {"cv_classique": "", "cv_competences": "", "cv_fonctionnel": "", "cv_mixte": ""}
-
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Remplissage du passeport..."}})
 
-        # Save CV models
-        cv_models = {
-            "classique": cv_gen.get("cv_classique", ""),
-            "competences": cv_gen.get("cv_competences", ""),
-            "fonctionnel": cv_gen.get("cv_fonctionnel", ""),
-            "mixte": cv_gen.get("cv_mixte", ""),
-        }
-        await db.cv_models.update_one(
-            {"token_id": token_id},
-            {"$set": {"token_id": token_id, "models": cv_models, "original_filename": filename, "analyzed_at": datetime.now(timezone.utc).isoformat()}},
-            upsert=True
-        )
-
-        # Auto-fill Passport
+        # Auto-fill Passport IMMEDIATELY (don't wait for CV gen)
         passport = await db.passports.find_one({"token_id": token_id})
         if not passport:
             passport = {"token_id": token_id, "professional_summary": "", "career_project": "", "motivations": [], "compatible_environments": [], "target_sectors": [], "competences": [], "experiences": [], "learning_path": [], "passerelles": [], "sharing": {"is_public": False}, "created_at": datetime.now(timezone.utc).isoformat()}
@@ -4070,7 +4049,7 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             "offres_emploi": analysis.get("offres_emploi", []),
             "strengths": analysis.get("strengths", analysis.get("competences_transversales", [])),
             "gaps": analysis.get("gaps", []),
-            "cv_models_generated": list(cv_models.keys()),
+            "cv_models_generated": ["classique", "competences", "fonctionnel", "mixte"],
             "completeness_score": update_fields.get("completeness_score", 0),
             "audit_cv": analysis.get("audit_cv", []),
             "score_global_cv": analysis.get("score_global_cv", 0),
@@ -4162,6 +4141,24 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             logging.error(f"[CV→Trajectoire] Erreur sync: {traj_err}")
 
         logging.info(f"CV analysis job {job_id} completed successfully")
+
+        # Save CV models in background (non-blocking — user already has their passport)
+        try:
+            cv_gen = await cv_gen_task
+            cv_models = {
+                "classique": cv_gen.get("cv_classique", ""),
+                "competences": cv_gen.get("cv_competences", ""),
+                "fonctionnel": cv_gen.get("cv_fonctionnel", ""),
+                "mixte": cv_gen.get("cv_mixte", ""),
+            }
+            await db.cv_models.update_one(
+                {"token_id": token_id},
+                {"$set": {"token_id": token_id, "models": cv_models, "original_filename": filename, "analyzed_at": datetime.now(timezone.utc).isoformat()}},
+                upsert=True
+            )
+            logging.info(f"CV models saved for job {job_id}")
+        except Exception as cv_err:
+            logging.warning(f"CV model generation failed (non-blocking): {cv_err}")
 
     except Exception as e:
         logging.error(f"CV analysis job {job_id} failed: {e}")
