@@ -1023,7 +1023,7 @@ const CoffreFortView = ({ token }) => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="quick-actions">
             {[
               { label: "Générer mon CV", icon: FileText, path: "/dashboard/trajectoire", color: "blue" },
-              { label: "Prouver mes soft skills", icon: Award, path: "/dashboard/profil", color: "emerald" },
+              { label: "Prouver mes compétences", icon: Award, path: "/dashboard/profil", color: "emerald" },
               { label: "Voir mes opportunités", icon: Briefcase, path: "/dashboard/opportunites", color: "violet" },
               { label: "Rejoindre Ubuntoo", icon: Users, action: () => window.open("/ubuntoo", "_blank"), color: "amber" },
             ].map((a, i) => {

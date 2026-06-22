@@ -8777,6 +8777,7 @@ async def save_illustration(token: str, body: dict):
                 exp_data = exp
                 break
 
+    skill_type = body.get("skill_type", "soft")  # "soft" or "hard"
     illus_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     illustration = {
@@ -8784,6 +8785,7 @@ async def save_illustration(token: str, body: dict):
         "token_id": token_doc["id"],
         "experience_id": exp_id,
         "soft_skill": soft_skill,
+        "skill_type": skill_type,
         "situation_text": body.get("situation_text", ""),
         "sare_situation": body.get("sare_situation", ""),
         "sare_action": body.get("sare_action", ""),
@@ -8801,7 +8803,7 @@ async def save_illustration(token: str, body: dict):
         coffre_title = f"Preuve S.A.R.E — {title}"
         if org:
             coffre_title += f" ({org})"
-
+        skill_label = "Hard skill" if skill_type == "hard" else "Soft skill"
         await db.coffre_documents.update_one(
             {"token_id": token_doc["id"], "linked_experience_id": exp_id, "category": "experience_prouvee", "linked_soft_skill": soft_skill},
             {"$set": {
@@ -8814,8 +8816,9 @@ async def save_illustration(token: str, body: dict):
                 "source_type": "utilisateur",
                 "linked_experience_id": exp_id,
                 "linked_soft_skill": soft_skill,
+                "linked_skill_type": skill_type,
                 "linked_organization": org,
-                "description": f"Soft skill '{soft_skill}' prouvé par méthode S.A.R.E",
+                "description": f"{skill_label} '{soft_skill}' prouvé par méthode S.A.R.E",
                 "uploaded_at": now,
             }},
             upsert=True,

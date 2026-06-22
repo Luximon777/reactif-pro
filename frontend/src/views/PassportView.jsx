@@ -1094,7 +1094,7 @@ const PassportView = ({ token, viewMode }) => {
                     <div className="flex-1">
                       <h4 className="text-sm font-bold text-amber-900">Prouvez vos savoir-être avec la méthode S.A.R.E</h4>
                       <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                        Dire "je suis organisé" reste déclaratif. Ce qui fait la différence en recrutement : <span className="font-semibold">une situation concrète qui démontre votre compétence en action.</span> Rendez-vous dans l'onglet <span className="font-semibold">Expériences</span> pour prouver vos soft skills.
+                        Dire "je suis organisé" reste déclaratif. Ce qui fait la différence en recrutement : <span className="font-semibold">une situation concrète qui démontre votre compétence en action.</span> Rendez-vous dans l'onglet <span className="font-semibold">Expériences</span> pour prouver vos compétences (soft et hard skills).
                       </p>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1.5 text-xs text-amber-800">
@@ -1315,7 +1315,7 @@ const PassportView = ({ token, viewMode }) => {
               ...(dclicProfile?.dclic_competences || []),
               ...(competences || []).filter(c => c.nature === "savoir_etre").map(c => c.name),
             ])];
-            const illustratedSet = new Set(illustrations.map(i => i.soft_skill));
+            const illustratedSet = new Set(illustrations.filter(i => i.skill_type !== "hard").map(i => i.soft_skill));
             const illustratedCount = allSoftSkills.filter(s => illustratedSet.has(s)).length;
             return allSoftSkills.length > 0 ? (
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl" data-testid="soft-skills-progress">
@@ -1331,6 +1331,25 @@ const PassportView = ({ token, viewMode }) => {
               </div>
             ) : null;
           })()}
+          {/* Hard skills progress tracker */}
+          {(() => {
+            const allHardSkills = [...new Set((competences || []).filter(c => c.nature === "savoir_faire").map(c => c.name))];
+            const illustratedSet = new Set(illustrations.filter(i => i.skill_type === "hard").map(i => i.soft_skill));
+            const illustratedCount = allHardSkills.filter(s => illustratedSet.has(s)).length;
+            return allHardSkills.length > 0 ? (
+              <div className="flex items-center gap-3 p-3 bg-sky-50 rounded-xl" data-testid="hard-skills-progress">
+                <Target className="w-4 h-4 text-sky-600 shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-700">Hard skills prouvés par la méthode S.A.R.E</span>
+                    <span className={`font-bold ${illustratedCount === allHardSkills.length ? "text-sky-600" : "text-slate-500"}`}>{illustratedCount}/{allHardSkills.length}</span>
+                  </div>
+                  <Progress value={(illustratedCount / allHardSkills.length) * 100} className="h-1.5" />
+                </div>
+                {illustratedCount === allHardSkills.length && <Badge className="bg-sky-100 text-sky-700 text-[10px]">Complet</Badge>}
+              </div>
+            ) : null;
+          })()}
           <div className="space-y-3">
             {experiences.map(exp => (
               <ExperienceCard
@@ -1338,6 +1357,7 @@ const PassportView = ({ token, viewMode }) => {
                 exp={exp}
                 onDelete={handleDeleteExperience}
                 softSkills={[...new Set([...(dclicProfile?.dclic_competences || []), ...(competences || []).filter(c => c.nature === "savoir_etre").map(c => c.name)])]}
+                hardSkills={[...new Set((competences || []).filter(c => c.nature === "savoir_faire").map(c => c.name))]}
                 illustrations={illustrations}
                 token={token}
                 onIllustrationSaved={loadIllustrations}
@@ -2548,9 +2568,10 @@ const CompetenceCard = ({ comp, onDelete, onEvaluate, emerging }) => {
   );
 };
 
-const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIllustrationSaved }) => {
+const ExperienceCard = ({ exp, onDelete, softSkills, hardSkills, illustrations, token, onIllustrationSaved }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState("");
+  const [selectedSkillType, setSelectedSkillType] = useState("soft");
   const [sareSituation, setSareSituation] = useState("");
   const [sareAction, setSareAction] = useState("");
   const [sareResultat, setSareResultat] = useState("");
@@ -2574,12 +2595,14 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
     setSareResultat("");
     setSareEnseignement("");
     setSelectedSkill("");
+    setSelectedSkillType("soft");
     setEditingId(null);
     setOpcConsent(false);
   };
 
   const startEdit = (illus) => {
     setSelectedSkill(illus.soft_skill);
+    setSelectedSkillType(illus.skill_type || "soft");
     setSareSituation(illus.sare_situation || "");
     setSareAction(illus.sare_action || "");
     setSareResultat(illus.sare_resultat || "");
@@ -2595,6 +2618,7 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
       await axios.post(`${API}/passport/illustrations?token=${token}`, {
         experience_id: exp.id,
         soft_skill: selectedSkill,
+        skill_type: selectedSkillType,
         sare_situation: sareSituation.trim(),
         sare_action: sareAction.trim(),
         sare_resultat: sareResultat.trim(),
@@ -2654,7 +2678,7 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
               )}
               {expIllustrations.length > 0 && (
                 <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]" data-testid={`illus-count-${exp.id}`}>
-                  {expIllustrations.length} soft skill{expIllustrations.length > 1 ? "s" : ""} prouvé{expIllustrations.length > 1 ? "s" : ""}
+                  {expIllustrations.length} compétence{expIllustrations.length > 1 ? "s" : ""} prouvée{expIllustrations.length > 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
@@ -2704,7 +2728,7 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" className={`h-9 px-3 gap-1.5 rounded-lg border ${expanded ? "text-emerald-700 bg-emerald-50 border-emerald-300" : "text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-300"}`} onClick={() => setExpanded(!expanded)} data-testid={`toggle-illus-${exp.id}`}>
               <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-semibold">{expanded ? "Masquer" : "Prouver vos soft skills"}</span>
+              <span className="text-xs font-semibold">{expanded ? "Masquer" : "Prouver vos compétences"}</span>
             </Button>
             {!exp.proof_document && (
               <label className="cursor-pointer" data-testid={`passport-upload-proof-${exp.id}`}>
@@ -2756,7 +2780,7 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
                 <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-emerald-100/50 transition-colors" onClick={() => toggleProof(illus.id)} data-testid={`toggle-proof-${illus.id}`}>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <ChevronRight className={`w-3.5 h-3.5 text-emerald-500 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} />
-                    <Badge className="bg-emerald-100 text-emerald-700 text-[10px] shrink-0">{illus.soft_skill}</Badge>
+                    <Badge className={`text-[10px] shrink-0 ${illus.skill_type === "hard" ? "bg-sky-100 text-sky-700" : "bg-emerald-100 text-emerald-700"}`}>{illus.soft_skill}</Badge>
                     {!isOpen && <span className="text-[10px] text-slate-500 truncate">{preview.substring(0, 60)}...</span>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
@@ -2862,14 +2886,35 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
 
             {/* S.A.R.E Guided Form */}
             <div className="space-y-2">
-              <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+              <Select value={selectedSkill} onValueChange={(val) => {
+                setSelectedSkill(val);
+                // Determine skill type based on which list the skill belongs to
+                if ((hardSkills || []).includes(val)) {
+                  setSelectedSkillType("hard");
+                } else {
+                  setSelectedSkillType("soft");
+                }
+              }}>
                 <SelectTrigger className="h-8 text-xs" data-testid={`skill-select-${exp.id}`}>
-                  <SelectValue placeholder="Choisir un savoir-être à illustrer..." />
+                  <SelectValue placeholder="Choisir une compétence à illustrer..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(softSkills || []).filter(s => !illustratedSkills.has(s) || s === selectedSkill).map((s, i) => (
-                    <SelectItem key={i} value={s} className="text-xs">{s}</SelectItem>
-                  ))}
+                  {(softSkills || []).filter(s => !illustratedSkills.has(s) || s === selectedSkill).length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-[10px] font-bold text-rose-600 uppercase tracking-wide">Soft skills (savoir-être)</div>
+                      {(softSkills || []).filter(s => !illustratedSkills.has(s) || s === selectedSkill).map((s, i) => (
+                        <SelectItem key={`soft-${i}`} value={s} className="text-xs">{s}</SelectItem>
+                      ))}
+                    </>
+                  )}
+                  {(hardSkills || []).filter(s => !illustratedSkills.has(s) || s === selectedSkill).length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-[10px] font-bold text-sky-600 uppercase tracking-wide border-t mt-1 pt-1.5">Hard skills (savoir-faire)</div>
+                      {(hardSkills || []).filter(s => !illustratedSkills.has(s) || s === selectedSkill).map((s, i) => (
+                        <SelectItem key={`hard-${i}`} value={s} className="text-xs">{s}</SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
               {selectedSkill && (
@@ -2877,6 +2922,9 @@ const ExperienceCard = ({ exp, onDelete, softSkills, illustrations, token, onIll
                   <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5 text-amber-600" />
                     Décrivez une situation concrète illustrant « {selectedSkill} »
+                    <Badge className={`text-[9px] ml-1 ${selectedSkillType === "hard" ? "bg-sky-100 text-sky-700" : "bg-rose-100 text-rose-700"}`}>
+                      {selectedSkillType === "hard" ? "Hard skill" : "Soft skill"}
+                    </Badge>
                   </p>
                   {/* S - Situation */}
                   <div>

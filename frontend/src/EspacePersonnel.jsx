@@ -37,12 +37,13 @@ const ETAPES = [
   {
     num: 2,
     title: "Me valoriser",
-    subtitle: "Prouver mes soft skills par des exemples concrets",
+    subtitle: "Prouver mes soft skills et hard skills par des exemples concrets",
     icon: Award,
     color: "text-violet-600",
     bgColor: "bg-violet-50",
     tasks: [
       { id: "softskills", label: "Documenter mes soft skills" },
+      { id: "hardskills", label: "Documenter mes hard skills" },
       { id: "exemples", label: "Ajouter des exemples concrets" },
     ],
   },
@@ -74,7 +75,7 @@ const ETAPES = [
 
 const COACH_ACTIONS = [
   { id: "cv", icon: Upload, label: "Importer votre CV", badge: "En cours", link: "Aller dans Trajectoire > Mon CV", primary: true },
-  { id: "valoriser", icon: Award, label: "Me valoriser — Prouver mes soft skills" },
+  { id: "valoriser", icon: Award, label: "Me valoriser — Prouver mes compétences" },
   { id: "boost", icon: Sparkles, label: "Booster avec D'CLIC PRO" },
   { id: "trajectoire", icon: Compass, label: "Tracer votre trajectoire" },
 ];
