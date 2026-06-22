@@ -1,0 +1,234 @@
+{
+  "profile": {
+    "skills": [
+      {
+        "name": "Élaboration de cartes et menus (créativité, saisonnalité)",
+        "level": 75
+      },
+      {
+        "name": "Gestion des approvisionnements, stocks et prévisions",
+        "level": 75
+      },
+      {
+        "name": "Application des normes HACCP et sécurité alimentaire",
+        "level": 75
+      },
+      {
+        "name": "Organisation de la production et gestion des flux (service)",
+        "level": 75
+      },
+      {
+        "name": "Encadrement / animation d’équipe cuisine",
+        "level": 75
+      },
+      {
+        "name": "Gestion d’événements culinaires (jusqu’à 135 convives)",
+        "level": 75
+      },
+      {
+        "name": "Production culinaire chaud/froid (poste, dressage, standards)",
+        "level": 75
+      },
+      {
+        "name": "Mise en place de standards qualité et contrôle des sorties",
+        "level": 55
+      },
+      {
+        "name": "Relation client (chef privé) et compréhension du besoin",
+        "level": 55
+      },
+      {
+        "name": "Gestion administrative auto-entrepreneur (devis, organisation)",
+        "level": 55
+      },
+      {
+        "name": "Vente/Conseil et utilisation d’un logiciel métier (Amadeus)",
+        "level": 30
+      },
+      {
+        "name": "Anglais professionnel (cuisine et service en environnement international)",
+        "level": 90
+      }
+    ],
+    "strengths": [
+      "Polyvalence restauration traditionnelle, événementiel et chef privé",
+      "Capacité à piloter une cuisine (carte, stocks, hygiène, équipe)",
+      "Expérience internationale et anglais C2",
+      "Autonomie forte (auto-entrepreneur) et sens des responsabilités",
+      "Habitude des environnements à forte pression (flux tendu, volumes)"
+    ],
+    "gaps": [
+      "Peu de résultats chiffrés (marge, food cost, CA, baisse du gaspillage, taille d’équipe)",
+      "Chevauchement de dates 2018–2019 (Chef de Partie Hôtel Labourdonnais vs Sous-chef Melbourne) à clarifier",
+      "Formations indiquées “niveau” (CAP/BTS) : préciser diplôme obtenu ou non + dates exactes si possible",
+      "Manque d’outils/logiciels (Excel, outils stock/commande) et méthodes (fiches techniques) explicités",
+      "Réseaux/portfolio culinaire (Instagram mentionné) non valorisé par des exemples concrets (types de prestations, style de cuisine, photos/avis)"
+    ],
+    "savoir_etre": [
+      "Rigueur",
+      "Organisation",
+      "Adaptabilité",
+      "Esprit d’équipe",
+      "Leadership opérationnel",
+      "Gestion du stress / des pics d’activité",
+      "Sens du service et orientation client"
+    ],
+    "cv_analyzed": true,
+    "sectors": [
+      "Restauration commerciale",
+      "Traiteur / événementiel",
+      "Hôtellerie",
+      "Restauration de loisirs (golf, clubs)",
+      "Restauration privée (chef à domicile)"
+    ],
+    "dclic_profile": {}
+  },
+  "opc_contributions": [
+    {
+      "token_id": "9da54554-1a85-433f-9f1b-86c17b53d50a",
+      "document_id": "4def5e85-8304-43b7-9a7f-16523d3f5b64",
+      "contributed_at": "2026-06-22T16:06:23.712977+00:00",
+      "experience_id": "4df7ae35-9af1-4364-b54a-3dc54d1e96f1",
+      "hard_skills": [],
+      "id": "b7b13fb4-c22f-47f6-9904-fcd708c5cfad",
+      "is_certified": true,
+      "job_title": "Remplacement Chef cuisinier",
+      "organization": "Golf du Kempferohf",
+      "qualites_humaines": [
+        "Justice",
+        "Impartialité",
+        "Équité",
+        "Respect des droits"
+      ],
+      "sare_action": "J'ai élaboré des fiches de poste individuelles avec les tâches à contrôler heure par heure, mis en place des points de vérification à 3 moments clés du service, et effectué moi-même les contrôles des températures toutes les 2h en doublant l'équipe le premier mois.",
+      "sare_enseignement": "J'ai compris que la rigueur ne s'impose pas, elle se coconstruit : partager le \"pourquoi\" de chaque procédure avec l'équipe est plus efficace que le simple contrôle. Depuis, j'implique systématiquement la brigade dans la conception des règles de fonctionnement.",
+      "sare_resultat": "Zéro non-conformité lors du premier contrôle sanitaire post-réouverture. La brigade a intégré les procédures en moins de 3 semaines, sans incident ni erreur de service signalée.",
+      "sare_situation": "« Lors de la réouverture de L'Insulaire après la période Covid, nous avons dû remettre en place l'ensemble des procédures de cuisine en 10 jours seulement, avec une brigade partiellement renouvelée. »",
+      "sare_text": "",
+      "soft_skill": "Rigueur",
+      "source": "Contributeur sociétal",
+      "valeurs": [
+        "Justice",
+        "Temperance",
+        "Sagesse"
+      ]
+    },
+    {
+      "document_id": "480d44de-76d4-4acf-a984-d7deaf91e9c8",
+      "token_id": "9da54554-1a85-433f-9f1b-86c17b53d50a",
+      "contributed_at": "2026-06-22T16:06:26.265131+00:00",
+      "experience_id": "4df7ae35-9af1-4364-b54a-3dc54d1e96f1",
+      "hard_skills": [],
+      "id": "ba94117a-86a7-4950-9c16-7c37ddcd61c7",
+      "is_certified": true,
+      "job_title": "Remplacement Chef cuisinier",
+      "organization": "Golf du Kempferohf",
+      "qualites_humaines": [
+        "Justice",
+        "Impartialité",
+        "Équité",
+        "Respect des droits"
+      ],
+      "sare_action": "J'ai immédiatement contrôlé les températures à cœur de chaque préparation à l'arrivée, écarté les produits dont la température dépassait le seuil HACCP, retravaillé le menu avec les denrées conformes et réorganisé la production sur place avec les ressources disponibles.",
+      "sare_enseignement": "Depuis cet événement, j'intègre systématiquement un thermomètre sonde et une glacière de secours dans mon kit événementiel, et je prépare toujours un \"plan B menu\" allégé sur les denrées à risque pour les événements estivaux.",
+      "sare_resultat": "Aucun incident alimentaire. L'événement s'est déroulé sans retard notable. Le couple a reçu un service complet et les convives n'ont pas été informés de l'incident.",
+      "sare_situation": "Lors d'un événement traiteur pour 135 convives à Strasbourg (mariage en été), la chaîne du froid a été compromise par une panne partielle du camion réfrigéré pendant le transport.",
+      "sare_text": "",
+      "soft_skill": "Application des normes HACCP et sécurité alimentaire",
+      "source": "Contributeur sociétal",
+      "valeurs": [
+        "Justice",
+        "Temperance",
+        "Sagesse"
+      ]
+    }
+  ],
+  "fiches_metier": [
+    {
+      "job_title": "Responsable Opérationnel",
+      "competences": {
+        "Rigueur": {
+          "contributors_count": 1,
+          "examples": [
+            {
+              "contribution_id": "08adda97-0a57-40d3-8161-0b160964ac37",
+              "sare_situation": "ouverture de la boutique à l'heure exacte. Vérification de la fraicheur des produits. Contrôle sanitaire régulier selon les norme d'hygiène. Assurer la comptabilité de la caisse.",
+              "sare_action": "J'ai mis en place un planning pour les tâches ménagères. J'ai utilisé un logiciel facilitant les la comptabilité",
+              "sare_resultat": "Satisfaction clientèle sur la propreté du lieu. Le comptable a été satisfait cela lui a fait gagné du temps.",
+              "sare_enseignement": "Cela montre que je suis appliqué, précis et minutieux",
+              "organization": "Leaftea (Strasbourg)",
+              "hard_skills": [],
+              "qualites_humaines": [
+                "Management et animation d’équipes opérationnelles (10–20 personnes) via briefings, organisation des postes et plannings",
+                "Pilotage complet des flux boutique : stocks, approvisionnements, commandes fournisseurs et continuité d’activité",
+                "Maîtrise des fondamentaux de performance et de sécurisation : prévision/analyse du CA quotidien, reporting, contrôle cash et procédures d’ouverture/fermeture",
+                "Transmission et standardisation : formation, intégration et tutorat de nouveaux collaborateurs, amélioration de la qualité de service et gestion des réclamations"
+              ],
+              "valeurs": [],
+              "source": "Contributeur sociétal",
+              "contributed_at": "2026-06-19T16:21:04.411957+00:00"
+            }
+          ],
+          "skill_type": "soft"
+        }
+      },
+      "created_at": "2026-06-19T15:48:01.441161+00:00",
+      "id": "445dc3c1-d087-450a-b2e3-3f7c223c71ec",
+      "organizations": [
+        "Leaftea (Strasbourg)"
+      ],
+      "total_contributors": 1,
+      "updated_at": "2026-06-19T16:21:04.412954+00:00"
+    },
+    {
+      "job_title": "Remplacement Chef cuisinier",
+      "competences": {
+        "Rigueur": {
+          "contributors_count": 1,
+          "examples": [
+            {
+              "contribution_id": "b7b13fb4-c22f-47f6-9904-fcd708c5cfad",
+              "sare_situation": "« Lors de la réouverture de L'Insulaire après la période Covid, nous avons dû remettre en place l'ensemble des procédures de cuisine en 10 jours seulement, avec une brigade partiellement renouvelée. »",
+              "sare_action": "J'ai élaboré des fiches de poste individuelles avec les tâches à contrôler heure par heure, mis en place des points de vérification à 3 moments clés du service, et effectué moi-même les contrôles des températures toutes les 2h en doublant l'équipe le premier mois.",
+              "sare_resultat": "Zéro non-conformité lors du premier contrôle sanitaire post-réouverture. La brigade a intégré les procédures en moins de 3 semaines, sans incident ni erreur de service signalée.",
+              "sare_enseignement": "J'ai compris que la rigueur ne s'impose pas, elle se coconstruit : partager le \"pourquoi\" de chaque procédure avec l'équipe est plus efficace que le simple contrôle. Depuis, j'implique systématiquement la brigade dans la conception des règles de fonctionnement.",
+              "organization": "Golf du Kempferohf",
+              "hard_skills": [],
+              "qualites_humaines": [],
+              "valeurs": [],
+              "source": "Contributeur sociétal",
+              "contributed_at": "2026-06-22T16:06:23.712977+00:00"
+            }
+          ],
+          "skill_type": "soft"
+        },
+        "Application des normes HACCP et sécurité alimentaire": {
+          "contributors_count": 1,
+          "examples": [
+            {
+              "contribution_id": "ba94117a-86a7-4950-9c16-7c37ddcd61c7",
+              "sare_situation": "Lors d'un événement traiteur pour 135 convives à Strasbourg (mariage en été), la chaîne du froid a été compromise par une panne partielle du camion réfrigéré pendant le transport.",
+              "sare_action": "J'ai immédiatement contrôlé les températures à cœur de chaque préparation à l'arrivée, écarté les produits dont la température dépassait le seuil HACCP, retravaillé le menu avec les denrées conformes et réorganisé la production sur place avec les ressources disponibles.",
+              "sare_resultat": "Aucun incident alimentaire. L'événement s'est déroulé sans retard notable. Le couple a reçu un service complet et les convives n'ont pas été informés de l'incident.",
+              "sare_enseignement": "Depuis cet événement, j'intègre systématiquement un thermomètre sonde et une glacière de secours dans mon kit événementiel, et je prépare toujours un \"plan B menu\" allégé sur les denrées à risque pour les événements estivaux.",
+              "organization": "Golf du Kempferohf",
+              "hard_skills": [],
+              "qualites_humaines": [],
+              "valeurs": [],
+              "source": "Contributeur sociétal",
+              "contributed_at": "2026-06-22T16:06:26.265131+00:00"
+            }
+          ],
+          "skill_type": "hard"
+        }
+      },
+      "created_at": "2026-06-22T16:06:23.723785+00:00",
+      "id": "a90abb63-18dc-4b7e-aaf7-4c74d6be7382",
+      "organizations": [
+        "Golf du Kempferohf"
+      ],
+      "total_contributors": 1,
+      "updated_at": "2026-06-22T16:06:26.266238+00:00"
+    }
+  ]
+}

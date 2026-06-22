@@ -1,0 +1,1140 @@
+{
+  "formations": [
+    {
+      "id": "4175c63b-c9a2-417d-9e8b-6f3cb5dde90b",
+      "title": "HACCP (hygiène alimentaire)",
+      "institution": "",
+      "year": "",
+      "type": "certification",
+      "level": "",
+      "description": "Formation/certification en hygiène alimentaire et maîtrise des risques (HACCP) mentionnée comme culture forte.",
+      "source": "ia_detectee",
+      "visibility": "private"
+    },
+    {
+      "id": "d8f57012-03ed-4416-85b1-2363f1469c1b",
+      "title": "CAP Cuisine (niveau)",
+      "institution": "",
+      "year": "",
+      "type": "diplome",
+      "level": "CAP",
+      "description": "CAP Cuisine évoqué au niveau (obtention non confirmée, organisme et dates non précisés).",
+      "source": "ia_detectee",
+      "visibility": "private"
+    },
+    {
+      "id": "d53b82a0-4569-4366-a99b-a4eb8f4cc9a6",
+      "title": "Foodhandler",
+      "institution": "",
+      "year": "",
+      "type": "certification",
+      "level": "",
+      "description": "Certification/formation 'Foodhandler' mentionnée (probablement liée à l'hygiène alimentaire), sans date ni organisme.",
+      "source": "ia_detectee",
+      "visibility": "private"
+    }
+  ],
+  "experiences": [
+    {
+      "id": "4df7ae35-9af1-4364-b54a-3dc54d1e96f1",
+      "title": "Remplacement Chef cuisinier",
+      "organization": "Golf du Kempferohf",
+      "description": "Élaboration de menus, production en équipe, maintien d’un service de qualité et création de plats.",
+      "skills_used": [
+        "Élaboration de cartes et menus (créativité, saisonnalité)",
+        "Organisation de la production et gestion des flux (service)",
+        "Encadrement / animation d’équipe cuisine",
+        "Application des normes HACCP et sécurité alimentaire"
+      ],
+      "achievements": [
+        "Assuré la continuité de service en remplacement sur une période courte",
+        "Création de plats et maintien du niveau de qualité"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089168+00:00",
+      "proof_document": {
+        "file_id": "11dc0c71-59a3-4e81-a254-9825261d7f7c",
+        "grid_id": "6a395d72bb20891b85baa5c3",
+        "original_filename": "Contrat de travail à durée indéterminée.pdf",
+        "mime_type": "application/pdf",
+        "size_bytes": 21527,
+        "uploaded_at": "2026-06-22T16:06:10.917819+00:00"
+      },
+      "is_certified": true,
+      "certification_date": "2026-06-22T16:06:10.917823+00:00"
+    },
+    {
+      "id": "c51f29f4-5058-4580-b5b0-a834657a805a",
+      "title": "Chef Privé – Auto-entrepreneur",
+      "organization": "RB – Strasbourg",
+      "description": "Prestations sur mesure pour mariages (jusqu’à 135 personnes), repas à domicile et événements d’entreprise : conception des menus, production en autonomie et service.",
+      "skills_used": [
+        "Gestion d’événements culinaires (jusqu’à 135 convives)",
+        "Relation client (chef privé) et compréhension du besoin",
+        "Organisation de la production et gestion des flux (service)",
+        "Gestion administrative auto-entrepreneur (devis, organisation)",
+        "Application des normes HACCP et sécurité alimentaire"
+      ],
+      "achievements": [
+        "Réalisation de prestations jusqu’à 135 convives",
+        "Gestion complète de la production en autonomie"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089183+00:00"
+    },
+    {
+      "id": "1926d853-1a40-4776-b684-8cfa648cf7d9",
+      "title": "Chef Cuisinier & Co-fondateur",
+      "organization": "L’Insulaire – Strasbourg",
+      "description": "Création de la carte, pilotage de la production, management de l’équipe cuisine, gestion des stocks et application HACCP.",
+      "skills_used": [
+        "Élaboration de cartes et menus (créativité, saisonnalité)",
+        "Gestion des approvisionnements, stocks et prévisions",
+        "Encadrement / animation d’équipe cuisine",
+        "Application des normes HACCP et sécurité alimentaire",
+        "Mise en place de standards qualité et contrôle des sorties"
+      ],
+      "achievements": [
+        "Co-création et lancement opérationnel d’un établissement",
+        "Formation et animation d’une équipe cuisine"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089194+00:00"
+    },
+    {
+      "id": "8c1f157d-7c9c-40bb-bdcd-0b92f3647090",
+      "title": "Sous-chef",
+      "organization": "The Kettle Black – Melbourne (Australie)",
+      "description": "Coordination de la brigade, suivi qualité, mise en place de standards et contrôle des flux en service.",
+      "skills_used": [
+        "Encadrement / animation d’équipe cuisine",
+        "Organisation de la production et gestion des flux (service)",
+        "Mise en place de standards qualité et contrôle des sorties",
+        "Anglais professionnel (cuisine et service en environnement international)"
+      ],
+      "achievements": [
+        "Expérience internationale en environnement exigeant",
+        "Contribution à la standardisation et au contrôle des flux"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089203+00:00"
+    },
+    {
+      "id": "990604f2-1cc9-4deb-b701-e3c46e0e63a7",
+      "title": "Chef de Partie",
+      "organization": "Hôtel Labourdonnais – Île Maurice",
+      "description": "Création de plats chauds et froids, proposition de nouvelles recettes et participation au renouvellement de carte.",
+      "skills_used": [
+        "Production culinaire chaud/froid (poste, dressage, standards)",
+        "Élaboration de cartes et menus (créativité, saisonnalité)",
+        "Organisation de la production et gestion des flux (service)"
+      ],
+      "achievements": [
+        "Proposition de nouvelles recettes",
+        "Polyvalence chaud/froid en contexte hôtelier"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089212+00:00"
+    },
+    {
+      "id": "3e6d5a74-80c2-42b0-8dfb-2d1375fa955f",
+      "title": "Chef de Partie (événementiel)",
+      "organization": "Foire aux Vins / Neo Events – Colmar / Strasbourg",
+      "description": "Production de 300 à 500 couverts/jour et réalisation en flux tendu pour événements.",
+      "skills_used": [
+        "Organisation de la production et gestion des flux (service)",
+        "Gestion d’événements culinaires (jusqu’à 135 convives)",
+        "Gestion du stress / des pics d’activité"
+      ],
+      "achievements": [
+        "Production 300 à 500 couverts/jour en flux tendu"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089222+00:00"
+    },
+    {
+      "id": "9b8db512-87a7-4f67-a09b-f19274685929",
+      "title": "Demi-chef de Partie",
+      "organization": "Aedaen Place – Strasbourg",
+      "description": "Production sur poste chaud et gestion du garde-manger.",
+      "skills_used": [
+        "Production culinaire chaud/froid (poste, dressage, standards)",
+        "Application des normes HACCP et sécurité alimentaire"
+      ],
+      "achievements": [
+        "Polyvalence poste chaud et garde-manger"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089231+00:00"
+    },
+    {
+      "id": "18773c3b-d6f6-4ae7-a5f6-25cde5ef93f7",
+      "title": "Commis de Cuisine",
+      "organization": "Lard et Crème – Strasbourg",
+      "description": "Mise en place, nettoyage, application des règles d’hygiène et apprentissage des cuissons.",
+      "skills_used": [
+        "Production culinaire chaud/froid (poste, dressage, standards)",
+        "Application des normes HACCP et sécurité alimentaire"
+      ],
+      "achievements": [
+        "Montée en compétences sur les bases techniques et l’hygiène"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089240+00:00"
+    },
+    {
+      "id": "e83dc7ad-c4fe-4a63-bd72-c4061b394fc7",
+      "title": "Agent de Voyages & Conseiller",
+      "organization": "Aliso Voyages & Marketing – Strasbourg",
+      "description": "Planification de voyages, vente de prestations touristiques, utilisation du logiciel Amadeus et participation à des salons.",
+      "skills_used": [
+        "Vente/Conseil et utilisation d’un logiciel métier (Amadeus)",
+        "Communication opérationnelle",
+        "Organisation et planification",
+        "Anglais professionnel (cuisine et service en environnement international)"
+      ],
+      "achievements": [
+        "Expérience commerciale et conseil client",
+        "Utilisation d’un outil métier (Amadeus)"
+      ],
+      "start_date": null,
+      "end_date": null,
+      "is_current": false,
+      "experience_type": "professionnel",
+      "source": "ia_detectee",
+      "added_at": "2026-06-22T15:38:21.089249+00:00"
+    },
+    {
+      "id": "5c195b2c-3a6d-4f17-ac40-386d064ecf03",
+      "title": "Chef de Partie",
+      "organization": "Lard et Crème – Strasbourg",
+      "description": "Réalisation de plats, participation à la carte et gestion du poste chaud.",
+      "start_date": "2018-01",
+      "end_date": "2018-06",
+      "is_current": false,
+      "skills_used": [
+        "Production culinaire chaud/froid (poste, dressage, standards)",
+        "Organisation de la production et gestion des flux (service)"
+      ],
+      "proof": null,
+      "source": "cv_analysis"
+    }
+  ],
+  "competences": [
+    {
+      "id": "f9be71f5-7f87-4dbb-be5c-6330449eacac",
+      "name": "Élaboration de cartes et menus (créativité, saisonnalité)",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936218+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 5,
+        "conation": 4,
+        "affection": 3,
+        "sensori_moteur": 3
+      },
+      "ccsp_pole": "initiative",
+      "ccsp_degree": "transposition",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "4e95e26b-5524-4475-a50a-eef3fcc58711",
+      "name": "Gestion des approvisionnements, stocks et prévisions",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936238+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 4,
+        "conation": 4,
+        "affection": 2,
+        "sensori_moteur": 2
+      },
+      "ccsp_pole": "realisation",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "ae6f16ad-b2df-4655-bd61-20f9ebac0082",
+      "name": "Application des normes HACCP et sécurité alimentaire",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936245+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 4,
+        "conation": 4,
+        "affection": 3,
+        "sensori_moteur": 4
+      },
+      "ccsp_pole": "realisation",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "3dadd56e-2a96-4496-b7cc-bf9ad5f29a16",
+      "name": "Organisation de la production et gestion des flux (service)",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936251+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 5,
+        "conation": 4,
+        "affection": 3,
+        "sensori_moteur": 4
+      },
+      "ccsp_pole": "realisation",
+      "ccsp_degree": "transposition",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "a902008c-0362-421c-acf2-1d5c8828c9a0",
+      "name": "Encadrement / animation d’équipe cuisine",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936258+00:00",
+      "components": {
+        "connaissance": 3,
+        "cognition": 4,
+        "conation": 5,
+        "affection": 5,
+        "sensori_moteur": 2
+      },
+      "ccsp_pole": "interaction",
+      "ccsp_degree": "transposition",
+      "nature": "savoir_etre"
+    },
+    {
+      "id": "1bfd4eb3-e0c8-442c-b610-5e998f680dd0",
+      "name": "Gestion d’événements culinaires (jusqu’à 135 convives)",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936271+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 5,
+        "conation": 5,
+        "affection": 4,
+        "sensori_moteur": 4
+      },
+      "ccsp_pole": "initiative",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "9962c5b6-5c99-4ede-b6d9-c251b4496a40",
+      "name": "Production culinaire chaud/froid (poste, dressage, standards)",
+      "category": "technique",
+      "level": 75,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936276+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 4,
+        "conation": 4,
+        "affection": 2,
+        "sensori_moteur": 5
+      },
+      "ccsp_pole": "realisation",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "0c67c672-dfa1-4bfc-831a-b248fa27b39a",
+      "name": "Mise en place de standards qualité et contrôle des sorties",
+      "category": "technique",
+      "level": 55,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936282+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 5,
+        "conation": 4,
+        "affection": 3,
+        "sensori_moteur": 4
+      },
+      "ccsp_pole": "realisation",
+      "ccsp_degree": "transposition",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "ead2215a-eb67-44da-a4b6-9d156f068a42",
+      "name": "Relation client (chef privé) et compréhension du besoin",
+      "category": "technique",
+      "level": 55,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936288+00:00",
+      "components": {
+        "connaissance": 3,
+        "cognition": 4,
+        "conation": 4,
+        "affection": 5,
+        "sensori_moteur": 2
+      },
+      "ccsp_pole": "interaction",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_etre"
+    },
+    {
+      "id": "10dd000d-91ce-43c8-8a3f-945db82c44e7",
+      "name": "Gestion administrative auto-entrepreneur (devis, organisation)",
+      "category": "technique",
+      "level": 55,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936292+00:00",
+      "components": {
+        "connaissance": 3,
+        "cognition": 4,
+        "conation": 4,
+        "affection": 3,
+        "sensori_moteur": 2
+      },
+      "ccsp_pole": "realisation",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "214eee70-4b8c-4af0-9a56-c7d55aa7ce1f",
+      "name": "Vente/Conseil et utilisation d’un logiciel métier (Amadeus)",
+      "category": "technique",
+      "level": 30,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936300+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 4,
+        "conation": 4,
+        "affection": 4,
+        "sensori_moteur": 2
+      },
+      "ccsp_pole": "interaction",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "6adb3f5f-6baf-42e6-988b-40c1417dcdbe",
+      "name": "Anglais professionnel (cuisine et service en environnement international)",
+      "category": "technique",
+      "level": 90,
+      "experience_years": 0,
+      "proof": null,
+      "source": "profil",
+      "is_emerging": false,
+      "added_at": "2026-06-22T16:21:59.936305+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 3,
+        "conation": 3,
+        "affection": 4,
+        "sensori_moteur": 2
+      },
+      "ccsp_pole": "interaction",
+      "ccsp_degree": "adaptation",
+      "nature": "savoir_faire"
+    },
+    {
+      "id": "f0aa9a32-47ab-4096-8833-46faab84d36e",
+      "name": "Prompt Engineering",
+      "category": "technique",
+      "level": "debutant",
+      "experience_years": 0,
+      "proof": null,
+      "source": "ubuntoo",
+      "is_emerging": true,
+      "added_at": "2026-06-22T16:21:59.937452+00:00",
+      "components": {
+        "connaissance": 4,
+        "cognition": 5,
+        "conation": 4,
+        "affection": 2,
+        "sensori_moteur": 1
+      },
+      "ccsp_pole": "initiative",
+      "ccsp_degree": "transposition",
+      "nature": "savoir_faire"
+    }
+  ],
+  "professional_summary": "Chef de cuisine expérimenté, spécialisé dans la création de menus, la gestion des approvisionnements et l’encadrement d’équipes, avec une forte culture hygiène (HACCP). Parcours polyvalent entre restauration traditionnelle, établissements premium et événementiel, avec une activité de chef privé en autonomie. Bilingue français/anglais, à l’aise dans des environnements exigeants et à fort volume.",
+  "career_project": "Poursuivre comme Chef de cuisine / Chef exécutif ou développer une activité de Chef privé premium (mariages, corporate, tables éphémères) avec un positionnement qualité, créativité et maîtrise des coûts.",
+  "savoir_faire": [
+    "Élaboration de cartes et menus (créativité, saisonnalité)",
+    "Gestion des approvisionnements, stocks et prévisions",
+    "Application des normes HACCP et sécurité alimentaire",
+    "Organisation de la production et gestion des flux (service)",
+    "Encadrement / animation d’équipe cuisine",
+    "Gestion d’événements culinaires (jusqu’à 135 convives)",
+    "Production culinaire chaud/froid (poste, dressage, standards)",
+    "Mise en place de standards qualité et contrôle des sorties",
+    "Relation client (chef privé) et compréhension du besoin",
+    "Gestion administrative auto-entrepreneur (devis, organisation)",
+    "Vente/Conseil et utilisation d’un logiciel métier (Amadeus)",
+    "Anglais professionnel (cuisine et service en environnement international)"
+  ],
+  "savoir_etre": [
+    {
+      "name": "Rigueur",
+      "category": "transversale",
+      "level": "expert",
+      "linked_qualites": [
+        "exigence",
+        "fiabilité"
+      ],
+      "linked_valeurs": [
+        "conformite",
+        "securite"
+      ],
+      "linked_vertus": [
+        "temperance"
+      ]
+    },
+    {
+      "name": "Organisation",
+      "category": "transversale",
+      "level": "avance",
+      "linked_qualites": [
+        "structuration",
+        "priorisation"
+      ],
+      "linked_valeurs": [
+        "realisation_de_soi",
+        "securite"
+      ],
+      "linked_vertus": [
+        "justice"
+      ]
+    },
+    {
+      "name": "Adaptabilité",
+      "category": "transferable",
+      "level": "avance",
+      "linked_qualites": [
+        "flexibilité",
+        "réactivité"
+      ],
+      "linked_valeurs": [
+        "stimulation"
+      ],
+      "linked_vertus": [
+        "courage"
+      ]
+    },
+    {
+      "name": "Esprit d’équipe",
+      "category": "transversale",
+      "level": "avance",
+      "linked_qualites": [
+        "coopération",
+        "solidarité"
+      ],
+      "linked_valeurs": [
+        "bienveillance"
+      ],
+      "linked_vertus": [
+        "humanite"
+      ]
+    },
+    {
+      "name": "Leadership opérationnel",
+      "category": "transferable",
+      "level": "avance",
+      "linked_qualites": [
+        "pilotage",
+        "exemplarité"
+      ],
+      "linked_valeurs": [
+        "pouvoir",
+        "realisation_de_soi"
+      ],
+      "linked_vertus": [
+        "courage",
+        "justice"
+      ]
+    },
+    {
+      "name": "Gestion du stress / des pics d’activité",
+      "category": "transferable",
+      "level": "avance",
+      "linked_qualites": [
+        "sang-froid",
+        "endurance"
+      ],
+      "linked_valeurs": [
+        "securite",
+        "realisation_de_soi"
+      ],
+      "linked_vertus": [
+        "temperance"
+      ]
+    },
+    {
+      "name": "Sens du service et orientation client",
+      "category": "transversale",
+      "level": "intermediaire",
+      "linked_qualites": [
+        "écoute",
+        "attention au détail"
+      ],
+      "linked_valeurs": [
+        "bienveillance",
+        "universalisme"
+      ],
+      "linked_vertus": [
+        "humanite"
+      ]
+    }
+  ],
+  "completeness_score": 83,
+  "dclic_results": {
+    "mbti": "ISTP",
+    "disc": "S",
+    "disc_scores": {
+      "D": 5,
+      "I": 5,
+      "S": 8,
+      "C": 2
+    },
+    "disc_label": "Profil S",
+    "ennea_dominant": 7,
+    "ennea_runner_up": 8,
+    "ennea_profile": {
+      "name": "Enthousiaste",
+      "moteur": "Variété",
+      "vertu": "transcendance"
+    },
+    "motivations": [
+      "Variété"
+    ],
+    "competences_fortes": [
+      "Résilience",
+      "Écoute active",
+      "Gestion du stress",
+      "Pensée créative"
+    ],
+    "vigilances": [
+      "Dispersion",
+      "Difficulté avec les cadres rigides"
+    ],
+    "dominant_vertus": [
+      {
+        "vertu": "Transcendance",
+        "key_strengths": [
+          "Appréciation de la beauté",
+          "Gratitude",
+          "Espoir"
+        ],
+        "key_oms_competencies": [
+          "Pensée créative",
+          "Gestion du stress",
+          "Résilience"
+        ],
+        "key_soft_skills": [
+          "S'adapter aux changements",
+          "Faire preuve d'autonomie"
+        ]
+      }
+    ],
+    "riasec_profile": {
+      "scores": {
+        "R": 100,
+        "I": 95,
+        "A": 85,
+        "S": 60,
+        "E": 45,
+        "C": 50
+      },
+      "raw_scores": {
+        "R": 20,
+        "I": 19,
+        "A": 17,
+        "S": 12,
+        "E": 9,
+        "C": 10
+      },
+      "code_3": "RIA",
+      "code_2": "RI",
+      "major": "R",
+      "minor": "I",
+      "major_name": "Réaliste",
+      "minor_name": "Investigateur",
+      "major_description": "Préfère les activités pratiques et manuelles, le travail avec des outils, machines ou animaux",
+      "traits": [
+        "Pratique",
+        "Concret",
+        "Manuel",
+        "Analytique",
+        "Curieux"
+      ],
+      "environnements_preferes": [
+        "Atelier",
+        "Chantier"
+      ]
+    },
+    "vertus_profile": {
+      "dominant": "justice",
+      "dominant_name": "Justice",
+      "description": "La vertu de Justice — Justice",
+      "citation": "Platon : « La justice est la vertu qui attribue à chacun ce qui lui est dû. »",
+      "vertus_scores": {
+        "sagesse": 87,
+        "courage": 40,
+        "humanite": 67,
+        "justice": 100,
+        "temperance": 93,
+        "transcendance": 20
+      },
+      "forces_caractere": [
+        "Travail d'équipe",
+        "Équité",
+        "Leadership"
+      ],
+      "qualites_dominantes": [
+        "Justice",
+        "Impartialité",
+        "Équité",
+        "Respect des droits"
+      ],
+      "valeurs_dominantes": [
+        "Égalité",
+        "Responsabilité sociale",
+        "Pouvoir"
+      ],
+      "savoirs_etre_dominants": [
+        "Faire preuve de leadership",
+        "Inspirer, donner du sens",
+        "Respecter ses engagements, assumer ses responsabilités"
+      ],
+      "competences_oms": [
+        "Prise de décision",
+        "Pensée critique",
+        "Compétences relationnelles"
+      ],
+      "competences_transferables": [
+        "Pragmatique",
+        "Méthodique",
+        "Ordonné",
+        "Conciliant",
+        "Travail en équipe"
+      ],
+      "metiers_associes": [
+        "Juriste"
+      ],
+      "penseurs": {
+        "orientaux": [
+          "Confucius",
+          "Bouddha"
+        ],
+        "occidentaux": [
+          "Platon",
+          "Aristote",
+          "Rawls"
+        ]
+      }
+    },
+    "vertu_data": {
+      "name": "Justice",
+      "cognition": [
+        "Logique",
+        "Cohérence",
+        "Méthodique"
+      ],
+      "conation": [
+        "Leadership",
+        "Engagement collectif",
+        "Responsabilité"
+      ],
+      "affection": [
+        "Respect",
+        "Équité",
+        "Harmonie"
+      ],
+      "valeurs_schwartz": [
+        "Égalité",
+        "Responsabilité sociale",
+        "Pouvoir"
+      ],
+      "forces": [
+        "Travail d'équipe",
+        "Équité",
+        "Leadership"
+      ],
+      "savoirs_etre": [
+        "Faire preuve de leadership",
+        "Inspirer, donner du sens",
+        "Respecter ses engagements, assumer ses responsabilités"
+      ]
+    },
+    "compass": {
+      "axes": [
+        {
+          "name": "Source d'énergie",
+          "pole_a": {
+            "label": "Interaction",
+            "code": "E",
+            "description": "Vous vous ressourcez dans l'échange et l'action collective"
+          },
+          "pole_b": {
+            "label": "Réflexion",
+            "code": "I",
+            "description": "Vous vous ressourcez dans le calme et l'introspection"
+          },
+          "dominant": "I",
+          "score": 75,
+          "insight": "Vous préférez la réflexion et les temps de solitude pour vous ressourcer"
+        },
+        {
+          "name": "Traitement de l'information",
+          "pole_a": {
+            "label": "Concret",
+            "code": "S",
+            "description": "Vous vous appuyez sur les faits, les détails et l'expérience"
+          },
+          "pole_b": {
+            "label": "Conceptuel",
+            "code": "N",
+            "description": "Vous privilégiez les idées, les connexions et les possibilités"
+          },
+          "dominant": "S",
+          "score": 70,
+          "insight": "Vous êtes ancré(e) dans le concret et les faits tangibles"
+        },
+        {
+          "name": "Mode de décision",
+          "pole_a": {
+            "label": "Logique",
+            "code": "T",
+            "description": "Vous décidez selon des critères objectifs et rationnels"
+          },
+          "pole_b": {
+            "label": "Valeurs",
+            "code": "F",
+            "description": "Vous décidez en tenant compte de l'impact humain et des valeurs"
+          },
+          "dominant": "T",
+          "score": 65,
+          "insight": "Vous privilégiez la logique et l'objectivité dans vos décisions"
+        },
+        {
+          "name": "Rapport à l'organisation",
+          "pole_a": {
+            "label": "Structure",
+            "code": "J",
+            "description": "Vous aimez planifier, organiser et conclure"
+          },
+          "pole_b": {
+            "label": "Flexibilité",
+            "code": "P",
+            "description": "Vous préférez l'adaptabilité et garder vos options ouvertes"
+          },
+          "dominant": "P",
+          "score": 30,
+          "insight": "Vous préférez la flexibilité et l'adaptation aux circonstances"
+        }
+      ],
+      "global_profile": "ISTP",
+      "summary": "Vous êtes un(e) analyste pragmatique. Vous résolvez les problèmes avec logique et efficacité."
+    },
+    "zones_vigilance": [
+      {
+        "qualite": "Stabilité",
+        "piege": "Résistance au changement, passivité",
+        "defi": "Adaptabilité, initiative, affirmation",
+        "allergie": "Chaos, changement brutal, instabilité",
+        "recommandation": "Votre fiabilité est un atout majeur. Osez sortir de votre zone de confort pour saisir de nouvelles opportunités.",
+        "source": "Profil DISC (S)"
+      },
+      {
+        "qualite": "Optimisme",
+        "piege": "Fuite de la douleur, dispersion",
+        "defi": "Profondeur, engagement, accepter les difficultés",
+        "allergie": "Négativité, limitation, routine ennuyeuse",
+        "recommandation": "Votre joie de vivre est contagieuse. Apprenez à rester présent même dans les moments difficiles.",
+        "source": "Type Ennéagramme (7)"
+      },
+      {
+        "qualite": "Réflexion profonde",
+        "piege": "Isolement, difficulté à s'exprimer",
+        "defi": "Expression, partage, connexion aux autres",
+        "allergie": "Agitation, bavardage, superficialité",
+        "recommandation": "Votre capacité d'analyse est précieuse. Osez partager vos idées plus souvent avec les autres.",
+        "source": "Énergie MBTI (I)"
+      }
+    ],
+    "integrated_analysis": {
+      "niveau_1_preuves": {
+        "titre": "Ce que vous faites naturellement bien",
+        "description": "Vos compétences prouvées et conditions de réussite",
+        "elements": {
+          "competences_prouvees": [
+            "Prise de décision",
+            "Pensée critique",
+            "Compétences relationnelles"
+          ],
+          "soft_skills": [
+            "Faire preuve de leadership",
+            "Inspirer, donner du sens",
+            "Respecter ses engagements, assumer ses responsabilités"
+          ],
+          "forces_cles": [
+            "Travail d'équipe",
+            "Équité",
+            "Leadership"
+          ],
+          "qualites_humaines": [
+            "Justice",
+            "Impartialité",
+            "Équité",
+            "Respect des droits"
+          ],
+          "conditions_reussite": [
+            "Stabilité et prévisibilité",
+            "Relations de confiance",
+            "Temps de réflexion",
+            "Soutien d'équipe",
+            "Temps de concentration individuel"
+          ]
+        }
+      },
+      "niveau_2_fonctionnement": {
+        "titre": "Comment vous fonctionnez",
+        "description": "Votre style de travail et vos préférences naturelles",
+        "elements": {
+          "style_disc": {
+            "style": "Stable et coopératif",
+            "force_principale": "Capacité à soutenir et maintenir l'harmonie",
+            "contribution": "Vous apportez fiabilité et continuité aux projets",
+            "besoin": "Sécurité et temps d'adaptation"
+          },
+          "preferences_cognitives": {
+            "energie": "Réflexion et intériorité",
+            "information": "Faits concrets et détails",
+            "decision": "Logique et objectivité",
+            "organisation": "Flexibilité et adaptation"
+          },
+          "environnement_favorable": [
+            "Équipe stable",
+            "Procédures claires",
+            "Temps d'intégration",
+            "Confiance mutuelle"
+          ],
+          "mode_communication": "Calme et à l'écoute - prenez le temps d'établir la confiance"
+        }
+      },
+      "niveau_3_regulation": {
+        "titre": "Comment vous vous réglez et évoluez",
+        "description": "Vos zones de vigilance et leviers de développement",
+        "elements": {
+          "cadran_ofman": [
+            {
+              "qualite": "Stabilité",
+              "piege": "Résistance au changement, passivité",
+              "defi": "Adaptabilité, initiative, affirmation",
+              "allergie": "Chaos, changement brutal, instabilité",
+              "recommandation": "Votre fiabilité est un atout majeur. Osez sortir de votre zone de confort pour saisir de nouvelles opportunités.",
+              "source": "Profil DISC (S)"
+            },
+            {
+              "qualite": "Optimisme",
+              "piege": "Fuite de la douleur, dispersion",
+              "defi": "Profondeur, engagement, accepter les difficultés",
+              "allergie": "Négativité, limitation, routine ennuyeuse",
+              "recommandation": "Votre joie de vivre est contagieuse. Apprenez à rester présent même dans les moments difficiles.",
+              "source": "Type Ennéagramme (7)"
+            },
+            {
+              "qualite": "Réflexion profonde",
+              "piege": "Isolement, difficulté à s'exprimer",
+              "defi": "Expression, partage, connexion aux autres",
+              "allergie": "Agitation, bavardage, superficialité",
+              "recommandation": "Votre capacité d'analyse est précieuse. Osez partager vos idées plus souvent avec les autres.",
+              "source": "Énergie MBTI (I)"
+            }
+          ],
+          "moteur_ennea": {
+            "moteur": "Liberté et plaisir",
+            "evitement": "La souffrance et la limitation",
+            "quete": "Vivre pleinement et sans contraintes"
+          },
+          "leviers_croissance": [
+            "Approfondir plutôt que multiplier",
+            "Rester présent dans les difficultés",
+            "Finir ce qui est commencé"
+          ],
+          "signaux_stress": [
+            "Dispersion",
+            "Évitement",
+            "Superficialité"
+          ]
+        }
+      },
+      "validation_archeologie": {
+        "qualites_validees": [
+          {
+            "qualite": "Stabilité",
+            "validee_par_archeologie": false,
+            "source": "Profil DISC (S)",
+            "niveau_confiance": "À explorer"
+          },
+          {
+            "qualite": "Optimisme",
+            "validee_par_archeologie": false,
+            "source": "Type Ennéagramme (7)",
+            "niveau_confiance": "À explorer"
+          },
+          {
+            "qualite": "Réflexion profonde",
+            "validee_par_archeologie": false,
+            "source": "Énergie MBTI (I)",
+            "niveau_confiance": "À explorer"
+          }
+        ],
+        "message": "Explorez ces qualités à travers des expériences concrètes"
+      },
+      "synthese": "Vous êtes une personne fiable et optimiste, dont les forces naturelles s'expriment pleinement dans un environnement qui respecte vos besoins. Votre chemin de développement passe par la conscience de vos zones de vigilance et l'utilisation de vos leviers de croissance."
+    },
+    "cross_analysis": {
+      "has_cross_analysis": true,
+      "synergy_disc": "Votre style de travail et votre profil personnel se complètent, créant un équilibre unique et constructif.",
+      "synergy_ennea": "Votre essence profonde résonne avec votre moteur intérieur, renforçant votre cohérence personnelle.",
+      "tension": "L'équilibre entre vos différentes facettes constitue à la fois un défi et une richesse. Apprenez à valoriser cette complémentarité.",
+      "integration_insight": "Votre introversion nourrit votre profondeur de réflexion. Vous gagnez en sagesse et en impact durable."
+    },
+    "life_path": {
+      "path_number": "7",
+      "label": "Parcours orienté Justice",
+      "strengths": [
+        "Travail d'équipe",
+        "Équité",
+        "Leadership"
+      ],
+      "watchouts": [
+        "Stabilité (excès : Résistance au changement, passivité)",
+        "Optimisme (excès : Fuite de la douleur, dispersion)"
+      ],
+      "micro_actions": [
+        {
+          "focus": "Développement",
+          "action": "Explorer des métiers liés à vos forces : Pragmatique, Méthodique, Ordonné."
+        },
+        {
+          "focus": "Équilibre",
+          "action": "Définir des limites claires entre engagement professionnel et temps personnel."
+        },
+        {
+          "focus": "Compétences",
+          "action": "Renforcer vos savoirs-être clés : Faire preuve de leadership, Inspirer, donner du sens, Respecter ses engagements, assumer ses responsabilités."
+        }
+      ],
+      "work_preferences": [
+        "Équipe stable",
+        "Procédures claires",
+        "Temps d'intégration",
+        "Confiance mutuelle"
+      ]
+    },
+    "profile_narrative": {
+      "portrait": "Votre profil révèle une personnalité ancrée dans la vertu de Justice, avec des forces marquées en Travail d'équipe, Équité, Leadership.",
+      "fonctionnement": "Au travail, vous vous appuyez sur vos qualités de Justice, Impartialité, Équité.",
+      "forces_et_vigilance": "Vos points forts : Variété. Points de vigilance : gérer votre énergie et poser vos limites.",
+      "conseil": "Explorez des environnements qui valorisent vos compétences relationnelles et votre capacité d'adaptation."
+    },
+    "ofman_quadrant": [
+      {
+        "qualite": "Stabilité",
+        "piege": "Résistance au changement, passivité",
+        "defi": "Adaptabilité, initiative, affirmation",
+        "allergie": "Chaos, changement brutal, instabilité",
+        "recommandation": "Votre fiabilité est un atout majeur. Osez sortir de votre zone de confort pour saisir de nouvelles opportunités.",
+        "source": "Profil DISC (S)"
+      },
+      {
+        "qualite": "Optimisme",
+        "piege": "Fuite de la douleur, dispersion",
+        "defi": "Profondeur, engagement, accepter les difficultés",
+        "allergie": "Négativité, limitation, routine ennuyeuse",
+        "recommandation": "Votre joie de vivre est contagieuse. Apprenez à rester présent même dans les moments difficiles.",
+        "source": "Type Ennéagramme (7)"
+      },
+      {
+        "qualite": "Réflexion profonde",
+        "piege": "Isolement, difficulté à s'exprimer",
+        "defi": "Expression, partage, connexion aux autres",
+        "allergie": "Agitation, bavardage, superficialité",
+        "recommandation": "Votre capacité d'analyse est précieuse. Osez partager vos idées plus souvent avec les autres.",
+        "source": "Énergie MBTI (I)"
+      }
+    ]
+  }
+}
