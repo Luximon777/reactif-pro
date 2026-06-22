@@ -9572,13 +9572,11 @@ async def search_referentiel_opc(q: str = ""):
     if not q or len(q) < 2:
         return {"results": [], "total": 0}
 
-    # Split query into words and build regex
+    # Split query into words and build AND logic (ALL words must match)
     words = [w.strip() for w in q.split() if len(w.strip()) >= 2]
     if not words:
         return {"results": [], "total": 0}
     escaped_words = [re_module.escape(w) for w in words]
-    pattern = "|".join(escaped_words)
-    regex = {"$regex": pattern, "$options": "i"}
 
     search_fields = [
         "metier", "secteur", "filiere", "mission", "hard_skills", "soft_skills",
@@ -9586,43 +9584,68 @@ async def search_referentiel_opc(q: str = ""):
         "ck1_vertus", "ck1_valeurs", "ck1_qualites_humaines",
         "ck1_comp_cognitives", "ck1_comp_emotionnelles", "ck1_comp_sociales",
     ]
-    results = await db.referentiel_opc.find({
-        "$or": [{f: regex} for f in search_fields]
-    }).to_list(100)
 
-    # Score results: prioritize matches on metier and number of words matched
+    # AND logic: each word must appear in at least one field of the document
+    if len(escaped_words) > 1:
+        and_conditions = []
+        for ew in escaped_words:
+            word_regex = {"$regex": ew, "$options": "i"}
+            and_conditions.append({"$or": [{f: word_regex} for f in search_fields]})
+        search_query = {"$and": and_conditions}
+    else:
+        single_regex = {"$regex": escaped_words[0], "$options": "i"}
+        search_query = {"$or": [{f: single_regex} for f in search_fields]}
+
+    results = await db.referentiel_opc.find(search_query).to_list(100)
+
+    # Score results: prioritize exact metier name matches
     def _score(doc):
         score = 0
         metier = (doc.get("metier") or "").lower()
-        all_text = " ".join(str(doc.get(f, "")) for f in search_fields).lower()
-        words_matched = 0
         for w in words:
             wl = w.lower()
             if wl in metier:
-                score += 10  # Strong bonus for metier match
-                words_matched += 1
-            elif wl in all_text:
-                score += 2   # Small bonus for other field match
-                words_matched += 1
-        # Bonus for matching ALL words
-        if words_matched == len(words):
-            score += 15
+                score += 10
         return score
 
     scored = [(r, _score(r)) for r in results]
-    # Filter: if multi-word query, remove results matching only 1 word when better ones exist
-    if len(words) > 1:
-        max_score = max((s for _, s in scored), default=0)
-        min_threshold = max(4, max_score * 0.3)
-        scored = [(r, s) for r, s in scored if s >= min_threshold]
-
     scored.sort(key=lambda x: -x[1])
     results = [r for r, _ in scored[:50]]
 
-    # Also fetch terrain contributions
-    contributions = await db.fiches_metier_opc.find({
-        "job_title": regex
-    }).to_list(50)
+    # Also fetch terrain contributions matching the search (AND logic on job_title)
+    if len(escaped_words) > 1:
+        # All words must appear in job_title
+        contrib_query = {"$and": [{"job_title": {"$regex": ew, "$options": "i"}} for ew in escaped_words]}
+    else:
+        contrib_query = {"job_title": {"$regex": escaped_words[0], "$options": "i"}}
+    contributions = await db.fiches_metier_opc.find(contrib_query).to_list(50)
+
+    # Include terrain contributions as results if no referentiel match
+    # This ensures user contributions (like peter7's "Chef cuisinier") are visible
+    seen_metiers = set(r.get("metier", "").lower() for r in results)
+    for contrib in contributions:
+        jt = contrib.get("job_title", "")
+        if jt.lower() not in seen_metiers:
+            terrain_result = {
+                "metier": jt,
+                "source": "contribution_terrain",
+                "contributions_terrain": contrib.get("competences", {}),
+                "total_contributors": contrib.get("total_contributors", 0),
+                "organizations": contrib.get("organizations", []),
+                "hard_skills": [],
+                "soft_skills": [],
+                "capacites_professionnelles": [],
+                "capacites_techniques": [],
+                "qualites_humaines": [],
+                "secteur": "",
+                "filiere": "",
+                "mission": f"Fiche créée par contributions terrain ({contrib.get('total_contributors', 1)} contributeur(s))",
+            }
+            # Extract skills from the contributions
+            for skill_name, skill_data in (contrib.get("competences") or {}).items():
+                terrain_result["soft_skills"].append(skill_name)
+            results.append(terrain_result)
+            seen_metiers.add(jt.lower())
 
     # Build a global skill validation map from ALL terrain contributions
     all_contributions = await db.fiches_metier_opc.find({}, {"_id": 0}).to_list(200)
