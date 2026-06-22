@@ -5237,7 +5237,7 @@ Règles:
 
 @api_router.get("/passport/archeologie")
 async def get_passport_archeologie(token: str):
-    """For a user's competences, trace the full archaeology chain"""
+    """For a user's competences, trace the full archaeology chain including D'CLIC PRO vertus & chains"""
     token_doc = await get_current_token(token)
     passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not passport:
@@ -5248,11 +5248,40 @@ async def get_passport_archeologie(token: str):
     savoir_etre = [c for c in comps if c.get("nature") == "savoir_etre"]
     non_classees = [c for c in comps if not c.get("nature")]
 
+    # Load D'CLIC PRO results from passport
+    dclic = passport.get("dclic_results", {})
+    dclic_vertus_profile = dclic.get("vertus_profile", {})
+    dclic_vertu_data = dclic.get("vertu_data", {})
+    dclic_cross = dclic.get("cross_analysis", {})
+    dclic_competences_fortes = dclic.get("competences_fortes", [])
+
+    # If no dclic in passport, check dclic_results collection
+    if not dclic:
+        dclic_doc = await db.dclic_results.find_one({"claimed_by": token_doc["id"]}, {"_id": 0})
+        if dclic_doc and dclic_doc.get("profile"):
+            dclic = dclic_doc["profile"]
+            dclic_vertus_profile = dclic.get("vertus_profile", {})
+            dclic_vertu_data = dclic.get("vertu_data", {})
+            dclic_cross = dclic.get("cross_analysis", {})
+            dclic_competences_fortes = dclic.get("competences_fortes", [])
+
+    # Enrich savoir-être from D'CLIC competences fortes if not already present
+    dclic_se_names = set(c.get("name", "") if isinstance(c, dict) else str(c) for c in savoir_etre)
+    for comp_name in dclic_competences_fortes:
+        if comp_name and comp_name not in dclic_se_names:
+            savoir_etre.append({"name": comp_name, "nature": "savoir_etre", "source": "dclic_pro"})
+            dclic_se_names.add(comp_name)
+
+    # Also add D'CLIC qualités dominantes as soft skills
+    for q in dclic_vertus_profile.get("qualites_dominantes", []):
+        if q and q not in dclic_se_names:
+            savoir_etre.append({"name": q, "nature": "savoir_etre", "source": "dclic_vertus"})
+            dclic_se_names.add(q)
+
     # Build archaeology chains for savoir-être
     chains = []
     for comp in savoir_etre:
         name = comp.get("name", "")
-        # Try to find in the reference map
         ref = ARCHEOLOGIE_SAVOIR_ETRE.get(name, {})
         qualites = comp.get("linked_qualites", []) or ref.get("qualites", [])
         valeurs_ids = comp.get("linked_valeurs", []) or ref.get("valeurs", [])
@@ -5262,6 +5291,7 @@ async def get_passport_archeologie(token: str):
         chains.append({
             "competence": name,
             "nature": "savoir_etre",
+            "source": comp.get("source", "profil"),
             "qualites": qualites,
             "valeurs": valeurs_names,
             "vertus": vertus_names,
@@ -5277,18 +5307,51 @@ async def get_passport_archeologie(token: str):
         for v in (comp.get("linked_valeurs", []) or ref.get("valeurs", [])):
             all_valeurs.add(v)
 
+    # Build D'CLIC vertus analysis
+    dclic_vertus_data = None
+    if dclic_vertus_profile:
+        vertus_scores = dclic_vertus_profile.get("vertus_scores", {})
+        dominant = dclic_vertus_profile.get("dominant_name", dclic_vertus_profile.get("vertu_dominante_name", ""))
+        dclic_vertus_data = {
+            "dominant": dominant,
+            "scores": vertus_scores,
+            "qualites_dominantes": dclic_vertus_profile.get("qualites_dominantes", []),
+            "savoirs_etre_dominants": dclic_vertus_profile.get("savoirs_etre_dominants", []),
+            "competences_oms": dclic_vertus_profile.get("competences_oms", []),
+            "competences_transferables": dclic_vertus_profile.get("competences_transferables", []),
+        }
+        # Add vertu cognition/conation data (chains)
+        if dclic_vertu_data:
+            dclic_vertus_data["cognition"] = dclic_vertu_data.get("cognition", [])
+            dclic_vertus_data["conation"] = dclic_vertu_data.get("conation", [])
+            dclic_vertus_data["affection"] = dclic_vertu_data.get("affection", [])
+
+    # Build D'CLIC cross analysis (chains between dimensions)
+    dclic_chains = None
+    if dclic_cross and dclic_cross.get("has_cross_analysis"):
+        dclic_chains = {
+            "synergy_disc": dclic_cross.get("synergy_disc", ""),
+            "synergy_ennea": dclic_cross.get("synergy_ennea", ""),
+            "tension": dclic_cross.get("tension", ""),
+            "conseil_cip": dclic_cross.get("conseil_cip", ""),
+        }
+
     return {
         "summary": {
-            "total": len(comps),
+            "total": len(comps) + len([c for c in savoir_etre if c.get("source") in ("dclic_pro", "dclic_vertus")]),
             "savoir_faire": len(savoir_faire),
             "savoir_etre": len(savoir_etre),
             "non_classees": len(non_classees),
             "vertus_covered": list(all_vertus),
             "valeurs_covered": list(all_valeurs),
+            "dclic_integrated": bool(dclic),
         },
         "chains": chains,
+        "dclic_vertus": dclic_vertus_data,
+        "dclic_chains": dclic_chains,
+        "dclic_competences_fortes": dclic_competences_fortes,
         "savoir_faire_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category")} for c in savoir_faire],
-        "savoir_etre_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category")} for c in savoir_etre],
+        "savoir_etre_list": [{"id": c.get("id"), "name": c.get("name"), "category": c.get("category"), "source": c.get("source", "")} for c in savoir_etre],
         "non_classees_list": [{"id": c.get("id"), "name": c.get("name")} for c in non_classees],
     }
 
