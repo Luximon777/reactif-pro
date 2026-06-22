@@ -19,6 +19,7 @@ async def run_migrations(db):
     await migrate_illustrations_add_skill_type(db)
     await migrate_fiches_opc_skill_type(db)
     await seed_peter7_demo_data(db)
+    await seed_referentiel_opc(db)
 
     logger.info("[Migrations] Migrations terminées.")
 
@@ -192,3 +193,30 @@ async def seed_peter7_demo_data(db):
                 await db.fiches_metier_opc.insert_one(fiche)
 
     logger.info(f"[Migration] Données de démo peter7 initialisées ({len(update_fields.get('formations', []))} formations, {len(update_fields.get('experiences', []))} expériences)")
+
+
+async def seed_referentiel_opc(db):
+    """Seed referentiel_opc and opc_metiers from exported data if empty (added 22 juin 2026)."""
+    import json, os
+
+    # Seed referentiel_opc
+    ref_count = await db.referentiel_opc.count_documents({})
+    if ref_count == 0:
+        ref_path = os.path.join(os.path.dirname(__file__), "seed_data_referentiel_opc.json")
+        if os.path.exists(ref_path):
+            with open(ref_path, "r") as f:
+                docs = json.load(f)
+            if docs:
+                await db.referentiel_opc.insert_many(docs)
+                logger.info(f"[Migration] Référentiel OPC initialisé: {len(docs)} métiers")
+
+    # Seed opc_metiers
+    met_count = await db.opc_metiers.count_documents({})
+    if met_count == 0:
+        met_path = os.path.join(os.path.dirname(__file__), "seed_data_opc_metiers.json")
+        if os.path.exists(met_path):
+            with open(met_path, "r") as f:
+                docs = json.load(f)
+            if docs:
+                await db.opc_metiers.insert_many(docs)
+                logger.info(f"[Migration] OPC Métiers initialisé: {len(docs)} fiches")
