@@ -7820,6 +7820,7 @@ async def on_startup():
             ("marc19", "Solerys777!", "particulier"),
             ("mike7", "Solerys777!", "particulier"),
             ("peter7", "Solerys777!", "particulier"),
+            ("peter9", "Solerys777!", "particulier"),
             ("rh@reactifpro.fr", "Reactif@pro2026!", "entreprise"),
             ("admin@reactifpro.fr", "Choukette@777", "partenaire"),
         ]:
@@ -7840,6 +7841,18 @@ async def on_startup():
                     {"$set": {"password": _hash_pw(pwd), "role": role}},
                 )
                 logger.info(f"[Seed] Utilisateur {pseudo} mis à jour (password+role)")
+            # Ensure token + profile exist for this user (needed for passport migration)
+            existing_token = await db.tokens.find_one({"pseudo": pseudo, "auth_mode": "pseudo"})
+            if not existing_token:
+                await _create_token_and_profile(role, pseudo, "pseudo")
+                logger.info(f"[Seed] Token+profile créés pour {pseudo}")
+        # Run demo data seeding AFTER user creation (peter7/peter9 need to exist first)
+        try:
+            from migrations import seed_peter7_demo_data, seed_referentiel_opc
+            await seed_peter7_demo_data(db)
+            await seed_referentiel_opc(db)
+        except Exception as e:
+            logger.warning(f"[Seed] Demo data seeding error: {e}")
     except Exception as e:
         logger.error(f"[Startup error] {e}")
 
