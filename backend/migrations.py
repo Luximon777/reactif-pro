@@ -136,8 +136,11 @@ async def seed_peter7_demo_data(db):
         tid = token_doc["id"]
         passport = await db.passports.find_one({"token_id": tid})
 
-        # Only seed if passport has no experiences (fresh deployment)
-        if passport and len(passport.get("experiences", [])) > 0:
+        # Seed if passport has no experiences (fresh) OR no formations (partially filled)
+        needs_full_seed = not passport or len(passport.get("experiences", [])) == 0
+        needs_formations = passport and len(passport.get("formations", [])) == 0
+        
+        if not needs_full_seed and not needs_formations:
             continue
 
         # Update or create passport
@@ -155,7 +158,16 @@ async def seed_peter7_demo_data(db):
             "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
-        if passport:
+        if passport and needs_formations and not needs_full_seed:
+            # Passport exists with experiences but missing formations — only add formations + dclic
+            update_partial = {
+                "formations": copy.deepcopy(passport_data.get("formations", [])),
+            }
+            # Also add D'CLIC if missing
+            if not passport.get("dclic_results", {}).get("vertus_profile"):
+                update_partial["dclic_results"] = copy.deepcopy(passport_data.get("dclic_results", {}))
+            await db.passports.update_one({"token_id": tid}, {"$set": update_partial})
+        elif passport:
             await db.passports.update_one({"token_id": tid}, {"$set": update_fields})
         else:
             update_fields["token_id"] = tid
