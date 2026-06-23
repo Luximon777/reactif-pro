@@ -180,16 +180,37 @@ async def seed_peter7_demo_data(db):
         # Update profile
         profile_data = extra.get("profile", {})
         if profile_data:
+            profile_update = {
+                "skills": copy.deepcopy(profile_data.get("skills", [])),
+                "strengths": copy.deepcopy(profile_data.get("strengths", [])),
+                "gaps": copy.deepcopy(profile_data.get("gaps", [])),
+                "savoir_etre": copy.deepcopy(profile_data.get("savoir_etre", [])),
+                "cv_analyzed": True,
+                "sectors": copy.deepcopy(profile_data.get("sectors", [])),
+            }
+            # Sync D'CLIC PRO profile fields from passport data
+            dclic_data = passport_data.get("dclic_results", {})
+            vp = dclic_data.get("vertus_profile", {})
+            if vp:
+                vertus_scores = vp.get("vertus_scores", {})
+                active_vertus = [v.capitalize() for v, s in vertus_scores.items() if s and s >= 40]
+                profile_update["dclic_vertu_dominante"] = vp.get("dominant_name", "")
+                profile_update["dclic_competences"] = vp.get("qualites_dominantes", [])
+                profile_update["dclic_mbti"] = ""
+                profile_update["dclic_disc_label"] = f"{len(active_vertus)} vertus actives"
+                profile_update["dclic_riasec_major"] = vp.get("dominant_name", "")
+                # Add D'CLIC skills
+                dclic_skills = []
+                for vname, vscore in vertus_scores.items():
+                    if vscore and vscore >= 40:
+                        dclic_skills.append({"name": vname.capitalize(), "level": vscore, "source": "dclic_pro"})
+                existing_skills = copy.deepcopy(profile_data.get("skills", []))
+                existing_non_dclic = [s for s in existing_skills if s.get("source") != "dclic_pro"]
+                profile_update["skills"] = existing_non_dclic + dclic_skills
+
             await db.profiles.update_one(
                 {"token_id": tid},
-                {"$set": {
-                    "skills": copy.deepcopy(profile_data.get("skills", [])),
-                    "strengths": copy.deepcopy(profile_data.get("strengths", [])),
-                    "gaps": copy.deepcopy(profile_data.get("gaps", [])),
-                    "savoir_etre": copy.deepcopy(profile_data.get("savoir_etre", [])),
-                    "cv_analyzed": True,
-                    "sectors": copy.deepcopy(profile_data.get("sectors", [])),
-                }}
+                {"$set": profile_update}
             )
 
         # Seed OPC contributions (only if none exist for this user)

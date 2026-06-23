@@ -56,14 +56,24 @@ const VISIBILITY_OPTIONS = [
 ];
 
 // ===== D'CLIC PRO BOOST VISUAL SECTION =====
-const DclicBoostSection = ({ profile, token }) => {
+const DclicBoostSection = ({ profile, token, passport }) => {
   const [expanded, setExpanded] = useState(false);
   const dclicSkills = (profile.skills || []).filter(s => s.source === "dclic_pro");
   const competences = profile.dclic_competences || [];
+  
+  // Fallback: compute dimensions from passport dclic_results if profile fields are empty
+  const passportVp = passport?.dclic_results?.vertus_profile || {};
+  const passportScores = passportVp.vertus_scores || {};
+  const passportQualites = passportVp.qualites_dominantes || [];
+  
+  const effectiveCompetences = competences.length > 0 ? competences : passportQualites;
+  const effectiveDclicSkills = dclicSkills.length > 0 ? dclicSkills 
+    : Object.entries(passportScores).filter(([,s]) => s >= 40).map(([n, s]) => ({name: n.charAt(0).toUpperCase() + n.slice(1), level: s, source: "dclic_pro"}));
+  
   const dimensions = [
-    profile.dclic_disc_label && { label: "Profil DISC", value: profile.dclic_disc_label, color: "from-blue-500 to-cyan-600", icon: Target, description: "Votre style comportemental" },
-    profile.dclic_riasec_major && { label: "Intérêts RIASEC", value: profile.dclic_riasec_major, color: "from-emerald-500 to-teal-600", icon: TrendingUp, description: "Votre orientation professionnelle" },
-    profile.dclic_vertu_dominante && { label: "Vertu dominante", value: profile.dclic_vertu_dominante, color: "from-amber-500 to-orange-600", icon: Award, description: "Votre force motrice" },
+    (profile.dclic_disc_label || (Object.keys(passportScores).length > 0 ? `${Object.values(passportScores).filter(s => s >= 40).length} vertus actives` : null)) && { label: "Profil D'CLIC", value: profile.dclic_disc_label || `${Object.values(passportScores).filter(s => s >= 40).length} vertus actives`, color: "from-blue-500 to-cyan-600", icon: Target, description: "Votre profil comportemental" },
+    (profile.dclic_riasec_major || passportVp.dominant_name) && { label: "Vertu majeure", value: profile.dclic_riasec_major || passportVp.dominant_name, color: "from-emerald-500 to-teal-600", icon: TrendingUp, description: "Votre force motrice" },
+    (profile.dclic_vertu_dominante || passportVp.dominant_name) && { label: "Vertu dominante", value: profile.dclic_vertu_dominante || passportVp.dominant_name, color: "from-amber-500 to-orange-600", icon: Award, description: "Votre valeur centrale" },
   ].filter(Boolean);
 
   const handleDownloadProfile = async () => {
@@ -144,7 +154,7 @@ const DclicBoostSection = ({ profile, token }) => {
                 <CheckCircle className="w-4 h-4 text-emerald-200" />
               </h3>
               <p className="text-emerald-100 text-xs mt-0.5">
-                {dimensions.length} dimensions analysées — {competences.length + dclicSkills.length} compétences identifiées
+                {dimensions.length} dimensions analysées — {effectiveCompetences.length + effectiveDclicSkills.length} compétences identifiées
               </p>
             </div>
           </div>
@@ -174,23 +184,23 @@ const DclicBoostSection = ({ profile, token }) => {
             );
           })}
         </div>
-        {(competences.length > 0 || dclicSkills.length > 0) && (
+        {(effectiveCompetences.length > 0 || effectiveDclicSkills.length > 0) && (
           <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-            {competences.length > 0 && (
+            {effectiveCompetences.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Compétences fortes</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {competences.map((c, i) => (
+                  {effectiveCompetences.map((c, i) => (
                     <Badge key={i} className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs" data-testid={`dclic-comp-${i}`}>{c}</Badge>
                   ))}
                 </div>
               </div>
             )}
-            {dclicSkills.length > 0 && (
+            {effectiveDclicSkills.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Skills importés D'CLIC</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {dclicSkills.map((s, i) => (
+                  {effectiveDclicSkills.map((s, i) => (
                     <Badge key={i} variant="outline" className="text-xs">{s.name} — {s.level}%</Badge>
                   ))}
                 </div>
@@ -1994,8 +2004,8 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
         {/* === COMPETENCES TAB === */}
         <TabsContent value="competences" className="space-y-6 mt-6">
           {/* D'CLIC Boost Section or "Booster mon profil" visual */}
-          {profile?.dclic_imported ? (
-            <DclicBoostSection profile={profile} token={token} />
+          {(profile?.dclic_imported || passport?.dclic_results?.vertus_profile?.dominant_name) ? (
+            <DclicBoostSection profile={profile} token={token} passport={passport} />
           ) : (
             <Card className="border-0 shadow-lg overflow-hidden" data-testid="dclic-boost-invite">
               <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-6 relative">
