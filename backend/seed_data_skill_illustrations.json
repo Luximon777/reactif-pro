@@ -1,0 +1,102 @@
+[
+  {
+    "experience_id": "4df7ae35-9af1-4364-b54a-3dc54d1e96f1",
+    "soft_skill": "Rigueur",
+    "skill_type": "soft",
+    "sare_situation": "Lors de la réouverture de L'Insulaire après la période Covid, nous avons dû remettre en place l'ensemble des procédures de cuisine en 10 jours seulement, avec une brigade partiellement renouvelée.",
+    "sare_action": "J'ai élaboré des fiches de poste individuelles avec les tâches à contrôler heure par heure, mis en place des points de vérification à 3 moments clés du service.",
+    "sare_resultat": "Zéro non-conformité lors du premier contrôle sanitaire post-réouverture. La brigade a intégré les procédures en moins de 3 semaines.",
+    "sare_enseignement": "J'ai compris que la rigueur ne s'impose pas, elle se coconstruit : partager le pourquoi de chaque procédure avec l'équipe est plus efficace que le simple contrôle.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "4df7ae35-9af1-4364-b54a-3dc54d1e96f1",
+    "soft_skill": "Application des normes HACCP et sécurité alimentaire",
+    "skill_type": "hard",
+    "sare_situation": "Lors d'un événement traiteur pour 135 convives, la chaîne du froid a été compromise par une panne partielle du camion réfrigéré pendant le transport.",
+    "sare_action": "J'ai immédiatement contrôlé les températures à cœur de chaque préparation, écarté les produits hors seuil HACCP, et retravaillé le menu avec les denrées conformes.",
+    "sare_resultat": "Aucun incident alimentaire. L'événement s'est déroulé sans retard notable.",
+    "sare_enseignement": "Depuis cet événement, j'intègre systématiquement un thermomètre sonde et une glacière de secours dans mon kit événementiel.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "c51f29f4-5058-4580-b5b0-a834657a805a",
+    "soft_skill": "Créativité culinaire",
+    "skill_type": "soft",
+    "sare_situation": "Un client régulier m'a commandé un dîner gastronomique pour 8 personnes avec des restrictions alimentaires multiples (sans gluten, sans lactose, végétarien pour 3 convives).",
+    "sare_action": "J'ai conçu un menu unique de 5 services entièrement adapté aux contraintes, en travaillant des textures alternatives et des associations de saveurs inédites.",
+    "sare_resultat": "Le client a renouvelé sa commande 4 fois dans les 2 mois suivants et m'a recommandé à 3 autres familles.",
+    "sare_enseignement": "Les contraintes alimentaires sont des opportunités créatives. J'ai depuis développé un répertoire de 30 recettes adaptées qui sont devenues ma signature.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "c51f29f4-5058-4580-b5b0-a834657a805a",
+    "soft_skill": "Gestion de la relation client",
+    "skill_type": "hard",
+    "sare_situation": "Un client mécontent a exprimé son insatisfaction en direct lors d'un dîner privé, estimant que le plat principal ne correspondait pas à ses attentes.",
+    "sare_action": "J'ai écouté sans interrompre, proposé immédiatement une alternative préparée en 15 minutes, et pris le temps après le service d'échanger sur ses préférences.",
+    "sare_resultat": "Le client est devenu un ambassadeur de mon service, me recommandant auprès de son réseau professionnel.",
+    "sare_enseignement": "La gestion d'une insatisfaction est une opportunité de fidélisation. Depuis, j'intègre systématiquement un questionnaire de préférences avant chaque prestation.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "1926d853-1a40-4776-b684-8cfa648cf7d9",
+    "soft_skill": "Leadership",
+    "skill_type": "soft",
+    "sare_situation": "En tant que co-fondateur de L'Insulaire, j'ai dû constituer et manager une brigade de 4 cuisiniers avec des profils très différents et des niveaux d'expérience variés.",
+    "sare_action": "J'ai instauré des briefings quotidiens de 10 minutes, attribué des responsabilités selon les forces de chacun, et mis en place un système de mentorat croisé.",
+    "sare_resultat": "La brigade est devenue autonome en 6 semaines. Le turnover a été nul pendant 18 mois, contre une moyenne sectorielle de 40%.",
+    "sare_enseignement": "Le leadership n'est pas la direction mais la facilitation. Donner à chacun un rôle clé augmente l'engagement et la qualité collective.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "1926d853-1a40-4776-b684-8cfa648cf7d9",
+    "soft_skill": "Gestion des coûts et approvisionnement",
+    "skill_type": "hard",
+    "sare_situation": "Les marges du restaurant étaient insuffisantes (22% food cost) malgré un bon taux de remplissage, menaçant la viabilité de l'établissement.",
+    "sare_action": "J'ai renégocié 5 contrats fournisseurs, mis en place un système de traçabilité des pertes, et conçu des menus à rentabilité variable avec des plats signatures à forte marge.",
+    "sare_resultat": "Le food cost est passé de 35% à 28% en 3 mois, permettant de dégager un résultat positif pour la première fois.",
+    "sare_enseignement": "La maîtrise des coûts ne passe pas par la réduction de qualité mais par l'intelligence des approvisionnements et la valorisation des produits.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "8c1f157d-7c9c-40bb-bdcd-0b92f3647090",
+    "soft_skill": "Adaptabilité interculturelle",
+    "skill_type": "soft",
+    "sare_situation": "En arrivant à Melbourne, j'ai intégré une brigade composée de 8 nationalités différentes avec des codes culinaires et professionnels très variés.",
+    "sare_action": "J'ai observé sans juger pendant 2 semaines, appris les techniques locales, proposé progressivement mes méthodes françaises comme complément et non remplacement.",
+    "sare_resultat": "J'ai été promu sous-chef en 4 mois. Mon approche fusion franco-australienne est devenue la signature du restaurant.",
+    "sare_enseignement": "L'adaptabilité interculturelle est un accélérateur de carrière. Chaque culture culinaire porte des solutions uniques à des problèmes universels.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "8c1f157d-7c9c-40bb-bdcd-0b92f3647090",
+    "soft_skill": "Techniques de cuisson avancées",
+    "skill_type": "hard",
+    "sare_situation": "Le chef exécutif m'a confié la mise au point d'un menu dégustation de 7 services axé sur les cuissons basse température et la fermentation.",
+    "sare_action": "J'ai testé plus de 40 combinaisons temps/température sur 3 semaines, documenté chaque essai, et formé l'équipe aux techniques retenues.",
+    "sare_resultat": "Le menu dégustation a généré une augmentation de 25% du ticket moyen et a été mentionné dans le guide Broadsheet Melbourne.",
+    "sare_enseignement": "La maîtrise technique est un processus itératif. La documentation rigoureuse des essais permet de capitaliser sur chaque expérience.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "990604f2-1cc9-4deb-b701-e3c46e0e63a7",
+    "soft_skill": "Travail en équipe",
+    "skill_type": "soft",
+    "sare_situation": "Lors d'un service de 200 couverts à l'Hôtel Labourdonnais, le chef de partie poisson est tombé malade en plein service.",
+    "sare_action": "J'ai immédiatement réorganisé la brigade, pris en charge le poste poisson tout en coordonnant mon propre poste via un commis que j'ai guidé en temps réel.",
+    "sare_resultat": "Le service s'est terminé sans retard ni retour négatif. La direction a souligné la fluidité malgré l'incident.",
+    "sare_enseignement": "Le travail en équipe implique de pouvoir occuper n'importe quel poste. Depuis, j'entraîne ma polyvalence en tournant régulièrement sur les postes.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "990604f2-1cc9-4deb-b701-e3c46e0e63a7",
+    "soft_skill": "Maîtrise des cuissons et dressage gastronomique",
+    "skill_type": "hard",
+    "sare_situation": "Le chef exécutif m'a demandé de concevoir le dressage complet d'un nouveau menu pour un banquet officiel du gouvernement mauricien.",
+    "sare_action": "J'ai réalisé 15 essais de dressage photographiés, présenté 3 propositions finales au chef, et formé 4 commis à la reproduction exacte de chaque assiette.",
+    "sare_resultat": "Le banquet a été un succès. Le protocole a demandé à garder notre carte de dressage pour les événements suivants.",
+    "sare_enseignement": "Le dressage gastronomique est un langage visuel qui doit être reproductible. La standardisation par la photographie et la formation garantit la constance.",
+    "opc_consent": true
+  }
+]

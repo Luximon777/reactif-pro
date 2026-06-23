@@ -226,6 +226,39 @@ async def seed_peter7_demo_data(db):
 
             logger.info(f"[Migration] Passport {pseudo} initialisé ({len(update_fields.get('formations', []))} formations, {len(update_fields.get('experiences', []))} expériences)")
 
+        # Seed skill_illustrations (S.A.R.E proofs for certification-status) — independent of passport
+        illus_path = os.path.join(os.path.dirname(__file__), "seed_data_skill_illustrations.json")
+        if os.path.exists(illus_path):
+            existing_illus = await db.skill_illustrations.count_documents({"token_id": tid})
+            if existing_illus < 10:
+                # Clear old seeded illustrations and re-inject
+                await db.skill_illustrations.delete_many({"token_id": tid})
+                with open(illus_path, "r") as ilf:
+                    illus_templates = json.load(ilf)
+                now_iso = datetime.now(timezone.utc).isoformat()
+                for tmpl in illus_templates:
+                    ill = copy.deepcopy(tmpl)
+                    ill["id"] = str(uuid.uuid4())
+                    ill["token_id"] = tid
+                    ill["created_at"] = now_iso
+                    ill.setdefault("situation_text", "")
+                    await db.skill_illustrations.insert_one(ill)
+                logger.info(f"[Migration] {len(illus_templates)} skill_illustrations injectées pour {pseudo}")
+
+                # Also mark the first experience (Golf du Kempferohf) with proof_document for contract
+                contract_exp_id = "4df7ae35-9af1-4364-b54a-3dc54d1e96f1"
+                p = await db.passports.find_one({"token_id": tid})
+                if p:
+                    exps = p.get("experiences", [])
+                    updated = False
+                    for exp in exps:
+                        if exp.get("id") == contract_exp_id and not exp.get("proof_document"):
+                            exp["proof_document"] = "contrat_seed"
+                            exp["is_certified"] = True
+                            updated = True
+                    if updated:
+                        await db.passports.update_one({"token_id": tid}, {"$set": {"experiences": exps}})
+
         # Seed coffre documents (preuves) — ALWAYS check independently of passport state
         coffre_path = os.path.join(os.path.dirname(__file__), "seed_data_coffre_documents.json")
         if os.path.exists(coffre_path):
