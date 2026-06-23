@@ -128,6 +128,8 @@ async def seed_peter7_demo_data(db):
         with open(extra_path, "r") as f:
             extra = json.load(f)
 
+    import copy, uuid
+
     for pseudo in ["peter7", "peter9"]:
         token_doc = await db.tokens.find_one({"pseudo": pseudo})
         if not token_doc:
@@ -139,98 +141,108 @@ async def seed_peter7_demo_data(db):
         # Seed if passport has no experiences (fresh) OR no formations (partially filled)
         needs_full_seed = not passport or len(passport.get("experiences", [])) == 0
         needs_formations = passport and len(passport.get("formations", [])) == 0
-        
-        if not needs_full_seed and not needs_formations:
-            continue
 
-        # Update or create passport
-        import copy
-        update_fields = {
-            "formations": copy.deepcopy(passport_data.get("formations", [])),
-            "experiences": copy.deepcopy(passport_data.get("experiences", [])),
-            "competences": copy.deepcopy(passport_data.get("competences", [])),
-            "professional_summary": passport_data.get("professional_summary", ""),
-            "career_project": passport_data.get("career_project", ""),
-            "savoir_faire": copy.deepcopy(passport_data.get("savoir_faire", [])),
-            "savoir_etre": copy.deepcopy(passport_data.get("savoir_etre", [])),
-            "completeness_score": passport_data.get("completeness_score", 0),
-            "dclic_results": copy.deepcopy(passport_data.get("dclic_results", {})),
-            "last_updated": datetime.now(timezone.utc).isoformat(),
-        }
-
-        if passport and needs_formations and not needs_full_seed:
-            # Passport exists with experiences but missing formations — only add formations + dclic
-            update_partial = {
+        if needs_full_seed or needs_formations:
+            update_fields = {
                 "formations": copy.deepcopy(passport_data.get("formations", [])),
+                "experiences": copy.deepcopy(passport_data.get("experiences", [])),
+                "competences": copy.deepcopy(passport_data.get("competences", [])),
+                "professional_summary": passport_data.get("professional_summary", ""),
+                "career_project": passport_data.get("career_project", ""),
+                "savoir_faire": copy.deepcopy(passport_data.get("savoir_faire", [])),
+                "savoir_etre": copy.deepcopy(passport_data.get("savoir_etre", [])),
+                "completeness_score": passport_data.get("completeness_score", 0),
+                "dclic_results": copy.deepcopy(passport_data.get("dclic_results", {})),
+                "last_updated": datetime.now(timezone.utc).isoformat(),
             }
-            # Also add D'CLIC if missing
-            if not passport.get("dclic_results", {}).get("vertus_profile"):
-                update_partial["dclic_results"] = copy.deepcopy(passport_data.get("dclic_results", {}))
-            await db.passports.update_one({"token_id": tid}, {"$set": update_partial})
-        elif passport:
-            await db.passports.update_one({"token_id": tid}, {"$set": update_fields})
-        else:
-            update_fields["token_id"] = tid
-            update_fields["learning_path"] = []
-            update_fields["passerelles"] = []
-            update_fields["sharing"] = {"is_public": False}
-            update_fields["created_at"] = datetime.now(timezone.utc).isoformat()
-            await db.passports.insert_one(update_fields)
 
-        # Update profile
-        profile_data = extra.get("profile", {})
-        if profile_data:
-            profile_update = {
-                "skills": copy.deepcopy(profile_data.get("skills", [])),
-                "strengths": copy.deepcopy(profile_data.get("strengths", [])),
-                "gaps": copy.deepcopy(profile_data.get("gaps", [])),
-                "savoir_etre": copy.deepcopy(profile_data.get("savoir_etre", [])),
-                "cv_analyzed": True,
-                "sectors": copy.deepcopy(profile_data.get("sectors", [])),
-            }
-            # Sync D'CLIC PRO profile fields from passport data
-            dclic_data = passport_data.get("dclic_results", {})
-            vp = dclic_data.get("vertus_profile", {})
-            if vp:
-                vertus_scores = vp.get("vertus_scores", {})
-                active_vertus = [v.capitalize() for v, s in vertus_scores.items() if s and s >= 40]
-                profile_update["dclic_vertu_dominante"] = vp.get("dominant_name", "")
-                profile_update["dclic_competences"] = vp.get("qualites_dominantes", [])
-                profile_update["dclic_mbti"] = ""
-                profile_update["dclic_disc_label"] = f"{len(active_vertus)} vertus actives"
-                profile_update["dclic_riasec_major"] = vp.get("dominant_name", "")
-                # Add D'CLIC skills
-                dclic_skills = []
-                for vname, vscore in vertus_scores.items():
-                    if vscore and vscore >= 40:
-                        dclic_skills.append({"name": vname.capitalize(), "level": vscore, "source": "dclic_pro"})
-                existing_skills = copy.deepcopy(profile_data.get("skills", []))
-                existing_non_dclic = [s for s in existing_skills if s.get("source") != "dclic_pro"]
-                profile_update["skills"] = existing_non_dclic + dclic_skills
+            if passport and needs_formations and not needs_full_seed:
+                update_partial = {
+                    "formations": copy.deepcopy(passport_data.get("formations", [])),
+                }
+                if not passport.get("dclic_results", {}).get("vertus_profile"):
+                    update_partial["dclic_results"] = copy.deepcopy(passport_data.get("dclic_results", {}))
+                await db.passports.update_one({"token_id": tid}, {"$set": update_partial})
+            elif passport:
+                await db.passports.update_one({"token_id": tid}, {"$set": update_fields})
+            else:
+                update_fields["token_id"] = tid
+                update_fields["learning_path"] = []
+                update_fields["passerelles"] = []
+                update_fields["sharing"] = {"is_public": False}
+                update_fields["created_at"] = datetime.now(timezone.utc).isoformat()
+                await db.passports.insert_one(update_fields)
 
-            await db.profiles.update_one(
-                {"token_id": tid},
-                {"$set": profile_update}
-            )
+            # Update profile
+            profile_data = extra.get("profile", {})
+            if profile_data:
+                profile_update = {
+                    "skills": copy.deepcopy(profile_data.get("skills", [])),
+                    "strengths": copy.deepcopy(profile_data.get("strengths", [])),
+                    "gaps": copy.deepcopy(profile_data.get("gaps", [])),
+                    "savoir_etre": copy.deepcopy(profile_data.get("savoir_etre", [])),
+                    "cv_analyzed": True,
+                    "sectors": copy.deepcopy(profile_data.get("sectors", [])),
+                }
+                dclic_data = passport_data.get("dclic_results", {})
+                vp = dclic_data.get("vertus_profile", {})
+                if vp:
+                    vertus_scores = vp.get("vertus_scores", {})
+                    active_vertus = [v.capitalize() for v, s in vertus_scores.items() if s and s >= 40]
+                    profile_update["dclic_vertu_dominante"] = vp.get("dominant_name", "")
+                    profile_update["dclic_competences"] = vp.get("qualites_dominantes", [])
+                    profile_update["dclic_mbti"] = ""
+                    profile_update["dclic_disc_label"] = f"{len(active_vertus)} vertus actives"
+                    profile_update["dclic_riasec_major"] = vp.get("dominant_name", "")
+                    dclic_skills = []
+                    for vname, vscore in vertus_scores.items():
+                        if vscore and vscore >= 40:
+                            dclic_skills.append({"name": vname.capitalize(), "level": vscore, "source": "dclic_pro"})
+                    existing_skills = copy.deepcopy(profile_data.get("skills", []))
+                    existing_non_dclic = [s for s in existing_skills if s.get("source") != "dclic_pro"]
+                    profile_update["skills"] = existing_non_dclic + dclic_skills
 
-        # Seed OPC contributions (only if none exist for this user)
-        existing_contribs = await db.opc_contributions.count_documents({"token_id": tid})
-        if existing_contribs == 0:
-            for contrib in extra.get("opc_contributions", []):
-                c = copy.deepcopy(contrib)
-                c["token_id"] = tid
-                c.pop("_id", None)
-                await db.opc_contributions.insert_one(c)
+                await db.profiles.update_one(
+                    {"token_id": tid},
+                    {"$set": profile_update}
+                )
 
-        # Seed fiches metier (only if none exist globally)
-        existing_fiches = await db.fiches_metier_opc.count_documents({})
-        if existing_fiches == 0:
-            for fiche in extra.get("fiches_metier", []):
-                f = copy.deepcopy(fiche)
-                f.pop("_id", None)
-                await db.fiches_metier_opc.insert_one(f)
+            # Seed OPC contributions (only if none exist for this user)
+            existing_contribs = await db.opc_contributions.count_documents({"token_id": tid})
+            if existing_contribs == 0:
+                for contrib in extra.get("opc_contributions", []):
+                    c = copy.deepcopy(contrib)
+                    c["token_id"] = tid
+                    c.pop("_id", None)
+                    await db.opc_contributions.insert_one(c)
 
-        logger.info(f"[Migration] Données de démo {pseudo} initialisées ({len(update_fields.get('formations', []))} formations, {len(update_fields.get('experiences', []))} expériences)")
+            # Seed fiches metier (only if none exist globally)
+            existing_fiches = await db.fiches_metier_opc.count_documents({})
+            if existing_fiches == 0:
+                for fiche in extra.get("fiches_metier", []):
+                    f = copy.deepcopy(fiche)
+                    f.pop("_id", None)
+                    await db.fiches_metier_opc.insert_one(f)
+
+            logger.info(f"[Migration] Passport {pseudo} initialisé ({len(update_fields.get('formations', []))} formations, {len(update_fields.get('experiences', []))} expériences)")
+
+        # Seed coffre documents (preuves) — ALWAYS check independently of passport state
+        existing_coffre = await db.coffre_documents.count_documents({"token_id": tid})
+        if existing_coffre == 0:
+            coffre_path = os.path.join(os.path.dirname(__file__), "seed_data_coffre_documents.json")
+            if os.path.exists(coffre_path):
+                with open(coffre_path, "r") as cf:
+                    coffre_templates = json.load(cf)
+                now_iso = datetime.now(timezone.utc).isoformat()
+                for tmpl in coffre_templates:
+                    doc = copy.deepcopy(tmpl)
+                    doc["id"] = str(uuid.uuid4())
+                    doc["token_id"] = tid
+                    doc["uploaded_at"] = now_iso
+                    doc["updated_at"] = now_iso
+                    doc.setdefault("file_name", None)
+                    await db.coffre_documents.insert_one(doc)
+                logger.info(f"[Migration] {len(coffre_templates)} preuves coffre-fort injectées pour {pseudo}")
 
 
 async def seed_referentiel_opc(db):
