@@ -227,12 +227,22 @@ async def seed_peter7_demo_data(db):
             logger.info(f"[Migration] Passport {pseudo} initialisé ({len(update_fields.get('formations', []))} formations, {len(update_fields.get('experiences', []))} expériences)")
 
         # Seed coffre documents (preuves) — ALWAYS check independently of passport state
-        existing_coffre = await db.coffre_documents.count_documents({"token_id": tid})
-        if existing_coffre == 0:
-            coffre_path = os.path.join(os.path.dirname(__file__), "seed_data_coffre_documents.json")
-            if os.path.exists(coffre_path):
-                with open(coffre_path, "r") as cf:
-                    coffre_templates = json.load(cf)
+        coffre_path = os.path.join(os.path.dirname(__file__), "seed_data_coffre_documents.json")
+        if os.path.exists(coffre_path):
+            with open(coffre_path, "r") as cf:
+                coffre_templates = json.load(cf)
+            existing_coffre = await db.coffre_documents.count_documents({"token_id": tid})
+            expected_min = len(coffre_templates)
+            # Seed if user has fewer S.A.R.E/diplome proofs than expected
+            existing_sare = await db.coffre_documents.count_documents({"token_id": tid, "document_type": "sare_proof"})
+            existing_diplomes = await db.coffre_documents.count_documents({"token_id": tid, "category": "diplome"})
+            if existing_sare < 10 or existing_diplomes < 2:
+                # Remove old seed-type docs to avoid duplicates, keep user-uploaded files (with grid_id)
+                await db.coffre_documents.delete_many({
+                    "token_id": tid,
+                    "document_type": {"$in": ["sare_proof", "diplome", "certificat", "contrat"]},
+                    "grid_id": {"$exists": False}
+                })
                 now_iso = datetime.now(timezone.utc).isoformat()
                 for tmpl in coffre_templates:
                     doc = copy.deepcopy(tmpl)
@@ -242,7 +252,8 @@ async def seed_peter7_demo_data(db):
                     doc["updated_at"] = now_iso
                     doc.setdefault("file_name", None)
                     await db.coffre_documents.insert_one(doc)
-                logger.info(f"[Migration] {len(coffre_templates)} preuves coffre-fort injectées pour {pseudo}")
+                final_count = await db.coffre_documents.count_documents({"token_id": tid})
+                logger.info(f"[Migration] {len(coffre_templates)} preuves coffre-fort injectées pour {pseudo} (total: {final_count})")
 
 
 async def seed_referentiel_opc(db):
