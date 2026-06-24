@@ -43,7 +43,7 @@
     "experience_id": "1926d853-1a40-4776-b684-8cfa648cf7d9",
     "soft_skill": "Leadership",
     "skill_type": "soft",
-    "sare_situation": "En tant que co-fondateur de L'Insulaire, j'ai dû constituer et manager une brigade de 4 cuisiniers avec des profils très différents et des niveaux d'expérience variés.",
+    "sare_situation": "En tant que co-fondateur de L'Insulaire, j'ai dû constituer et manager une brigade de 4 cuisiniers avec des profils très différents.",
     "sare_action": "J'ai instauré des briefings quotidiens de 10 minutes, attribué des responsabilités selon les forces de chacun, et mis en place un système de mentorat croisé.",
     "sare_resultat": "La brigade est devenue autonome en 6 semaines. Le turnover a été nul pendant 18 mois, contre une moyenne sectorielle de 40%.",
     "sare_enseignement": "Le leadership n'est pas la direction mais la facilitation. Donner à chacun un rôle clé augmente l'engagement et la qualité collective.",
@@ -53,20 +53,20 @@
     "experience_id": "1926d853-1a40-4776-b684-8cfa648cf7d9",
     "soft_skill": "Gestion des coûts et approvisionnement",
     "skill_type": "hard",
-    "sare_situation": "Les marges du restaurant étaient insuffisantes (22% food cost) malgré un bon taux de remplissage, menaçant la viabilité de l'établissement.",
-    "sare_action": "J'ai renégocié 5 contrats fournisseurs, mis en place un système de traçabilité des pertes, et conçu des menus à rentabilité variable avec des plats signatures à forte marge.",
+    "sare_situation": "Les marges du restaurant étaient insuffisantes (22% food cost) malgré un bon taux de remplissage.",
+    "sare_action": "J'ai renégocié 5 contrats fournisseurs, mis en place un système de traçabilité des pertes, et conçu des menus à rentabilité variable.",
     "sare_resultat": "Le food cost est passé de 35% à 28% en 3 mois, permettant de dégager un résultat positif pour la première fois.",
-    "sare_enseignement": "La maîtrise des coûts ne passe pas par la réduction de qualité mais par l'intelligence des approvisionnements et la valorisation des produits.",
+    "sare_enseignement": "La maîtrise des coûts ne passe pas par la réduction de qualité mais par l'intelligence des approvisionnements.",
     "opc_consent": true
   },
   {
     "experience_id": "8c1f157d-7c9c-40bb-bdcd-0b92f3647090",
     "soft_skill": "Adaptabilité interculturelle",
     "skill_type": "soft",
-    "sare_situation": "En arrivant à Melbourne, j'ai intégré une brigade composée de 8 nationalités différentes avec des codes culinaires et professionnels très variés.",
-    "sare_action": "J'ai observé sans juger pendant 2 semaines, appris les techniques locales, proposé progressivement mes méthodes françaises comme complément et non remplacement.",
+    "sare_situation": "En arrivant à Melbourne, j'ai intégré une brigade composée de 8 nationalités différentes avec des codes culinaires très variés.",
+    "sare_action": "J'ai observé sans juger pendant 2 semaines, appris les techniques locales, proposé progressivement mes méthodes françaises comme complément.",
     "sare_resultat": "J'ai été promu sous-chef en 4 mois. Mon approche fusion franco-australienne est devenue la signature du restaurant.",
-    "sare_enseignement": "L'adaptabilité interculturelle est un accélérateur de carrière. Chaque culture culinaire porte des solutions uniques à des problèmes universels.",
+    "sare_enseignement": "L'adaptabilité interculturelle est un accélérateur de carrière. Chaque culture culinaire porte des solutions uniques.",
     "opc_consent": true
   },
   {
@@ -84,9 +84,9 @@
     "soft_skill": "Travail en équipe",
     "skill_type": "soft",
     "sare_situation": "Lors d'un service de 200 couverts à l'Hôtel Labourdonnais, le chef de partie poisson est tombé malade en plein service.",
-    "sare_action": "J'ai immédiatement réorganisé la brigade, pris en charge le poste poisson tout en coordonnant mon propre poste via un commis que j'ai guidé en temps réel.",
+    "sare_action": "J'ai immédiatement réorganisé la brigade, pris en charge le poste poisson tout en coordonnant mon propre poste via un commis.",
     "sare_resultat": "Le service s'est terminé sans retard ni retour négatif. La direction a souligné la fluidité malgré l'incident.",
-    "sare_enseignement": "Le travail en équipe implique de pouvoir occuper n'importe quel poste. Depuis, j'entraîne ma polyvalence en tournant régulièrement sur les postes.",
+    "sare_enseignement": "Le travail en équipe implique de pouvoir occuper n'importe quel poste. Depuis, j'entraîne ma polyvalence en tournant régulièrement.",
     "opc_consent": true
   },
   {
@@ -94,9 +94,109 @@
     "soft_skill": "Maîtrise des cuissons et dressage gastronomique",
     "skill_type": "hard",
     "sare_situation": "Le chef exécutif m'a demandé de concevoir le dressage complet d'un nouveau menu pour un banquet officiel du gouvernement mauricien.",
-    "sare_action": "J'ai réalisé 15 essais de dressage photographiés, présenté 3 propositions finales au chef, et formé 4 commis à la reproduction exacte de chaque assiette.",
+    "sare_action": "J'ai réalisé 15 essais de dressage photographiés, présenté 3 propositions finales au chef, et formé 4 commis à la reproduction exacte.",
     "sare_resultat": "Le banquet a été un succès. Le protocole a demandé à garder notre carte de dressage pour les événements suivants.",
-    "sare_enseignement": "Le dressage gastronomique est un langage visuel qui doit être reproductible. La standardisation par la photographie et la formation garantit la constance.",
+    "sare_enseignement": "Le dressage gastronomique est un langage visuel qui doit être reproductible. La standardisation par la photographie garantit la constance.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "3e6d5a74-80c2-42b0-8dfb-2d1375fa955f",
+    "soft_skill": "Gestion du stress en environnement événementiel",
+    "skill_type": "soft",
+    "sare_situation": "Lors de la Foire aux Vins de Colmar, nous avons dû servir 500 couverts en 3 heures avec un équipement réduit et une brigade de renfort inexpérimentée.",
+    "sare_action": "J'ai simplifié le menu en 3 formules, mis en place un système de production en flux tendu, et briefé chaque personne sur une tâche unique.",
+    "sare_resultat": "Tous les couverts ont été servis dans les temps. Le client organisateur a reconduit notre contrat pour les 2 éditions suivantes.",
+    "sare_enseignement": "En événementiel, la simplification est la clé de la réussite. Mieux vaut 3 plats parfaits que 10 plats approximatifs.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "3e6d5a74-80c2-42b0-8dfb-2d1375fa955f",
+    "soft_skill": "Production en volume et cadences événementielles",
+    "skill_type": "hard",
+    "sare_situation": "Pour un événement corporate de 300 personnes, le menu comportait un plat nécessitant une cuisson minute individuelle impossible à réaliser en série.",
+    "sare_action": "J'ai reconçu la recette en version batch-cooking sans sacrifier la qualité visuelle, et optimisé le circuit de production en 4 postes séquentiels.",
+    "sare_resultat": "Le plat a été servi chaud à tous les convives en moins de 20 minutes. Le client a félicité la qualité et la rapidité.",
+    "sare_enseignement": "L'adaptation du geste technique au contexte événementiel est une compétence distincte de la cuisine de restaurant.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "9b8db512-87a7-4f67-a09b-f19274685929",
+    "soft_skill": "Précision et régularité",
+    "skill_type": "soft",
+    "sare_situation": "À l'Aedaen Place, restaurant gastronomique, le chef exigeait une constance absolue dans le dressage de 80 assiettes par service.",
+    "sare_action": "J'ai développé une routine de mise en place standardisée et créé des gabarits de dressage pour chaque plat de la carte.",
+    "sare_resultat": "Mon poste a atteint un taux de retour en cuisine de 0% sur 6 mois. Le chef m'a confié la formation des nouveaux demi-chefs.",
+    "sare_enseignement": "La régularité est le fondement de l'excellence en restauration gastronomique. Elle libère l'esprit pour la créativité.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "9b8db512-87a7-4f67-a09b-f19274685929",
+    "soft_skill": "Mise en place et organisation du poste",
+    "skill_type": "hard",
+    "sare_situation": "Mon poste à l'Aedaen Place nécessitait la préparation de 12 composants différents pour le service du soir, dans un espace de travail restreint.",
+    "sare_action": "J'ai chronométré chaque étape, optimisé l'ordre des préparations par durée décroissante, et réorganisé physiquement le poste.",
+    "sare_resultat": "J'ai réduit mon temps de mise en place de 3h30 à 2h45, me permettant d'aider systématiquement les postes voisins.",
+    "sare_enseignement": "L'organisation d'un poste de cuisine est un art technique qui s'optimise par la mesure et l'itération continue.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "18773c3b-d6f6-4ae7-a5f6-25cde5ef93f7",
+    "soft_skill": "Curiosité et apprentissage",
+    "skill_type": "soft",
+    "sare_situation": "En tant que commis chez Lard et Crème, j'étais affecté au poste froid mais fasciné par les techniques du pâtissier.",
+    "sare_action": "J'ai proposé d'arriver 1h plus tôt chaque jour pour observer et assister le pâtissier, tout en maintenant mes obligations de commis.",
+    "sare_resultat": "En 3 mois, j'ai acquis les bases de la pâtisserie et le chef m'a permis de créer 2 desserts pour la carte.",
+    "sare_enseignement": "La curiosité active et l'investissement personnel sont les meilleurs accélérateurs d'apprentissage en cuisine.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "18773c3b-d6f6-4ae7-a5f6-25cde5ef93f7",
+    "soft_skill": "Techniques de base en cuisine",
+    "skill_type": "hard",
+    "sare_situation": "Mes premières semaines de commis, je devais réaliser des tailles de légumes parfaites pour le restaurant gastronomique.",
+    "sare_action": "J'ai pratiqué 30 minutes supplémentaires chaque jour avec les chutes, demandé un feedback quotidien au chef, et étudié les techniques classiques.",
+    "sare_resultat": "En 6 semaines, mes brunoise et julienne ont atteint le standard exigé. J'ai été promu au poste chaud.",
+    "sare_enseignement": "Les techniques de base sont le socle de toute progression en cuisine. La répétition délibérée est irremplaçable.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "e83dc7ad-c4fe-4a63-bd72-c4061b394fc7",
+    "soft_skill": "Communication commerciale",
+    "skill_type": "soft",
+    "sare_situation": "Chez Aliso Voyages, j'ai dû vendre des forfaits voyage haut de gamme à une clientèle exigeante et habituée aux agences premium.",
+    "sare_action": "J'ai développé une approche conseil personnalisée, créé des dossiers de présentation visuels uniques pour chaque client, et suivi les tendances du marché.",
+    "sare_resultat": "Mon portefeuille clients a augmenté de 30% en 6 mois. 3 clients corporate m'ont suivi quand j'ai changé d'agence.",
+    "sare_enseignement": "La vente de services premium repose sur la personnalisation et l'écoute, pas sur le produit. Cette compétence m'a suivi en cuisine privée.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "e83dc7ad-c4fe-4a63-bd72-c4061b394fc7",
+    "soft_skill": "Conseil et vente de prestations touristiques",
+    "skill_type": "hard",
+    "sare_situation": "Un client professionnel cherchait un voyage incentive pour 25 collaborateurs avec un budget serré et des exigences élevées.",
+    "sare_action": "J'ai négocié directement avec 3 réceptifs locaux, construit un programme sur mesure combinant activités team-building et découverte culturelle.",
+    "sare_resultat": "Le voyage a été réalisé 15% sous budget avec une satisfaction client maximale. L'entreprise a renouvelé pour 3 ans.",
+    "sare_enseignement": "La négociation directe avec les prestataires locaux offre toujours un meilleur rapport qualité-prix que les packages standards.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "5c195b2c-3a6d-4f17-ac40-386d064ecf03",
+    "soft_skill": "Polyvalence",
+    "skill_type": "soft",
+    "sare_situation": "Chez Lard et Crème, en tant que chef de partie, j'ai dû couvrir simultanément les postes chaud et froid lors d'absences répétées dans la brigade.",
+    "sare_action": "J'ai réorganisé ma mise en place pour couvrir les deux postes, formé un commis en urgence sur les bases du poste froid, et adapté les timings.",
+    "sare_resultat": "Le service n'a jamais été interrompu malgré une brigade réduite de 40%. Le chef m'a promu responsable de la cuisine du midi.",
+    "sare_enseignement": "La polyvalence n'est pas du dépannage, c'est une compétence stratégique qui permet de maintenir la qualité en toute circonstance.",
+    "opc_consent": true
+  },
+  {
+    "experience_id": "5c195b2c-3a6d-4f17-ac40-386d064ecf03",
+    "soft_skill": "Gestion simultanée de plusieurs postes",
+    "skill_type": "hard",
+    "sare_situation": "Un soir de forte affluence (90 couverts), deux cuisiniers ont fait défaut. J'ai dû gérer 3 postes en simultané.",
+    "sare_action": "J'ai priorisé les envois par table, synchronisé les cuissons longues avec les assemblages froids, et communiqué en continu avec la salle.",
+    "sare_resultat": "Aucune table n'a attendu plus de 5 minutes au-delà du temps normal. Le service a été qualifié de fluide par le chef.",
+    "sare_enseignement": "La gestion multi-postes exige une vision globale du service et une capacité d'anticipation qui ne s'acquiert que par l'expérience.",
     "opc_consent": true
   }
 ]

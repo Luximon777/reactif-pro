@@ -230,7 +230,8 @@ async def seed_peter7_demo_data(db):
         illus_path = os.path.join(os.path.dirname(__file__), "seed_data_skill_illustrations.json")
         if os.path.exists(illus_path):
             existing_illus = await db.skill_illustrations.count_documents({"token_id": tid})
-            if existing_illus < 10:
+            logger.info(f"[Migration] {pseudo} skill_illustrations existantes: {existing_illus}")
+            if existing_illus < 20:
                 # Clear old seeded illustrations and re-inject
                 await db.skill_illustrations.delete_many({"token_id": tid})
                 with open(illus_path, "r") as ilf:
@@ -244,20 +245,24 @@ async def seed_peter7_demo_data(db):
                     ill.setdefault("situation_text", "")
                     await db.skill_illustrations.insert_one(ill)
                 logger.info(f"[Migration] {len(illus_templates)} skill_illustrations injectées pour {pseudo}")
+        else:
+            logger.warning(f"[Migration] Fichier illustrations non trouvé: {illus_path}")
 
-                # Also mark the first experience (Golf du Kempferohf) with proof_document for contract
-                contract_exp_id = "4df7ae35-9af1-4364-b54a-3dc54d1e96f1"
-                p = await db.passports.find_one({"token_id": tid})
-                if p:
-                    exps = p.get("experiences", [])
-                    updated = False
-                    for exp in exps:
-                        if exp.get("id") == contract_exp_id and not exp.get("proof_document"):
-                            exp["proof_document"] = "contrat_seed"
-                            exp["is_certified"] = True
-                            updated = True
-                    if updated:
-                        await db.passports.update_one({"token_id": tid}, {"$set": {"experiences": exps}})
+        # ALWAYS ensure ALL experiences have proof_document and is_certified
+        p = await db.passports.find_one({"token_id": tid})
+        if p:
+            exps = p.get("experiences", [])
+            updated = False
+            for exp in exps:
+                if not exp.get("proof_document"):
+                    exp["proof_document"] = "contrat_seed"
+                    updated = True
+                if not exp.get("is_certified"):
+                    exp["is_certified"] = True
+                    updated = True
+            if updated:
+                await db.passports.update_one({"token_id": tid}, {"$set": {"experiences": exps}})
+                logger.info(f"[Migration] {pseudo}: toutes les expériences marquées proof_document + is_certified")
 
         # Seed coffre documents (preuves) — ALWAYS check independently of passport state
         coffre_path = os.path.join(os.path.dirname(__file__), "seed_data_coffre_documents.json")
@@ -268,8 +273,8 @@ async def seed_peter7_demo_data(db):
             expected_min = len(coffre_templates)
             # Seed if user has fewer S.A.R.E/diplome proofs than expected
             existing_sare = await db.coffre_documents.count_documents({"token_id": tid, "document_type": "sare_proof"})
-            existing_diplomes = await db.coffre_documents.count_documents({"token_id": tid, "category": "diplome"})
-            if existing_sare < 10 or existing_diplomes < 2:
+            existing_contrats = await db.coffre_documents.count_documents({"token_id": tid, "document_type": "contrat"})
+            if existing_sare < 20 or existing_contrats < 10:
                 # Remove old seed-type docs to avoid duplicates, keep user-uploaded files (with grid_id)
                 await db.coffre_documents.delete_many({
                     "token_id": tid,
