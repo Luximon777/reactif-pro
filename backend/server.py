@@ -1142,6 +1142,43 @@ def _apply_filter_scoring(job, match_entry, filters, user_profile_text):
     return match_entry
 
 
+def _ft_offre_to_match(offre: dict, user_words: set) -> dict:
+    """Convert a France Travail offer into a match entry scored against user keywords."""
+    titre = offre.get("intitule", "")
+    entreprise = (offre.get("entreprise") or {}).get("nom", "Entreprise")
+    lieu = (offre.get("lieuTravail") or {}).get("libelle", "")
+    contrat = offre.get("typeContratLibelle", offre.get("typeContrat", ""))
+    desc = offre.get("description", "")[:300]
+    offre_id = offre.get("id", "")
+    url = f"https://candidat.francetravail.fr/offres/recherche/detail/{offre_id}" if offre_id else ""
+    ft_competences = [c.get("libelle", "") for c in (offre.get("competences") or []) if c.get("libelle")]
+    matched_comps = []
+    for fc in ft_competences:
+        fc_words = set(w for w in fc.lower().split() if len(w) > 3)
+        if fc_words & user_words:
+            matched_comps.append(fc)
+    score = min(100, 30 + int((len(matched_comps) / max(len(ft_competences), 1)) * 50) + (10 if matched_comps else 0))
+    salaire = ""
+    if offre.get("salaire"):
+        sal = offre["salaire"]
+        salaire = sal.get("libelle", sal.get("complement1", ""))
+    return {
+        "titre": titre,
+        "matching_score": score,
+        "secteur": offre.get("secteurActiviteLibelle", ""),
+        "type_contrat": contrat,
+        "entreprise_type": entreprise,
+        "localisation": lieu,
+        "description": desc,
+        "salaire_indicatif": salaire,
+        "competences_matchees": matched_comps[:6],
+        "pourquoi_ce_match": f"Offre France Travail — {len(matched_comps)} compétence(s) en commun",
+        "url_offre": url,
+        "scoring": None,
+        "source": "france_travail",
+    }
+
+
 @api_router.get("/jobs/matching")
 async def jobs_matching_early(token: str):
     token_doc = await get_current_token(token)
@@ -1183,16 +1220,45 @@ async def jobs_matching_early(token: str):
         matches.append(entry)
 
     matches.sort(key=lambda x: x["matching_score"], reverse=True)
+
+    # Prefer real France Travail offers matched to the user's profile
+    ft_matches = []
+    try:
+        from opc.connecteurs.france_travail import FranceTravailClient
+        ft = FranceTravailClient()
+        if ft.is_configured():
+            code_rome = ""
+            rome_codes = (passport or {}).get("rome_codes", [])
+            if rome_codes:
+                code_rome = rome_codes[0] if isinstance(rome_codes[0], str) else rome_codes[0].get("code", "")
+            mots_cles = "" if code_rome else (exp_titles[0] if exp_titles else "")
+            if code_rome or mots_cles:
+                result = await ft.search_offres(code_rome=code_rome or None, motsCles=mots_cles or None)
+                ft_matches = [_ft_offre_to_match(o, user_words) for o in result.get("resultats", [])[:20]]
+                ft_matches.sort(key=lambda x: x["matching_score"], reverse=True)
+    except Exception as e:
+        logging.warning(f"[Jobs matching] France Travail indisponible: {str(e)[:150]}")
+
+    if ft_matches:
+        final_matches = ft_matches
+        source = "france_travail"
+    else:
+        # Internal fallback: only keep offers actually relevant to the profile
+        relevant = [m for m in matches if m["matching_score"] >= 45]
+        final_matches = relevant if relevant else matches[:5]
+        source = "base_interne"
+
     return {
-        "has_data": len(matches) > 0 or len(skills) > 0,
+        "has_data": len(final_matches) > 0 or len(skills) > 0,
         "has_filters": False,
+        "source": source,
         "profile_summary": {
             "titre": profile_title,
             "skills_count": len(skills),
             "has_optimized_cv": cv_doc is not None,
             "has_career_project": bool(career_project),
         },
-        "matches": matches,
+        "matches": final_matches,
     }
 
 
@@ -2643,10 +2709,54 @@ async def get_user_evolution_analysis(token: str):
 class MarcheCacheDiagnosticRequest(BaseModel):
     token: str
 
+@api_router.get("/marche-cache/diagnostic")
+async def get_marche_cache_diagnostic_cached(token: str):
+    """Return the last saved diagnostic (instant)."""
+    token_doc = await get_current_token(token)
+    doc = await db.marche_cache_diagnostics.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if not doc:
+        return {"has_diagnostic": False, "diagnostic": None}
+    return {"has_diagnostic": True, "diagnostic": doc.get("diagnostic"), "generated_at": doc.get("generated_at")}
+
+
+async def _run_marche_cache_job(job_id: str, token_doc: dict):
+    try:
+        diagnostic = await _compute_marche_cache_diagnostic(token_doc)
+        await db.marche_cache_diagnostics.update_one(
+            {"token_id": token_doc["id"]},
+            {"$set": {"token_id": token_doc["id"], "diagnostic": diagnostic, "generated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        await db.marche_cache_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "diagnostic": diagnostic}})
+    except Exception as e:
+        logger.error(f"Marché caché job error: {e}")
+        await db.marche_cache_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
+
+
 @api_router.post("/marche-cache/diagnostic")
-async def marche_cache_diagnostic(payload: MarcheCacheDiagnosticRequest):
-    """AI-powered diagnostic of user's hidden job market access potential."""
+async def marche_cache_diagnostic(payload: MarcheCacheDiagnosticRequest, background_tasks: BackgroundTasks):
+    """Start the AI diagnostic as a background job (avoids proxy timeouts on long LLM calls)."""
     token_doc = await get_current_token(payload.token)
+    job_id = str(uuid.uuid4())
+    await db.marche_cache_jobs.insert_one({
+        "job_id": job_id, "token_id": token_doc["id"], "status": "processing",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    background_tasks.add_task(_run_marche_cache_job, job_id, token_doc)
+    return {"job_id": job_id, "status": "processing"}
+
+
+@api_router.get("/marche-cache/diagnostic/status")
+async def marche_cache_diagnostic_status(token: str, job_id: str):
+    token_doc = await get_current_token(token)
+    job = await db.marche_cache_jobs.find_one({"job_id": job_id, "token_id": token_doc["id"]}, {"_id": 0})
+    if not job:
+        raise HTTPException(404, "Job non trouvé")
+    return {"status": job.get("status"), "diagnostic": job.get("diagnostic"), "error": job.get("error")}
+
+
+async def _compute_marche_cache_diagnostic(token_doc: dict) -> dict:
+    """AI-powered diagnostic of user's hidden job market access potential."""
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0})
 
@@ -2722,13 +2832,13 @@ Le JSON doit contenir exactement ces champs:
             if clean.startswith("```"):
                 clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
             diagnostic = json_lib.loads(clean)
-            return {"diagnostic": diagnostic}
+            return diagnostic
         except Exception as e:
             logger.error(f"Marché caché AI error: {e}")
 
     # Fallback without AI
     score = min(10, max(1, len(user_skills) // 2 + len(experiences) + (2 if metier else 0)))
-    return {"diagnostic": {
+    return {
         "score_acces": score,
         "analyse": f"Avec {len(user_skills)} compétences et {len(experiences)} expériences, votre accès au marché caché est {'bon' if score >= 6 else 'à développer'}.",
         "forces_marche_cache": [f"Compétences diversifiées ({len(user_skills)} identifiées)"] + ([f"Secteurs ciblés : {', '.join(sectors[:3])}"] if sectors else []),
@@ -2740,7 +2850,7 @@ Le JSON doit contenir exactement ces champs:
         "canaux_privilegier": ["LinkedIn", "Événements sectoriels", "Anciens collègues", "Associations professionnelles"],
         "types_entreprises": ["PME en croissance", "Start-ups de votre secteur", "Cabinets de conseil"],
         "strategie_reseau": "Développez votre présence en ligne et participez activement aux discussions de votre secteur."
-    }}
+    }
 
 
 # ============== EXPLORATEUR SUGGESTIONS PERSONNALISÉES ==============
@@ -8810,46 +8920,7 @@ async def search_france_travail_offres(token: str, body: dict = {}):
         }
 
     # Process FT API results
-    matches = []
-    for offre in resultats[:20]:
-        titre = offre.get("intitule", "")
-        entreprise = (offre.get("entreprise") or {}).get("nom", "Entreprise")
-        lieu = (offre.get("lieuTravail") or {}).get("libelle", "")
-        contrat = offre.get("typeContratLibelle", offre.get("typeContrat", ""))
-        desc = offre.get("description", "")[:300]
-        # Direct link to the offer detail page on France Travail
-        offre_id = offre.get("id", "")
-        url = f"https://candidat.francetravail.fr/offres/recherche/detail/{offre_id}" if offre_id else ""
-
-        ft_competences = [c.get("libelle", "") for c in (offre.get("competences") or []) if c.get("libelle")]
-        matched_comps = []
-        for fc in ft_competences:
-            fc_words = set(w for w in fc.lower().split() if len(w) > 3)
-            if fc_words & user_words:
-                matched_comps.append(fc)
-
-        score = min(100, 30 + int((len(matched_comps) / max(len(ft_competences), 1)) * 50) + (10 if matched_comps else 0))
-
-        salaire = ""
-        if offre.get("salaire"):
-            sal = offre["salaire"]
-            salaire = sal.get("libelle", sal.get("complement1", ""))
-
-        matches.append({
-            "titre": titre,
-            "matching_score": score,
-            "secteur": offre.get("secteurActiviteLibelle", ""),
-            "type_contrat": contrat,
-            "entreprise_type": entreprise,
-            "localisation": lieu,
-            "description": desc,
-            "salaire_indicatif": salaire,
-            "competences_matchees": matched_comps[:6],
-            "pourquoi_ce_match": f"Offre France Travail — {len(matched_comps)} compétence(s) en commun",
-            "url_offre": url,
-            "scoring": None,
-            "source": "france_travail",
-        })
+    matches = [_ft_offre_to_match(offre, user_words) for offre in resultats[:20]]
 
     matches.sort(key=lambda x: x["matching_score"], reverse=True)
     return {

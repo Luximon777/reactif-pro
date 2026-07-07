@@ -314,15 +314,39 @@ async def get_saved_events(token: str):
     return {"events": saved}
 
 
+def _event_details_for_storage(evt: dict) -> dict:
+    return {
+        "title": evt.get("title", ""),
+        "start_datetime": evt.get("start_datetime", ""),
+        "end_datetime": evt.get("end_datetime", ""),
+        "city": evt.get("city", ""),
+        "mode": evt.get("mode", "presentiel"),
+        "address": evt.get("address", ""),
+        "event_type": evt.get("event_type", ""),
+        "registration_url": evt.get("registration_url", ""),
+        "companies_count": evt.get("companies_count", 0),
+    }
+
+
+async def _find_event_by_id(token_doc, event_id: str):
+    profile_data = await _get_user_profile_for_jobdating(token_doc)
+    events = _generate_job_dating_events(profile_data)
+    return next((e for e in events if e.get("id") == event_id), None)
+
+
 @router.post("/jobdating/events/{event_id}/save")
 async def save_event(event_id: str, token: str):
     token_doc = await get_current_token(token)
     existing = await db.saved_events.find_one({"token_id": token_doc["id"], "event_id": event_id})
     if not existing:
-        await db.saved_events.insert_one({
+        doc = {
             "token_id": token_doc["id"], "event_id": event_id,
             "saved_at": datetime.now(timezone.utc).isoformat()
-        })
+        }
+        evt = await _find_event_by_id(token_doc, event_id)
+        if evt:
+            doc.update(_event_details_for_storage(evt))
+        await db.saved_events.insert_one(doc)
     return {"success": True}
 
 
@@ -345,10 +369,14 @@ async def register_event(event_id: str, token: str):
     token_doc = await get_current_token(token)
     existing = await db.event_registrations.find_one({"token_id": token_doc["id"], "event_id": event_id})
     if not existing:
-        await db.event_registrations.insert_one({
+        doc = {
             "token_id": token_doc["id"], "event_id": event_id,
             "registered_at": datetime.now(timezone.utc).isoformat()
-        })
+        }
+        evt = await _find_event_by_id(token_doc, event_id)
+        if evt:
+            doc.update(_event_details_for_storage(evt))
+        await db.event_registrations.insert_one(doc)
     return {"success": True}
 
 
@@ -370,7 +398,8 @@ async def get_jobdating_history(token: str):
         days_until = (start_dt - now).days
 
         entry = {
-            "title": event_id,
+            "title": reg.get("title") or event_id,
+            "event_id": event_id,
             "start_datetime": start_str,
             "city": reg.get("city", ""),
             "mode": reg.get("mode", "presentiel"),
@@ -380,6 +409,7 @@ async def get_jobdating_history(token: str):
             "non_participation_reason": reg.get("non_participation_reason"),
             "companies_list": [],
             "address": reg.get("address", ""),
+            "registration_url": reg.get("registration_url", ""),
         }
         if start_dt > now:
             upcoming.append(entry)

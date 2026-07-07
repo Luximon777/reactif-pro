@@ -15,42 +15,60 @@ const MarcheCacheView = ({ token }) => {
   const [diagnostic, setDiagnostic] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Auto-load diagnostic when user has a token
+  // Load cached diagnostic; auto-run only if none exists yet
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
 
     const doLoad = async () => {
-      setLoading(true);
       try {
-        const res = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 90000 });
-        if (!cancelled) {
-          if (res.data.error) {
-            toast.error(res.data.error);
-          } else {
-            setDiagnostic(res.data.diagnostic);
-          }
-          setLoading(false);
+        const res = await axios.get(`${API}/marche-cache/diagnostic?token=${token}`);
+        if (cancelled) return;
+        if (res.data.has_diagnostic && res.data.diagnostic) {
+          setDiagnostic(res.data.diagnostic);
+        } else {
+          runDiagnostic();
         }
       } catch {
-        if (!cancelled) {
-          toast.error("Erreur lors de l'analyse");
-          setLoading(false);
-        }
+        if (!cancelled) toast.error("Erreur lors du chargement du diagnostic");
       }
     };
 
     doLoad();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const runDiagnostic = async () => {
     setDiagnostic(null);
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 90000 });
-      if (res.data.error) { toast.error(res.data.error); } else { setDiagnostic(res.data.diagnostic); }
-    } catch { toast.error("Erreur lors de l'analyse"); }
+      const start = await axios.post(`${API}/marche-cache/diagnostic`, { token }, { timeout: 20000 });
+      const jobId = start.data.job_id;
+      let done = false;
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const res = await axios.get(`${API}/marche-cache/diagnostic/status?token=${token}&job_id=${jobId}`);
+          if (res.data.status === "completed") {
+            setDiagnostic(res.data.diagnostic);
+            done = true;
+            break;
+          }
+          if (res.data.status === "failed") {
+            toast.error(res.data.error || "L'analyse a échoué");
+            done = true;
+            break;
+          }
+        } catch (err) {
+          if (!err.response || err.response.status >= 500) continue;
+          throw err;
+        }
+      }
+      if (!done) toast.error("L'analyse prend trop de temps, réessayez.");
+    } catch {
+      toast.error("Erreur lors de l'analyse");
+    }
     setLoading(false);
   };
 

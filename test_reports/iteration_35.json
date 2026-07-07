@@ -1,0 +1,58 @@
+{
+  "summary": "Iteration 35 - Full regression of the 3 bugs reported by user (Marché caché, Job Matching France Travail, Job Dating history). Backend: 5/5 pytest tests PASSED. Frontend: 4/4 flows PASSED. All 3 bugs are FIXED end-to-end. One minor unrelated UI observation on the Sauvegardés tab (empty area) noted below.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "JobDatingView > tab-saved (Sauvegardés)",
+        "issue": "After toggling save on an event, toast 'Événement sauvegardé !' appears and tab counter goes 0 -> 1, but the Sauvegardés tab body renders empty (no card shown). Not part of the 3 requested bugs; save+persistence itself is working (backend + counter). Worth a quick check on the render mapping for saved_events in JobDatingView.jsx.",
+        "selector": "[data-testid='tab-saved']",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration35_marche_jobs_jobdating.py",
+    "/app/test_reports/pytest/pytest_iteration35_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (low priority): investigate why the 'Sauvegardés' tab body is empty even though the counter increments and toast confirms save. Likely a filter/mapping issue in JobDatingView.jsx (saved list not merged with events for rendering)."
+  ],
+  "critical_code_review_comments": [
+    "Marché caché: cache-first GET + POST-job + status polling pattern works well and cleanly avoids the 44s proxy timeout. LLM diagnostic completes in ~40-60s and is cached correctly.",
+    "Jobs matching: FT-first approach with matching_score >= 45 fallback yields highly relevant CIP offers (90/73/70) for mike9; no more off-topic offers (0 puéricultrice).",
+    "Job Dating: _event_details_for_storage now correctly stores title/city/start_datetime — no raw 'evt-...' IDs leaking to UI; history entries fully rendered as 'Salon Emploi Social & Insertion — Toulouse — lundi 20 juillet à 17:30 — Toulouse'."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration35_marche_jobs_jobdating.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 pytest passed)",
+    "frontend": "100% on the 3 reported flows (Marché caché cache+rerun, Opportunités FT offers, Job Dating history/register/save) - 1 unrelated minor UI observation on Sauvegardés tab body"
+  },
+  "test_credentials": "mike9 / Solerys777! (used exactly as provided in request)",
+  "seed_data_creation": "Added 1 registration for 'E-Job Dating Commerce & Vente' (evt-commerce-online) during test — kept the pre-existing 'Salon Emploi Social & Insertion — Toulouse' as instructed. Also saved 1 event via the Sauvegarder toggle (Sauvegardés counter now = 1).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "3 user-reported bugs fully validated FIXED as of iteration 35. Backend endpoints used (all under REACT_APP_BACKEND_URL): GET /api/marche-cache/diagnostic?token= returns has_diagnostic=true; POST /api/marche-cache/diagnostic {token} returns job_id; GET /api/marche-cache/diagnostic/status?token=&job_id= transitions processing->completed in ~40-60s with full diagnostic payload. GET /api/jobs/matching?token= returns source='france_travail' with matches=[{titre, matching_score, url_offre, ...}] — for mike9 CIP profile, 20 offers with scores 65-90, all 'Conseiller en insertion professionnelle'. POST /api/jobdating/events/{event_id}/register + GET /api/jobdating/history returns upcoming=[{title:'Salon Emploi Social & Insertion — Toulouse', city:'Toulouse', start_datetime:'2026-07-20...', ...}]. UI selectors verified: marche-tab-cache, marche-cache-results, marche-cache-loading, rerun-diagnostic-btn, nav-le-marché, nav-opportunités, nav-job-dating, tab-offres, tab-recommended, tab-saved, tab-history, event-card-*, save-event-checkbox, history-upcoming-{i}. Only remaining minor UI todo: Sauvegardés tab body renders empty despite counter incrementing.",
+  "features_tested": {
+    "Backend Marché caché cached GET": "PASSED",
+    "Backend Marché caché POST job + polling status": "PASSED (completed in ~45s)",
+    "Backend Jobs matching FT-first + CIP relevance + no puériculture": "PASSED (20 offers, max score 90, all insertion/CIP)",
+    "Backend Job Dating events list": "PASSED (17 events)",
+    "Backend Job Dating register + history full details (title/city/start_datetime)": "PASSED (evt-commerce-online -> E-Job Dating Commerce & Vente in upcoming)",
+    "Frontend Login mike9": "PASSED",
+    "Frontend Marché > Marché caché cached results display": "PASSED (score 7/10, atouts, points, recommandations)",
+    "Frontend Marché caché 'Actualiser le diagnostic' rerun + loading state + new results": "PASSED (loading shown, new content after ~45s)",
+    "Frontend Opportunités > Offres = France Travail CIP offers with FT links": "PASSED (Conseiller en insertion 90/73/70% match, all francetravail.fr URLs)",
+    "Frontend Job Dating Recommandés score for Salon Emploi Social Toulouse": "PASSED (75% score, Recommandé badge)",
+    "Frontend Job Dating Historique shows real title/city/date (not evt- ID)": "PASSED (Salon Emploi Social & Insertion — Toulouse | lundi 20 juillet à 17:30 — Toulouse | Dans 13 jours)",
+    "Frontend Job Dating Sauvegarder toggle": "PASSED (toast + counter 0->1) but Sauvegardés tab body empty (minor unrelated bug)"
+  },
+  "rca_of_the_issue": "All 3 fixes confirmed live: (1) Marché caché — background job pattern (_compute_marche_cache_diagnostic + status polling) correctly avoids the 44s proxy timeout and results are cached for instant redisplay. (2) Jobs matching — GET /api/jobs/matching hits France Travail API with the user's ROME codes (D1448 Conseiller emploi/insertion, etc.) BEFORE the internal demo set, returning highly relevant offers; internal fallback filtering by score>=45 avoids off-topic content. (3) Job Dating — _event_details_for_storage() snapshots the full event (title, city, start_datetime) at the moment of registration/save, so /api/jobdating/history renders proper labels instead of the raw event_id."
+}
