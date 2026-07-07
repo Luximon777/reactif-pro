@@ -217,6 +217,14 @@ export const ArbreCompetences = ({ token }) => {
               <Plus className="w-4 h-4" />
             </Button>
           </div>
+          {dirty && (
+            <div className="flex justify-end">
+              <Button size="sm" className="bg-[#1e3a5f] hover:bg-[#152a45] text-white" onClick={save} disabled={saving} data-testid="arbre-save-btn-panel">
+                {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                Enregistrer mon arbre
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
