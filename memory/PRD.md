@@ -33,6 +33,7 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-06) Job matching : GET /jobs/matching interroge France Travail selon le profil (ROME/expériences) en priorité, fallback interne filtré score >= 45
 - [x] (2026-06) Job dating : inscription/sauvegarde stockent les détails complets de l'événement ; historique affiche titre/ville/date réels ; onglet Sauvegardés réparé (filtre par id)
 - [x] (2026-06) Refonte Archéologie : Arbre des Compétences infographique (5 bulles remplissables : savoirs-faire, savoirs-être, qualités, valeurs, vertus/racines), préremplissage profil, sauvegarde (GET/POST /passport/arbre), suppression contenu répétitif et mention ennéagramme
+- [x] (2026-06) Arbre : renumérotation depuis les racines (1 Vertus → 5 Savoir-faire) + rails Formation/Apprentissage/Capacités/Tuteur/Potentiel + légende explicative
 
 ## Comptes démo
 - peter7 / Solerys777! (profil complet, Expert Certifié level 3)
