@@ -1725,17 +1725,18 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                           <Award className="w-4 h-4 text-emerald-700" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-slate-900">{f.diplome}</h4>
-                          {f.etablissement && <p className="text-xs text-slate-600 mt-0.5">{f.etablissement}</p>}
+                          <h4 className="text-sm font-semibold text-slate-900">{f.title || f.diplome}</h4>
+                          {(f.institution || f.etablissement) && <p className="text-xs text-slate-600 mt-0.5">{f.institution || f.etablissement}</p>}
                           <div className="flex items-center gap-2 mt-0.5">
-                            {f.annee && <span className="text-xs text-slate-400">{f.annee}</span>}
+                            {(f.year || f.annee) && <span className="text-xs text-slate-400">{f.year || f.annee}</span>}
+                            {f.level && <span className="text-xs text-slate-400">{f.level}</span>}
                             {f.type && (
                               <Badge variant="outline" className="text-[10px] rounded-full capitalize">
-                                {f.type === "diplome" ? "Diplôme" : f.type === "certification" ? "Certification" : f.type === "stage_formation" ? "Stage/Formation" : f.type}
+                                {f.type === "diplome" ? "Diplôme" : f.type === "certification" ? "Certification" : f.type === "stage_formation" ? "Stage/Formation" : f.type === "formation_pro" ? "Formation pro" : f.type === "mooc" ? "MOOC" : f.type}
                               </Badge>
                             )}
                           </div>
-                          {f.domaine && <p className="text-xs text-slate-500 mt-1">{f.domaine}</p>}
+                          {(f.description || f.domaine) && <p className="text-xs text-slate-500 mt-1">{f.description || f.domaine}</p>}
                         </div>
                       </div>
                     ))}

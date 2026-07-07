@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 34 - Targeted frontend retest of the HIGH bug fixed after iteration 33: 'Formations & Certifications' card in Mon CV sub-tab. Bug is now FIXED. All 4 formation cards render correctly with title, institution, year, level and type badge.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix in /app/frontend/src/views/ParticulierView.jsx L1728-1739 correctly uses fallback accessors (f.title || f.diplome, f.institution || f.etablissement, f.year || f.annee, plus f.level and f.description). This is a good backwards-compatible approach.",
+    "Long-term recommendation still valid: consider a shared TypeScript/Pydantic schema between frontend and backend to prevent silent field name drift."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "n/a (not tested per request)",
+    "frontend": "100% (formation cards fully populated: all 4 titles, institutions, years, levels and type badges visible)"
+  },
+  "test_credentials": "mike9 / Solerys777! (pre-existing CV data preserved, no mutation performed)",
+  "seed_data_creation": "None - reused existing mike9 passport data",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bug from iteration 33 (Formations & Certifications card showing empty entries due to field name mismatch diplome/etablissement/annee vs title/institution/year) is fully resolved. Verified through Playwright: after login (mike9/Solerys777!) -> nav 'Trajectoire' -> sub-button 'Mon CV' -> scroll to [data-testid='cv-formations-section'], all 4 [data-testid='cv-formation-{i}'] cards display complete data: (0) 'Titre professionnel Conseiller en Insertion Professionnelle (CIP)' / AFPA Strasbourg / 2014 / Bac+2 / Diplôme, (1) 'Licence de Psychologie' / Université de Strasbourg / 2011 / Bac+3 / Diplôme, (2) 'Certification \"Accompagnement à la VAE\"' / CNAM Grand Est / 2020 / Certification, (3) 'MOOC \"Numérique et inclusion\"' / OpenClassrooms / 2022 / MOOC.",
+  "features_tested": {
+    "Login mike9": "PASSED",
+    "Navigation Trajectoire > Mon CV": "PASSED",
+    "cv-formations-section rendering": "PASSED - section visible with badge count '4'",
+    "cv-formation-{i} cards content": "PASSED - all 4 cards display title, institution, year, level and type badge",
+    "Expected titles present": "PASSED - CIP, Licence Psychologie, Certification VAE, MOOC Numérique et inclusion",
+    "Expected institutions present": "PASSED - AFPA Strasbourg, Université de Strasbourg, CNAM Grand Est, OpenClassrooms",
+    "Expected years present": "PASSED - 2014, 2011, 2020, 2022"
+  },
+  "rca_of_the_issue": "Fix confirmed at /app/frontend/src/views/ParticulierView.jsx lines 1728-1739: accessors now use `f.title || f.diplome`, `f.institution || f.etablissement`, `f.year || f.annee`, with added `f.level` display and `f.description || f.domaine`. This normalises the frontend to read the backend's actual field names (title/institution/year) while remaining tolerant to legacy diplome/etablissement/annee data."
+}

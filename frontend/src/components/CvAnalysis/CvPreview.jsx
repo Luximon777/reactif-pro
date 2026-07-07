@@ -79,7 +79,7 @@ const CvPreview = ({ data }) => {
           {cv.formations.map((f, i) => (
             <div key={i} className="mb-1">
               <p className="text-sm font-semibold">{f.diplome}</p>
-              <p className="text-xs text-slate-500">{[f.etablissement, f.annee].filter(Boolean).join(" — ")}</p>
+              <p className="text-xs text-slate-500">{[f.ecole || f.etablissement, f.annee].filter(Boolean).join(" — ")}</p>
             </div>
           ))}
         </div>
