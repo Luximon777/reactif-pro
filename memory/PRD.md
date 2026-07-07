@@ -25,6 +25,10 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] Migration automatique données démo (peter7, peter9)
 - [x] Seed complet : 33 coffre docs + 20 skill_illustrations + 10 contrats + proof_document sur 10 expériences
 - [x] Admin Gate (3 statuts : Admin, Dev, Invité)
+- [x] (2026-06) Extraction formations + centres d'intérêt lors de l'upload CV (prompt enrichi, sauvegarde passeport + cv_centres_interet, cv_text brut stocké dans cv_jobs)
+- [x] (2026-06) Fallback /passport/refresh basé sur le texte complet du CV (cv_text) au lieu du résumé — plus d'inventions IA
+- [x] (2026-06) Optimisation CV ciblée : mots-clés ATS extraits de l'offre (check-offer-match + generate-models), bannière de confirmation "Offre prise en compte" + chips ATS dans l'UI
+- [x] (2026-06) Fix affichage carte Formations (mapping title/institution/year)
 
 ## Comptes démo
 - peter7 / Solerys777! (profil complet, Expert Certifié level 3)
@@ -38,3 +42,6 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - P2: Ateliers Codéveloppement
 - P3: Micro-titres/badges (Ubuntoo)
 - P3: Compteur global preuves OPC
+
+## Note environnements
+- Les corrections sont faites sur Preview. L'utilisateur doit REDÉPLOYER pour les voir sur reactif.pro (production). Les comptes prod (ex: aurelie67) bénéficieront des correctifs lors du prochain upload de CV ou via le bouton "Actualiser" du passeport (refresh).
