@@ -367,7 +367,11 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
           if (res.data.status === "completed") {
             const modelsRes = await axios.get(`${API}/cv/models?token=${token}`);
             if (modelsRes.data.models) setCvModels(modelsRes.data);
-            toast.success(`${selectedGenModels.length} CV optimisé${selectedGenModels.length > 1 ? "s" : ""} par IA`);
+            if (res.data.job_offer_used) {
+              toast.success(`CV optimisé pour l'offre ciblée${res.data.target_job ? ` « ${res.data.target_job} »` : ""}${res.data.ats_keywords?.length ? ` — ${res.data.ats_keywords.length} mots-clés ATS intégrés` : ""}`, { duration: 6000 });
+            } else {
+              toast.success(`${selectedGenModels.length} CV optimisé${selectedGenModels.length > 1 ? "s" : ""} par IA`);
+            }
             setSelectedGenModels([]);
             break;
           }
@@ -1200,6 +1204,20 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
                         ))}
                       </div>
                     )}
+                    {offerMatchResult.ats_keywords?.length > 0 && (
+                      <div className="mt-1.5" data-testid="offer-ats-keywords">
+                        <p className="text-[10px] font-semibold opacity-70">
+                          Mots-clés ATS détectés dans l'offre (seront intégrés à votre CV optimisé) :
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {offerMatchResult.ats_keywords.map((k, i) => (
+                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 border border-current font-medium">
+                              {k}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {offerMatchResult.alert && (
                       <p className="text-xs text-red-500 mt-1 italic">
                         Vous pouvez quand même générer le CV, mais il sera moins pertinent pour cette offre.
@@ -1224,6 +1242,32 @@ const CvAnalysisSection = ({ token, onComplete, compact = false, mode = "full" }
               <div className="w-full bg-blue-200 rounded-full h-1.5">
                 <div className="bg-blue-600 h-1.5 rounded-full transition-all" style={{ width: `${Math.max(5, (genProgress.current / genProgress.total) * 100)}%` }} />
               </div>
+            </div>
+          )}
+
+          {/* Confirmation: job offer taken into account */}
+          {!generatingModel && cvModels?.job_offer_used && (
+            <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-3" data-testid="cv-offer-confirmation">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <p className="text-sm font-semibold text-emerald-700">
+                  Offre d'emploi prise en compte{cvModels.target_job ? ` — CV ciblé pour « ${cvModels.target_job} »` : " dans la génération de vos CV"}
+                </p>
+              </div>
+              {cvModels.ats_keywords?.length > 0 && (
+                <>
+                  <p className="text-xs text-emerald-600 mt-1 ml-6">
+                    {cvModels.ats_keywords.length} mot{cvModels.ats_keywords.length > 1 ? "s" : ""}-clé{cvModels.ats_keywords.length > 1 ? "s" : ""} ATS de l'offre intégré{cvModels.ats_keywords.length > 1 ? "s" : ""} dans vos CV :
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1.5 ml-6">
+                    {cvModels.ats_keywords.map((k, i) => (
+                      <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-700 font-medium">
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 33 - Regression tests for the CV analysis bug fixes (formations + centres d'intérêt extraction from CV, ATS keyword propagation in check-offer-match + generate-models). Backend: 5/5 automated tests passed (1 long LLM test skipped). Frontend: 4/5 flows validated. 1 CRITICAL UI BUG found: the 'Formations & Certifications' card renders with empty content because frontend expects fields diplome/etablissement/annee but backend passport stores title/institution/year.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ParticulierView.jsx > Formations & Certifications card (data-testid=cv-formations-section, cv-formation-{i})",
+        "issue": "The card lists the 4 CV formations count (badge shows '4') but each entry only displays the type badge (Diplôme/Diplôme/Certification/Mooc). Titles (Titre professionnel CIP, Licence de Psychologie, Certification VAE, MOOC Numérique et inclusion), establishment (AFPA Strasbourg...) and year (2014...) are ALL EMPTY. Root cause: field name mismatch — frontend uses f.diplome/f.etablissement/f.annee while backend passport.formations stores title/institution/year (see /api/passport response: {id, title, institution, year, type, level, description, source, visibility}).",
+        "selector": "[data-testid='cv-formations-section']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration33_cv_formations_offer.py",
+    "/app/test_reports/pytest/pytest_iteration33_results.xml"
+  ],
+  "action_items": [
+    "Fix field mapping in /app/frontend/src/views/ParticulierView.jsx lines 1722-1740: change f.diplome -> f.title, f.etablissement -> f.institution, f.annee -> f.year (or normalise backend to also expose diplome/etablissement/annee aliases in /api/passport). Same care needed for CvAnalysisSection / any other formation rendering.",
+    "Also review the Ma trajectoire timeline (frise) which currently shows only 'Suggestion IA' formations, not the CV-sourced ones — CV formations should be represented on the passport timeline too."
+  ],
+  "critical_code_review_comments": [
+    "Field name inconsistency: backend model Passport stores formations with keys title/institution/year (server.py ~L3234-L3245 fallback and L3047-L3058 main extraction) while frontend renderer expects diplome/etablissement/annee. This causes silent rendering (component visible but empty).",
+    "Consider a single source of truth Pydantic schema shared between frontend/backend to prevent such drift."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration33_cv_formations_offer.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 tests passed, 1 skipped long LLM regen)",
+    "frontend": "80% (4/5 flows OK, 1 critical UI bug)"
+  },
+  "test_credentials": "mike9 / Solerys777! (has pre-analysed CV + generated CV models with offer targeting)",
+  "seed_data_creation": "None — reused existing mike9 data (4 formations from CV, 3 centres d'intérêt, 1 generated CV model targeting 'Conseiller emploi et insertion (H/F)').",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend end-to-end flow (upload CV -> passport.formations + centres_interet + cv_text stored, offer targeting via check-offer-match returning ats_keywords, generate-models with job_offer producing job_offer_used/target_job/ats_keywords) is fully working. Frontend UI shows offer confirmation banner + ATS chips + offer-match alert correctly. Only remaining issue is Formations card field mapping. After main agent fixes frontend field mapping, retest by navigating to /dashboard/trajectoire -> Mon CV sub-tab -> scroll to [data-testid='cv-formations-section'] and check that titles like 'Titre professionnel Conseiller en Insertion Professionnelle (CIP)' appear.",
+  "features_tested": {
+    "Backend GET /api/passport formations": "PASSED - 4 formations with source=cv_analysis (Titre pro CIP, Licence Psychologie, Certification VAE, MOOC Numérique et inclusion)",
+    "Backend GET /api/cv/centres-interet": "PASSED - 3 centres (Course à pied, Bénévolat aux Restos du Cœur, Photographie de rue)",
+    "Backend POST /api/cv/check-offer-match": "PASSED - score=92, matched_skills non empty, ats_keywords non empty (5 keywords)",
+    "Backend GET /api/cv/models": "PASSED - job_offer_used=true, target_job='Conseiller emploi et insertion (H/F)', ats_keywords length=12, model title matches offer",
+    "Frontend Login mike9": "PASSED",
+    "Frontend cv-offer-confirmation banner": "PASSED - Green banner visible with 'Offre d'emploi prise en compte — CV ciblé pour « Conseiller emploi et insertion (H/F) »' + 12 ATS keyword chips",
+    "Frontend check-match flow": "PASSED - Score 92%, offer-match-alert visible, offer-ats-keywords displays 8 chips (Conseiller emploi, entretiens individuels, ateliers collectifs, conduite d'entretien, Pack Office, Word, Excel, PowerPoint)",
+    "Frontend Centres d'intérêt tab": "PASSED - All 3 centres visible with descriptions",
+    "Frontend Formations cards": "FAILED - Cards render with only type badges, titles/institution/year empty due to backend/frontend field name mismatch"
+  },
+  "rca_of_the_issue": "Frontend renders passport.formations using f.diplome/f.etablissement/f.annee (ParticulierView.jsx L1728-1731) but the backend passport.formations documents (server.py L3234-3245 & L3047-3058) use title/institution/year. As a result, each formation card is displayed (count is right, type badge is right because type field matches) but the main content is blank. Fix: rename frontend accessors to f.title/f.institution/f.year, or add a schema mapping layer in the API/GET /api/passport response."
+}

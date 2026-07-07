@@ -3199,30 +3199,38 @@ async def refresh_passport(token: str):
     declared_formations = [f for f in passport.get("formations", []) if f.get("source") == "declaratif"]
     passport["formations"] = declared_formations + new_formations
 
-    # If formations still empty but CV exists, extract via targeted LLM call
-    if len(passport["formations"]) == 0:
+    # Fallback: extract formations + centres d'intérêt from full CV text if missing
+    ci_doc = await db.cv_centres_interet.find_one({"token_id": token_doc["id"]})
+    needs_ci = not ci_doc or not ci_doc.get("centres")
+    if len(passport["formations"]) == 0 or needs_ci:
         last_cv = await db.cv_jobs.find_one(
             {"token_id": token_doc["id"], "status": "completed"}, sort=[("created_at", -1)]
         )
-        if last_cv and last_cv.get("result") and EMERGENT_LLM_KEY:
-            cv_result = last_cv["result"]
-            exps_text = "; ".join([f"{e.get('title','')} @ {e.get('organization','')}" for e in cv_result.get("experiences", [])[:10]])
-            profile_text = cv_result.get("profile", {}).get("professional_summary", "")
-            audit_text = ""
-            for a in cv_result.get("audit_cv", []):
-                if "formation" in a.get("regle", "").lower():
-                    audit_text = a.get("diagnostic", "")
+        if last_cv and EMERGENT_LLM_KEY:
+            cv_full_text = last_cv.get("cv_text", "")
+            cv_result = last_cv.get("result") or {}
+            if cv_full_text:
+                source_text = f"TEXTE COMPLET DU CV:\n{cv_full_text[:12000]}"
+            else:
+                exps_text = "; ".join([f"{e.get('title','')} @ {e.get('organization','')}" for e in cv_result.get("experiences", [])[:10]])
+                profile_text = cv_result.get("profile", {}).get("professional_summary", "")
+                source_text = f"Profil: {profile_text}\nExpériences: {exps_text}"
             try:
                 chat = LlmChat(
                     api_key=EMERGENT_LLM_KEY,
-                    session_id=f"formations-extract-{uuid.uuid4()}",
-                    system_message="Tu extrais les formations/diplômes/certifications d'un profil professionnel. Réponds UNIQUEMENT en JSON: un array d'objets avec: title (nom diplôme/certification), institution (établissement), year (année si connue sinon vide), type (diplome|certification|formation_pro|mooc|autre), level (Bac, Bac+2, etc. si pertinent), description (court). Si aucune formation identifiable, retourne []."
+                    session_id=f"cv-extract-{uuid.uuid4()}",
+                    system_message="Tu extrais des informations d'un CV. Réponds UNIQUEMENT en JSON: {\"formations\": [{\"title\": \"nom diplôme/certification\", \"institution\": \"établissement\", \"year\": \"année ou vide\", \"type\": \"diplome|certification|formation_pro|mooc|autre\", \"level\": \"Bac, Bac+2, etc. ou vide\", \"description\": \"court\"}], \"centres_interet\": [{\"theme\": \"nom du hobby/passion\", \"description\": \"court\"}]}. Extrais UNIQUEMENT ce qui est réellement mentionné dans le texte, n'invente rien. Arrays vides si rien d'identifiable."
                 ).with_model("openai", "gpt-5.2")
-                response = await run_llm_nonblocking(chat, UserMessage(text=f"Profil: {profile_text}\nExpériences: {exps_text}\nAudit formations: {audit_text}\n\nExtrais toutes les formations/diplômes/certifications mentionnés ou fortement impliqués."))
+                response = await run_llm_nonblocking(chat, UserMessage(text=f"{source_text}\n\nExtrais toutes les formations/diplômes/certifications ET les centres d'intérêt mentionnés."))
                 import json as _json
-                formations_data = _json.loads(response)
-                if isinstance(formations_data, list):
-                    for f in formations_data:
+                cleaned = response.strip()
+                if "```json" in cleaned: cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+                elif "```" in cleaned: cleaned = cleaned.split("```")[1].split("```")[0].strip()
+                extracted = _json.loads(cleaned)
+                if len(passport["formations"]) == 0 and isinstance(extracted.get("formations"), list):
+                    for f in extracted["formations"]:
+                        if not f.get("title"):
+                            continue
                         passport["formations"].append({
                             "id": str(uuid.uuid4()),
                             "title": f.get("title", ""),
@@ -3231,12 +3239,23 @@ async def refresh_passport(token: str):
                             "type": f.get("type", "autre"),
                             "level": f.get("level", ""),
                             "description": f.get("description", ""),
-                            "source": "ia_detectee",
+                            "source": "cv_analysis" if cv_full_text else "ia_detectee",
                             "visibility": "private",
                         })
-                    logging.info(f"[Refresh] Extracted {len(formations_data)} formations via AI for {token_doc['id'][:8]}")
+                    logging.info(f"[Refresh] Extracted {len(passport['formations'])} formations (source: {'cv_text' if cv_full_text else 'summary'}) for {token_doc['id'][:8]}")
+                ci_list = [c for c in extracted.get("centres_interet", []) if isinstance(c, dict) and c.get("theme")]
+                if needs_ci and ci_list:
+                    await db.cv_centres_interet.update_one(
+                        {"token_id": token_doc["id"]},
+                        {"$set": {"token_id": token_doc["id"],
+                                  "centres": [{"theme": c.get("theme", ""), "description": c.get("description", "")} for c in ci_list[:8]],
+                                  "source": "cv_analysis",
+                                  "updated_at": datetime.now(timezone.utc).isoformat()}},
+                        upsert=True
+                    )
+                    logging.info(f"[Refresh] Extracted {len(ci_list)} centres d'intérêt for {token_doc['id'][:8]}")
             except Exception as e:
-                logging.error(f"[Refresh] Formation extraction error: {e}")
+                logging.error(f"[Refresh] CV extraction error: {e}")
     passport["completeness_score"] = calculate_completeness(passport)
     passport["last_updated"] = datetime.now(timezone.utc).isoformat()
 
@@ -3899,9 +3918,9 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
             await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
             return
 
-        cv_excerpt = cv_text[:6000]
+        cv_excerpt = cv_text[:12000]
 
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences..."}})
+        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "Analyse des compétences...", "cv_text": cv_text[:20000]}})
 
         # Run BOTH LLM calls in PARALLEL to cut total time in half
         analysis_task = asyncio.create_task(_llm_call_with_retry(
@@ -3915,6 +3934,7 @@ Structure exacte:
   "competences_transferables": ["liste de compétences transférables identifiées"],
   "experiences": [{"title": "string", "organization": "string", "description": "string", "experience_type": "professionnel|personnel|benevole|projet", "start_date": "YYYY-MM", "end_date": "YYYY-MM", "is_ongoing": false, "skills_used": [], "achievements": []}],
   "formations": [{"title": "string (nom du diplome/certification)", "institution": "string (etablissement)", "year": "YYYY", "type": "diplome|certification|formation_pro|mooc|autre", "level": "string (Bac, Bac+2, Bac+3, Bac+5, etc.)", "description": "string court"}],
+  "centres_interet": [{"theme": "string (nom du centre d'intérêt/hobby/passion)", "description": "string court (contexte, fréquence si mentionné)"}],
   "formations_suggestions": [{"title": "string", "reason": "string", "priority": "haute|moyenne|basse", "skills_to_gain": []}],
   "offres_emploi": [{"title": "string", "company_type": "string", "sector": "string", "contract_type": "CDI|CDD|Freelance", "salary_range": "string", "location": "France", "required_skills": [], "match_score": 75, "description": "courte description du poste"}],
   "strengths": ["points forts du candidat"],
@@ -3935,6 +3955,8 @@ Structure exacte:
   "modele_suggere": "cv_classique|cv_competences|cv_fonctionnel|cv_mixte"
 }
 Pour experiences: inclure start_date (YYYY-MM) et end_date (YYYY-MM) quand disponibles dans le CV. Mettre is_ongoing=true si le poste est actuel.
+Pour formations: extraire TOUTES les formations, diplômes et certifications réellement présents dans le texte du CV (souvent en fin de CV). Ne rien inventer. Array vide si absent.
+Pour centres_interet: extraire les centres d'intérêt/hobbies/passions réellement mentionnés dans le CV (rubrique loisirs, centres d'intérêt, divers). Array vide si absent.
 Pour audit_cv: évalue rigoureusement chaque critère (ok=bon, ameliorable=à améliorer, absent=insuffisant). score de 1 à 10 pour chaque regle. score_global_cv = somme sur 100. Fournis diagnostic détaillé ET recommandation concrète pour chaque critère ameliorable ou absent.
 Pour modele_suggere: recommande le format de CV le plus adapté au profil.
 Pour offres_emploi: génère 5-8 offres réalistes et pertinentes.
@@ -3981,12 +4003,25 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
                 new_experiences.append(PassportExperience(title=exp["title"], organization=exp.get("organization", ""), description=exp.get("description", ""), experience_type=exp.get("experience_type", "professionnel"), skills_used=exp.get("skills_used", []), achievements=exp.get("achievements", []), source="ia_detectee").model_dump())
                 existing_exp_titles.add(exp["title"].lower())
 
+        new_formations = list(passport.get("formations", []))
+        existing_form_titles = {f.get("title", "").lower() for f in new_formations}
+        for form in analysis.get("formations", []):
+            if form.get("title") and form.get("title", "").lower() not in existing_form_titles:
+                new_formations.append({
+                    "id": str(uuid.uuid4()), "title": form.get("title", ""),
+                    "institution": form.get("institution", ""), "year": form.get("year", ""),
+                    "type": form.get("type", "autre"), "level": form.get("level", ""),
+                    "description": form.get("description", ""), "source": "cv_analysis",
+                    "visibility": "private",
+                })
+                existing_form_titles.add(form["title"].lower())
+
         new_learning = list(passport.get("learning_path", []))
         for fs in analysis.get("formations_suggestions", []):
             new_learning.append({"title": fs.get("title", ""), "provider": f"Suggestion IA - Priorité {fs.get('priority', 'moyenne')}", "status": "suggere", "skills_acquired": fs.get("skills_to_gain", []), "reason": fs.get("reason", ""), "source": "ia_detectee"})
 
         profile_data = analysis.get("profile", {})
-        update_fields = {"competences": new_competences, "experiences": new_experiences, "learning_path": new_learning, "last_updated": datetime.now(timezone.utc).isoformat()}
+        update_fields = {"competences": new_competences, "experiences": new_experiences, "formations": new_formations, "learning_path": new_learning, "last_updated": datetime.now(timezone.utc).isoformat()}
         if profile_data.get("professional_summary") and not passport.get("professional_summary"):
             update_fields["professional_summary"] = profile_data["professional_summary"]
         if profile_data.get("career_project") and not passport.get("career_project"):
@@ -4014,6 +4049,20 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
         merged = {**passport, **update_fields}
         update_fields["completeness_score"] = calculate_completeness(merged)
         await db.passports.update_one({"token_id": token_id}, {"$set": update_fields})
+
+        # Auto-fill centres d'intérêt from CV (only if user hasn't entered any)
+        ci_extracted = [c for c in analysis.get("centres_interet", []) if isinstance(c, dict) and c.get("theme")]
+        if ci_extracted:
+            ci_doc = await db.cv_centres_interet.find_one({"token_id": token_id})
+            if not ci_doc or not ci_doc.get("centres"):
+                await db.cv_centres_interet.update_one(
+                    {"token_id": token_id},
+                    {"$set": {"token_id": token_id,
+                              "centres": [{"theme": c.get("theme", ""), "description": c.get("description", "")} for c in ci_extracted[:8]],
+                              "source": "cv_analysis",
+                              "updated_at": datetime.now(timezone.utc).isoformat()}},
+                    upsert=True
+                )
 
         # Update user profile with strengths, gaps, and skills from analysis
         profile_update = {}
@@ -4057,6 +4106,8 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
             "savoir_faire": analysis.get("savoir_faire", []),
             "savoir_etre": analysis.get("savoir_etre", []),
             "experiences": analysis.get("experiences", []),
+            "formations": analysis.get("formations", []),
+            "centres_interet": analysis.get("centres_interet", []),
             "profile": analysis.get("profile", {}),
         }
         await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": result, "step": "Terminé"}})
@@ -4437,6 +4488,9 @@ async def get_cv_models(token: str):
         "models": cv_data.get("models", {}),
         "analyzed_at": cv_data.get("analyzed_at"),
         "original_filename": cv_data.get("original_filename"),
+        "job_offer_used": cv_data.get("job_offer_used", False),
+        "target_job": cv_data.get("target_job", ""),
+        "ats_keywords": cv_data.get("ats_keywords", []),
     }
 
 
@@ -7951,7 +8005,7 @@ async def check_offer_match(token: str, body: dict = {}):
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"offer-match-{uuid.uuid4()}",
-                system_message="Tu es un expert RH français spécialisé dans le matching candidat/offre d'emploi. Évalue la compatibilité globale en tenant compte de l'expérience, des compétences techniques et comportementales, du secteur, du niveau de responsabilité. Réponds UNIQUEMENT en JSON: {\"score\": int(0-100), \"matched_skills\": [\"liste des compétences en commun\"], \"message\": \"explication courte\"}."
+                system_message="Tu es un expert RH français spécialisé dans le matching candidat/offre d'emploi. Évalue la compatibilité globale en tenant compte de l'expérience, des compétences techniques et comportementales, du secteur, du niveau de responsabilité. Réponds UNIQUEMENT en JSON: {\"score\": int(0-100), \"matched_skills\": [\"liste des compétences en commun\"], \"ats_keywords\": [\"mots-clés ATS importants extraits de l'offre (max 10)\"], \"message\": \"explication courte\"}."
             ).with_model("openai", "gpt-5.2")
 
             prompt = f"""PROFIL CANDIDAT:
@@ -7981,6 +8035,7 @@ OFFRE D'EMPLOI:
                 return {
                     "score": score,
                     "matched_skills": matched,
+                    "ats_keywords": [str(k) for k in result.get("ats_keywords", [])[:10]],
                     "total_user_skills": len(all_skills),
                     "offer_title": offer_title,
                     "alert": score < 50,
@@ -8049,6 +8104,7 @@ OFFRE D'EMPLOI:
     return {
         "score": total_score,
         "matched_skills": matched_keywords[:10],
+        "ats_keywords": sorted(offer_covered, key=len, reverse=True)[:10],
         "total_user_skills": len(all_skills),
         "offer_title": offer_title,
         "alert": total_score < 50,
@@ -8146,13 +8202,30 @@ async def _run_cv_generation(job_id: str, token_id: str, model_types: list, job_
             elif len(first_line) > 5:
                 target_job = first_line[:80]
 
+        # Extract ATS keywords from the offer for targeted optimization
+        ats_keywords = []
+        if offer_snippet and EMERGENT_LLM_KEY:
+            await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"current_model": "Analyse des mots-clés ATS de l'offre..."}})
+            try:
+                kw_chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"ats-kw-{job_id}",
+                                  system_message="Tu extrais les mots-clés ATS les plus importants d'une offre d'emploi (compétences techniques, outils, qualifications, soft skills clés). Réponds UNIQUEMENT en JSON: {\"keywords\": [\"mot-clé 1\", ...]} (12 maximum, en français).").with_model("openai", "gpt-5.2")
+                kw_resp = await kw_chat.send_message(UserMessage(text=offer_snippet))
+                kw_text = kw_resp.content if hasattr(kw_resp, 'content') else str(kw_resp)
+                if "```json" in kw_text: kw_text = kw_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in kw_text: kw_text = kw_text.split("```")[1].split("```")[0].strip()
+                ats_keywords = [str(k) for k in json.loads(kw_text).get("keywords", [])[:12]]
+                logger.info(f"[CV Gen] Extracted {len(ats_keywords)} ATS keywords from offer")
+            except Exception as e:
+                logger.warning(f"[CV Gen] ATS keyword extraction failed: {e}")
+
         async def gen_one(mtype):
             if offer_snippet:
+                kw_line = f"\nIntègre naturellement ces mots-clés ATS dans le CV: {', '.join(ats_keywords)}." if ats_keywords else ""
                 prompt = f"""Génère un CV professionnel de type "{mtype}" CIBLÉ pour cette offre d'emploi:
 OFFRE CIBLE: {offer_snippet}
 
 Le titre du CV DOIT mentionner le poste visé (ex: "{target_job}").
-L'accroche et les compétences doivent être reformulées pour correspondre aux exigences de l'offre.
+L'accroche et les compétences doivent être reformulées pour correspondre aux exigences de l'offre.{kw_line}
 
 PROFIL DU CANDIDAT:
 {context}
@@ -8189,10 +8262,12 @@ JSON: {{"titre":"str","accroche":"2 lignes","competences_cles":["..."],"experien
 
         await db.cv_models.update_one(
             {"token_id": token_id},
-            {"$set": {"token_id": token_id, "models": models, "generated_at": datetime.now(timezone.utc).isoformat()}},
+            {"$set": {"token_id": token_id, "models": models, "generated_at": datetime.now(timezone.utc).isoformat(),
+                      "job_offer_used": bool(offer_snippet), "target_job": target_job, "ats_keywords": ats_keywords}},
             upsert=True
         )
-        await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "progress": len(model_types)}})
+        await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "progress": len(model_types),
+                                                                       "job_offer_used": bool(offer_snippet), "target_job": target_job, "ats_keywords": ats_keywords}})
     except Exception as e:
         logger.error(f"[CV Gen] {e}")
         await db.cv_gen_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
@@ -8204,7 +8279,8 @@ async def cv_generate_models_status(token: str, job_id: str):
     job = await db.cv_gen_jobs.find_one({"job_id": job_id, "token_id": token_doc["id"]}, {"_id": 0})
     if not job:
         raise HTTPException(404, "Job non trouvé")
-    return {"status": job.get("status"), "progress": job.get("progress", 0), "total": job.get("total", 0), "current_model": job.get("current_model", ""), "error": job.get("error")}
+    return {"status": job.get("status"), "progress": job.get("progress", 0), "total": job.get("total", 0), "current_model": job.get("current_model", ""), "error": job.get("error"),
+            "job_offer_used": job.get("job_offer_used", False), "target_job": job.get("target_job", ""), "ats_keywords": job.get("ats_keywords", [])}
 
 
 # --- 3. Coffre CV Files & Transfer ---
