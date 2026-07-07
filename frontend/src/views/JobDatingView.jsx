@@ -1096,12 +1096,12 @@ const JobDatingView = ({ token }) => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {events.filter(e => savedIds.has(e.title)).map((e, i) => (
+              {events.filter(e => savedIds.has(e.id || e.title)).map((e, i) => (
                 <EventCard
                   key={i}
                   event={e}
                   saved={true}
-                  registered={registeredIds.has(e.title)}
+                  registered={registeredIds.has(e.id || e.title)}
                   onSave={handleSave}
                   onRegister={handleRegister}
                 />
