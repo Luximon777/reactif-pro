@@ -8,11 +8,11 @@ import { Loader2, Plus, X, Save, Sparkles } from "lucide-react";
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
 
 const LEVELS = [
-  { key: "savoir_faire", num: "01", label: "SAVOIRS-FAIRE", sub: "Hard skills", action: "À renouveler · feuilles", bg: "#4e8b2f", text: "#ffffff", pos: { left: "50%", top: "15%", width: "27%" } },
-  { key: "savoir_etre", num: "02", label: "SAVOIRS-ÊTRE", sub: "Soft skills", action: "À raffiner · brindilles", bg: "#79a83d", text: "#ffffff", pos: { left: "21%", top: "25%", width: "22%" } },
-  { key: "qualites", num: "03", label: "QUALITÉS HUMAINES", sub: "", action: "À entretenir · branches", bg: "#98b849", text: "#ffffff", pos: { left: "79%", top: "25%", width: "22%" } },
-  { key: "valeurs", num: "04", label: "VALEURS", sub: "", action: "À préserver · tronc", bg: "#c2cc6b", text: "#3d4b1e", pos: { left: "26%", top: "48%", width: "20%" } },
-  { key: "vertus", num: "05", label: "VERTUS", sub: "Votre potentiel", action: "À libérer · racines", bg: "#3a2817", text: "#f3e9dc", pos: { left: "58%", top: "81%", width: "26%" } },
+  { key: "vertus", num: "1", label: "VERTUS", sub: "Racines", action: "À libérer", lien: "Potentiel", bg: "#3a2817", text: "#f3e9dc", pos: { left: "58%", top: "81%", width: "26%" } },
+  { key: "valeurs", num: "2", label: "VALEURS", sub: "Tronc", action: "À préserver", lien: "Tuteur", bg: "#c2cc6b", text: "#3d4b1e", pos: { left: "26%", top: "48%", width: "20%" } },
+  { key: "qualites", num: "3", label: "QUALITÉS HUMAINES", sub: "Branches", action: "À entretenir", lien: "Apprentissage", bg: "#98b849", text: "#ffffff", pos: { left: "79%", top: "25%", width: "22%" } },
+  { key: "savoir_etre", num: "4", label: "SAVOIR-ÊTRE PRO.", sub: "Brindilles", action: "À raffiner", lien: "Apprentissage · Capacités", bg: "#79a83d", text: "#ffffff", pos: { left: "21%", top: "25%", width: "22%" } },
+  { key: "savoir_faire", num: "5", label: "SAVOIR-FAIRE", sub: "Feuilles", action: "À renouveler", lien: "Formation · Capacités", bg: "#4e8b2f", text: "#ffffff", pos: { left: "50%", top: "15%", width: "27%" } },
 ];
 
 const EMPTY_LEVELS = { savoir_faire: [], savoir_etre: [], qualites: [], valeurs: [], vertus: [] };
@@ -140,6 +140,23 @@ export const ArbreCompetences = ({ token }) => {
           ))}
         </svg>
 
+        {/* Concept rails (comme le schéma de référence) */}
+        <div className="absolute left-1 sm:left-2 z-10 pointer-events-none flex items-center" style={{ top: "6%", height: "18%" }} data-testid="arbre-rail-formation">
+          <span className="text-[8px] sm:text-[10px] font-bold tracking-widest text-[#4e6b2f] bg-white/60 rounded-full px-0.5 py-2 backdrop-blur-[1px]" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>FORMATION</span>
+        </div>
+        <div className="absolute left-1 sm:left-2 z-10 pointer-events-none flex items-center" style={{ top: "27%", height: "30%" }} data-testid="arbre-rail-apprentissage">
+          <span className="text-[8px] sm:text-[10px] font-bold tracking-widest text-[#4e6b2f] bg-white/60 rounded-full px-0.5 py-2 backdrop-blur-[1px]" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>APPRENTISSAGE</span>
+        </div>
+        <div className="absolute right-1 sm:right-2 z-10 pointer-events-none flex items-center" style={{ top: "8%", height: "48%" }} data-testid="arbre-rail-tuteur">
+          <span className="text-[8px] sm:text-[10px] font-bold tracking-widest text-[#4e6b2f] bg-white/60 rounded-full px-0.5 py-2 backdrop-blur-[1px]" style={{ writingMode: "vertical-rl" }}>TUTEUR</span>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style={{ top: "1.5%" }} data-testid="arbre-rail-capacites">
+          <span className="text-[8px] sm:text-[10px] font-bold tracking-widest text-[#3d4b1e] bg-white/70 px-2.5 py-0.5 rounded-full backdrop-blur-[1px]">CAPACITÉS</span>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style={{ bottom: "2%" }} data-testid="arbre-rail-potentiel">
+          <span className="text-[8px] sm:text-[10px] font-bold tracking-widest text-[#f3e9dc] bg-black/30 px-2.5 py-0.5 rounded-full backdrop-blur-[1px]">POTENTIEL</span>
+        </div>
+
         {/* Level bubbles */}
         {LEVELS.map((lvl) => {
           const items = levels[lvl.key] || [];
@@ -161,7 +178,7 @@ export const ArbreCompetences = ({ token }) => {
               <div className="px-3 sm:px-4">
                 <p className="text-[13px] sm:text-lg font-black opacity-80 leading-none" style={{ fontFamily: "Outfit, sans-serif" }}>{lvl.num}</p>
                 <p className="text-[9px] sm:text-xs font-bold tracking-wide leading-tight mt-0.5">{lvl.label}</p>
-                {lvl.sub && <p className="text-[7px] sm:text-[9px] italic opacity-80">{lvl.sub}</p>}
+                {lvl.sub && <p className="text-[7px] sm:text-[9px] italic opacity-80">{lvl.sub} — {lvl.action}</p>}
                 <div className="mt-1 space-y-0 leading-tight">
                   {items.slice(0, 3).map((it, i) => (
                     <p key={i} className="text-[7px] sm:text-[9px] opacity-90 truncate max-w-[110px] sm:max-w-[150px] mx-auto">• {it}</p>
@@ -169,11 +186,20 @@ export const ArbreCompetences = ({ token }) => {
                   {items.length > 3 && <p className="text-[7px] sm:text-[9px] font-bold opacity-80">+{items.length - 3} autres</p>}
                   {items.length === 0 && <p className="text-[7px] sm:text-[9px] italic opacity-70">Cliquez pour remplir</p>}
                 </div>
-                <p className="text-[6px] sm:text-[8px] uppercase tracking-wider opacity-70 mt-1">{lvl.action}</p>
+                <p className="text-[6px] sm:text-[8px] uppercase tracking-wider opacity-70 mt-1">{lvl.lien}</p>
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Légende des liens */}
+      <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-slate-200 bg-white p-4" data-testid="arbre-legende">
+        <p className="text-xs text-slate-600"><span className="font-bold text-[#4e8b2f]">Formation</span> — nourrit et renouvelle vos <strong>savoir-faire</strong> (5 · feuilles)</p>
+        <p className="text-xs text-slate-600"><span className="font-bold text-[#79a83d]">Apprentissage</span> — l'expérience façonne vos <strong>savoir-être pro.</strong> et <strong>qualités humaines</strong> (4 · 3)</p>
+        <p className="text-xs text-slate-600"><span className="font-bold text-[#98b849]">Capacités</span> — la partie visible de l'arbre : ce que vous exprimez au quotidien (3 à 5)</p>
+        <p className="text-xs text-slate-600"><span className="font-bold text-[#3d4b1e]">Tuteur</span> — le soutien (coach, mentor, réseau) qui aide l'arbre à grandir droit et préserve vos <strong>valeurs</strong> (2 · tronc)</p>
+        <p className="text-xs text-slate-600 sm:col-span-2"><span className="font-bold text-[#3a2817]">Potentiel</span> — vos <strong>vertus</strong> (1 · racines), invisibles mais fondatrices : tout part d'elles, à libérer</p>
       </div>
 
       {/* Edit panel */}

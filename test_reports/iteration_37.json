@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 37 — Visual adjustment of the 'Arbre des Compétences' (Passeport > Archéologie tab): renumbering from roots (1 Vertus/Racines, 2 Valeurs/Tronc, 3 Qualités humaines/Branches, 4 Savoir-être pro./Brindilles, 5 Savoir-faire/Feuilles) + 5 concept rails (Formation, Apprentissage, Capacités, Tuteur, Potentiel) + légende under the tree. Frontend-only test on mike9/Solerys777!. ALL 4 review checkpoints VALIDATED end-to-end: 5 bubbles show correct num/label/organ/action/lien, 5 rails visible & positioned, légende visible with all 5 explanations, edit panel + arbre-save-btn-panel + persistence work.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ArbreCompetences.jsx is a clean 258-line component. Renumbering (1..5 from roots) is applied consistently in LEVELS array, all data-testids follow the naming convention documented in the review request (arbre-bulle-*, arbre-rail-*, arbre-legende, arbre-edit-panel, arbre-save-btn-panel).",
+    "The new arbre-save-btn-panel correctly renders conditionally on `dirty` state inside the edit panel, resolving the UX friction reported in iteration 36 (previously the user had to scroll back to the top for the top-level arbre-save-btn).",
+    "Rails use pointer-events-none so they never intercept clicks on the bubbles. Semi-transparent white background (bg-white/60 with backdrop-blur) keeps them readable on both the sky and canopy without clashing with the bubbles at 1920x1080 or default tablet width.",
+    "Minor: the 'lien' text at the bottom of each bubble is CSS-uppercased (uppercase tracking-wider) — visually consistent, just noted for testing (case-insensitive comparisons required)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (per review scope)", "frontend": "100% (4/4 checkpoints validated)"},
+  "test_credentials": "mike9 / Solerys777! — the pseudo required opening the Connexion modal via the 'Espace Personnel > Accéder' button on the landing page (not a direct /login route).",
+  "seed_data_creation": "Added and then removed a TEST_REG_iter37 chip in the 'vertus' bubble to validate save + persistence. Cleaned up via POST save after removal — mike9 vertus is restored to Sagesse et Connaissance / Courage / Humanité as before. No residual TEST_* data in DB.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "URL: https://cv-analyzer-53.preview.emergentagent.com. Landing page requires clicking 'Espace Personnel > Accéder' first to open the Connexion modal (input placeholder 'Votre pseudonyme'). Then use the 'Se connecter' submit button (there are 2 with that name — the tab and the submit, use .last). Route for the tree: /dashboard/competences → click data-testid='passport-tab-archeologie'. Tree testids: arbre-visuel, arbre-bulle-{vertus,valeurs,qualites,savoir_etre,savoir_faire}, arbre-rail-{formation,apprentissage,tuteur,capacites,potentiel}, arbre-legende, arbre-edit-panel, arbre-add-input, arbre-add-btn, arbre-save-btn-panel (only appears when dirty), arbre-prefill-btn, arbre-save-btn (top). Text at the bottom of each bubble ('lien') is CSS-uppercased — use case-insensitive checks.",
+  "features_tested": {
+    "1) 5 bubbles renumbered with organ/action/lien": "PASSED — vertus='1 VERTUS / Racines — À libérer / POTENTIEL' (in brown soil), valeurs='2 VALEURS / Tronc — À préserver / TUTEUR', qualites='3 QUALITÉS HUMAINES / Branches — À entretenir / APPRENTISSAGE', savoir_etre='4 SAVOIR-ÊTRE PRO. / Brindilles — À raffiner / APPRENTISSAGE · CAPACITÉS', savoir_faire='5 SAVOIR-FAIRE / Feuilles — À renouveler / FORMATION · CAPACITÉS'. All 5 items match the review spec (uppercase is CSS).",
+    "2) 5 rails visible and positioned correctly": "PASSED — FORMATION and APPRENTISSAGE are vertical rails on the LEFT (top and mid respectively), TUTEUR is a vertical rail on the RIGHT, CAPACITÉS is a pill at the TOP-CENTER above the foliage, POTENTIEL is a pill at the BOTTOM in the brown soil. All 5 have data-testid='arbre-rail-*' and are is_visible()=true. No visible overlap with bubbles at 1920x1080 — rails sit at the edges (left-1/right-1) while bubbles are centered.",
+    "3) Légende (arbre-legende) visible with 5 explanations": "PASSED — legend card renders under the tree in a 2-column grid on desktop, contains all 5 keywords (Formation, Apprentissage, Capacités, Tuteur, Potentiel) with explanations that map each concept to the corresponding tree level.",
+    "4) Click bubble → edit panel → save-btn-panel appears after mod → save works + persistence": "PASSED — clicked vertus bubble, edit-panel opened. Before modification: arbre-save-btn-panel count=0 (correct, conditional on dirty). After adding TEST_REG_iter37: count=1. Clicking it produced toast 'Votre arbre des compétences est enregistré'. After full page reload + re-navigation + re-click vertus, TEST_REG_iter37 chip was still present (persistence confirmed). Cleanup removal + re-save also worked."
+  },
+  "rca_of_the_issue": "N/A — this iteration is a visual refactor per user feedback, not a bug fix. Implementation in /app/frontend/src/components/ArbreCompetences.jsx is complete and correct. The renumbering (1 at root → 5 at leaves) matches the mental model of a tree growing from its roots, the 5 rails align with the reference schema (Formation/Apprentissage on the left, Tuteur on the right, Capacités at top, Potentiel at bottom in the soil), and the légende under the tree provides the explanatory mapping. The arbre-save-btn-panel inside the edit panel resolves the iteration-36 UX friction. No action items for main agent."
+}
