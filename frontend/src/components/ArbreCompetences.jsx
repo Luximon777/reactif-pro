@@ -100,6 +100,8 @@ export const ArbreCompetences = ({ token }) => {
         </div>
       </div>
 
+      {/* Arbre + résumé de progression */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
       {/* Infographic tree */}
       <div className="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: "9/10" }} data-testid="arbre-visuel">
         {/* Background + flat tree (SVG) */}
@@ -191,6 +193,66 @@ export const ArbreCompetences = ({ token }) => {
             </div>
           );
         })}
+      </div>
+
+      {/* Résumé de progression : des vertus vers les savoir-faire */}
+      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4" data-testid="arbre-resume">
+        <h4 className="text-sm font-bold text-[#1e3a5f]">Votre progression</h4>
+        <p className="text-[11px] text-slate-500 mb-3">Des vertus (racines) vers les savoir-faire (feuilles)</p>
+
+        {/* Barre globale */}
+        {(() => {
+          const filled = LEVELS.filter((l) => (levels[l.key] || []).length > 0).length;
+          return (
+            <div className="mb-4" data-testid="arbre-resume-global">
+              <div className="flex items-center justify-between text-[11px] text-slate-600 mb-1">
+                <span>Niveaux complétés</span>
+                <span className="font-bold">{filled}/5</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-[#3a2817] via-[#98b849] to-[#4e8b2f] transition-all duration-500" style={{ width: `${(filled / 5) * 100}%` }} />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Étapes 1 → 5 */}
+        <div className="space-y-0">
+          {LEVELS.map((lvl, idx) => {
+            const items = levels[lvl.key] || [];
+            const done = items.length > 0;
+            return (
+              <div key={lvl.key} className="relative pl-8 pb-3 last:pb-0" data-testid={`arbre-resume-step-${lvl.key}`}>
+                {idx < LEVELS.length - 1 && <span className="absolute left-[13px] top-7 bottom-0 w-0.5 bg-slate-200" aria-hidden="true" />}
+                <button
+                  onClick={() => { setEditing(lvl.key); setNewItem(""); }}
+                  className="absolute left-0 top-0.5 w-[27px] h-[27px] rounded-full flex items-center justify-center text-[11px] font-black shadow-sm transition-transform hover:scale-110"
+                  style={{ backgroundColor: done ? lvl.bg : "#e2e8f0", color: done ? lvl.text : "#94a3b8" }}
+                  title={`Compléter : ${lvl.label}`}
+                >
+                  {lvl.num}
+                </button>
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-xs font-bold ${done ? "text-slate-800" : "text-slate-400"}`}>{lvl.label}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${done ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-50 text-slate-400 border border-slate-200"}`}>
+                    {items.length}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 italic">{lvl.sub} — {lvl.action}</p>
+                {items.length > 0 && (
+                  <p className="text-[10px] text-slate-500 truncate">{items.slice(0, 2).join(", ")}{items.length > 2 ? "…" : ""}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Citation */}
+        <blockquote className="mt-4 border-l-4 border-[#4e8b2f] bg-[#f0f3e4] rounded-r-lg px-3 py-2.5" data-testid="arbre-citation">
+          <p className="text-xs italic text-slate-700 leading-relaxed">« Transmettre le fruit de votre travail constitue le sens même de la noblesse. »</p>
+          <footer className="text-[10px] font-semibold text-[#4e6b2f] mt-1">— C.K. Luximon</footer>
+        </blockquote>
+      </aside>
       </div>
 
       {/* Légende des liens */}

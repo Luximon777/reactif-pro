@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 38 — Frontend-only visual test of the new 'Résumé de progression' aside added to the right of the Arbre des Compétences (Passeport > Archéologie tab). Tested with mike9/Solerys777! on the preview URL. All 3 review checkpoints VALIDATED end-to-end.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/dashboard/competences > onglet Archéologie (desktop 1920px)", "issues": ["Le widget flottant 'Coach RE'ACTIF PRO' (bottom-right) recouvre partiellement l'aside arbre-resume sur desktop. L'aside est fonctionnel (bounding box correct, testids visibles, clic pastille fonctionne) mais visuellement une partie du panneau (barre de progression, étape 1/2) est masquée tant que l'utilisateur n'a pas réduit/fermé le coach. Non-bloquant, à considérer : décaler l'aside vers la gauche ou réduire l'encombrement du coach sur cette page."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ArbreCompetences.jsx est passé de 258 à 320 lignes — reste largement sous le seuil de 700. Grid CSS `lg:grid-cols-[1fr_320px]` est propre et lisible.",
+    "L'aside utilise `lg:sticky lg:top-4` — sur desktop le résumé reste visible pendant le scroll, ce qui est un bon UX. Le fallback mobile (grid-cols-1) empile correctement l'aside sous l'arbre sans débordement horizontal (scrollWidth === clientWidth === 390px).",
+    "Le calcul du compteur 'filled' est fait via IIFE inline dans le JSX. Fonctionnel mais pourrait être extrait en useMemo si des re-rendus deviennent coûteux (négligeable ici).",
+    "La pastille numérotée (button) dans le stepper appelle setEditing(lvl.key) sans toggle — ce qui est cohérent avec l'intention (ouvrir toujours) mais diffère du comportement de arbre-bulle-* (toggle). Léger delta d'UX à noter si l'utilisateur clique deux fois.",
+    "Toutes les data-testid requises par la review sont présentes et testées : arbre-resume, arbre-resume-global, arbre-resume-step-{vertus,valeurs,qualites,savoir_etre,savoir_faire}, arbre-citation."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (per review scope)", "frontend": "100% (3/3 checkpoints validated)"},
+  "test_credentials": "mike9 / Solerys777! — via Espace Personnel > Accéder (modal Connexion, pseudo + mot de passe). NOTE: fichier /app/memory/test_credentials.md ne contient pas mike9 mais il fonctionne (comme mentionné dans review).",
+  "seed_data_creation": "Aucune — test purement en lecture visuelle (le clic sur la pastille vertus ouvre l'edit panel mais aucune modification enregistrée). Les données de mike9 sont préservées : 3 vertus / 4 valeurs / 8 qualités / 6 savoir-être / 12 savoir-faire (5/5 niveaux complétés).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "URL utilisée: https://cv-analyzer-53.preview.emergentagent.com (frontend/.env). Le review mentionnait skills-vault-16 mais c'est cv-analyzer-53 dans .env. Compte mike9/Solerys777! a 5/5 niveaux d'arbre complétés (parfait pour tester le résumé de progression rempli à 100%). Testids nouveaux : arbre-resume (aside), arbre-resume-global (barre 5/5), arbre-resume-step-{key} (5 étapes avec button+count+preview), arbre-citation (blockquote). Design issue mineur : coach chatbot floater masque partiellement l'aside sur desktop.",
+  "features_tested": {
+    "1) Desktop 1920px — aside À DROITE de l'arbre + contenu conforme": "PASSED — arbre-visuel bounding box (x=408, y=634, w=768) et arbre-resume (x=1416, y=634, w=320) : resume.x (1416) > visuel.x+visuel.width (1176), sur la même row (Δy < 200). Barre 'Niveaux complétés 5/5' visible. Les 5 étapes ordonnées 1→5 sont présentes avec label, sub—action, compteur (3/4/8/6/12) et aperçu des 2 premiers éléments. Citation exacte : « Transmettre le fruit de votre travail constitue le sens même de la noblesse. » — C.K. Luximon (match strict).",
+    "2) Click pastille numérotée → ouvre edit panel du niveau correspondant": "PASSED — clic sur le button interne du step 'vertus' → arbre-edit-panel visible=true, contenu 'VERTUS' présent (Racines / À libérer, 3 chips existants). Fermé via arbre-edit-close sans problème.",
+    "3) Régression — arbre, rails, légende, mobile 390px": "PASSED — les 5 rails (formation, apprentissage, tuteur, capacites, potentiel) toujours visibles ; arbre-legende visible sous l'arbre. Sur viewport 390x844 : arbre-resume passe SOUS arbre-visuel (visuel y=469 h=397, resume y=882 h=524), aucune scroll horizontale (documentElement.scrollWidth === clientWidth === 390). Mise en page mobile intacte."
+  },
+  "rca_of_the_issue": "N/A — feature purement additive. Implémentation dans /app/frontend/src/components/ArbreCompetences.jsx (grid `lg:grid-cols-[1fr_320px]` + aside sticky + 5 steps avec button + citation blockquote). Aucun bug bloquant. Seul écueil visuel : le coach chatbot (fixed bottom-right) recouvre une partie de l'aside sur desktop 1920x1080 lorsque déployé — à mitiger éventuellement mais NON demandé par la review et hors périmètre de cet ajout."
+}
