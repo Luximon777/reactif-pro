@@ -210,7 +210,7 @@ export const ArbreCompetences = ({ token }) => {
       </div>
 
       {/* Résumé de progression : des vertus vers les savoir-faire */}
-      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4 order-3 lg:order-none" data-testid="arbre-resume">
+      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto order-3 lg:order-none" data-testid="arbre-resume">
         <h4 className="text-sm font-bold text-[#1e3a5f]">Votre progression</h4>
         <p className="text-[11px] text-slate-500 mb-3">Des vertus (racines) vers les savoir-faire (feuilles)</p>
 

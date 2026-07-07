@@ -35,6 +35,7 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-06) Refonte Archéologie : Arbre des Compétences infographique (5 bulles remplissables : savoirs-faire, savoirs-être, qualités, valeurs, vertus/racines), préremplissage profil, sauvegarde (GET/POST /passport/arbre), suppression contenu répétitif et mention ennéagramme
 - [x] (2026-06) Arbre : renumérotation depuis les racines (1 Vertus → 5 Savoir-faire) + rails Formation/Apprentissage/Capacités/Tuteur/Potentiel + légende explicative
 - [x] (2026-06) Arbre : panneau résumé à droite (progression vertus → savoir-faire, X/5 niveaux, stepper cliquable) + citation C.K. Luximon
+- [x] (2026-06) Arbre : légende "Comprendre l'arbre" (Formation/Apprentissage/Capacités/Tuteur/Potentiel) déplacée à gauche de l'arbre (layout 3 colonnes) ; résumé limité en hauteur pour ne plus être masqué par le widget Coach
 
 ## Comptes démo
 - peter7 / Solerys777! (profil complet, Expert Certifié level 3)
