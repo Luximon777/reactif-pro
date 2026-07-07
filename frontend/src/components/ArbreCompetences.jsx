@@ -100,10 +100,24 @@ export const ArbreCompetences = ({ token }) => {
         </div>
       </div>
 
-      {/* Arbre + résumé de progression */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
+      {/* Légende + Arbre + résumé de progression */}
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_300px] gap-4 items-start">
+
+      {/* Légende des liens (gauche) */}
+      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3 lg:sticky lg:top-4 order-2 lg:order-none" data-testid="arbre-legende">
+        <div>
+          <h4 className="text-sm font-bold text-[#1e3a5f]">Comprendre l'arbre</h4>
+          <p className="text-[11px] text-slate-500">Ce qui nourrit et soutient vos compétences</p>
+        </div>
+        <p className="text-xs text-slate-600 border-l-2 border-[#4e8b2f] pl-2"><span className="font-bold text-[#4e8b2f]">Formation</span> — nourrit et renouvelle vos <strong>savoir-faire</strong> (5 · feuilles)</p>
+        <p className="text-xs text-slate-600 border-l-2 border-[#79a83d] pl-2"><span className="font-bold text-[#79a83d]">Apprentissage</span> — l'expérience façonne vos <strong>savoir-être pro.</strong> et <strong>qualités humaines</strong> (4 · 3)</p>
+        <p className="text-xs text-slate-600 border-l-2 border-[#98b849] pl-2"><span className="font-bold text-[#98b849]">Capacités</span> — la partie visible de l'arbre : ce que vous exprimez au quotidien (3 à 5)</p>
+        <p className="text-xs text-slate-600 border-l-2 border-[#3d4b1e] pl-2"><span className="font-bold text-[#3d4b1e]">Tuteur</span> — le soutien (coach, mentor, réseau) qui aide l'arbre à grandir droit et préserve vos <strong>valeurs</strong> (2 · tronc)</p>
+        <p className="text-xs text-slate-600 border-l-2 border-[#3a2817] pl-2"><span className="font-bold text-[#3a2817]">Potentiel</span> — vos <strong>vertus</strong> (1 · racines), invisibles mais fondatrices : tout part d'elles, à libérer</p>
+      </aside>
+
       {/* Infographic tree */}
-      <div className="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: "9/10" }} data-testid="arbre-visuel">
+      <div className="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-lg order-1 lg:order-none" style={{ aspectRatio: "9/10" }} data-testid="arbre-visuel">
         {/* Background + flat tree (SVG) */}
         <svg viewBox="0 0 900 1000" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
           <defs>
@@ -196,7 +210,7 @@ export const ArbreCompetences = ({ token }) => {
       </div>
 
       {/* Résumé de progression : des vertus vers les savoir-faire */}
-      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4 lg:mr-16 xl:mr-20" data-testid="arbre-resume">
+      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4 order-3 lg:order-none" data-testid="arbre-resume">
         <h4 className="text-sm font-bold text-[#1e3a5f]">Votre progression</h4>
         <p className="text-[11px] text-slate-500 mb-3">Des vertus (racines) vers les savoir-faire (feuilles)</p>
 
@@ -253,15 +267,6 @@ export const ArbreCompetences = ({ token }) => {
           <footer className="text-[10px] font-semibold text-[#4e6b2f] mt-1">— C.K. Luximon</footer>
         </blockquote>
       </aside>
-      </div>
-
-      {/* Légende des liens */}
-      <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-slate-200 bg-white p-4" data-testid="arbre-legende">
-        <p className="text-xs text-slate-600"><span className="font-bold text-[#4e8b2f]">Formation</span> — nourrit et renouvelle vos <strong>savoir-faire</strong> (5 · feuilles)</p>
-        <p className="text-xs text-slate-600"><span className="font-bold text-[#79a83d]">Apprentissage</span> — l'expérience façonne vos <strong>savoir-être pro.</strong> et <strong>qualités humaines</strong> (4 · 3)</p>
-        <p className="text-xs text-slate-600"><span className="font-bold text-[#98b849]">Capacités</span> — la partie visible de l'arbre : ce que vous exprimez au quotidien (3 à 5)</p>
-        <p className="text-xs text-slate-600"><span className="font-bold text-[#3d4b1e]">Tuteur</span> — le soutien (coach, mentor, réseau) qui aide l'arbre à grandir droit et préserve vos <strong>valeurs</strong> (2 · tronc)</p>
-        <p className="text-xs text-slate-600 sm:col-span-2"><span className="font-bold text-[#3a2817]">Potentiel</span> — vos <strong>vertus</strong> (1 · racines), invisibles mais fondatrices : tout part d'elles, à libérer</p>
       </div>
 
       {/* Edit panel */}

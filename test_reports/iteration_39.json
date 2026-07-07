@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 39 — Frontend-only validation du repositionnement de la légende de l'Arbre des Compétences (Passeport > Archéologie). La légende est maintenant à GAUCHE de l'arbre (avant elle était en dessous). Tests réalisés en desktop 1920x1080 ET mobile 390x844 avec mike9/Solerys777! sur https://cv-analyzer-53.preview.emergentagent.com. Les 3 checkpoints du review PASSED.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/dashboard/competences > onglet Archéologie (desktop 1920px)",
+        "issues": [
+          "Le widget flottant 'Coach RE'ACTIF PRO' (bottom-right) recouvre partiellement la colonne arbre-resume (x=1436, w=300 vs coach card ~340px à droite). Non-bloquant fonctionnellement (tous les testids sont accessibles via clic direct après fermeture du coach ou scroll), mais visuellement une partie de la barre 'Niveaux complétés 5/5' et de la citation Luximon est masquée si l'utilisateur n'a pas réduit/fermé le coach. Déjà signalé en iteration 38 — persiste en iteration 39."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ArbreCompetences.jsx reste à 325 lignes — bien en-dessous du seuil 700. Bon découpage.",
+    "Grid CSS `lg:grid-cols-[260px_1fr_300px]` avec `items-start` est parfait — la colonne centrale (arbre) prend l'espace restant tandis que les 2 asides ont des largeurs fixes cohérentes.",
+    "L'utilisation de `order-1 / order-2 / order-3` avec `lg:order-none` gère élégamment l'inversion desktop vs mobile : sur mobile arbre reste order-1 (en haut), légende order-2 (milieu), résumé order-3 (bas) ; sur desktop l'ordre du DOM (légende → arbre → résumé) est utilisé, ce qui donne aussi le bon ordre visuel gauche→droite. Bonne pratique CSS.",
+    "Les 5 blocs de la légende (Formation, Apprentissage, Capacités, Tuteur, Potentiel) sont bien présents avec bordure gauche colorée + description. Cohérent avec la palette de l'arbre.",
+    "aside arbre-legende utilise `lg:sticky lg:top-4` — même comportement que arbre-resume : les 2 colonnes latérales restent visibles pendant le scroll de l'arbre, très bon UX.",
+    "Suggestion mineure NON bloquante : le coach chatbot (`data-testid='coach-close-btn'`) qui overlappe la colonne droite reste un souci visuel connu. Envisager `right-[340px]` ou déplacement du coach sur cet onglet."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (per review scope)", "frontend": "100% (3/3 checkpoints validated)"},
+  "test_credentials": "mike9 / Solerys777! — via 'Espace Personnel' > modal Connexion (pseudo + mot de passe). Note: URL du review = skills-vault-16.preview.emergentagent.com mais REACT_APP_BACKEND_URL dans frontend/.env = cv-analyzer-53.preview.emergentagent.com. Test réalisé avec l'URL de l'env.",
+  "seed_data_creation": "Aucune donnée créée/persistée. Un item TEST_REGRESSION_ITEM a été ajouté à Vertus dans le panel d'édition puis retiré immédiatement (aucun POST vers /api/passport/arbre — mike9 conserve ses données 3/4/8/6/12).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "URL: https://cv-analyzer-53.preview.emergentagent.com. Comptes de test: mike9/Solerys777! (5/5 niveaux d'arbre remplis - idéal pour tests de layout). Layout Archéologie: DOM = [légende, arbre, résumé], desktop grid 260px|1fr|300px, mobile grid-cols-1 + order 1/2/3. Testids critiques: arbre-legende, arbre-visuel, arbre-resume, arbre-bulle-{key}, arbre-edit-panel, arbre-edit-close, arbre-add-input, arbre-add-btn, arbre-save-btn, arbre-save-btn-panel, arbre-resume-step-{key}, arbre-resume-global, arbre-citation, passport-tab-archeologie, coach-close-btn. IMPORTANT pour tests mobiles : le coach chatbot recouvre par défaut le contenu à droite/bas ; utiliser [data-testid='coach-close-btn'] avant d'interagir avec les tabs sur mobile. Sur mobile, le clic sur tab radix TabsTrigger nécessite un vrai mouse.click (position calculée depuis bounding_box) — force click JS ne suffit pas systématiquement.",
+  "features_tested": {
+    "1) Desktop 1920px — légende À GAUCHE, arbre au centre, résumé À DROITE": "PASSED. Bounding boxes : legende(x=184,y=634,w=260,h=354) | visuel(x=556,y=634,w=768,h=853) | resume(x=1436,y=634,w=300,h=524). legende.x (184) < visuel.x (556) < resume.x (1436). Les 3 sont sur la même row (y=634). Contenu légende contient les 5 mots-clés : Formation, Apprentissage, Capacités, Tuteur, Potentiel.",
+    "2) Mobile 390px — ordre vertical arbre → légende → résumé": "PASSED. Bounding boxes : visuel(x=16,y=223,w=358,h=398) → legende(x=16,y=637,w=358,h=290) → resume(x=16,y=943,w=358,h=524). Grille passe en 1 colonne, order-1/2/3 respecté. Pas de scroll horizontal (scrollWidth === clientWidth === 390).",
+    "3) Régression — bulles cliquables + edit panel + save": "PASSED. Clic sur arbre-bulle-vertus ouvre arbre-edit-panel ; arbre-edit-close le ferme. Clic sur pastille numérotée dans arbre-resume-step-savoir_faire ouvre aussi le panel. Ajout d'un item via arbre-add-input + arbre-add-btn fonctionne (chip TEST_REGRESSION_ITEM apparaît). Le bouton arbre-save-btn-panel devient enabled quand dirty=true. Suppression via bouton X du chip fonctionne. Aucune erreur console."
+  },
+  "rca_of_the_issue": "N/A — feature purement de repositionnement CSS. Le changement `grid-cols-1 lg:grid-cols-[260px_1fr_300px]` combiné avec `order-1/2/3` + `lg:order-none` sur les 3 enfants (aside arbre-legende, div arbre-visuel, aside arbre-resume) fait exactement le job demandé : sur desktop la légende passe à gauche (DOM order), sur mobile l'ordre visuel est arbre → légende → résumé via order CSS. Aucune régression fonctionnelle."
+}
