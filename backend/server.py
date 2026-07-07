@@ -5516,6 +5516,104 @@ async def get_passport_archeologie(token: str):
         "non_classees_list": [{"id": c.get("id"), "name": c.get("name")} for c in non_classees],
     }
 
+ARBRE_LEVEL_KEYS = ["savoir_faire", "savoir_etre", "qualites", "valeurs", "vertus"]
+
+
+@api_router.get("/passport/arbre")
+async def get_passport_arbre(token: str, prefill: int = 0):
+    """Return the user's competence tree (5 levels), prefilled from profile if not saved."""
+    token_doc = await get_current_token(token)
+    saved = await db.arbre_competences.find_one({"token_id": token_doc["id"]}, {"_id": 0})
+    if saved and not prefill:
+        return {"levels": {k: saved.get("levels", {}).get(k, []) for k in ARBRE_LEVEL_KEYS}, "prefilled": False, "updated_at": saved.get("updated_at")}
+
+    passport = await db.passports.find_one({"token_id": token_doc["id"]}, {"_id": 0}) or {}
+    comps = passport.get("competences", [])
+    sf, se_names = [], []
+    for c in comps:
+        name = c.get("name", "")
+        if not name:
+            continue
+        nature = c.get("nature")
+        cat = c.get("category", "")
+        if nature == "savoir_faire" or (not nature and cat in ("technique", "sectorielle", "savoir_faire")):
+            if name not in sf:
+                sf.append(name)
+        elif nature == "savoir_etre" or (not nature and cat in ("transversale", "transferable")):
+            if name not in se_names:
+                se_names.append(name)
+    for n in passport.get("savoir_faire", []):
+        n = n if isinstance(n, str) else n.get("name", "")
+        if n and n not in sf:
+            sf.append(n)
+    for s in passport.get("savoir_etre", []):
+        n = s if isinstance(s, str) else s.get("name", "")
+        if n and n not in se_names:
+            se_names.append(n)
+
+    qualites, valeurs_ids, vertus_ids = [], set(), set()
+    linked_by_name = {c.get("name", ""): c for c in comps}
+
+    def _match_ref(name: str) -> dict:
+        if name in ARCHEOLOGIE_SAVOIR_ETRE:
+            return ARCHEOLOGIE_SAVOIR_ETRE[name]
+        low = name.lower()
+        for ref_name, ref in ARCHEOLOGIE_SAVOIR_ETRE.items():
+            rl = ref_name.lower()
+            if rl in low or low in rl or any(w in low for w in rl.split() if len(w) > 4):
+                return ref
+        return {}
+
+    for name in se_names:
+        c = linked_by_name.get(name, {})
+        ref = _match_ref(name)
+        for q in (c.get("linked_qualites") or ref.get("qualites", [])):
+            if q and q not in qualites:
+                qualites.append(q)
+        for v in (c.get("linked_valeurs") or ref.get("valeurs", [])):
+            valeurs_ids.add(v)
+        for v in (c.get("linked_vertus") or ref.get("vertus", [])):
+            vertus_ids.add(v)
+
+    dclic = passport.get("dclic_results", {})
+    if not dclic:
+        dclic_doc = await db.dclic_results.find_one({"claimed_by": token_doc["id"]}, {"_id": 0})
+        if dclic_doc and dclic_doc.get("profile"):
+            dclic = dclic_doc["profile"]
+    vp = (dclic or {}).get("vertus_profile", {})
+    for q in vp.get("qualites_dominantes", []):
+        if q and q not in qualites:
+            qualites.append(q)
+
+    valeurs_names = [v["name"] for v in REFERENTIEL_VALEURS if v["id"] in valeurs_ids]
+    vertus_names = [v["name"] for v in REFERENTIEL_VERTUS if v["id"] in vertus_ids]
+    dominant = vp.get("dominant_name", vp.get("vertu_dominante_name", ""))
+    if dominant and dominant not in vertus_names:
+        vertus_names.insert(0, dominant)
+
+    levels = {
+        "savoir_faire": sf[:12],
+        "savoir_etre": se_names[:12],
+        "qualites": qualites[:10],
+        "valeurs": valeurs_names[:8],
+        "vertus": vertus_names[:6],
+    }
+    return {"levels": levels, "prefilled": True, "updated_at": None}
+
+
+@api_router.post("/passport/arbre")
+async def save_passport_arbre(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    src = body.get("levels", body)
+    levels = {k: [str(x).strip() for x in (src.get(k) or []) if str(x).strip()][:15] for k in ARBRE_LEVEL_KEYS}
+    await db.arbre_competences.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"token_id": token_doc["id"], "levels": levels, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"status": "ok", "levels": levels}
+
+
 # ============== UBUNTOO INTELLIGENCE ENDPOINTS ==============
 
 async def analyze_ubuntoo_exchanges_with_ai(exchanges: List[dict]) -> Dict[str, Any]:

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { ArbreCompetences } from "@/components/ArbreCompetences";
 import { API } from "@/App";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1261,15 +1262,7 @@ const PassportView = ({ token, viewMode }) => {
 
         {/* Archéologie Tab (NEW) */}
         <TabsContent value="archeologie" className="space-y-6 mt-4">
-          <ArcheologieTab
-            archeologie={archeologie}
-            loading={loadingArcheologie}
-            onLoad={loadArcheologie}
-            savoirFaire={savoirFaire}
-            savoirEtre={savoirEtre}
-            nonClassees={nonClassees}
-            dclicProfile={dclicProfile}
-          />
+          <ArcheologieTab token={token} dclicProfile={dclicProfile} />
         </TabsContent>
 
         {/* Emerging Competences Tab */}
@@ -3175,316 +3168,33 @@ const PasserelleCard = ({ passerelle }) => {
 
 // ============== ARCHÉOLOGIE TAB ==============
 
-const ArcheologieTab = ({ archeologie, loading, onLoad, savoirFaire, savoirEtre, nonClassees, dclicProfile }) => {
-  const [referentiel, setReferentiel] = useState(null);
-  const [loadingRef, setLoadingRef] = useState(false);
+const ArcheologieTab = ({ token, dclicProfile }) => (
+  <div className="space-y-5">
+    <div>
+      <h3 className="text-lg font-semibold text-[#1e3a5f] flex items-center gap-2">
+        <Layers className="w-5 h-5" />Archéologie des Compétences
+      </h3>
+      <p className="text-sm text-slate-500">
+        Comme un arbre, vos compétences visibles (feuilles) prennent racine dans vos vertus.
+        Remplissez les 5 niveaux pour visualiser l'origine de vos compétences.
+      </p>
+    </div>
 
-  const loadReferentiel = async () => {
-    setLoadingRef(true);
-    try {
-      const res = await axios.get(`${API}/referentiel/archeologie`);
-      setReferentiel(res.data);
-    } catch (e) { toast.error("Erreur chargement référentiel"); }
-    setLoadingRef(false);
-  };
-
-  useEffect(() => { loadReferentiel(); }, []);
-
-  const dclicSE = savoirEtre.filter(c => c.source === "dclic_pro");
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-[#1e3a5f] flex items-center gap-2">
-            <Layers className="w-5 h-5" />Archéologie des Compétences
-          </h3>
-          <p className="text-sm text-slate-500">La chaîne hiérarchique : Métier → Savoir-faire → Savoir-être → Qualités → Valeurs → Vertus</p>
-        </div>
-        <Button onClick={onLoad} disabled={loading} data-testid="load-archeologie-btn">
-          {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Layers className="w-4 h-4 mr-2" />}
-          {loading ? "Chargement..." : "Analyser mon profil"}
+    {!dclicProfile?.dclic_imported && (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5" data-testid="archeologie-dclic-needed">
+        <p className="text-xs text-amber-800">
+          <Sparkles className="w-3.5 h-3.5 inline mr-1 text-amber-500" />
+          Passez le test <strong>D'CLIC PRO</strong> pour révéler automatiquement vos qualités, valeurs et vertus.
+        </p>
+        <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 shrink-0" onClick={() => window.open('/test-dclic', '_blank')} data-testid="archeologie-launch-dclic-btn">
+          Passer le test
         </Button>
       </div>
+    )}
 
-      {/* D'CLIC boost banner */}
-      {dclicProfile?.dclic_imported ? (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 text-xs text-emerald-700" data-testid="archeologie-dclic-boost">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-          <span>D'CLIC PRO enrichit l'archéologie : {dclicSE.length > 0 ? `${dclicSE.length} savoir-être issus de votre profil de personnalité` : "vos données de personnalité"} permettent de remonter plus profondément la chaîne des qualités, valeurs et vertus{dclicProfile.dclic_vertu_dominante ? ` (vertu dominante : ${dclicProfile.dclic_vertu_dominante})` : ""}.</span>
-        </div>
-      ) : (
-        <div className="rounded-xl border-2 border-dashed border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-4" data-testid="archeologie-dclic-needed">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-amber-600" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-bold text-amber-900">Boostez votre Archéologie avec D'CLIC PRO</h4>
-              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                Pour obtenir une Archéologie des Compétences personnalisée et complète, passez le test <strong>D'CLIC PRO</strong>.
-                Il révélera votre personnalité, vos dimensions DISC et vos vertus dominantes — permettant de remonter la chaîne complète :
-                Savoir-faire → Savoir-être → Qualités → Valeurs → Vertus.
-              </p>
-              <Button
-                size="sm"
-                className="mt-2.5 bg-amber-500 hover:bg-amber-600 text-white gap-1.5 shadow-sm"
-                onClick={() => window.open('/test-dclic', '_blank')}
-                data-testid="archeologie-launch-dclic-btn"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Passer le test D'CLIC PRO
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Hierarchy Explanation */}
-      <Card className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8e] text-white border-0">
-        <CardContent className="p-5">
-          <h4 className="font-semibold mb-3">Le modèle RE'ACTIF PRO</h4>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="bg-sky-400/30 px-3 py-1 rounded-full">Savoir-faire</span>
-            <ChevronRight className="w-4 h-4 text-white/50" />
-            <span className="bg-rose-400/30 px-3 py-1 rounded-full">Savoir-être</span>
-            <ChevronRight className="w-4 h-4 text-white/50" />
-            <span className="bg-amber-400/30 px-3 py-1 rounded-full">Qualités humaines</span>
-            <ChevronRight className="w-4 h-4 text-white/50" />
-            <span className="bg-emerald-400/30 px-3 py-1 rounded-full">Valeurs</span>
-            <ChevronRight className="w-4 h-4 text-white/50" />
-            <span className="bg-violet-400/30 px-3 py-1 rounded-full">Vertus</span>
-          </div>
-          <p className="text-blue-200 text-xs mt-3">L'orientation professionnelle part des compétences techniques vers les savoir-être, pour révéler les qualités humaines, les valeurs et les vertus qui vous animent.</p>
-        </CardContent>
-      </Card>
-
-      {/* Summary stats */}
-      {archeologie && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-sky-600">{archeologie.summary.savoir_faire}</div>
-            <p className="text-xs text-slate-500">Savoir-faire</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-rose-500">{archeologie.summary.savoir_etre}</div>
-            <p className="text-xs text-slate-500">Savoir-être</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-600">{archeologie.summary.valeurs_covered?.length || 0}</div>
-            <p className="text-xs text-slate-500">Valeurs couvertes</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-violet-600">{archeologie.summary.vertus_covered?.length || 0}</div>
-            <p className="text-xs text-slate-500">Vertus activées</p>
-          </CardContent></Card>
-        </div>
-      )}
-
-      {/* D'CLIC Vertus Profile — 6 vertus with scores */}
-      {archeologie?.dclic_vertus && (
-        <Card className="border-violet-200" data-testid="dclic-vertus-section">
-          <CardContent className="p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-violet-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-slate-900 text-sm">Profil des 6 Vertus (D'CLIC PRO)</h4>
-                <p className="text-xs text-slate-500">Vertu dominante : <span className="font-bold text-violet-600">{archeologie.dclic_vertus.dominant}</span></p>
-              </div>
-            </div>
-            {/* Vertus scores bars */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {Object.entries(archeologie.dclic_vertus.scores || {}).map(([key, score]) => {
-                const maxScore = Math.max(...Object.values(archeologie.dclic_vertus.scores || {}), 1);
-                const pct = Math.round((score / maxScore) * 100);
-                const isDominant = key === (archeologie.dclic_vertus.dominant || "").toLowerCase();
-                return (
-                  <div key={key} className={`p-2.5 rounded-lg border ${isDominant ? "border-violet-300 bg-violet-50" : "border-slate-200"}`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-semibold capitalize ${isDominant ? "text-violet-700" : "text-slate-600"}`}>{key}</span>
-                      <span className="text-xs font-bold text-slate-700">{score}</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${isDominant ? "bg-violet-500" : "bg-slate-400"}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {/* Cognition / Conation / Affection chains */}
-            {(archeologie.dclic_vertus.cognition?.length > 0 || archeologie.dclic_vertus.conation?.length > 0) && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t">
-                {archeologie.dclic_vertus.cognition?.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-blue-700 mb-1.5">Cognition (Savoir penser)</p>
-                    {archeologie.dclic_vertus.cognition.slice(0, 3).map((c, i) => (
-                      <p key={i} className="text-xs text-slate-600 mb-1">• {c}</p>
-                    ))}
-                  </div>
-                )}
-                {archeologie.dclic_vertus.conation?.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-amber-700 mb-1.5">Conation (Savoir agir)</p>
-                    {archeologie.dclic_vertus.conation.slice(0, 3).map((c, i) => (
-                      <p key={i} className="text-xs text-slate-600 mb-1">• {c}</p>
-                    ))}
-                  </div>
-                )}
-                {archeologie.dclic_vertus.affection?.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-rose-700 mb-1.5">Affection (Savoir ressentir)</p>
-                    {archeologie.dclic_vertus.affection.slice(0, 3).map((c, i) => (
-                      <p key={i} className="text-xs text-slate-600 mb-1">• {c}</p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Competences transferables */}
-            {archeologie.dclic_vertus.competences_transferables?.length > 0 && (
-              <div className="pt-2 border-t">
-                <p className="text-xs font-bold text-emerald-700 mb-1.5">Compétences transférables identifiées</p>
-                <div className="flex flex-wrap gap-1">
-                  {archeologie.dclic_vertus.competences_transferables.map((c, i) => (
-                    <Badge key={i} className="bg-emerald-50 text-emerald-700 text-xs">{c}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* D'CLIC Cross Analysis Chains */}
-      {archeologie?.dclic_chains && (
-        <Card className="border-indigo-200" data-testid="dclic-chains-section">
-          <CardContent className="p-5 space-y-3">
-            <h4 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-600" />
-              Chaînes croisées D'CLIC PRO
-            </h4>
-            {archeologie.dclic_chains.synergy_disc && (
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs font-bold text-blue-700 mb-1">Synergie DISC</p>
-                <p className="text-xs text-slate-700">{archeologie.dclic_chains.synergy_disc}</p>
-              </div>
-            )}
-            {archeologie.dclic_chains.synergy_ennea && (
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <p className="text-xs font-bold text-purple-700 mb-1">Synergie Ennéagramme</p>
-                <p className="text-xs text-slate-700">{archeologie.dclic_chains.synergy_ennea}</p>
-              </div>
-            )}
-            {archeologie.dclic_chains.tension && (
-              <div className="p-3 bg-amber-50 rounded-lg">
-                <p className="text-xs font-bold text-amber-700 mb-1">Points de tension</p>
-                <p className="text-xs text-slate-700">{archeologie.dclic_chains.tension}</p>
-              </div>
-            )}
-            {archeologie.dclic_chains.conseil_cip && (
-              <div className="p-3 bg-emerald-50 rounded-lg">
-                <p className="text-xs font-bold text-emerald-700 mb-1">Conseil CIP</p>
-                <p className="text-xs text-slate-700">{archeologie.dclic_chains.conseil_cip}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Chains: savoir-être traced to vertus */}
-      {archeologie?.chains?.length > 0 && (
-        <div>
-          <h4 className="font-medium text-slate-700 mb-3">Chaînes identifiées (Savoir-être → Vertus)</h4>
-          <div className="space-y-3">
-            {archeologie.chains.map((chain, i) => (
-              <Card key={i} className="border-l-4 border-l-rose-400" data-testid="archeologie-chain">
-                <CardContent className="p-4">
-                  <h5 className="font-semibold text-slate-900 text-sm mb-2">{chain.competence}</h5>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge className="bg-rose-100 text-rose-700 text-xs">{chain.competence}</Badge>
-                    {chain.qualites?.length > 0 && (
-                      <>
-                        <ChevronRight className="w-3 h-3 text-slate-300" />
-                        {chain.qualites.map((q, j) => <Badge key={j} variant="outline" className="text-xs text-amber-700 bg-amber-50">{q}</Badge>)}
-                      </>
-                    )}
-                    {chain.valeurs?.length > 0 && (
-                      <>
-                        <ChevronRight className="w-3 h-3 text-slate-300" />
-                        {chain.valeurs.map((v, j) => <Badge key={j} variant="outline" className="text-xs text-emerald-700 bg-emerald-50">{v}</Badge>)}
-                      </>
-                    )}
-                    {chain.vertus?.length > 0 && (
-                      <>
-                        <ChevronRight className="w-3 h-3 text-slate-300" />
-                        {chain.vertus.map((v, j) => <Badge key={j} variant="outline" className="text-xs text-violet-700 bg-violet-50">{v}</Badge>)}
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Non-classified competences warning */}
-      {archeologie && archeologie.summary.non_classees > 0 && (
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-800 font-medium">{archeologie.summary.non_classees} compétence(s) non classée(s)</p>
-            <p className="text-xs text-amber-600">Précisez leur nature (savoir-faire ou savoir-être) dans l'onglet Compétences pour compléter l'archéologie.</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Referentiel: Les 6 Vertus */}
-      {referentiel && (
-        <div>
-          <h4 className="font-medium text-slate-700 mb-3">Les 6 Vertus et leurs chaînes</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {referentiel.vertus.map(vertu => {
-              const vc = VERTU_COLORS[vertu.id] || VERTU_COLORS.sagesse;
-              const isCovered = archeologie?.summary?.vertus_covered?.includes(vertu.id);
-              return (
-                <Card key={vertu.id} className={`${vc.bg} border ${vc.border} ${isCovered ? "ring-2 ring-offset-1" : "opacity-60"}`} style={isCovered ? { ringColor: vc.accent } : {}} data-testid={`vertu-card-${vertu.id}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className={`font-semibold text-sm ${vc.text}`}>{vertu.name}</h5>
-                      {isCovered && <Badge className="bg-emerald-500 text-white text-xs">Activée</Badge>}
-                    </div>
-                    <p className="text-xs text-slate-600 mb-2">{vertu.description}</p>
-                    <div className="space-y-1.5">
-                      <div>
-                        <p className="text-xs font-medium text-slate-500">Qualités associées :</p>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {vertu.qualites?.slice(0, 4).map((q, i) => <Badge key={i} variant="outline" className="text-xs">{q}</Badge>)}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-slate-500">Savoir-être :</p>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {vertu.savoirs_etre?.slice(0, 3).map((s, i) => <Badge key={i} className="text-xs bg-rose-50 text-rose-600">{s}</Badge>)}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {!archeologie && !loading && (
-        <EmptyState text="Cliquez sur 'Analyser mon profil' pour visualiser l'archéologie de vos compétences" />
-      )}
-    </div>
-  );
-};
+    <ArbreCompetences token={token} />
+  </div>
+);
 
 export default PassportView;
 ;

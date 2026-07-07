@@ -1,0 +1,60 @@
+{
+  "summary": "Iteration 36 — Full validation of the Archéologie refactor to the 'Arbre des Compétences' infographic view. Backend: 4/4 pytest tests PASSED (GET default, GET prefill=1, POST save, POST strip/dedupe). Frontend: all 5 requested flows PASSED (short page, 5 bubbles with vertus in brown soil, no 'ennéagramme' anywhere, prefill button + toast + bubble content, edit panel add/remove/save + persistence after reload, other Passeport tabs still work).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/dashboard/competences → onglet Archéologie",
+        "issues": [
+          "Le bouton 'Enregistrer' (arbre-save-btn) est ancré tout en haut de la zone Archéologie tandis que l'utilisateur travaille en scrollant plus bas dans le panneau d'édition; il faut remonter pour l'atteindre. Petit inconfort UX (pas bloquant) — envisager un bouton d'enregistrement STICKY à côté du panneau d'édition ou dans le panneau lui-même.",
+          "Le bouton d'action rapide 'Coach RE'ACTIF PRO' (bas-droite) chevauche visuellement la zone d'édition sur les écrans 1920x1080 — pas bloquant en lisant/cliquant les bulles, mais peut masquer les chips situés en bas-droite (info seulement)."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration36_arbre.py",
+    "/app/test_reports/pytest/pytest_iteration36_results.xml"
+  ],
+  "action_items": [
+    "Optionnel (UX mineur) : rendre le bouton 'Enregistrer' sticky ou le dupliquer au bas du panneau d'édition pour éviter de scroller vers le haut à chaque modification.",
+    "Aucun autre correctif nécessaire — l'implémentation répond à 100% aux exigences (arbre visuel, 5 niveaux, vertus dans le sol marron, aucune mention 'ennéagramme', pré-remplissage, édition chips, sauvegarde persistante)."
+  ],
+  "critical_code_review_comments": [
+    "Backend /passport/arbre (GET+POST) est propre : matching souple ARCHEOLOGIE_SAVOIR_ETRE en fallback quand nature absente, dédoublonnage propre par nom, cap [:12/:10/:8/:6/:15], et upsert idempotent sur token_id — RAS.",
+    "Frontend ArbreCompetences.jsx est un composant unique et bien encapsulé (~225 lignes), le SVG plat + les 5 bulles absolues fonctionnent parfaitement en responsive (viewBox scaling). Bon usage des data-testid pour tous les éléments interactifs. Seule remarque : setLevels utilise {...EMPTY_LEVELS, ...res.data.levels} — sécurise bien contre les clés manquantes du serveur.",
+    "PassportView ArcheologieTab a été correctement réduit (30 lignes vs plusieurs centaines auparavant); toutes les vieilles cartes stats/chaînes/Synergie Ennéagramme sont supprimées."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration36_arbre.py"
+  ],
+  "success_rate": {
+    "backend": "100% (4/4 pytest passed)",
+    "frontend": "100% (5/5 flows validés : page courte, 5 bulles, no ennéagramme, prefill, add/remove/save+reload persistence, autres onglets OK)"
+  },
+  "test_credentials": "mike9 / Solerys777! (comme demandé dans la review)",
+  "seed_data_creation": "Aucune donnée de seed permanente. À la fin du test j'ai restauré via prefill+save l'état 'propre' de mike9 : 12 savoir-faire, 6 savoir-être, 8 qualités, 4 valeurs, 3 vertus. Aucun TEST_* résiduel dans la DB.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "URL: https://cv-analyzer-53.preview.emergentagent.com. Login API: POST /api/auth/login {pseudo,password}. Arbre endpoints: GET /api/passport/arbre?token=&prefill=0|1, POST /api/passport/arbre?token= {levels:{5 keys}}. Frontend route pour l'onglet Archéologie: /dashboard/competences (PAS /dashboard/passeport ni /dashboard/profil — passeport redirige vers profil, et l'onglet Archéologie n'est présent que dans viewMode='competences'). Cliquer le tab data-testid='passport-tab-archeologie' pour révéler l'arbre (data-testid='arbre-visuel'). IMPORTANT: quand on ouvre le panneau d'édition puis on veut cliquer 'arbre-save-btn' via Playwright, faire d'abord un scroll_into_view_if_needed puis .click() (sans force=True) — sinon force=True à des coordonnées scrollées peut cliquer un autre élément (nav 'Boost mon profil' visible en top-right ouvre une modale D'CLIC PRO). Toast de succès: 'Votre arbre des compétences est enregistré'. Toast prefill: 'Arbre pré-rempli depuis votre profil'.",
+  "features_tested": {
+    "Backend GET /passport/arbre (default)": "PASSED — 5 clés retournées, prefilled=false, data actuelle {savoir_faire:12, savoir_etre:6, qualites:8, valeurs:4, vertus:3}",
+    "Backend GET /passport/arbre?prefill=1 (mike9)": "PASSED — prefilled=true, 12 savoir-faire / 6 savoir-être / 8 qualités / 4 valeurs / 3 vertus (correspond exactement aux valeurs annoncées)",
+    "Backend POST /passport/arbre {levels}": "PASSED — sauvegarde correcte + GET renvoie les mêmes valeurs",
+    "Backend POST strip+dedupe": "PASSED — les entrées vides et espacées sont nettoyées",
+    "Frontend page courte + arbre visible": "PASSED — 2533 chars sur la tab Archéologie, plus de cartes stats/chaînes/vertus séparées",
+    "Frontend 5 bulles avec vertus dans sol marron": "PASSED — visuel propre, bulles 01-04 dans la canopée (dégradé vert), bulle 05 VERTUS dans le sol marron avec fond brun foncé et texte crème lisible",
+    "Frontend AUCUNE mention 'ennéagramme'": "PASSED — recherche insensible à la casse sur tout innerText, 0 occurrence",
+    "Frontend clic 'Pré-remplir' → toast + contenu bulles": "PASSED — toast 'Arbre pré-rempli depuis votre profil — pensez à enregistrer', bulles affichent 3 items + '+N autres', ex: savoir_faire montre '+9 autres', vertus montre 3 items",
+    "Frontend clic bulle → panneau édition + chips + add/remove": "PASSED — panneau ouvre, chips affichées, add via input+bouton fonctionne, remove-{i} fonctionne",
+    "Frontend Enregistrer → POST + toast + persistence après reload": "PASSED — POST 200, toast 'Votre arbre des compétences est enregistré', reload puis clic archeologie affiche TEST_persistence_3 encore dans vertus (validé via DOM + API)",
+    "Frontend autres onglets Passeport": "PASSED — passport-tab-competences (Inventaire), passport-tab-evaluation (Évaluation), passport-tab-formations (dans /dashboard/profil) chargent sans erreur console"
+  },
+  "screenshot_notes": "Screenshots capturés: arbre visuel initial (bulles vides invitant 'Cliquez pour remplir'), après prefill (bulles pleines avec Accompagnement socio-professionnel, Écoute active, Empathie, Autonomie, Sagesse et Connaissance...), après save toast, et après reload (persistence confirmée). L'arbre plat SVG (feuillage 4 cercles verts, tronc marron, colline verte, sol marron avec motif à points, racines) rend joliment à 900x1000 viewBox. Aucun débordement de texte majeur, chaque bulle affiche max 3 items + compteur. Bulle vertus (05, fond brun foncé #3a2817, texte crème #f3e9dc) parfaitement lisible dans la zone sol.",
+  "rca_of_the_issue": "N/A — aucun bug à corriger. La refonte fonctionne end-to-end. Le seul faux-positif rencontré durant le test était côté script Playwright: force=True sur arbre-save-btn après scroll dispatchait le clic à un élément DOM différent (déclenchant la modale 'Boost mon profil avec D'CLIC PRO' du top nav). Solution: utiliser .scroll_into_view_if_needed() + .click() (sans force). Une fois corrigé le test, save+POST+persistence fonctionnent parfaitement."
+}
