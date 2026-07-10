@@ -37,6 +37,7 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-06) Arbre : panneau résumé à droite (progression vertus → savoir-faire, X/5 niveaux, stepper cliquable) + citation C.K. Luximon
 - [x] (2026-06) Arbre : légende "Comprendre l'arbre" (Formation/Apprentissage/Capacités/Tuteur/Potentiel) déplacée à gauche de l'arbre (layout 3 colonnes) ; résumé limité en hauteur pour ne plus être masqué par le widget Coach
 - [x] (2026-07) UBUNTOO intégré : réseau social solidaire récupéré depuis GitHub (Luximon777/ubuntoo, branche conflict_090726_1613) et porté dans Ré'Actif Pro. Backend routes/ubuntoo_social.py (/api/social, collections ubuntoo_*, SSO auto-provisionné depuis la session Ré'Actif Pro, WebSocket /api/social/ws). Frontend views/ubuntoo-social/ monté sur /ubuntoo/* (Fil+réactions solidaires, groupes+discussions, messagerie temps réel, communauté, recherche, profil, badges d'expérience). Ancienne UbuntooView (VSI meeting rooms) détachée mais conservée dans views/.
+- [x] (2026-07) Prototype UBUNTOO ORIGINAL (branche main, mars 2026) monté sur /ubuntoo-ancien pour comparaison : thème sombre gradients, profil avec statuts + import RE'ACTIF PRO mock (/api/social/legacy/import-reactif-pro), groupes d'entraide, discussions forum/Q&A/chat, mentorat, impact + démo reactif-pro embarquée. CSS isolé (.ubuntoo-ancien, nesting natif). EN ATTENTE : choix utilisateur entre les 2 versions pour /ubuntoo.
 
 ## Comptes démo
 - peter7 / Solerys777! (profil complet, Expert Certifié level 3)
