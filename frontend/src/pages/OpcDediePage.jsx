@@ -670,7 +670,7 @@ function ReferentielModule({ query, setQuery, results, onSearch, loading }) {
 
       {results && (
         <div className="space-y-4">
-          <div className="text-xs text-slate-500">{results.total ?? 0} résultat(s)</div>
+          <div className="text-xs text-slate-500" data-testid="opc-search-total">{(results.total ?? 0) + opcResults.length} résultat(s)</div>
           {sections.map((sec, si) => (
             <div key={si}>
               <h3 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-2">

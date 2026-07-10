@@ -38,6 +38,11 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-06) Arbre : légende "Comprendre l'arbre" (Formation/Apprentissage/Capacités/Tuteur/Potentiel) déplacée à gauche de l'arbre (layout 3 colonnes) ; résumé limité en hauteur pour ne plus être masqué par le widget Coach
 - [x] (2026-07) UBUNTOO intégré : réseau social solidaire récupéré depuis GitHub (Luximon777/ubuntoo, branche conflict_090726_1613) et porté dans Ré'Actif Pro. Backend routes/ubuntoo_social.py (/api/social, collections ubuntoo_*, SSO auto-provisionné depuis la session Ré'Actif Pro, WebSocket /api/social/ws). Frontend views/ubuntoo-social/ monté sur /ubuntoo/* (Fil+réactions solidaires, groupes+discussions, messagerie temps réel, communauté, recherche, profil, badges d'expérience). Ancienne UbuntooView (VSI meeting rooms) détachée mais conservée dans views/.
 - [x] (2026-07) Prototype UBUNTOO ORIGINAL (branche main, mars 2026) monté sur /ubuntoo-ancien pour comparaison : thème sombre gradients, profil avec statuts + import RE'ACTIF PRO mock (/api/social/legacy/import-reactif-pro), groupes d'entraide, discussions forum/Q&A/chat, mentorat, impact + démo reactif-pro embarquée. CSS isolé (.ubuntoo-ancien, nesting natif). EN ATTENTE : choix utilisateur entre les 2 versions pour /ubuntoo.
+- [x] (2026-07) Fix "0 résultat(s)" OPC Référentiel vivant : fallback dans GET /referentiel/search (recherche par mots dans referentiel_opc + fiches terrain fiches_metier_opc) + re-seed renforcé au démarrage (opc_metiers<10, opc_filieres<5, rome_metiers<100). NÉCESSITE REDÉPLOIEMENT pour la prod.
+- [x] (2026-07) Fix compteur "0 résultat(s)" affiché sous le tableau OPC alors que des fiches sont visibles : le compteur (OpcDediePage.jsx, data-testid="opc-search-total") inclut désormais opcResults.length + results.total. Vérifié sur Preview (affiche "4 résultat(s)" pour "chef cuisinier"). NÉCESSITE REDÉPLOIEMENT pour reactif.pro.
+
+## ⚠️ URL PREVIEW ACTUELLE
+https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 
 ## Comptes démo
 - peter7 / Solerys777! (profil complet, Expert Certifié level 3)
