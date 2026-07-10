@@ -787,3 +787,42 @@ async def get_stats(current_user: dict = Depends(get_current_user)):
         "groups_count": await db.ubuntoo_groups.count_documents({}),
         "discussions_count": await db.ubuntoo_discussions.count_documents({}),
     }
+
+# ============== LEGACY PROTOTYPE (démo /ubuntoo-ancien) ==============
+
+def _legacy_trust_score(d: dict) -> int:
+    score = 50
+    score += min(len(d.get("soft_skills", [])) * 5, 20)
+    score += min(len(d.get("values", [])) * 3, 10)
+    if d.get("professional_sector"):
+        score += 5
+    score += min(len(d.get("target_jobs", [])) * 2, 10)
+    if d.get("potential_score", 0) > 0:
+        score += 5
+    return min(score, 100)
+
+@router.post("/legacy/import-reactif-pro")
+async def legacy_import_reactif_pro(payload: dict):
+    """Mock import RE'ACTIF PRO pour le prototype historique."""
+    data = {
+        "user_id": payload.get("user_id", "demo-user-001"),
+        "name": "Marie Dupont",
+        "territory": "Grand Est",
+        "soft_skills": [
+            {"name": "Empathie", "level": 85, "certified": True},
+            {"name": "Adaptabilité", "level": 78, "certified": True},
+            {"name": "Organisation", "level": 72, "certified": True},
+            {"name": "Communication", "level": 80, "certified": False},
+            {"name": "Travail en équipe", "level": 88, "certified": True},
+            {"name": "Résolution de problèmes", "level": 70, "certified": False},
+        ],
+        "values": ["Solidarité", "Entraide", "Développement personnel", "Innovation sociale"],
+        "professional_sector": "Services à la personne / Économie sociale et solidaire",
+        "target_jobs": ["Conseiller en insertion professionnelle", "Chargé de projet ESS", "Médiateur social", "Formateur adultes"],
+        "potential_score": 82,
+        "adaptation_potential": 76,
+        "trajectory": "Reconversion professionnelle - Secteur social",
+    }
+    profile = {**data, "status": "Membre actif", "trust_score": _legacy_trust_score(data),
+               "badges": ["Profil RE'ACTIF PRO"], "reactif_pro_synced": True}
+    return {"status": "success", "message": "Profil importé depuis RE'ACTIF PRO (démo)", "profile": profile}

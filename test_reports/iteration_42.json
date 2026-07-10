@@ -1,0 +1,38 @@
+{
+  "summary": "Frontend-only regression for the ubuntoo-ancien prototype grafted at /ubuntoo-ancien (App.js Route /ubuntoo-ancien/*). All 6 nav pages render correctly (home, profile, groups, discussions, mentoring, impact) with the expected dark theme (.ubuntoo-ancien bg=rgb(13,17,23)) while the outer app body stays light (rgb(248,249,250)). CSS native-nesting isolation via .ubuntoo-ancien wrapper WORKS: no style leakage to /dashboard, /, or /ubuntoo (new social). Import RE'ACTIF PRO button on profile page fires POST /api/social/legacy/import-reactif-pro (200) and upgrades status from 'Membre' to 'Membre actif'. Embedded /ubuntoo-ancien/reactif-pro sub-app renders home/questionnaire/carte-identite/metiers routes. Zero JS console errors, zero 4xx/5xx network errors on any of the tested routes. Regression on /ubuntoo (new SSO social) still shows the navbar + fil.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_42.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "UbuntooAncienApp.jsx is 2126 lines — well above the 700-line threshold. Should be split (Navigation, HomePage, ProfilePage, GroupsPage, DiscussionsPage, MentoringPage, ImpactPage, ReactifProApp) into separate files under /views/ubuntoo-ancien/pages/. Non-blocking for this iteration.",
+    "ubuntoo-ancien.css is 3581 lines with native CSS nesting under .ubuntoo-ancien. Nesting works in modern Chrome/Firefox/Safari (>= 2023) — VERIFIED runtime bg = rgb(13,17,23) inside the wrapper and rgb(248,249,250) outside. Note: production builds using a very old Autoprefixer/CRA that does NOT understand native nesting would silently break the isolation. Recommend adding a build-time postcss-nesting fallback plugin to guarantee correctness across older bundlers (not needed here as react-scripts / craco pipeline emits it correctly).",
+    "ReactifProNav (line ~1627) uses absolute link paths like '/reactif-pro/questionnaire' instead of '/ubuntoo-ancien/reactif-pro/questionnaire'. Currently harmless because the app is only ever mounted at /ubuntoo-ancien AND the internal <Routes> nested inside App relies on relative paths — but if a user manually clicks a Link with an absolute path, they'll go to the wrong URL. Consider prefixing them with '/ubuntoo-ancien' or using relative 'reactif-pro/questionnaire' strings.",
+    "The AdminGate at App.js line 289 intercepts all traffic when adminStatus is not set, so /ubuntoo-ancien is NOT public despite the review claiming 'pas de login requis'. This is only accessible AFTER the user has passed the AdminGate + logged in. If the intent is that /ubuntoo-ancien should be truly public (as a demo), add '/ubuntoo-ancien' to the publicPaths array (line 292) alongside /observatoire and /test-dclic. Currently WORKING but only for authenticated users.",
+    "HomePage.KPI test-ids ('kpi-success', 'kpi-isolation', 'kpi-satisfaction') exist ONLY on the Home page, not on the Impact page. The Impact page shows richer KPIs but does not carry those test-ids — fine, just note that the review request mentioned data-testid='main-navigation' which IS present.",
+    "The 'new-request-input' and 'post-request-btn' test-ids are inside the collapsible group detail area, not at the top-level of /groups — normal, they appear after clicking a group card."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per review)", "frontend": "100% (all 6 routes + import flow + reactif-pro sub-app + 2 regression checks)"},
+  "test_credentials": "mike9 / Solerys777! (used to pass Ré'Actif Pro auth. Note: AdminGate is served at '/' and blocks any URL until admin/dev/invite password OR user login is completed).",
+  "seed_data_creation": "None. Import RE'ACTIF PRO button is mocked (POST /api/social/legacy/import-reactif-pro returns simulated Marie Dupont data). Prototype uses local React state only.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://cv-analyzer-53.preview.emergentagent.com (frontend/.env; the review request mentions skills-vault-16 but that is not the actual REACT_APP_BACKEND_URL). Access /ubuntoo-ancien requires first passing the AdminGate + logging in (mike9/Solerys777!). CSS isolation via native nesting VERIFIED runtime — no leak, no missing styles. If a future agent sees an unstyled /ubuntoo-ancien page, check the postcss/autoprefixer version.",
+  "features_tested": {
+    "Routes render": "/ubuntoo-ancien home + profile + groups + discussions + mentoring + impact all return their [data-testid] pages. 6/6 OK.",
+    "CSS isolation": ".ubuntoo-ancien bg=rgb(13,17,23) (dark), body outside=rgb(248,249,250). Login page / and /dashboard / /ubuntoo have NO .ubuntoo-ancien class leak.",
+    "Navigation": "data-testid='main-navigation' present; all 6 nav-* items detected.",
+    "Import RE'ACTIF PRO": "Click on data-testid='import-reactif-btn' issues POST /api/social/legacy/import-reactif-pro (200) and upgrades user status from 'Membre' to 'Membre actif'. Notice message appears.",
+    "reactif-pro sub-app": "/ubuntoo-ancien/reactif-pro home, /questionnaire, /carte-identite, /metiers all render expected content.",
+    "Regression /": "Login page shows normally, body bg light, no CSS leak.",
+    "Regression /dashboard": "Dashboard renders normally after mike9 login, body light, no CSS leak.",
+    "Regression /ubuntoo": "New SSO social app still shows ubuntoo-back-btn + ubuntoo-nav-fil + posts feed."
+  },
+  "js_errors_or_network_failures": "Zero JS console errors, zero HTTP 4xx/5xx observed on any tested route.",
+  "rca_of_the_issue": "N/A — no bugs found. The prototype /ubuntoo-ancien is fully functional and CSS-isolated. The only nuance is that it is NOT publicly accessible without passing the AdminGate — if the product owner wants it to be a true public demo, add '/ubuntoo-ancien' to publicPaths in /app/frontend/src/App.js line 292."
+}
