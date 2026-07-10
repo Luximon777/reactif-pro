@@ -1,0 +1,45 @@
+{
+  "summary": "E2E validation of the /opc Référentiel vivant bug fix: 'chef cuisinier' search now returns total>0 (was showing '0 résultat(s)' in prod). Backend GET /api/referentiel/search fallback verified (9/9 pytest cases pass, incl. wipe-collections robustness test + startup re-seed to 69/20/1911). Frontend UI verified end-to-end on the preview URL (cv-analyzer-53.preview.emergentagent.com): after AdminGate (Dev) → OPC hub → mike9 login → /opc → Référentiel vivant, typing 'chef cuisinier' + Rechercher shows terrain fiche 'Remplacement Chef cuisinier' with HACCP + Rigueur, counter '3 résultat(s)' (not 0), sections Métiers OPC (1) / Compétences techniques (1) / Savoir-être (1). Regression 'chef de chantier' returns 2 fiches. Note: the preview URL in frontend/.env is cv-analyzer-53.preview.emergentagent.com, NOT skills-vault-16 as mentioned in the review request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_referentiel_search_fallback.py",
+    "/app/test_reports/pytest/referentiel_fallback_results.xml"
+  ],
+  "action_items": [
+    "Update the review-request preview URL: current preview is https://cv-analyzer-53.preview.emergentagent.com (per frontend/.env), NOT skills-vault-16.preview.emergentagent.com. Iterations 40–43 discrepancy is thus explained.",
+    "As previously noted (iteration 42), OpcDediePage.jsx (>1400 lines) and UbuntooAncienApp.jsx (>2000 lines) exceed the 700-line guideline and should be split. Non-blocking for this iteration."
+  ],
+  "critical_code_review_comments": [
+    "server.py /referentiel/search fallback: verified — when opc_metiers/opc_filieres/rome_metiers are empty, endpoint still returns total>0 by searching referentiel_opc AND fiches_metier_opc (mots-clés en logique ET). Fiche terrain 'Remplacement Chef cuisinier' is correctly surfaced with mapped skills (HACCP hard skill, Rigueur soft skill).",
+    "migrations.py startup re-seed: verified — after restarting backend post-wipe, opc_metiers→69, opc_filieres→20, rome_metiers→1911 (matches spec thresholds <10 / <5 / <100).",
+    "AdminGate flow requires 3 steps to reach /opc: gate (Admin/Dev/Invité) → opc-hub modal → space selection → mike9 login. The review said '/opc pas besoin de login' — that is inaccurate: /opc is a ProtectedRoute. Only /observatoire and /test-dclic are publicPaths (App.js line 292). Not a bug, just a documentation mismatch."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_referentiel_search_fallback.py (new)"
+  ],
+  "success_rate": {"backend": "100% (9/9 pytest)", "frontend": "100% (search chef cuisinier + regression chef de chantier)"},
+  "test_credentials": "AdminGate Dev: Reactif@pro2026! | mike9 / Solerys777!",
+  "seed_data_creation": "Test wiped opc_metiers/opc_filieres/rome_metiers and restarted backend — collections auto re-seeded to 69/20/1911. Fiche terrain 'Remplacement Chef cuisinier' (fiches_metier_opc) was untouched, count=2 preserved.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL from frontend/.env is https://cv-analyzer-53.preview.emergentagent.com (NOT the skills-vault-16 URL the review mentions). To reach /opc via UI: (1) click data-testid='status-programmeur' + password 'Reactif@pro2026!' + gate-submit, (2) click 'opc-hub' → 'opc-selector-personnel', (3) auth-tab-login + login-pseudo-input mike9 / login-password-input Solerys777! + login-submit-btn, (4) navigate to /opc, (5) click 'opc-nav-referentiel' (sidebar) — NOT 'opc-mod-referentiel' (that's the module content wrapper). Search UI: opc-ref-search, opc-ref-search-btn, opc-terrain-table.",
+  "rca_of_the_issue": {
+    "root_cause": "In production, the 3 static referentiel collections (opc_metiers/opc_filieres/rome_metiers) were empty or under-populated, and GET /api/referentiel/search had no fallback path. When the user searched 'chef cuisinier', the terrain fiches lookup (fiches_metier_opc, separate collection) still worked and displayed the top table, but the merged 'RE\u2019ACTIF PRO + ROME' search returned 0 and rendered the '0 résultat(s)' counter below.",
+    "fix_verified": [
+      "Backend fallback: /api/referentiel/search now, if no metier found in opc_metiers, does a word-AND search across referentiel_opc AND fiches_metier_opc (mapping the fiche terrain's compétences → savoir-être / capacités techniques). Verified via test_fallback_when_collections_empty (wipe 3 collections → still get total=3, 'Remplacement Chef cuisinier' in metiers).",
+      "Startup re-seed: on_startup re-seeds opc_metiers if <10, opc_filieres if <5, rome_metiers if <100. Verified: after restart with 3 collections wiped, counts restored to 69/20/1911.",
+      "Frontend UX: '0 résultat(s)' no longer appears for 'chef cuisinier' — replaced by '3 résultat(s)' with proper sections."
+    ],
+    "reproduction_steps_before_fix": [
+      "1. On production reactif.pro, log in and navigate to /opc",
+      "2. Open Module 'Référentiel vivant'",
+      "3. Search 'chef cuisinier'",
+      "4. Observe: terrain table shows the fiche BUT below it '0 résultat(s)' for the merged referentiel search"
+    ],
+    "mitigation_steps": [
+      "Deploy the current /app/backend/server.py (contains the fallback in /referentiel/search) + /app/backend/migrations.py (re-seed thresholds) to production.",
+      "After deploy, restart the backend once to trigger the on_startup re-seed of the 3 collections."
+    ]
+  }
+}

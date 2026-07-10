@@ -5178,6 +5178,60 @@ async def referentiel_search(token: str = None, q: str = None, filiere: str = No
                 "grand_domaine": r.get("grand_domaine_nom", ""),
             })
 
+    # Fallback: search the living OPC referential (referentiel_opc) when the
+    # static collections return nothing (e.g. fresh production database)
+    if q and not results_metiers:
+        import re as _re
+        words = [_re.escape(w.strip()) for w in q.split() if len(w.strip()) >= 2]
+        fields = ["metier", "secteur", "filiere", "mission", "hard_skills", "soft_skills"]
+        if words:
+            if len(words) > 1:
+                ref_query = {"$and": [{"$or": [{f: {"$regex": w, "$options": "i"}} for f in fields]} for w in words]}
+            else:
+                ref_query = {"$or": [{f: {"$regex": words[0], "$options": "i"}} for f in fields]}
+            ref_found = await db.referentiel_opc.find(ref_query, {"_id": 0}).to_list(50)
+            for m in ref_found:
+                results_metiers.append({
+                    "nom": m.get("metier", ""),
+                    "missions": m.get("mission", ""),
+                    "filiere_code": "",
+                    "secteur_code": m.get("code_secteur", ""),
+                    "filiere_nom": m.get("filiere", ""),
+                    "secteur_nom": m.get("secteur", ""),
+                })
+                for se in (m.get("soft_skills") or []):
+                    if isinstance(se, str) and se and se not in seen_se:
+                        seen_se.add(se)
+                        results_savoir_etre.append({"nom": se, "description": "", "qualites_humaines": []})
+                for ct in (m.get("hard_skills") or m.get("capacites_techniques") or []):
+                    if isinstance(ct, str) and ct and ct not in seen_ct:
+                        seen_ct.add(ct)
+                        results_capacites.append({"nom": ct[:80]})
+            # Also include terrain contribution fiches (fiches_metier_opc)
+            fiche_query = {"$and": [{"job_title": {"$regex": w, "$options": "i"}} for w in words]} if len(words) > 1 else {"job_title": {"$regex": words[0], "$options": "i"}}
+            seen_metier_names = {m["nom"].lower() for m in results_metiers}
+            fiches_found = await db.fiches_metier_opc.find(fiche_query, {"_id": 0}).to_list(20)
+            for fiche in fiches_found:
+                jt = fiche.get("job_title", "")
+                if not jt or jt.lower() in seen_metier_names:
+                    continue
+                seen_metier_names.add(jt.lower())
+                results_metiers.append({
+                    "nom": jt,
+                    "missions": "Fiche issue des contributions terrain certifiées",
+                    "filiere_code": "", "secteur_code": "",
+                    "filiere_nom": "Contributions terrain", "secteur_nom": "",
+                })
+                for skill, meta in (fiche.get("competences") or {}).items():
+                    stype = (meta or {}).get("skill_type", "soft")
+                    if stype == "hard":
+                        if skill not in seen_ct:
+                            seen_ct.add(skill)
+                            results_capacites.append({"nom": skill[:80]})
+                    elif skill not in seen_se:
+                        seen_se.add(skill)
+                        results_savoir_etre.append({"nom": skill, "description": "Validée par des preuves terrain", "qualites_humaines": []})
+
     total = len(results_filieres) + len(results_metiers) + len(results_savoir_etre) + len(results_capacites) + len(results_rome)
     return {
         "total": total,
@@ -8062,16 +8116,18 @@ async def on_startup():
         await run_migrations(db)
         await opc_create_indexes()
         await seed_if_empty()
-        # Seed filières professionnelles if empty
+        # Seed filières professionnelles if empty or incomplete
         count = await db.opc_filieres.count_documents({})
-        if count == 0:
+        if count < 5:
+            await db.opc_filieres.delete_many({})
             from seed_filieres import seed_filieres
             await seed_filieres()
             logger.info("[Seed] Filières professionnelles importées")
-        # Seed ROME if empty
+        # Seed ROME if empty or incomplete
         rome_count = await db.rome_metiers.count_documents({})
-        if rome_count == 0:
+        if rome_count < 100:
             try:
+                await db.rome_metiers.delete_many({})
                 from seed_rome import seed_rome
                 await seed_rome()
                 logger.info("[Seed] ROME France Travail importé")

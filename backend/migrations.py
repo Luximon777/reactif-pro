@@ -411,13 +411,14 @@ async def seed_referentiel_opc(db):
                 await db.referentiel_opc.insert_many(docs)
                 logger.info(f"[Migration] Référentiel OPC initialisé: {len(docs)} métiers")
 
-    # Seed opc_metiers
+    # Seed opc_metiers (re-seed if empty or incomplete)
     met_count = await db.opc_metiers.count_documents({})
-    if met_count == 0:
+    if met_count < 10:
         met_path = os.path.join(os.path.dirname(__file__), "seed_data_opc_metiers.json")
         if os.path.exists(met_path):
             with open(met_path, "r") as f:
                 docs = json.load(f)
             if docs:
+                await db.opc_metiers.delete_many({})
                 await db.opc_metiers.insert_many(docs)
                 logger.info(f"[Migration] OPC Métiers initialisé: {len(docs)} fiches")
