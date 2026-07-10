@@ -10210,6 +10210,8 @@ app.include_router(rncp_router)
 # Route modules extracted from server.py
 from routes.jobdating import router as jobdating_router
 app.include_router(jobdating_router)
+from routes.ubuntoo_social import router as ubuntoo_social_router
+app.include_router(ubuntoo_social_router)
 register_dclic_routes(app, db)
 
 @app.on_event("shutdown")

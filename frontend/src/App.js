@@ -9,7 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import SharedPassportPage from "@/pages/SharedPassportPage";
 import SharedTrajectoryPage from "@/pages/SharedTrajectoryPage";
 import DclicTestPage from "@/pages/DclicTestPage";
-import UbuntooPage from "@/pages/UbuntooPage";
+import UbuntooSocialApp from "@/views/ubuntoo-social/UbuntooSocialApp";
 import OpcPublicPage from "@/pages/OpcPublicPage";
 import OpcDediePage from "@/pages/OpcDediePage";
 import AdminGate from "@/components/AdminGate";
@@ -321,7 +321,7 @@ function AppContent() {
           <Route path="/passport/shared/:shareId" element={<SharedPassportPage />} />
           <Route path="/trajectoire/:shareId" element={<SharedTrajectoryPage />} />
           <Route path="/test-dclic" element={<DclicTestPage />} />
-          <Route path="/ubuntoo" element={<UbuntooPage />} />
+          <Route path="/ubuntoo/*" element={<UbuntooSocialApp />} />
           <Route path="/observatoire" element={<OpcPublicPage />} />
           <Route path="/opc" element={<ProtectedRoute><OpcDedieWrapper /></ProtectedRoute>} />
           <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

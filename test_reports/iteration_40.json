@@ -1,0 +1,49 @@
+{
+  "summary": "Full backend + frontend validation of Ubuntoo integration into Ré'Actif Pro. 27/27 backend tests PASS (SSO, posts, réactions exclusives, comments, groupes, discussions, replies, messages, WebSocket temps réel, search, badges, stats, profile). Frontend: SSO silencieux OK, navbar 7 test-ids OK, Fil (create + react + navigation), toutes les rubriques /ubuntoo/{groups,messages,community,search,profile} chargent sans erreur, bouton retour Ré'Actif Pro OK, régression dashboard OK, 0 erreur JS console.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ubuntoo_social.py",
+    "/app/test_reports/pytest/pytest_ubuntoo_social_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ubuntoo_social.py (790 lignes) approche le seuil 700 — considérer un split en modules (auth.py, posts.py, groups.py, messages.py, ws.py) pour maintenabilité future. Non bloquant.",
+    "SECRET_KEY = os.environ['UBUNTOO_JWT_SECRET'] au module top-level : lèvera KeyError silencieux au boot si la variable manque. OK ici car .env contient bien la clé, mais un fallback + log explicite améliorerait le fail-fast.",
+    "manager.active est un dict en mémoire process-local : ne survit pas à un redémarrage backend et ne fonctionnera PAS en multi-workers. Acceptable pour un MVP mono-worker mais à surveiller si scale-out.",
+    "get_current_user() : bon usage de find_one avec projection {_id:0}. Cohérent partout.",
+    "React exclusivity : la logique dans /posts/{id}/react est correcte (pull all reactions before addToSet) — testé + validé (test_react_toggle_exclusive passe).",
+    "WebSocket /api/social/ws : bien géré, presence_snapshot envoyé, delivery_state passe de 'sent' à 'delivered' quand récepteur online. Testé end-to-end (test_ws_realtime_message passe en 5s).",
+    "Frontend UbuntooSocialContext.jsx : init() essaie /auth/me avec le jwt existant puis fallback sur sso() — bonne UX. localStorage.setItem key = 'reactif_token' cohérente avec Ré'Actif Pro.",
+    "Navbar utilise `data-testid=ubuntoo-nav-${label.toLowerCase()}` — testid 'ubuntoo-nav-communauté' contient un caractère accentué qui pourrait poser problème dans certains sélecteurs CSS ; fonctionne en Playwright via [data-testid='...']."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ubuntoo_social.py (créé, 27 tests)"
+  ],
+  "success_rate": {"backend": "100% (27/27)", "frontend": "100% (all critical flows validated)"},
+  "test_credentials": "mike9 / Solerys777! et peter7 / Solerys777! (login via Espace Personnel modal, champ Pseudonyme + Mot de passe). Peter7 provisionné avec succès dans Ubuntoo via visite /ubuntoo.",
+  "seed_data_creation": "Créé pendant tests : ~2 posts TEST_ pour mike9, 1 groupe TEST_ (mike9 créateur, peter7 joined/left), 1 discussion TEST_ + reply TEST_, plusieurs messages TEST_/TEST_ws_ entre mike9 ↔ peter7, 1 report TEST_. Profil mike9 mis à jour (bio=TEST_bio_updated, location=Paris, sector=Tech, skills=[python,react]). Badges mike9 accumulés : welcome, first_post, voice_heard, helping_hand, connection_made, builder, facilitator (7/11 visibles dans /ubuntoo/profile).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "URL: https://cv-analyzer-53.preview.emergentagent.com (frontend/.env ; le review disait skills-vault-16 mais REACT_APP_BACKEND_URL est celui-ci). Backend URL identique pour /api et /api/social. WS: wss://<host>/api/social/ws?token=<jwt>. Comptes provisionnés dans Ubuntoo : mike9 (Mike9, mike9@reactif.pro, id partagé avec Ré'Actif Pro users) + peter7 (Peter7, peter7@reactif.pro). Fichier de tests backend: /app/backend/tests/test_ubuntoo_social.py (websocket-client requis, installé via pip). Le profil mike9 a été modifié — remettre valeurs vides si un test suivant vérifie l'état initial. Data cleanup NON fait (données TEST_ persistent en base ubuntoo_*).",
+  "features_tested": {
+    "Backend SSO + auth": "test_sso_returns_jwt_and_user, test_auth_me, test_sso_invalid_token_401, test_auth_me_without_token — 4/4 PASS",
+    "Backend Posts + Réactions + Comments + Reports": "test_create_post, test_get_posts, test_react_toggle_exclusive, test_react_invalid_type, test_add_and_get_comment, test_report_post, test_badge_first_post — 7/7 PASS. Réactions exclusives validées (merci→bravo→toggle off).",
+    "Backend Groups + Discussions": "test_create_group, test_list_groups, test_join_group_toggle, test_create_discussion, test_get_group_discussions, test_add_discussion_reply, test_get_discussion_detail, test_badge_builder_facilitator — 8/8 PASS. Toggle join/leave OK. Badges builder + facilitator décernés.",
+    "Backend Messages": "test_send_and_get_messages, test_conversations_list — 2/2 PASS.",
+    "Backend Search + Badges + Stats + Profile": "test_search, test_badges_list (11 badges), test_stats (counts), test_profile_update — 4/4 PASS.",
+    "Backend WebSocket temps réel": "test_ws_realtime_message (mike WS reçoit un message envoyé par peter via REST en <5s, avec status='delivered'), test_ws_invalid_token_closes — 2/2 PASS.",
+    "Frontend SSO silencieux": "Login mike9 sur Ré'Actif Pro → naviguer vers /ubuntoo → navbar affiché en <5s sans page de login. localStorage.ubuntoo_jwt correctement défini.",
+    "Frontend Navbar (7 testids)": "ubuntoo-back-btn, ubuntoo-nav-fil, ubuntoo-nav-groupes, ubuntoo-nav-messages, ubuntoo-nav-communauté, ubuntoo-nav-recherche, ubuntoo-nav-profil — tous présents et cliquables.",
+    "Frontend Fil": "create post (TEST_ui_post_*) avec catégorie 'question' → post visible dans le feed immédiatement. Bouton réaction Merci fonctionne (bg passe à orange sur click). 3 boutons react-merci-{id} détectés.",
+    "Frontend Navigation /ubuntoo/*": "Toutes les rubriques (groupes, messages, community, search, profile) chargent sans erreur JS. URLs correctes.",
+    "Frontend Profile page": "Affiche Mike9, mike9@reactif.pro, bio TEST_bio_updated, Localisation Paris, Secteur Tech, compétences [python, react], 7/11 badges (Bienvenue, Premier pas, Voix entendue, Main tendue, Lien créé, Bâtisseur, Facilitateur). Section 'Parcours personnel' affiche les cartes badge parcours.",
+    "Frontend Messages 2-users": "peter7 provisionné avec succès via visite /ubuntoo. Page /ubuntoo/messages pour peter7 affiche la conversation avec Mike9 (dernière ligne TEST_ws_d715b1 il y a 2 minutes).",
+    "Frontend Régression dashboard": "Bouton retour → /dashboard charge normalement, reactif_token toujours présent, ubuntoo_jwt cohabite bien. Pas d'interférence entre les 2 headers Authorization (chaque axios instance a sa propre baseURL et son propre interceptor). 0 erreur JS console."
+  },
+  "rca_of_the_issue": "N/A — aucun bug. Intégration Ubuntoo dans Ré'Actif Pro pleinement fonctionnelle sur les 8 features testées (backend + frontend). Le seul 'échec' capturé dans les logs frontend est un 404 sur /api/auth/me appelé par NOTRE script de test de régression (endpoint qui n'existe pas côté Réactif Pro — c'est /api/auth/login ici, l'appel /auth/me a une autre route). Ce n'est PAS un bug de l'app."
+}
