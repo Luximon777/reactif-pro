@@ -1,0 +1,58 @@
+{
+  "summary": "Infrastructure accessibility test of https://skills-vault-16.preview.emergentagent.com from a real external browser (Playwright). CONFIRMED: The external URL now serves the Emergent edge-proxy 'Preview Unavailable!!!' / 'Not Found' Webflow page for BOTH `/` and `/ubuntoo-ancien`, on the initial load AND after 3 consecutive reloads with 3s intervals. This is a platform-side edge/proxy routing issue — NOT a code or in-pod service problem.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "External preview URL access",
+        "issue": "External URL https://skills-vault-16.preview.emergentagent.com/ returns HTTP 200 but body is the Emergent 'Preview Unavailable!!! Our Agent is resting after inactivity' page served from emergent.sh Webflow (title='Not Found', data-wf-domain='emergent.sh'). Same result on /ubuntoo-ancien. Persisted after 3 reloads. Login page never renders — no input fields present in DOM. This differs from iterations 40–42 where the site loaded normally.",
+        "affected_selectors": ["input", "button[type='submit']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "This is a PLATFORM (Emergent edge proxy) issue, not a code issue. Nothing to fix inside the container.",
+    "Main agent should instruct the user to visit app.emergent.sh and click 'Restart the app' / 'Wake up preview' on the Ré'Actif Pro workspace to re-register the pod with the edge proxy.",
+    "Alternative: 'Open Emergent' button on the Preview Unavailable page links to app.emergent.sh — the user can trigger the wake-up from there.",
+    "If the wake-up flow does not restore access, escalate to Emergent platform support (Contact Support button on the Preview Unavailable page) — the internal `supervisorctl restart` does NOT recover the edge proxy registration."
+  ],
+  "critical_code_review_comments": [
+    "No code review performed — this iteration is purely an infrastructure accessibility test as requested.",
+    "In-pod diagnostics prove code side is healthy: `supervisorctl status` shows backend RUNNING (pid 1913), frontend RUNNING (pid 1917), mongodb RUNNING. `curl http://localhost:3000/` returns 200 with the real React `index.html` (SPA redirect handler present). `curl http://localhost:8001/api/` returns 200. So the app is definitively up inside the pod."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not tested)", "frontend": "0% — external preview URL is completely inaccessible from a real browser; every path returns the Emergent 'Preview Unavailable' Webflow page"},
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The preview URL was accessible in iterations 40–42, then went to 'Preview Unavailable' in the main agent's screenshot tool. Main agent restarted backend+frontend via supervisor in iteration 42 hoping to trigger edge-proxy re-registration. In iteration 43 (this run) I confirmed from a REAL external Playwright browser that the preview URL is STILL serving the Emergent 'Preview Unavailable' Webflow page (title='Not Found', hosted at cdn.prod.website-files.com/6a0edf12ef1a8562ed56d806, Last Published Thu Jul 09 2026 05:01:26 GMT). Internal services are 100% healthy. The `supervisorctl restart` did NOT fix the edge-proxy registration — the fix requires action from app.emergent.sh (wake-up / restart-app button), which only the human user can trigger. Do not attempt further supervisor restarts — they will not help. Screenshots saved: /app/.screenshots/root_page.png, /app/.screenshots/root_page_after_reload.png, /app/.screenshots/ubuntoo_ancien.png (all show identical 'Preview Unavailable!!!' page).",
+  "rca of the issue": {
+    "root_cause": "The Emergent edge proxy (edge.emergentagent.com layer) has de-registered / is no longer routing traffic for the `skills-vault-16` preview subdomain to this pod's frontend container. Instead, it serves a fallback Webflow-hosted 'Preview Unavailable' static page from emergent.sh (proven by response HTML: `data-wf-domain='emergent.sh'`, `data-wf-site='6a0edf12ef1a8562ed56d806'`, `<title>Not Found</title>`, CSS from `cdn.prod.website-files.com`).",
+    "evidence": [
+      "External: `curl https://skills-vault-16.preview.emergentagent.com/` → HTTP 200, body = Webflow 'Preview Unavailable' page (title 'Not Found')",
+      "External: same result for `/ubuntoo-ancien` — because the edge proxy short-circuits BEFORE reaching the pod, so React Router never runs",
+      "Internal: `curl http://localhost:3000/` → HTTP 200, real React `index.html` with SPA redirect handler — frontend is healthy",
+      "Internal: `curl http://localhost:8001/api/` → HTTP 200 — backend is healthy",
+      "supervisorctl: backend RUNNING (uptime ~2min after main agent restart), frontend RUNNING (~2min), mongodb RUNNING (22min)",
+      "Playwright: 3 reloads spaced 3s apart, all returned the identical 'Preview Unavailable' page — not a transient issue",
+      "DOM: 0 input fields present on external `/` — proves it is NOT the React app being served"
+    ],
+    "reproduction_steps": [
+      "1. From any external browser, open https://skills-vault-16.preview.emergentagent.com/",
+      "2. Observe the dark 'Preview Unavailable!!! Our Agent is resting after inactivity' page with 'Contact Support' and 'Open Emergent' buttons",
+      "3. Repeat for /ubuntoo-ancien — same result",
+      "4. Reload multiple times — persists indefinitely"
+    ],
+    "mitigation_steps": [
+      "Ask the human user to open https://app.emergent.sh, find the Ré'Actif Pro workspace, and click the 'Restart app' / 'Wake up' button — this is the ONLY reliable way to re-register the pod with the Emergent edge proxy.",
+      "If wake-up does not resolve within 1–2 minutes, click 'Contact Support' on the Preview Unavailable page to escalate to Emergent platform ops.",
+      "Do NOT keep running `sudo supervisorctl restart` — the code side is already healthy; further restarts inside the pod cannot influence the external edge proxy."
+    ]
+  }
+}
