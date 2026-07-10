@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 41 — Reproduction PREVIEW du scénario production amel9 (CV → formations). E2E BACKEND + FRONTEND 100% GREEN. Compte amel9 fraîchement vierge, upload CV via /api/cv/analyze-text → 4/4 formations extraites avec title+institution+year+source='cv_analysis' + 3/3 centres d'intérêt. Fallback POST /api/passport/refresh après wipe DB → 4 formations RÉ-extraites depuis cv_text stocké (source='cv_analysis', PAS inventées). UI /dashboard/trajectoire → onglet Mon CV → carte 'Formations & Certifications' affiche les 4 formations avec tous les champs (BTS SAM/Lycée Colbert/2017/Bac+2/Diplôme + Bac STMG/Lycée Ampère/2015 + TOEIC/ETS Global/2021/Certification + Gestion projet agile/CCI Lyon/2023/Formation Pro). Onglet Centres d'intérêt affiche Yoga + Cuisine du monde + Lecture de romans historiques. Page /dashboard/competences (Passeport) affiche '4 formations' dans le compteur Expériences. CONCLUSION: Le code actuel est SAIN de bout en bout. Le bug rapporté par l'utilisateur en production sur reactif.pro provient très probablement d'un problème de TIMING (CV uploadé avant que le redéploiement backend production ne soit terminé, ou avant que la version incluant le correctif iteration 33 ne soit active) — pas d'un défaut de code.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_amel9_cv_flow.py",
+    "/app/test_reports/pytest/pytest_iteration41_results.xml"
+  ],
+  "action_items": [
+    "Aucun correctif de code nécessaire. Le flux marche parfaitement sur Preview.",
+    "Pour la production reactif.pro : demander à l'utilisateur de RE-uploader le CV amel9 maintenant (après redéploiement) OU cliquer sur le bouton 'Actualiser' du passeport (POST /api/passport/refresh) qui va ré-extraire les formations depuis le cv_text déjà stocké. Le fallback refresh a été vérifié fonctionnel."
+  ],
+  "critical_code_review_comments": [
+    "server.py::_run_cv_analysis (~L4018) correctement instrumenté : stocke cv_text dans db.cv_jobs.result et merge formations avec title/institution/year vers db.passports.formations avec source='cv_analysis'.",
+    "server.py::refresh_passport (~L3278) : fallback LLM correctement conditionné sur len(formations)==0 et cv_full_text présent → ré-extraction depuis cv_text stocké (pas d'invention). Prompt system_message très strict ('Extrais UNIQUEMENT ce qui est réellement mentionné dans le texte, n'invente rien').",
+    "ParticulierView.jsx L1728-1731 : bien géré le double-mapping f.title||f.diplome, f.institution||f.etablissement, f.year||f.annee (correctif iteration 33 encore en place et fonctionnel).",
+    "Fichier ParticulierView.jsx à 2455 lignes : dépasse largement le seuil de 700 lignes. À découper en sous-composants (Mon CV, Ma trajectoire, Centres d'intérêt, Analyse IA, Audit, Générer CV) pour maintenabilité. Non bloquant.",
+    "server.py à 10220 lignes : critique. Envisager un découpage par domaine (auth, passport, cv, offers, ubuntoo, admin, jobs, coffre) pour éviter la dette technique."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_amel9_cv_flow.py (créé, 4 tests)"
+  ],
+  "success_rate": {"backend": "100% (4/4)", "frontend": "100% (formations + centres d'intérêt + passeport)"},
+  "test_credentials": "amel9 / Solerys777! (compte Preview vierge fourni par main agent — désormais avec CV analysé et 4 formations + 3 centres d'intérêt en base). Preview URL: https://cv-analyzer-53.preview.emergentagent.com",
+  "seed_data_creation": "Après l'exécution des tests, le passeport amel9 contient : 4 formations (BTS SAM, Bac STMG, TOEIC, Gestion projet agile) toutes avec source='cv_analysis', 15 savoir-faire, 6 savoir-être, 2 expériences (Groupe Solerys assistante direction, Cabinet Comptalys assistante admin), 3 centres d'intérêt (Yoga, Cuisine du monde, Lecture de romans historiques). CV original stocké dans coffre-fort. cv_text complet stocké dans db.cv_jobs.result pour test refresh.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Le compte amel9 est désormais 'chargé' avec les données du CV cv_amel.txt. Si on veut re-tester un scénario 'vierge', il faut d'abord vider passports.formations, cv_jobs, cv_centres_interet et coffre_documents pour ce token. Le fichier test /app/backend/tests/test_amel9_cv_flow.py peut être ré-exécuté idempotemment (il ré-upload et vérifie que les formations sont ≥4). Note: le test_04 wipe formations en base MongoDB avant refresh — utile comme regression de non-régression du fallback refresh.",
+  "rca_of_the_issue": "Aucun bug reproductible sur Preview. HYPOTHÈSE PRODUCTION : sur reactif.pro (production), l'utilisateur a probablement uploadé son CV soit AVANT que le redéploiement du backend ne soit complet (l'ancien code sans le fix iteration 33 tournait encore), soit le job d'analyse n'a jamais atteint le status='completed' pour d'autres raisons (LLM timeout, erreur réseau, cv_text non stocké). MITIGATION : (1) Vérifier en base production que le job cv_analysis d'amel9 a bien status='completed' et cv_text non vide dans db.cv_jobs. (2) Si oui, cliquer sur 'Actualiser' → POST /api/passport/refresh va ré-extraire les 4 formations depuis cv_text (vérifié fonctionnel sur Preview). (3) Sinon, re-uploader le CV amel9 en production."
+}
