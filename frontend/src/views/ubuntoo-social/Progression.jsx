@@ -240,9 +240,9 @@ export default function Progression({ data, reload }) {
               >
                 <CurrentIcon size={48} className="text-white" />
               </div>
-              <h3 className="text-2xl font-bold mt-5 text-[#1A1A1A]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                <DialogTitle className="text-2xl font-bold">Félicitations ! 🎉</DialogTitle>
-              </h3>
+              <DialogTitle className="text-2xl font-bold mt-5 text-[#1A1A1A]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Félicitations ! 🎉
+              </DialogTitle>
               <p className="text-[#5C5C5C] mt-2">
                 Vous êtes désormais <strong style={{ color: currentColor }}>{current_level.name}</strong> de la communauté Ubuntoo.
               </p>
