@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   Compass, Sprout, Megaphone, Award, GraduationCap, Crown, Gem,
   CheckCircle2, Circle, Lock, Sparkles, TrendingUp, ScrollText, Loader2,
-  HandHeart, BookOpen, CalendarCheck, HeartHandshake
+  HandHeart, BookOpen, CalendarCheck, HeartHandshake, ShieldCheck
 } from 'lucide-react';
 
 const LEVEL_ICONS = {
@@ -20,39 +20,28 @@ const LEVEL_COLORS = {
 };
 
 const DIMENSIONS = [
-  { key: 'contribution', label: 'Contribution', icon: HandHeart, color: '#E36414', desc: 'Publications, ressources, aide apportée' },
-  { key: 'expertise', label: 'Expertise', icon: BookOpen, color: '#0F4C5C', desc: "Compétences reconnues et certifications RE'ACTIF PRO" },
-  { key: 'engagement', label: 'Engagement', icon: CalendarCheck, color: '#2A9D8F', desc: 'Ancienneté, régularité, participation' },
-  { key: 'impact', label: 'Impact humain', icon: HeartHandshake, color: '#9A031E', desc: 'Mentorat, recommandations, réussites accompagnées' },
+  { key: 'competence', label: 'Compétence', icon: BookOpen, color: '#0F4C5C', desc: 'Volume, diversité et vérification de vos preuves' },
+  { key: 'fiabilite', label: 'Fiabilité', icon: ShieldCheck, color: '#2A9D8F', desc: 'Bonne réputation et validations professionnelles' },
+  { key: 'collaboration', label: 'Collaboration', icon: HandHeart, color: '#E36414', desc: 'Aide concrète et appréciations positives' },
+  { key: 'impact', label: 'Impact', icon: HeartHandshake, color: '#9A031E', desc: 'Actions confirmées et certifications' },
+  { key: 'engagement', label: 'Engagement', icon: CalendarCheck, color: '#5F0F40', desc: 'Participation régulière et vie communautaire' },
 ];
 
-export default function Progression() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function Progression({ data, reload }) {
   const [accepting, setAccepting] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [expandedLevel, setExpandedLevel] = useState(null);
 
-  const load = async () => {
-    try {
-      const res = await progressionApi.get();
-      setData(res.data);
-      if (res.data.level_up) setCelebrate(true);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (data?.level_up) setCelebrate(true);
+  }, [data]);
 
   const acceptCharter = async () => {
     setAccepting(true);
     try {
       await progressionApi.acceptCharter();
       toast.success('Charte éthique acceptée. Bienvenue dans la communauté !');
-      await load();
+      await reload();
     } catch {
       toast.error("Erreur lors de l'acceptation de la charte");
     } finally {
@@ -60,16 +49,15 @@ export default function Progression() {
     }
   };
 
-  if (loading) {
+  if (!data) {
     return (
       <div className="ubuntoo-card p-6 mb-8 flex justify-center">
         <Loader2 className="animate-spin text-[#0F4C5C]" size={24} />
       </div>
     );
   }
-  if (!data) return null;
 
-  const { current_level, next_level, levels, dimensions, stats } = data;
+  const { current_level, next_level, levels, icu, stats } = data;
   const CurrentIcon = current_level ? LEVEL_ICONS[current_level.icon] : Compass;
   const currentColor = current_level ? LEVEL_COLORS[current_level.id] : '#94A3B8';
   const charterNeeded = !stats.charter_accepted;
@@ -203,16 +191,22 @@ export default function Progression() {
         </div>
       )}
 
-      {/* 4 dimensions */}
+      {/* ICU — Indice de Contribution Ubuntoo */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp size={18} className="text-[#0F4C5C]" />
-          <h3 className="font-bold text-[#1A1A1A]" style={{ fontFamily: 'Manrope, sans-serif' }}>Mes 4 dimensions</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={18} className="text-[#0F4C5C]" />
+            <h3 className="font-bold text-[#1A1A1A]" style={{ fontFamily: 'Manrope, sans-serif' }}>Indice de Contribution Ubuntoo (ICU)</h3>
+          </div>
+          <div className="flex items-center gap-2" data-testid="icu-global">
+            <span className="text-xs text-[#5C5C5C]">Score global</span>
+            <span className="text-lg font-bold px-3 py-0.5 rounded-full bg-[#0F4C5C] text-white">{icu?.global ?? 0}</span>
+          </div>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {DIMENSIONS.map((d) => {
             const Icon = d.icon;
-            const val = dimensions[d.key] || 0;
+            const val = icu?.[d.key] || 0;
             return (
               <div key={d.key} className="rounded-xl bg-[#F5F2EB] p-4" data-testid={`dimension-${d.key}`}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -231,7 +225,7 @@ export default function Progression() {
           })}
         </div>
         <p className="text-[11px] italic text-[#5C5C5C] mt-3">
-          Un membre très actif mais peu utile ne progresse pas plus vite qu'un membre moins présent mais ayant un fort impact.
+          L'ICU est un score vivant : il valorise les preuves documentées et l'impact réel plutôt que la simple activité. Il pilote automatiquement l'attribution de vos badges.
         </p>
       </div>
 

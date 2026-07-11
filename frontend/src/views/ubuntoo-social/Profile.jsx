@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './UbuntooSocialContext';
-import { badgesApi, usersApi } from './api';
+import { badgesApi, usersApi, progressionApi } from './api';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Progression from './Progression';
+import ProofsBadges from './ProofsBadges';
 
 const toList = (str) => str.split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -36,9 +37,18 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(null);
+  const [progression, setProgression] = useState(null);
+
+  const loadProgression = async () => {
+    try {
+      const res = await progressionApi.get();
+      setProgression(res.data);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     fetchBadges();
+    loadProgression();
   }, []);
 
   const fetchBadges = async () => {
@@ -80,6 +90,7 @@ export default function Profile() {
         languages: toList(form.languages),
       });
       await refreshUser();
+      await loadProgression();
       setEditing(false);
       toast.success('Profil mis à jour !');
     } catch (error) {
@@ -88,22 +99,6 @@ export default function Profile() {
       setSaving(false);
     }
   };
-
-  const getCategoryInfo = (category) => {
-    const categories = {
-      parcours: { label: 'Parcours personnel', icon: Heart, color: 'bg-[#FEF0E3] text-[#E36414]' },
-      entraide: { label: 'Entraide', icon: Users, color: 'bg-[#EAF8F6] text-[#2A9D8F]' },
-      communaute: { label: 'Communauté', icon: Home, color: 'bg-[#E8F4F8] text-[#0F4C5C]' },
-    };
-    return categories[category] || categories.parcours;
-  };
-
-  const badgesByCategory = badges.reduce((acc, badge) => {
-    const cat = badge.category || 'parcours';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(badge);
-    return acc;
-  }, {});
 
   const earnedBadgesCount = user?.badges?.length || 0;
   const totalBadges = badges.length;
@@ -260,7 +255,10 @@ export default function Profile() {
           </div>
 
           {/* Parcours d'évolution Ubuntoo */}
-          <Progression />
+          <Progression data={progression} reload={loadProgression} />
+
+          {/* Piste Preuves + 5 familles de badges */}
+          <ProofsBadges data={progression} />
 
           {/* Expériences vécues - Résumé */}
           <div className="ubuntoo-card p-6 mb-8 animate-fade-in stagger-1">
@@ -289,46 +287,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Badges par catégorie */}
-          {Object.entries(badgesByCategory).map(([category, categoryBadges], catIndex) => {
-            const catInfo = getCategoryInfo(category);
-            const CatIcon = catInfo.icon;
-            return (
-              <div key={category} className="ubuntoo-card p-6 mb-6 animate-fade-in" style={{ animationDelay: `${(catIndex + 2) * 0.1}s` }}>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className={`p-2 rounded-lg ${catInfo.color}`}>
-                    <CatIcon size={20} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-[#1A1A1A]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    {catInfo.label}
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {categoryBadges.map((badge) => {
-                    const earned = user?.badges?.includes(badge.id);
-                    return (
-                      <div
-                        key={badge.id}
-                        className={`p-5 rounded-2xl text-center transition-all ${
-                          earned ? 'bg-white border-2 border-[#2A9D8F] shadow-md' : 'bg-[#F5F2EB] border-2 border-transparent opacity-60'
-                        }`}
-                        data-testid={`badge-${badge.id}`}
-                      >
-                        <span className="text-4xl mb-3 block">{badge.icon}</span>
-                        <p className="font-semibold text-[#1A1A1A] mb-1">{badge.name}</p>
-                        <p className="text-xs text-[#5C5C5C]">{badge.description}</p>
-                        {earned && (
-                          <div className="mt-3 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#EAF8F6] text-[#2A9D8F] text-xs font-medium">
-                            <span>✓</span> Vécu
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {/* Badges par catégorie — remplacé par les 5 familles de badges (ProofsBadges) */}
 
           <div className="ubuntoo-card p-8 text-center bg-gradient-to-br from-[#0F4C5C] to-[#0A3844] text-white animate-fade-in">
             <p className="text-xl font-medium mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>

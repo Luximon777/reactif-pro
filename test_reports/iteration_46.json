@@ -1,0 +1,34 @@
+{
+  "summary": "E2E validation of the new UBUNTOO badge system (Iteration 46): ICU 5 dimensions + Piste Preuves (5 paliers) + 5 Familles de badges. Backend: 14/14 pytest tests pass on /api/social/progression covering (1) new schema (icu.{competence,fiabilite,collaboration,impact,engagement,global}, proof_track.{count,tiers[5],next_tier,origins[6],diversity_earned,verified_earned}, families[5]), (2) peter7 having 52+ preuves → all 5 proof tiers earned, diversity+verified earned, expertise family 7/7 badges, (3) idempotence: 2nd /progression call returns new_badges=[], (4) fresh user: count=0, no tier earned, icu.competence=0, (5) legacy dimensions 4-key still present for backward-compat, (6) regression on levels[7], level_up sequential rule, charter/accept, feed /posts. Frontend (preview URL) with peter7 → /ubuntoo/profile: all 27 required testids present (ubuntoo-progression, icu-global=64, dimension-competence=100, dimension-fiabilite=100, dimension-collaboration=10, dimension-impact, dimension-engagement, proof-track, proof-tier-1/5/10/25/50 all earned, badge-diversity earned, badge-verified earned, 6 origins including projet_perso/benevolat empty by design, badge-families with all 5 families, family-expertise showing 7/7 with all badges in bg-teal). The OLD dimension-contribution/dimension-expertise testids no longer exist. The legacy 'Badges par catégorie' section (Parcours personnel/Entraide/Communauté) is gone from Profile.jsx. Only ONE GET /api/social/progression is fired on Profile mount (no double call, no race condition). Fresh TEST_i46_* user: charter-banner + accept-charter-btn present, competence=0 as expected, charter accept works and banner disappears (2nd fetch triggered by reload()). Feed regression on /ubuntoo: 14 posts visible, textarea present.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/ubuntoo/profile — Progression.jsx", "issues": ["Minor a11y: DialogTitle is wrapped inside an <h3> and only used inside the level-up-dialog — carried over from iteration_45. Not blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ubuntoo_progression.py",
+    "/app/test_reports/pytest/pytest_ubuntoo_prog_iter46.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ubuntoo_progression.py — compute_proofs reads skill_illustrations(token_id), passports.experiences[].is_certified/proof_document, coffre_documents(category ∈ diplome|contrat_travail|experience_prouvee). Aggregate on coffre is efficient. ✅",
+    "compute_icu — 5-dim formula weights are sensible; global is a round(mean/5). peter7 gets global=64 which feels calibrated. ✅",
+    "build_proof_track — next_tier correctly returns first non-earned tier or None if all earned. ✅",
+    "GET /progression persists proof badges via $addToSet + earned_ids merged with new_proof_badges so families reflect the just-awarded state (no lag on first call). ✅",
+    "build_families uses BADGE_REGISTRY which merges BADGES + PROOF_TIERS + EXTRA_BADGES. Family 'leadership' correctly references level_ambassadeur..level_pionnier so higher-level users get them. ✅",
+    "Profile.jsx — single loadProgression() called from useEffect, then reused as prop for both Progression + ProofsBadges. No double GET /progression confirmed via network sniffing. ✅",
+    "Progression.jsx — DIMENSIONS constant now lists ONLY the 5 new ICU keys. Old contribution/expertise testids fully removed as per spec. ✅",
+    "ProofsBadges.jsx — early-returns Loader when data null, null-check on proof_track. All required data-testids present. ✅"
+  ],
+  "updated_files": ["/app/backend/tests/test_ubuntoo_progression.py"],
+  "success_rate": {"backend": "100% (14/14 pytest)", "frontend": "100% (all 27 required testids + regression checks pass)"},
+  "test_credentials": "peter7 / Solerys777! (52+ preuves, all badges expertise earned). Fresh users created on the fly via POST /api/auth/register for charter/ICU=0 verification.",
+  "seed_data_creation": "TEST_i46_* Ré'Actif Pro accounts registered on the fly. peter7's existing skill_illustrations + coffre_documents + passport.experiences drive the proof track (untouched).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://cv-analyzer-53.preview.emergentagent.com. Same auth flow as iteration_45 (localStorage reactif_token + reactif_admin_status=admin, then /ubuntoo/profile auto-SSOs). New testids added in this iteration: icu-global, dimension-{competence,fiabilite,collaboration,impact,engagement}, proof-track, proof-tier-{1,5,10,25,50}, badge-diversity, badge-verified, origin-{experience_pro,formation,certification,evaluation_terrain,projet_perso,benevolat}, badge-families, family-{engagement,expertise,solidarite,innovation,leadership}, family-badge-{badge_id}. REMOVED testids: dimension-contribution, dimension-expertise (replaced by ICU 5-dim). REMOVED UI section: 'Badges par catégorie' (Parcours personnel/Entraide/Communauté). Note: origins projet_perso and benevolat are at 0 by design (features futures, non trackés).",
+  "rca_of_the_issue": "Not applicable — feature validation, no regression found."
+}

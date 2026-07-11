@@ -7,9 +7,40 @@ from fastapi import APIRouter, Depends
 from datetime import datetime, timezone
 
 from database import db
-from routes.ubuntoo_social import get_current_user, award_badge
+from routes.ubuntoo_social import get_current_user, award_badge, BADGES
 
 router = APIRouter(prefix="/api/social")
+
+# ============== SYSTÈME DE BADGES UBUNTOO (2 pistes + ICU) ==============
+
+PROOF_TIERS = [
+    {"threshold": 1, "id": "proof_1", "name": "Premier pas", "icon": "👣"},
+    {"threshold": 5, "id": "proof_5", "name": "Constructeur de preuves", "icon": "🧱"},
+    {"threshold": 10, "id": "proof_10", "name": "Professionnel documenté", "icon": "📁"},
+    {"threshold": 25, "id": "proof_25", "name": "Expert documenté", "icon": "📜"},
+    {"threshold": 50, "id": "proof_50", "name": "Référent de confiance", "icon": "🛡️"},
+]
+
+EXTRA_BADGES = [
+    {"id": "skills_demonstrated", "name": "Compétences démontrées", "description": "Preuves issues de plusieurs origines différentes", "icon": "🎯"},
+    {"id": "skill_verified", "name": "Compétence vérifiée", "description": "Preuve confirmée par un tiers qualifié", "icon": "✅"},
+    {"id": "level_ambassadeur", "name": "Ambassadeur", "description": "Moteur de la communauté", "icon": "📣"},
+    {"id": "level_mentor", "name": "Mentor", "description": "Accompagne les autres membres", "icon": "🎓"},
+    {"id": "level_leader", "name": "Leader Communautaire", "description": "Contribue au développement d'Ubuntoo", "icon": "👑"},
+    {"id": "level_pionnier", "name": "Pionnier Ubuntoo", "description": "Badge ultime attribué par le comité", "icon": "💎"},
+]
+
+BADGE_REGISTRY = {b["id"]: b for b in BADGES}
+BADGE_REGISTRY.update({t["id"]: {"id": t["id"], "name": t["name"], "description": f"{t['threshold']} preuve{'s' if t['threshold'] > 1 else ''} validée{'s' if t['threshold'] > 1 else ''}", "icon": t["icon"]} for t in PROOF_TIERS})
+BADGE_REGISTRY.update({b["id"]: b for b in EXTRA_BADGES})
+
+FAMILIES = [
+    {"id": "engagement", "name": "Engagement", "desc": "Participation, régularité, ancienneté", "icon": "🌱", "badges": ["welcome", "first_post", "voice_heard", "one_month", "weaver"]},
+    {"id": "expertise", "name": "Expertise", "desc": "Compétences techniques, métiers, certifications", "icon": "🧠", "badges": ["proof_1", "proof_5", "proof_10", "proof_25", "proof_50", "skills_demonstrated", "skill_verified"]},
+    {"id": "solidarite", "name": "Solidarité", "desc": "Aide apportée, mentorat, coopération", "icon": "🤝", "badges": ["helping_hand", "good_listener", "connection_made"]},
+    {"id": "innovation", "name": "Innovation", "desc": "Idées, projets, publications, recherche", "icon": "💡", "badges": ["knowledge_sharer", "facilitator"]},
+    {"id": "leadership", "name": "Leadership", "desc": "Animation, gouvernance, développement de communautés", "icon": "👑", "badges": ["builder", "level_ambassadeur", "level_mentor", "level_leader", "level_pionnier"]},
+]
 
 LEVELS = [
     {
@@ -148,9 +179,80 @@ def compute_dimensions(s: dict) -> dict:
     }
 
 
+async def compute_proofs(uid: str) -> dict:
+    """Piste 1 — preuves issues de RE'ACTIF PRO (portefeuille de compétences)."""
+    illus_count = await db.skill_illustrations.count_documents({"token_id": uid})
+    passport = await db.passports.find_one({"token_id": uid}, {"_id": 0, "experiences": 1})
+    exps = (passport or {}).get("experiences", []) or []
+    certified = sum(1 for e in exps if e.get("is_certified"))
+    with_contract = sum(1 for e in exps if e.get("proof_document"))
+    coffre_agg = await db.coffre_documents.aggregate([
+        {"$match": {"token_id": uid}},
+        {"$group": {"_id": "$category", "c": {"$sum": 1}}},
+    ]).to_list(20)
+    coffre = {c["_id"]: c["c"] for c in coffre_agg}
+    diplomes = coffre.get("diplome", 0)
+    exp_prouvee = coffre.get("experience_prouvee", 0)
+    contrats = coffre.get("contrat_travail", 0)
+
+    proof_count = illus_count + diplomes + exp_prouvee + contrats
+    origins = [
+        {"id": "experience_pro", "label": "Expérience professionnelle", "count": illus_count + exp_prouvee},
+        {"id": "formation", "label": "Formation / Diplôme", "count": diplomes},
+        {"id": "certification", "label": "Certification", "count": certified},
+        {"id": "evaluation_terrain", "label": "Évaluation terrain (PMSMP)", "count": with_contract},
+        {"id": "projet_perso", "label": "Projet personnel", "count": 0},
+        {"id": "benevolat", "label": "Bénévolat", "count": 0},
+    ]
+    origins_met = sum(1 for o in origins if o["count"] > 0)
+    verified_count = with_contract + certified
+    return {
+        "count": proof_count,
+        "origins": origins,
+        "origins_met": origins_met,
+        "verified_count": verified_count,
+        "certified_count": certified,
+    }
+
+
+def compute_icu(s: dict, p: dict) -> dict:
+    """Indice de Contribution Ubuntoo — score vivant sur 5 dimensions."""
+    icu = {
+        "competence": min(100, p["count"] * 4 + p["origins_met"] * 8 + (20 if p["verified_count"] > 0 else 0)),
+        "fiabilite": min(100, (25 if s["charter_accepted"] else 0) + p["verified_count"] * 15 + min(25, s["days_member"])),
+        "collaboration": min(100, s["recognitions"] * 3 + s["comments_count"] * 3 + s["distinct_receivers"] * 10),
+        "impact": min(100, p["certified_count"] * 15 + s["recognitions"] * 2 + s["resources_count"] * 8),
+        "engagement": min(100, s["posts_count"] * 5 + s["groups_joined"] * 10 + min(30, s["days_member"]) + s["replies_count"] * 4),
+    }
+    icu["global"] = round(sum(icu.values()) / 5)
+    return icu
+
+
+def build_proof_track(p: dict) -> dict:
+    tiers = [{**t, "earned": p["count"] >= t["threshold"]} for t in PROOF_TIERS]
+    next_tier = next((t for t in tiers if not t["earned"]), None)
+    return {
+        "count": p["count"],
+        "tiers": tiers,
+        "next_tier": next_tier,
+        "origins": p["origins"],
+        "diversity_earned": p["origins_met"] >= 2,
+        "verified_earned": p["verified_count"] > 0,
+    }
+
+
+def build_families(earned_ids: set) -> list:
+    return [
+        {**{k: f[k] for k in ("id", "name", "desc", "icon")},
+         "badges": [{**BADGE_REGISTRY[bid], "earned": bid in earned_ids} for bid in f["badges"] if bid in BADGE_REGISTRY]}
+        for f in FAMILIES
+    ]
+
+
 @router.get("/progression")
 async def get_progression(current_user: dict = Depends(get_current_user)):
     stats = await compute_stats(current_user)
+    proofs = await compute_proofs(current_user["id"])
     is_pioneer = bool(current_user.get("is_pioneer"))
     criteria = build_criteria(stats, is_pioneer)
 
@@ -177,15 +279,34 @@ async def get_progression(current_user: dict = Depends(get_current_user)):
     for lvl in levels:
         lvl["current"] = lvl["index"] == current_index and achieved_index >= 0
 
+    # Piste 1 : attribution persistante des badges de preuves
+    proof_track = build_proof_track(proofs)
+    new_proof_badges = [t["id"] for t in proof_track["tiers"] if t["earned"]]
+    if proof_track["diversity_earned"]:
+        new_proof_badges.append("skills_demonstrated")
+    if proof_track["verified_earned"]:
+        new_proof_badges.append("skill_verified")
+    to_award = [b for b in new_proof_badges if b not in current_user.get("badges", [])]
+    if to_award:
+        await db.ubuntoo_users.update_one({"id": current_user["id"]}, {"$addToSet": {"badges": {"$each": to_award}}})
+
+    earned_ids = set(current_user.get("badges", [])) | set(new_proof_badges)
+    if achieved_index >= 0:
+        earned_ids |= {f"level_{LEVELS[j]['id']}" for j in range(achieved_index + 1)}
+
     next_level = levels[achieved_index + 1] if achieved_index + 1 < len(levels) else None
     return {
         "current_level": levels[achieved_index] if achieved_index >= 0 else None,
         "next_level": next_level,
         "levels": levels,
         "dimensions": compute_dimensions(stats),
+        "icu": compute_icu(stats, proofs),
+        "proof_track": proof_track,
+        "families": build_families(earned_ids),
         "stats": stats,
         "is_pioneer": is_pioneer,
         "level_up": level_up,
+        "new_badges": to_award,
     }
 
 

@@ -1,13 +1,13 @@
-"""Backend tests — Ubuntoo Progression (parcours d'évolution, badges de niveaux, charte).
+"""Backend tests — Ubuntoo Progression (Iteration 46 : ICU + Piste Preuves + 5 Familles).
 
 Endpoints tested:
 - POST /api/social/auth/sso        : SSO from Ré'Actif Pro JWT to Ubuntoo JWT
-- GET  /api/social/progression     : returns levels[7], dimensions[4], stats, level_up, current/next
+- GET  /api/social/progression     : levels[7], icu[5], proof_track, families[5], stats, level_up, new_badges
 - POST /api/social/charter/accept  : sets charter_accepted=true
 - PUT  /api/social/users/profile   : profile completion -> Explorateur criteria
+- GET  /api/social/posts           : feed regression
 """
 import os
-import time
 import uuid
 import pytest
 import requests
@@ -16,6 +16,10 @@ BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://cv-analyzer-53.previ
 API = f"{BASE_URL}/api"
 
 LEVEL_IDS = ["explorateur", "contributeur", "ambassadeur", "expert", "mentor", "leader", "pionnier"]
+ICU_DIMS = ["competence", "fiabilite", "collaboration", "impact", "engagement"]
+PROOF_TIERS = [1, 5, 10, 25, 50]
+FAMILY_IDS = ["engagement", "expertise", "solidarite", "innovation", "leadership"]
+ORIGIN_IDS = ["experience_pro", "formation", "certification", "evaluation_terrain", "projet_perso", "benevolat"]
 
 
 # ---------- Fixtures ----------
@@ -107,7 +111,7 @@ class TestProgressionSchema:
             for c in lv["criteria"]:
                 assert "label" in c and "met" in c and isinstance(c["met"], bool)
 
-        # 4 dimensions with 0..100 ints
+        # 4 dimensions with 0..100 ints  (regression: legacy 'dimensions' still present)
         for k in ["contribution", "expertise", "engagement", "impact"]:
             assert k in data["dimensions"]
             v = data["dimensions"][k]
@@ -115,6 +119,114 @@ class TestProgressionSchema:
         # stats fields
         for k in ["profile_completion", "charter_accepted", "posts_count", "comments_count"]:
             assert k in data["stats"]
+
+
+# ---------- Iteration 46 : ICU + Proof Track + Families ----------
+class TestICUAndProofsSchema:
+    def test_progression_returns_icu_proof_track_families(self, http, peter_ubuntoo_jwt):
+        r = http.get(f"{API}/social/progression", headers={"Authorization": f"Bearer {peter_ubuntoo_jwt}"}, timeout=20)
+        assert r.status_code == 200, r.text[:300]
+        d = r.json()
+        # ICU — 5 dimensions + global
+        assert "icu" in d, "missing icu"
+        icu = d["icu"]
+        for k in ICU_DIMS + ["global"]:
+            assert k in icu, f"icu missing {k}"
+            assert isinstance(icu[k], int) and 0 <= icu[k] <= 100
+        # proof_track
+        assert "proof_track" in d
+        pt = d["proof_track"]
+        assert "count" in pt and isinstance(pt["count"], int)
+        assert "tiers" in pt and len(pt["tiers"]) == 5
+        assert [t["threshold"] for t in pt["tiers"]] == PROOF_TIERS
+        assert [t["id"] for t in pt["tiers"]] == [f"proof_{n}" for n in PROOF_TIERS]
+        for t in pt["tiers"]:
+            assert "earned" in t and isinstance(t["earned"], bool)
+            assert "name" in t
+        assert "next_tier" in pt  # may be None
+        assert "origins" in pt and len(pt["origins"]) == 6
+        assert [o["id"] for o in pt["origins"]] == ORIGIN_IDS
+        assert "diversity_earned" in pt and isinstance(pt["diversity_earned"], bool)
+        assert "verified_earned" in pt and isinstance(pt["verified_earned"], bool)
+        # families
+        assert "families" in d and len(d["families"]) == 5
+        assert [f["id"] for f in d["families"]] == FAMILY_IDS
+        for f in d["families"]:
+            assert "name" in f and "desc" in f and "icon" in f
+            assert isinstance(f["badges"], list) and len(f["badges"]) >= 1
+            for b in f["badges"]:
+                assert "id" in b and "name" in b and "earned" in b
+        # new_badges
+        assert "new_badges" in d and isinstance(d["new_badges"], list)
+
+    def test_peter7_all_proof_tiers_earned(self, http, peter_ubuntoo_jwt):
+        """peter7 has 52+ preuves RE'ACTIF PRO → all 5 tiers + diversity + verified earned."""
+        h = {"Authorization": f"Bearer {peter_ubuntoo_jwt}"}
+        r = http.get(f"{API}/social/progression", headers=h, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        pt = d["proof_track"]
+        # count >= 50
+        assert pt["count"] >= 50, f"peter7 should have >=50 preuves, got {pt['count']}"
+        # all 5 tiers earned
+        for t in pt["tiers"]:
+            assert t["earned"] is True, f"tier {t['id']} not earned (count={pt['count']})"
+        assert pt["next_tier"] is None, "no next_tier when all earned"
+        assert pt["diversity_earned"] is True
+        assert pt["verified_earned"] is True
+        # famille expertise 7/7 badges earned
+        expertise = next(f for f in d["families"] if f["id"] == "expertise")
+        assert len(expertise["badges"]) == 7
+        for b in expertise["badges"]:
+            assert b["earned"] is True, f"expertise badge {b['id']} not earned"
+
+    def test_peter7_idempotent_new_badges(self, http, peter_ubuntoo_jwt):
+        """Second call after all proof badges earned → new_badges=[] (persisted)."""
+        h = {"Authorization": f"Bearer {peter_ubuntoo_jwt}"}
+        # Call twice
+        r1 = http.get(f"{API}/social/progression", headers=h, timeout=20)
+        assert r1.status_code == 200
+        r2 = http.get(f"{API}/social/progression", headers=h, timeout=20)
+        assert r2.status_code == 200
+        # After the first call, badges are persisted, so second should return []
+        assert r2.json()["new_badges"] == [], f"new_badges not idempotent: {r2.json()['new_badges']}"
+
+    def test_icu_ancient_dimensions_removed_from_ui_but_backend_keeps_legacy(self, http, peter_ubuntoo_jwt):
+        """The spec says UI must use ICU (5 dims). Backend still returns legacy 'dimensions'
+        for backward-compat. Assert both are present with distinct keys."""
+        h = {"Authorization": f"Bearer {peter_ubuntoo_jwt}"}
+        d = http.get(f"{API}/social/progression", headers=h, timeout=20).json()
+        # legacy dims exist (backend regression)
+        for k in ["contribution", "expertise", "engagement", "impact"]:
+            assert k in d["dimensions"]
+        # ICU is separate
+        assert set(d["icu"].keys()) - {"global"} == set(ICU_DIMS)
+
+
+class TestFreshUserProofsAndICU:
+    def test_fresh_user_no_proofs(self, http, fresh_user):
+        """Fresh user (no RE'ACTIF preuves) → count=0, no tier earned, low icu.competence."""
+        h = {"Authorization": f"Bearer {fresh_user['ubuntoo_jwt']}"}
+        d = http.get(f"{API}/social/progression", headers=h, timeout=20).json()
+        pt = d["proof_track"]
+        assert pt["count"] == 0
+        for t in pt["tiers"]:
+            assert t["earned"] is False, f"tier {t['id']} unexpectedly earned"
+        assert pt["diversity_earned"] is False
+        assert pt["verified_earned"] is False
+        # first tier is next
+        assert pt["next_tier"] is not None
+        assert pt["next_tier"]["threshold"] == 1
+        # icu.competence should be 0 (no proofs, no origins, not verified)
+        assert d["icu"]["competence"] == 0, f"expected competence=0 got {d['icu']['competence']}"
+        # No proof badges awarded
+        assert d["new_badges"] == []
+        # families still returned
+        assert len(d["families"]) == 5
+        expertise = next(f for f in d["families"] if f["id"] == "expertise")
+        # All expertise badges should be locked
+        for b in expertise["badges"]:
+            assert b["earned"] is False, f"unexpected earned badge {b['id']} on fresh user"
 
 
 # ---------- Charter ----------
