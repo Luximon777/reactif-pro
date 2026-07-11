@@ -32,13 +32,9 @@ export const UbuntooNavbar = () => {
           <Link to="/ubuntoo" className="flex items-center gap-2" data-testid="ubuntoo-logo">
             <img
               src="https://customer-assets.emergentagent.com/job_keen-meitner-5/artifacts/t3wjk59k_logo_ubuntoo_transparent.png"
-              alt="Ubuntoo"
-              className="h-7 w-auto"
+              alt="Ubuntoo — Je suis parce que nous sommes"
+              className="h-9 w-auto"
             />
-            <div className="hidden md:block">
-              <p className="text-sm font-bold text-[#0F4C5C] leading-none">UBUNTOO</p>
-              <p className="text-[9px] text-slate-400 leading-none mt-0.5">Je suis parce que nous sommes</p>
-            </div>
           </Link>
         </div>
 

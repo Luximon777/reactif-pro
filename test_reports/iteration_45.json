@@ -1,0 +1,39 @@
+{
+  "summary": "E2E validation of the new UBUNTOO progression feature (7 badges de niveaux + 4 dimensions + charte éthique) and the navbar deduplication. Backend: 9/9 pytest tests pass on /api/social/auth/sso, /api/social/progression (schema + sequential rule + idempotent level_up), /api/social/charter/accept, and regression on /api/social/posts. Frontend (preview URL): after seeding localStorage with reactif_token + reactif_admin_status=admin, /ubuntoo/profile renders the ubuntoo-progression card with the 7 level-node-* nodes (explorateur→pionnier), clicking level-node-contributeur shows level-detail with criteria + Débloque list, 4 dimension-* bars visible, charter-banner + accept-charter-btn work (banner disappears after accept). When profile is fully completed + charte accepted, level-up-dialog fires with correct 'Vous êtes désormais Explorateur' text and close-celebration-btn dismisses it. Second /progression call returns level_up=false (idempotence verified). Navbar: only one visual logo (image with alt 'Ubuntoo — Je suis parce que nous sommes'); no duplicate 'UBUNTOO / Je suis parce que nous sommes' text (confirmed via navbar.innerText). Feed regression on /ubuntoo: 13 existing posts visible, textarea 'Partagez avec la communauté…' present, publication flow available.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/ubuntoo/profile — level-up-dialog", "issues": ["Radix DialogContent warning in console: missing DialogTitle + aria-describedby. Not blocking but should wrap the title with VisuallyHidden or add DialogTitle for a11y."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ubuntoo_progression.py",
+    "/app/test_reports/pytest/pytest_ubuntoo_progression_results.xml"
+  ],
+  "action_items": [
+    "(A11y, non-blocking) Add DialogTitle inside <DialogContent data-testid=\"level-up-dialog\"> in Progression.jsx (or wrap 'Félicitations ! 🎉' in DialogTitle) to remove the Radix a11y warning.",
+    "(Optional) Consider splitting UbuntooAncienApp.jsx (>2000 lines) — pre-existing debt from iteration 42, not related to this feature."
+  ],
+  "critical_code_review_comments": [
+    "ubuntoo_progression.py: level_up logic is correct — computes achieved_index, compares to stored level_index; persists only on change; awards badge. Sequential rule enforced via `achieved = all(criteria) and achieved_index == i - 1`. Pionnier gated by is_pioneer flag (comité). ✅",
+    "compute_stats.days_member uses `datetime.fromisoformat(user['created_at'].replace('Z','+00:00'))` — if `created_at` is missing (older accounts pre-schema), fallback to 0. Good defensive handling. ✅",
+    "compute_stats.recognitions counts sum of likes + reactions on the user's posts only. This matches the spec ('reconnaissances reçues'). ✅",
+    "SSO endpoint auto-provisions Ubuntoo profile using Ré'Actif token — email fabricated from pseudo when identifiant lacks '@' (e.g. 'peter7@reactif.pro'). Idempotent (find_one before insert_one). ✅",
+    "Navbar.jsx: only the <img> tag remains; no duplicate 'UBUNTOO' text. Alt text is set for a11y (image already contains the word 'ubuntoo'). ✅",
+    "Progression.jsx: no memory leak, useEffect calls load() once; celebrate state toggles from data.level_up. Dialog uses controlled open state — closes cleanly. Missing DialogTitle inside DialogContent (Radix a11y warning). ⚠️",
+    "MongoDB _id: ubuntoo_progression queries use projection {_id: 0, ...} — no ObjectId leaks. ✅",
+    "get_current_user and award_badge are imported from ubuntoo_social — good code reuse. ✅"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ubuntoo_progression.py (new)"
+  ],
+  "success_rate": {"backend": "100% (9/9 pytest)", "frontend": "100% (all 10 targeted UI checks pass)"},
+  "test_credentials": "peter7 / Solerys777! (charte déjà acceptée, Explorateur). Fresh users are created on the fly via POST /api/auth/register for charter-banner + level-up-dialog testing.",
+  "seed_data_creation": "Each frontend/backend test class creates TEST_prog_* fresh Ré'Actif Pro accounts via /api/auth/register, then SSO to Ubuntoo. Charter is accepted, profile completed to unlock Explorateur. One TEST_post_* text post created via peter7 to verify the feed regression.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL is https://cv-analyzer-53.preview.emergentagent.com (from frontend/.env). To reach /ubuntoo/profile in Playwright: (1) register a fresh Ré'Actif Pro user via POST /api/auth/register {pseudo, password} to get reactif_token; (2) set localStorage keys reactif_token, reactif_role='particulier', reactif_profile_id, reactif_auth_mode='pseudo', reactif_pseudo, reactif_admin_status='admin' (required to bypass AdminGate); (3) navigate to /ubuntoo/profile. The frontend auto-SSOs to Ubuntoo using reactif_token → ubuntoo_jwt via POST /api/social/auth/sso. Key testids: ubuntoo-progression, level-node-{explorateur|contributeur|ambassadeur|expert|mentor|leader|pionnier}, level-detail, dimension-{contribution|expertise|engagement|impact}, charter-banner, accept-charter-btn, level-up-dialog, close-celebration-btn, ubuntoo-navbar, ubuntoo-logo. Level_up dialog fires only on the transition (achieved_index > stored level_index).",
+  "rca_of_the_issue": "Not applicable — feature validation, no regression found."
+}

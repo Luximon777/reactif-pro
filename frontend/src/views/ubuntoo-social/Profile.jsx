@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Progression from './Progression';
 
 const toList = (str) => str.split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -257,6 +258,9 @@ export default function Profile() {
               </div>
             )}
           </div>
+
+          {/* Parcours d'évolution Ubuntoo */}
+          <Progression />
 
           {/* Expériences vécues - Résumé */}
           <div className="ubuntoo-card p-6 mb-8 animate-fade-in stagger-1">

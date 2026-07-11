@@ -47,6 +47,10 @@ export const discussionsApi = {
 };
 
 export const badgesApi = { getAll: () => social.get(`/badges`) };
+export const progressionApi = {
+  get: () => social.get(`/progression`),
+  acceptCharter: () => social.post(`/charter/accept`),
+};
 export const statsApi = { get: () => social.get(`/stats`) };
 export const reportApi = {
   create: (targetType, targetId, reason) => social.post(`/reports`, { target_type: targetType, target_id: targetId, reason }),
