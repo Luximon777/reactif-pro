@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShieldCheck, Code2, Eye, Lock, Users, Building2, Handshake,
   ChevronRight, Loader2, Compass, Briefcase, MapPin, Lightbulb, CheckCircle2,
-  X, Check, LockKeyhole, BarChart3
+  X, Check, LockKeyhole, BarChart3, BadgeCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import LogoReactifPro from "@/components/LogoReactifPro";
@@ -37,6 +37,17 @@ const SPACES = [
     iconColor: "bg-[#1e3a5f] text-white",
     btnColor: "bg-[#1e3a5f] hover:bg-[#2d5a8e] text-white",
     features: ["Portefeuille de Compétences Certifiées", "Identité professionnelle sécurisée", "Orientation personnalisée"],
+    loginType: "pseudo",
+    credentials: { pseudo: "reactif_admin", password: "Choukette@777" },
+  },
+  {
+    key: "certification",
+    label: "Certification officielle des Soft Skills",
+    description: "Faites certifier vos compétences comportementales par des preuves vérifiées et validées par des tiers qualifiés",
+    icon: BadgeCheck,
+    iconColor: "bg-teal-600 text-white",
+    btnColor: "bg-teal-600 hover:bg-teal-700 text-white",
+    features: ["Preuves S.A.R.E. documentées", "Validation par tiers qualifié", "Badges certifiés valorisables"],
     loginType: "pseudo",
     credentials: { pseudo: "reactif_admin", password: "Choukette@777" },
   },
@@ -163,7 +174,8 @@ const AdminGate = ({ onAuthenticated }) => {
     }
     // Admin bypass — open login modal for personnel, auto-login for other spaces
     if (authenticated && selectedStatus?.key === "admin") {
-      if (space.key === "personnel") {
+      if (space.key === "personnel" || space.key === "certification") {
+        if (space.key === "certification") setPostAuthRedirect("/dashboard/coffre-fort");
         setAuthModalDefaultRole("particulier");
         setAuthModalOpen(true);
         return;
@@ -209,6 +221,10 @@ const AdminGate = ({ onAuthenticated }) => {
       return;
     }
     if (space.key === "personnel") {
+      setAuthModalDefaultRole("particulier");
+      setAuthModalOpen(true);
+    } else if (space.key === "certification") {
+      setPostAuthRedirect("/dashboard/coffre-fort");
       setAuthModalDefaultRole("particulier");
       setAuthModalOpen(true);
     } else if (space.key === "vsi") {
@@ -423,8 +439,8 @@ const AdminGate = ({ onAuthenticated }) => {
             </svg>
 
             {/* Top row - 2 cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-0">
-              {SPACES.filter((_, i) => i < 2).map((space, idx) => {
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto mb-0">
+              {SPACES.filter((_, i) => i < 3).map((space, idx) => {
                 const Icon = space.icon;
                 const disabled = !spacesOpen;
                 return (
