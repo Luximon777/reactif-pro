@@ -51,6 +51,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX "Prompt Engineering" affiché à tort dans les compétences évaluées de mike (et 160 autres passeports) : la construction du passeport (server.py section "3. From Ubuntoo signals") injectait TOUTES les compétences émergentes globales de l'Observatoire comme compétences personnelles. Bloc supprimé + migration migrate_remove_ubuntoo_global_competences (migrations.py, $pull source:"ubuntoo") exécutée au démarrage → 161 passeports nettoyés sur Preview, s'exécutera aussi en prod au redéploiement. Vérifié via API : mike a 18 compétences, toutes liées à son profil chauffeur-livreur. NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-08) FIX section "Compétences prioritaires à acquérir" vide (onglet Prédictions du Marché) : le frontend lisait gap.skill_name/gap.related_sectors alors que le backend renvoie name/sectors. Fallback ajouté dans ObservatoireView.jsx (~ligne 822). Vérifié par screenshot avec mike : les 2 lacunes prioritaires (FIMO/FCO, Arrimage/TMS) s'affichent avec leurs secteurs. NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

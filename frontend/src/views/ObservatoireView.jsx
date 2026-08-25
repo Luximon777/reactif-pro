@@ -819,8 +819,8 @@ const ObservatoireView = ({ token, embedded }) => {
                         {personalizedData.skill_gaps.filter(g => g.priority === "haute").slice(0, 5).map((gap, idx) => (
                           <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border border-amber-100">
                             <div>
-                              <span className="text-sm font-medium text-slate-800">{gap.skill_name}</span>
-                              <span className="text-xs text-slate-500 ml-2">{(gap.related_sectors || []).slice(0, 2).join(", ")}</span>
+                              <span className="text-sm font-medium text-slate-800">{gap.skill_name || gap.name || gap.observatory_skill || "?"}</span>
+                              <span className="text-xs text-slate-500 ml-2">{(gap.related_sectors || gap.sectors || []).slice(0, 2).join(", ")}</span>
                             </div>
                             <Badge className="bg-amber-100 text-amber-700 text-xs">Priorité haute</Badge>
                           </div>
