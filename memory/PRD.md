@@ -47,6 +47,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-07) Page d'accueil : ajout de la carte "Certification officielle des Soft Skills" (AdminGate.jsx, data-testid="space-certification") entre Espace Personnel et Parcours VSI. Rangée haute passée à 3 colonnes. Clic → AuthModal particulier + redirect post-auth vers /dashboard/coffre-fort. Vérifié par screenshot. NÉCESSITE REDÉPLOIEMENT.
 - [ ] (EN ATTENTE) Messagerie type WhatsApp (duo + groupes) : l'utilisateur a fourni files.zip (ws_routes.py, ubuntoo_messaging_routes.py, messaging_models.py, websocket_manager.py, ChatListPage.jsx, ChatWindow.jsx, MessageBubble.jsx, NewConversationModal.jsx, GroupInfoPanel.jsx, useUbuntooSocket.js, README.md) extrait dans /tmp/userzip. À intégrer dans le module Ubuntoo.
 
+- [x] (2026-08) FIX BUG RÉCURRENT upload CV scanné ("cv jad.pdf", compte mike) : erreur "Le fichier ne contient pas assez de texte exploitable" car PDF scanné sans couche texte (PyPDF2 → 0 caractère). Ajout d'un fallback OCR par vision IA dans server.py (_ocr_pdf_via_vision : pymupdf rend les pages en PNG 200dpi → base64 → OpenAI gpt-5.2 via emergentintegrations ImageContent, max 4 pages). Déclenché quand texte < 50 car. sur un PDF. Message d'erreur enrichi si OCR échoue aussi. TESTÉ avec le vrai fichier cv_jad.pdf : analyse completed, 13 savoir-faire, 4 savoir-être, 4 expériences, 2 formations extraits. Dépendance ajoutée : pymupdf (requirements.txt à jour). NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

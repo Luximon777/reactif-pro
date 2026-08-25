@@ -14,7 +14,7 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 import secrets
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 import PyPDF2
 import io
 import concurrent.futures
@@ -4015,6 +4015,34 @@ def _extract_text_from_bytes(content: bytes, filename: str) -> str:
     return text.strip()
 
 
+async def _ocr_pdf_via_vision(content: bytes, max_pages: int = 4) -> str:
+    """OCR fallback pour PDF scannés (sans couche texte) via vision IA."""
+    import pymupdf
+    import base64
+    doc = pymupdf.open(stream=content, filetype="pdf")
+    texts = []
+    try:
+        for i, page in enumerate(doc):
+            if i >= max_pages:
+                break
+            pix = page.get_pixmap(dpi=200)
+            img_b64 = base64.b64encode(pix.tobytes("png")).decode()
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"cv-ocr-{uuid.uuid4()}",
+                system_message="Tu transcris fidèlement et intégralement le texte des documents scannés."
+            ).with_model("openai", "gpt-5.2")
+            response = await run_llm_nonblocking(chat, UserMessage(
+                text="Transcris TOUT le texte visible sur cette page de CV scanné, fidèlement et intégralement (noms, dates, intitulés, coordonnées, compétences). Réponds uniquement avec le texte transcrit, sans commentaire ni markdown.",
+                file_contents=[ImageContent(image_base64=img_b64)]
+            ))
+            page_text = response.strip() if isinstance(response, str) else response.text.strip()
+            texts.append(page_text)
+    finally:
+        doc.close()
+    return "\n\n".join(texts).strip()
+
+
 async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, filename: str, text_ready: bool = False):
     """Background task: extract text, run CV analysis and save results to DB."""
     try:
@@ -4024,8 +4052,17 @@ async def _run_cv_analysis(job_id: str, token_id: str, file_content: bytes, file
             cv_text = file_content.decode("utf-8", errors="ignore")
         else:
             cv_text = _extract_text_from_bytes(file_content, filename)
+        if (not cv_text or len(cv_text) < 50) and not text_ready and filename.lower().endswith(".pdf"):
+            # PDF scanné (image) : fallback OCR via vision IA
+            await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"step": "CV scanné détecté — lecture OCR par IA..."}})
+            logging.info(f"[CV Analysis] {filename}: aucun texte extractible, tentative OCR vision")
+            try:
+                cv_text = await _ocr_pdf_via_vision(file_content)
+                logging.info(f"[CV Analysis] OCR vision: {len(cv_text)} caractères extraits")
+            except Exception as ocr_err:
+                logging.error(f"[CV Analysis] OCR vision échoué: {ocr_err}")
         if not cv_text or len(cv_text) < 50:
-            await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable", "step": "Erreur"}})
+            await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": "Le fichier ne contient pas assez de texte exploitable (document scanné illisible ou vide). Essayez avec un PDF de meilleure qualité ou un fichier DOCX/TXT.", "step": "Erreur"}})
             return
 
         cv_excerpt = cv_text[:12000]
