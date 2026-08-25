@@ -18,10 +18,21 @@ async def run_migrations(db):
     await migrate_coffre_optional_file_name(db)
     await migrate_illustrations_add_skill_type(db)
     await migrate_fiches_opc_skill_type(db)
+    await migrate_remove_ubuntoo_global_competences(db)
     # Note: seed_peter7_demo_data and seed_referentiel_opc are called from server.py on_startup
     # AFTER user creation to ensure peter7/peter9 tokens exist
 
     logger.info("[Migrations] Migrations terminées.")
+
+
+async def migrate_remove_ubuntoo_global_competences(db):
+    """Retire les compétences émergentes globales (source ubuntoo) injectées à tort dans les passeports (fix août 2026)."""
+    result = await db.passports.update_many(
+        {"competences.source": "ubuntoo"},
+        {"$pull": {"competences": {"source": "ubuntoo"}}}
+    )
+    if result.modified_count:
+        logger.info(f"[Migration] Compétences globales 'ubuntoo' retirées de {result.modified_count} passeports")
 
 
 async def migrate_passports_add_formations(db):

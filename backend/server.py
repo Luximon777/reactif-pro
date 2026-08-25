@@ -3178,19 +3178,8 @@ async def aggregate_passport_from_sources(token_id: str) -> dict:
                 "source": "ia_detectee",
             })
 
-    # 3. From Ubuntoo signals (emerging skills)
-    signals = await db.ubuntoo_signals.find(
-        {"validation_status": {"$in": ["validee_humain", "integree"]}}, {"_id": 0}
-    ).to_list(20)
-    for signal in signals:
-        if signal.get("signal_type") == "competence_emergente" and signal["name"].lower() not in seen_comp_names:
-            seen_comp_names.add(signal["name"].lower())
-            aggregated["competences"].append({
-                "id": str(uuid.uuid4()), "name": signal["name"], "category": "technique",
-                "level": "debutant", "experience_years": 0, "proof": None,
-                "source": "ubuntoo", "is_emerging": True,
-                "added_at": datetime.now(timezone.utc).isoformat()
-            })
+    # 3. Ubuntoo signals (compétences émergentes globales) : NE PLUS les injecter
+    # comme compétences personnelles — elles relèvent de l'Observatoire, pas du profil individuel.
 
     # 4. From contributions
     contributions = await db.contributions.find(

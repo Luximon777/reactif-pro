@@ -49,6 +49,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX BUG RÉCURRENT upload CV scanné ("cv jad.pdf", compte mike) : erreur "Le fichier ne contient pas assez de texte exploitable" car PDF scanné sans couche texte (PyPDF2 → 0 caractère). Ajout d'un fallback OCR par vision IA dans server.py (_ocr_pdf_via_vision : pymupdf rend les pages en PNG 200dpi → base64 → OpenAI gpt-5.2 via emergentintegrations ImageContent, max 4 pages). Déclenché quand texte < 50 car. sur un PDF. Message d'erreur enrichi si OCR échoue aussi. TESTÉ avec le vrai fichier cv_jad.pdf : analyse completed, 13 savoir-faire, 4 savoir-être, 4 expériences, 2 formations extraits. Dépendance ajoutée : pymupdf (requirements.txt à jour). NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-08) FIX "Prompt Engineering" affiché à tort dans les compétences évaluées de mike (et 160 autres passeports) : la construction du passeport (server.py section "3. From Ubuntoo signals") injectait TOUTES les compétences émergentes globales de l'Observatoire comme compétences personnelles. Bloc supprimé + migration migrate_remove_ubuntoo_global_competences (migrations.py, $pull source:"ubuntoo") exécutée au démarrage → 161 passeports nettoyés sur Preview, s'exécutera aussi en prod au redéploiement. Vérifié via API : mike a 18 compétences, toutes liées à son profil chauffeur-livreur. NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 
