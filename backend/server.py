@@ -7944,6 +7944,31 @@ async def get_user_emerging_competences(token: str):
     return {"competences": competences}
 
 
+@api_router.get("/emerging/observatory")
+async def get_emerging_observatory(token: str):
+    """Vue agrégée des compétences émergentes détectées dans le profil (onglet Détectées CV)."""
+    data = await get_user_emerging_competences(token)
+    comps = data.get("competences", [])
+    comps_sorted = sorted(comps, key=lambda c: c.get("score_emergence", 0), reverse=True)
+    top_emerging = [c for c in comps_sorted if c.get("score_emergence", 0) >= 31][:20]
+
+    by_cat = {}
+    for c in comps:
+        by_cat.setdefault(c.get("categorie", "autre"), []).append(c.get("score_emergence", 0))
+    by_category = [
+        {"categorie": k, "count": len(v), "avg_score": round(sum(v) / len(v))}
+        for k, v in sorted(by_cat.items(), key=lambda x: -len(x[1]))
+    ]
+
+    by_lvl = {}
+    for c in comps:
+        lvl = c.get("niveau_emergence", "emergente")
+        by_lvl[lvl] = by_lvl.get(lvl, 0) + 1
+    by_level = [{"level": k, "count": v} for k, v in by_lvl.items()]
+
+    return {"top_emerging": top_emerging, "by_category": by_category, "by_level": by_level, "total": len(comps)}
+
+
 @api_router.get("/metiers/tension")
 async def get_metiers_tension(token: str = None):
     return [

@@ -53,6 +53,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX section "Compétences prioritaires à acquérir" vide (onglet Prédictions du Marché) : le frontend lisait gap.skill_name/gap.related_sectors alors que le backend renvoie name/sectors. Fallback ajouté dans ObservatoireView.jsx (~ligne 822). Vérifié par screenshot avec mike : les 2 lacunes prioritaires (FIMO/FCO, Arrimage/TMS) s'affichent avec leurs secteurs. NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-08) FIX bouton "Lancer la détection IA" (onglet Détectées CV du Marché) sans effet : le frontend appelait GET /api/emerging/observatory qui N'EXISTAIT PAS (404 silencieux). Endpoint créé dans server.py (agrège get_user_emerging_competences en {top_emerging, by_category, by_level, total}). Vérifié E2E par screenshot avec mike : 12 compétences détectées, répartitions affichées. NÉCESSITE REDÉPLOIEMENT pour reactif.pro.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 
