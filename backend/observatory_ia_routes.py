@@ -637,30 +637,48 @@ RÈGLES:
 
 @router.post("/ia/analyse-complete")
 async def ia_analyse_complete(body: IaRequest = IaRequest(), token: str = None):
-    """Run all IA analyses and return combined results."""
+    """Start combined IA analysis as a background job (avoids 60s proxy timeout)."""
     import asyncio
 
-    results = await asyncio.gather(
-        ia_detect_emergentes(body, token),
-        ia_correlations(body, token),
-        ia_trajectoires(body, token),
-        ia_recommandation(body, token),
-        return_exceptions=True,
-    )
+    job_id = str(uuid.uuid4())
+    await _db.opc_ia_jobs.insert_one({
+        "job_id": job_id, "status": "running",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    asyncio.create_task(_run_analyse_complete(job_id, body, token))
+    return {"job_id": job_id, "status": "running"}
 
-    emergentes = results[0] if isinstance(results[0], list) else []
-    correlations = results[1] if isinstance(results[1], list) else []
-    trajectoires = results[2] if isinstance(results[2], list) else []
-    recommandation = results[3] if isinstance(results[3], dict) and not results[3].get("error") else None
 
-    return {
-        "emergentes": emergentes,
-        "correlations": correlations,
-        "trajectoires": trajectoires,
-        "recommandation": recommandation,
-        "contexte_metier": body.contexte_metier,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-    }
+async def _run_analyse_complete(job_id: str, body: "IaRequest", token: Optional[str]):
+    import asyncio
+    try:
+        results = await asyncio.gather(
+            ia_detect_emergentes(body, token),
+            ia_correlations(body, token),
+            ia_trajectoires(body, token),
+            ia_recommandation(body, token),
+            return_exceptions=True,
+        )
+        payload = {
+            "emergentes": results[0] if isinstance(results[0], list) else [],
+            "correlations": results[1] if isinstance(results[1], list) else [],
+            "trajectoires": results[2] if isinstance(results[2], list) else [],
+            "recommandation": results[3] if isinstance(results[3], dict) and not results[3].get("error") else None,
+            "contexte_metier": body.contexte_metier,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await _db.opc_ia_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "result": payload}})
+    except Exception as e:
+        logger.error(f"[OPC IA] analyse-complete job {job_id} failed: {e}")
+        await _db.opc_ia_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
+
+
+@router.get("/ia/analyse-complete/status")
+async def ia_analyse_complete_status(job_id: str):
+    job = await _db.opc_ia_jobs.find_one({"job_id": job_id}, {"_id": 0})
+    if not job:
+        return {"status": "not_found"}
+    return job
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

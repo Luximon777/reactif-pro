@@ -122,6 +122,31 @@ export default function OpcDediePage({ token, onBack }) {
     setLoading(l => ({ ...l, [endpoint]: false }));
   };
 
+  const runAnalyseComplete = async () => {
+    setLoading(l => ({ ...l, "analyse-complete": true }));
+    try {
+      const body = metierContext ? { contexte_metier: metierContext } : {};
+      const start = await axios.post(`${API}/observatory/ia/analyse-complete?${tokenParam}`, body, { timeout: 30000 });
+      const jobId = start.data.job_id;
+      let result = null;
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        try {
+          const st = await axios.get(`${API}/observatory/ia/analyse-complete/status`, { params: { job_id: jobId }, timeout: 15000 });
+          if (st.data.status === "completed") { result = st.data.result; break; }
+          if (st.data.status === "failed") break;
+        } catch { /* erreur réseau transitoire — on continue le polling */ }
+      }
+      if (!result) throw new Error("timeout");
+      if (result.emergentes) setEmergentes(result.emergentes);
+      if (result.correlations) setCorrelations(result.correlations);
+      if (result.trajectoires) setTrajectoires(result.trajectoires);
+      if (result.recommandation) setRecommandation(result.recommandation);
+      toast.success("Analyse IA complète terminée — consultez chaque module pour les résultats");
+    } catch { toast.error("Erreur lors de l'analyse IA"); }
+    setLoading(l => ({ ...l, "analyse-complete": false }));
+  };
+
   const searchReferentiel = async () => {
     if (!searchQuery.trim()) return;
     setLoading(l => ({ ...l, referentiel: true }));
@@ -308,19 +333,7 @@ export default function OpcDediePage({ token, onBack }) {
               className={`text-xs ${profileSynced || metierContext ? "text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100" : "text-slate-400 border-slate-200 bg-slate-50"}`}
               disabled={loading["analyse-complete"] || (!profileSynced && !metierContext)}
               data-testid="opc-ia-predictive-btn"
-              onClick={async () => {
-                setLoading(l => ({ ...l, "analyse-complete": true }));
-                try {
-                  const body = metierContext ? { contexte_metier: metierContext } : {};
-                  const res = await axios.post(`${API}/observatory/ia/analyse-complete?${tokenParam}`, body, { timeout: 120000 });
-                  if (res.data.emergentes) setEmergentes(res.data.emergentes);
-                  if (res.data.correlations) setCorrelations(res.data.correlations);
-                  if (res.data.trajectoires) setTrajectoires(res.data.trajectoires);
-                  if (res.data.recommandation) setRecommandation(res.data.recommandation);
-                  toast.success("Analyse IA complète terminée — consultez chaque module pour les résultats");
-                } catch { toast.error("Erreur lors de l'analyse IA"); }
-                setLoading(l => ({ ...l, "analyse-complete": false }));
-              }}
+              onClick={runAnalyseComplete}
             >
               {loading["analyse-complete"] ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}
               {loading["analyse-complete"] ? "Analyse en cours..." : "Lancer l'analyse IA"}
@@ -342,19 +355,7 @@ export default function OpcDediePage({ token, onBack }) {
           {activeModule === "emergentes" && <EmergentesModule emergentes={emergentes} loading={loading["detect-emergentes"]} metier={metierContext} onRun={() => runIa("detect-emergentes", setEmergentes, "Compétences émergentes")} />}
           {activeModule === "certifications" && <CertificationsModule searchQ={rncpSearchQ} setSearchQ={setRncpSearchQ} results={rncpSearchResults} onSearch={searchRncp} loading={loading} selectedCert={selectedCert} onSelectCert={loadCertDetail} onClearCert={() => setSelectedCert(null)} tensionCerts={tensionCerts} onLoadTension={loadTension} />}
           {activeModule === "territorial" && <TerritorialModule rncpStats={rncpStats} tensionCerts={tensionCerts} onLoadTension={loadTension} loading={loading.tension} />}
-          {activeModule === "predictif" && <PredictifModule predictions={predictions} recommandation={recommandation} cartographie={cartographie} loading={loading} metier={metierContext} onRunPredictions={loadPredictions} onRunRecommandation={() => runIa("recommandation", setRecommandation, "Recommandation")} onRunCartographie={loadCartographieExhaustive} onRunAnalyseComplete={async () => {
-            setLoading(l => ({ ...l, "analyse-complete": true }));
-            try {
-              const body = metierContext ? { contexte_metier: metierContext } : {};
-              const res = await axios.post(`${API}/observatory/ia/analyse-complete?${tokenParam}`, body, { timeout: 120000 });
-              if (res.data.emergentes) setEmergentes(res.data.emergentes);
-              if (res.data.correlations) setCorrelations(res.data.correlations);
-              if (res.data.trajectoires) setTrajectoires(res.data.trajectoires);
-              if (res.data.recommandation) setRecommandation(res.data.recommandation);
-              toast.success("Analyse complète terminée");
-            } catch { toast.error("Erreur analyse complète"); }
-            setLoading(l => ({ ...l, "analyse-complete": false }));
-          }} />}
+          {activeModule === "predictif" && <PredictifModule predictions={predictions} recommandation={recommandation} cartographie={cartographie} loading={loading} metier={metierContext} onRunPredictions={loadPredictions} onRunRecommandation={() => runIa("recommandation", setRecommandation, "Recommandation")} onRunCartographie={loadCartographieExhaustive} onRunAnalyseComplete={runAnalyseComplete} />}
         </div>
       </main>
     </div>

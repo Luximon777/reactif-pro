@@ -55,6 +55,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX bouton "Lancer la détection IA" (onglet Détectées CV du Marché) sans effet : le frontend appelait GET /api/emerging/observatory qui N'EXISTAIT PAS (404 silencieux). Endpoint créé dans server.py (agrège get_user_emerging_competences en {top_emerging, by_category, by_level, total}). Vérifié E2E par screenshot avec mike : 12 compétences détectées, répartitions affichées. NÉCESSITE REDÉPLOIEMENT pour reactif.pro.
 
+- [x] (2026-08) FIX bouton "Lancer l'analyse IA" de l'OPC (Preview) : l'endpoint POST /observatory/ia/analyse-complete dépassait le timeout proxy de 60s (502). Converti en tâche de fond : POST → {job_id}, GET /observatory/ia/analyse-complete/status?job_id= (collection opc_ia_jobs). Frontend OpcDediePage.jsx : fonction commune runAnalyseComplete (polling 4s, tolérante aux erreurs réseau transitoires) utilisée par le bouton header ET PredictifModule. Vérifié E2E par screenshot : succès en ~48s (12 émergentes, 8 corrélations, 8 trajectoires, 1 reco). NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 
