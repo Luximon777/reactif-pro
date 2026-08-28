@@ -62,6 +62,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX Marché > Évolution "vide" (ben en prod) / "pas personnalisé" (michel) — iteration_48, 100% : GET /api/evolution-index/user-profile crashait en 500 (regex MongoDB invalide — parenthèses dans les secteurs injectées brutes dans $regex). Fix server.py ~2618 : nettoyage ponctuation + re.escape() (secteurs + metier_cible) + robustesse skills string. Le frontend masquait le 500 → affichage vide/générique. Résultat : michel/mike obtiennent exposition 45 + métiers "(votre profil)" personnalisés. + Panneau explicatif "Comment lire ces résultats ?" ajouté à l'onglet Détectées CV. NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-08) FIX pertinence Job Dating (iteration_49, 100%) : (1) set() non ordonné cassait le rang des secteurs inférés (bonus attribué au hasard), (2) faux positifs sur mots génériques (GENERIC_WORDS exclus), (3) mot-clé "entretien" ambigu retiré de Propreté (_SECTOR_KEYWORDS database.py), (4) best-rank pour événements multi-secteurs, (5) plafond 20 sans lien sectoriel/expérience. Résultat michel/mike : Logistique/Propreté en tête (80/60/55), Numérique&IT relégué à 30. + fix hydration warning Badge dans <p> (JobDatingView.jsx ~963). NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

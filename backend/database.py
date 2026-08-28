@@ -37,7 +37,7 @@ async def run_llm_nonblocking(chat, message):
 _SECTOR_KEYWORDS = {
     "Restauration": ["cuisine", "cuisinier", "serveur", "restauration", "chef", "commis", "plonge", "rang", "salle", "buffalo", "mcdonald", "quick", "pizz"],
     "Hôtellerie": ["hôtel", "réception", "hébergement", "tourisme", "ibis", "novotel", "accor", "camping"],
-    "Propreté & Services": ["entretien", "nettoyage", "propreté", "ménage", "agent entretien", "maintenance bâtiment"],
+    "Propreté & Services": ["agent d'entretien", "agent entretien", "entretien des locaux", "nettoyage", "propreté", "ménage", "maintenance bâtiment", "bio-nettoyage", "hygiène des locaux"],
     "Logistique & Transport": ["logistique", "magasinier", "préparateur", "commande", "cariste", "chauffeur", "livreur", "manutention", "quai", "colis", "expédition"],
     "Commerce & Vente": ["vente", "vendeur", "commerce", "commercial", "caissier", "rayon", "magasin", "retail", "clientèle"],
     "BTP & Construction": ["btp", "maçon", "électricien", "plombier", "chantier", "construction", "conducteur travaux", "peintre bâtiment"],

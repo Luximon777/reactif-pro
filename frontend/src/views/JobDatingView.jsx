@@ -960,11 +960,11 @@ const JobDatingView = ({ token }) => {
                   <Brain className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-2">
-                  <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     Recommandations IA
                     <Badge className="text-[10px] bg-indigo-100 text-indigo-700">Personnalisé</Badge>
                     {recoCity && <Badge className="text-[10px] bg-emerald-100 text-emerald-700">{recoCity}</Badge>}
-                  </p>
+                  </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 flex-1 max-w-sm">
                       <MapPin className="w-4 h-4 text-indigo-400 shrink-0" />

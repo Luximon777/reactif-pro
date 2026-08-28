@@ -103,7 +103,8 @@ def _generate_job_dating_events(profile_data):
         user_texts.append(professional_summary.lower()[:200])
 
     user_corpus = " ".join(user_texts)
-    inferred_set = set(s.lower() for s in (inferred_sectors or []))
+    inferred_list = [s.lower() for s in (inferred_sectors or [])]
+    GENERIC_WORDS = {"chef", "projet", "conseil", "agent", "employé", "employée", "manager", "responsable", "assistant", "assistante", "polyvalent", "polyvalente"}
     events = []
 
     for i, base in enumerate(base_events):
@@ -116,24 +117,25 @@ def _generate_job_dating_events(profile_data):
         evt_sectors = [s.lower() for s in base.get("sectors", [])]
         evt_jobs = [j.lower() for j in base.get("jobs_targeted", [])]
 
-        # Sector matching
+        # Sector matching : meilleur rang parmi les secteurs de l'événement
         sector_match_found = False
+        best_rank, best_es = None, None
         for es in evt_sectors:
-            for inf_s in inferred_set:
+            for rank, inf_s in enumerate(inferred_list):
                 if inf_s in es or es in inf_s:
-                    rank = list(inferred_set).index(inf_s) if inf_s in list(inferred_set) else 99
-                    bonus = 40 if rank == 0 else 30 if rank == 1 else 20
-                    match_score += bonus
-                    sector_match_found = True
-                    match_reasons.append(f"Secteur « {es.title()} » correspond à votre profil")
+                    if best_rank is None or rank < best_rank:
+                        best_rank, best_es = rank, es
                     break
-            if sector_match_found:
-                break
+        if best_rank is not None:
+            bonus = 45 if best_rank == 0 else 35 if best_rank == 1 else 25
+            match_score += bonus
+            sector_match_found = True
+            match_reasons.append(f"Secteur « {best_es.title()} » correspond à votre profil")
 
         # Experience title matching
         exp_match_count = 0
         for ej in evt_jobs:
-            ej_words = [w for w in ej.split() if len(w) > 3]
+            ej_words = [w for w in ej.split() if len(w) > 3 and w not in GENERIC_WORDS]
             for ut in exp_titles:
                 if any(w in ut for w in ej_words):
                     exp_match_count += 1
@@ -146,9 +148,10 @@ def _generate_job_dating_events(profile_data):
         skill_match_count = 0
         matched_skills = []
         for sk in skill_names:
-            sk_words = [w for w in sk.split() if len(w) > 3]
+            sk_words = [w for w in sk.split() if len(w) > 3 and w not in GENERIC_WORDS]
             for ej in evt_jobs + evt_sectors:
-                if any(w in ej for w in sk_words) or any(w in sk for w in ej.split() if len(w) > 3):
+                ej_words = [w for w in ej.split() if len(w) > 3 and w not in GENERIC_WORDS]
+                if any(w in ej for w in sk_words) or any(w in sk for w in ej_words):
                     skill_match_count += 1
                     matched_skills.append(sk[:40])
                     break
@@ -160,7 +163,7 @@ def _generate_job_dating_events(profile_data):
         if professional_summary:
             summary_lower = professional_summary.lower()
             for ej in evt_jobs[:3]:
-                ej_words = [w for w in ej.split() if len(w) > 3]
+                ej_words = [w for w in ej.split() if len(w) > 3 and w not in GENERIC_WORDS]
                 if any(w in summary_lower for w in ej_words):
                     match_score += 10
                     match_reasons.append(f"Votre profil mentionne « {ej.title()} »")
@@ -170,7 +173,7 @@ def _generate_job_dating_events(profile_data):
         for f in (formations or []):
             fname = (f.get("title", "") if isinstance(f, dict) else str(f)).lower()
             for ej in evt_jobs + evt_sectors:
-                ej_words = [w for w in ej.split() if len(w) > 3]
+                ej_words = [w for w in ej.split() if len(w) > 3 and w not in GENERIC_WORDS]
                 if any(w in fname for w in ej_words):
                     match_score += 10
                     match_reasons.append(f"Formation « {fname.title()[:30]} » en lien")
@@ -178,6 +181,10 @@ def _generate_job_dating_events(profile_data):
 
         if base.get("mode") == "distanciel":
             match_score += 5
+
+        # Sans lien sectoriel ni expérience directe, l'événement ne peut pas être "pertinent"
+        if not sector_match_found and exp_match_count == 0:
+            match_score = min(match_score, 20)
 
         match_score = max(match_score, 5)
         match_score = min(match_score, 98)

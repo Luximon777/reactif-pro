@@ -1,0 +1,31 @@
+{
+  "summary": "Verified job dating relevance fix end-to-end. Backend: 6/6 pytest passing — michel + mike both get top events in Logistique/Transport/Propreté order with scores exactly matching main agent's expected values (Multi-Services 80 fort, Propreté 60 fort, Logistique Supply Chain 55 fort, Transport Marseille 50 moyen, Commerce 40 moyen, Numérique & IT relegated to 30 moyen). GET /jobdating/events same sorting (regression OK). GET /jobdating/sectors 200 (13 sectors). Save flow (POST /events/{id}/save → GET /saved → DELETE) OK. Register flow (POST /events/{id}/register → GET /registrations) OK. Frontend: /dashboard/job-dating renders 17 cards; Découvrir tab shows top 3 = Multi-Services Lyon, Propreté Lille, Logistique Supply Chain (all badged 'Recommandé'). Recommandés tab displays 6 cards with correct percentages (80/60/55/50/40/30 IT last) and ai_reason blocks citing sector 'Logistique & Transport'/'Propreté & Services' + 'Agent D'Entretien' experience + N compétences. AI summary text: 'Chauffeur/livreur VL... Secteurs détectés : Logistique & Transport, Propreté & Services, Commerce & Vente. 6 événement(s)...'. Zero blocking console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "JobDatingView (Recommandés cards)", "issues": ["React hydration warning: <Badge><div> nested inside <p> at JobDatingView.jsx line 963 (title <p> contains a <Badge> which renders a <div>). Non-blocking but pollutes console; wrap title in <span> or move badge outside <p>."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_jobdating_ranking.py",
+    "/app/test_reports/pytest/jobdating_ranking.xml"
+  ],
+  "action_items": [
+    "(Optional / low priority) Fix nested <div> inside <p> in /app/frontend/src/views/JobDatingView.jsx around line 963 to remove React hydration warning."
+  ],
+  "critical_code_review_comments": [
+    "_generate_job_dating_events in jobdating.py is now ~180 LOC and does 6 matching passes — could be split into helper functions per matching dimension for maintainability, but current logic is correct.",
+    "GENERIC_WORDS list is embedded inline; consider extracting to module-level constant next to _SECTOR_KEYWORDS for reusability.",
+    "match_score cap at min(20) when no sector/experience link is a good guard — verified: IT event correctly capped/kept below 35 for chauffeur profiles."
+  ],
+  "updated_files": ["/app/backend/tests/test_jobdating_ranking.py"],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100%"},
+  "test_credentials": "michel / Solerys777! and mike / Solerys777! (POST /api/auth/login {pseudo,password}) — both work, both are chauffeur-livreur profiles",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "jobdating.py fix confirmed independently: sector best-rank instead of set-based ranking + GENERIC_WORDS filter ('chef','projet','agent','manager'...) + score cap 20 without sector/exp link. Ranking order for chauffeur-livreur profiles: Multi-Services 80 > Propreté 60 > Logistique 55 > Transport 50 > Commerce 40 > IT 30. Frontend JobDatingView already exposes event-card-*, ai-reason, source-badge data-testids for future tests. Minor React hydration warning at line 963 (Badge inside <p>) — cosmetic only.",
+  "rca of the issue": "Original bug: chauffeur-livreur profiles saw 'Job Dating Numérique & IT' surfacing at the top of recommendations because (1) inferred_sectors iterated via a non-deterministic set() so 'best sector bonus' was random, (2) matching split job titles on generic words like 'chef', 'projet', 'agent' which cross-matched 'Chef de projet IT' to any profile mentioning 'chef' or 'agent', (3) 'entretien' keyword ambiguously mapped to Propreté via 'entretien du véhicule' from driver profiles. Fix in /app/backend/routes/jobdating.py: (a) rank inferred_sectors as an ordered list and pick min rank across event sectors, (b) filter GENERIC_WORDS from job/skill tokens before substring matching, (c) cap match_score at 20 when no sector nor experience match is found, plus disambiguation in database.py _SECTOR_KEYWORDS Propreté. Verified: IT event score drops from ~top position to 30 (moyen/faible tier) for both michel and mike."
+}
