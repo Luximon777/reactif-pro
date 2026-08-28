@@ -1,0 +1,30 @@
+{
+  "summary": "Full E2E validation of (a) Analyse IA trajectoire (michel) and (b) OPC dedicated page (/opc, 8 sub-modules, mike). Backend: 17/17 pytest passed (/app/backend/tests/test_iter47_trajectory_opc.py) covering auth login michel+mike, DELETE cache→GET /api/trajectory/synthesis (11.3s, source='ia', analyse_narrative cites SOLIBAT/ACJ Transport/DNA/WIFAG/CHU/GSF, 5 scores present) + 2nd call cached instantly, /api/profile, /api/observatory/dashboard, /api/referentiel/rncp/stats, /api/referentiel/search?q=chauffeur, /api/opc/referentiel/search, /api/referentiel/filieres, /api/referentiel/rncp/search, /api/referentiel/rncp/tension, 4 IA endpoints (trajectoires 18s / correlations 13s / detect-emergentes 13s / recommandation 21s — all <60s proxy limit), analyse-complete job+polling pattern (63s total, completed OK, well under 4min). Frontend probe (Playwright, mike/michel via API+localStorage): (1) michel /dashboard/trajectoire → tab 'Analyse IA' → 'Ce que mon parcours révèle' shows the fully personalized narrative 'Votre parcours montre une forte polyvalence opérationnelle, avec un socle solide en conduite-livraison (SOLIBAT, ACJ Transport) et en environnements exigeants (DNA rotativiste/conducteur WIFAG, CHU en hygiène). Les missions récentes (entretien GSF, espaces verts/terrassement) confirment votre rigueur…' — the generic 'Votre parcours comprend X étape(s)' template text is NOT displayed. 'Lecture de cohérence' with 5 score bars (Cohérence/Adaptabilité/Transférabilité/Continuité/…) rendered. (2) /opc with mike: Dashboard KPIs load + Actualiser button clickable; Référentiel search 'chauffeur' returns results, opc-search-total counter present ('1 résultat(s)'); Cartographie module visible; Certifications RNCP search 'chauffeur' returns '2 certification(s) trouvée(s)' (RNCP40162 CQP Chauffeur…); Intelligence territoriale loads with 5307 RNCP actives + Grand Est bassins d'emploi (Strasbourg/Mulhouse/…); Sync profile (opc-sync-profile) → toast 'Profil de mike synchronisé — 13 compétences, 4 secteurs' and opc-profile-synced badge visible. No 404/500 encountered on any /opc endpoint. The paths that the user pre-probed as 404 (/api/opc/dashboard-stats, /api/rncp/stats) are indeed NOT the ones used by OpcDediePage.jsx (real paths are /api/observatory/dashboard and /api/referentiel/rncp/stats respectively) — the false alarm was on the probing side.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter47_trajectory_opc.py",
+    "/app/test_reports/pytest/iter47.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py GET /api/trajectory/synthesis — LLM call (gpt-5.2 via emergentintegrations) with proper try/except and template fallback + 'source' field. JSON parsing strips ```json fences. ✅",
+    "OpcDediePage.jsx runAnalyseComplete uses job_id + polling every 4s (up to 240s) — correctly bypasses the 60s proxy timeout, and each individual /observatory/ia/{sub} endpoint measured 12–21s (well under 60s). ✅",
+    "Dashboard uses /api/observatory/dashboard (NOT /api/opc/dashboard-stats) and /api/referentiel/rncp/stats (NOT /api/rncp/stats). User's initial 404 alert was on non-existent guessed paths. ✅",
+    "opc-search-total shows results.total + opcResults.length — cohérent. ✅",
+    "Minor: OpcDediePage.jsx is 1461 lines — over the 700-line guideline; could be split into per-module files. Not blocking.",
+    "Minor: several catches `catch { /* ignore */ }` silence errors on loadDashboardStats/loadRncpStats/etc., which may hide real API failures from the user. Consider toast.error at least for the referentiel table."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter47_trajectory_opc.py"],
+  "success_rate": {"backend": "100% (17/17 pytest)", "frontend": "100% (all 8 OPC modules load + Analyse IA trajectoire personalised)"},
+  "test_credentials": "michel / Solerys777! (12 étapes trajectoire, analyse IA fonctionnelle), mike / Solerys777! (13 compétences, 4 secteurs)",
+  "seed_data_creation": "None. Existing michel trajectory (12 steps: SOLIBAT/ACJ Transport/DNA/WIFAG/CHU/GSF/…) and mike profile untouched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://cv-analyzer-53.preview.emergentagent.com. To auth as particulier: POST /api/auth/login {pseudo,password} → {token, profile_id, role}; then localStorage.setItem('reactif_token', token), reactif_role='particulier', reactif_profile_id, reactif_auth_mode='pseudo', reactif_pseudo, reactif_admin_status='admin' (AdminGate required). Trajectory synthesis is cached in db.trajectory_synthesis by token_id — use DELETE /api/trajectory/synthesis/cache?token= to force IA regeneration. OPC IA endpoints all take 12–25s each; analyse-complete uses job+polling with GET /api/observatory/ia/analyse-complete/status?job_id=. Login timeouts on preview URL can occasionally spike >15s (network); use ≥30s timeout in requests.",
+  "rca_of_the_issue": "No regression found. Both zones flagged by the user (OPC 8 sub-modules + Analyse IA trajectoire) are fully functional after the recent server.py L7432 fix that swaps the template-only synthesis for a real LlmChat gpt-5.2 call with template fallback and 'source' tag."
+}

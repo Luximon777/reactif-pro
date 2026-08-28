@@ -57,6 +57,9 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX bouton "Lancer l'analyse IA" de l'OPC (Preview) : l'endpoint POST /observatory/ia/analyse-complete dépassait le timeout proxy de 60s (502). Converti en tâche de fond : POST → {job_id}, GET /observatory/ia/analyse-complete/status?job_id= (collection opc_ia_jobs). Frontend OpcDediePage.jsx : fonction commune runAnalyseComplete (polling 4s, tolérante aux erreurs réseau transitoires) utilisée par le bouton header ET PredictifModule. Vérifié E2E par screenshot : succès en ~48s (12 émergentes, 8 corrélations, 8 trajectoires, 1 reco). NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-08) FIX "Analyse IA" de Ma Trajectoire (compte michel) : GET /api/trajectory/synthesis générait un texte TEMPLATE sans IA. Désormais vraie analyse LLM (gpt-5.2 via emergentintegrations, contexte = 25 étapes + profil D'CLIC PRO), champ synthesis.source='ia'|'template' (fallback). Cache conservé (DELETE /api/trajectory/synthesis/cache pour régénérer). Testé : narrative personnalisée citant SOLIBAT/ACJ Transport/CHU, 11-13s.
+- [x] (2026-08) AUDIT COMPLET OPC (iteration_47, 100% backend 17/17 + frontend 8/8 modules) : Tableau de bord, Référentiel vivant, Cartographie, Transitions, Émergentes, Certifications RNCP, Intelligence territoriale, Moteur prédictif tous fonctionnels. 4 endpoints IA individuels < 60s. Analyse complète job+polling OK (63s). Vrais chemins : /api/observatory/dashboard et /api/referentiel/rncp/stats. NÉCESSITE REDÉPLOIEMENT (avec fixes détection CV + analyse-complete + trajectoire IA).
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

@@ -156,7 +156,7 @@ async def metiers_lies(code_rome: str, territoire: str = Query("Grand Est")):
         vus = set()
         async for o in col_offres().aggregate([
             {"$match": {"secteur": secteur_principal,
-                        "code_rome": {"$ne": code_rome, "$ne": None}}},
+                        "code_rome": {"$nin": [code_rome, None]}}},
             {"$group": {"_id": "$code_rome", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}, {"$limit": 12}
         ]):

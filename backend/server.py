@@ -627,7 +627,7 @@ async def calculate_match_with_ai(profile_skills: List[str], job_requirements: L
         try:
             result = json.loads(response)
             return {"score": result.get("score", 50), "rationale": result.get("rationale", "Analyse IA")}
-        except:
+        except Exception:
             return {"score": 65, "rationale": response[:200]}
     except Exception as e:
         logging.error(f"AI matching error: {e}")
@@ -1426,6 +1426,13 @@ async def search_rome_codes(q: str = ""):
 
 
 
+@api_router.get("/jobs/applications")
+async def jobs_applications(token: str):
+    token_doc = await get_current_token(token)
+    apps = await db.applications.find({"token_id": token_doc["id"]}, {"_id": 0}).sort("applied_at", -1).to_list(50)
+    return {"applications": apps, "total": len(apps)}
+
+
 @api_router.get("/jobs/{job_id}")
 async def get_job(job_id: str):
     """Get job details"""
@@ -1644,7 +1651,7 @@ async def get_coffre_documents(token: str, category: Optional[str] = None, searc
                 days_until = (exp_date - today).days
                 doc["is_expiring_soon"] = 0 <= days_until <= 30
                 doc["days_until_expiry"] = days_until
-            except:
+            except Exception:
                 pass
     
     return sorted(documents, key=lambda x: x.get("created_at", ""), reverse=True)
@@ -1859,7 +1866,7 @@ async def get_coffre_stats(token: str):
                 exp_date = datetime.fromisoformat(doc["date_expiration"].replace('Z', '+00:00'))
                 if 0 <= (exp_date - today).days <= 30:
                     stats["documents_expirants"] += 1
-            except:
+            except Exception:
                 pass
     
     stats["competences_prouvees"] = list(stats["competences_prouvees"])
@@ -1883,7 +1890,7 @@ async def get_expiring_documents(token: str):
                 if 0 <= days_until <= 30:
                     doc["days_until_expiry"] = days_until
                     expiring.append(doc)
-            except:
+            except Exception:
                 pass
     
     return sorted(expiring, key=lambda x: x.get("days_until_expiry", 999))
@@ -2193,14 +2200,14 @@ Génère un JSON strict :
                 if isinstance(score, str):
                     try:
                         score = float(score)
-                    except:
+                    except Exception:
                         score = 0.5
                 gr = item.get("growth_rate", 0)
                 if isinstance(gr, str):
                     gr_clean = gr.replace("%", "").replace("+", "").strip()
                     try:
                         gr = float(gr_clean) / 100.0
-                    except:
+                    except Exception:
                         gr = 0.05
                 elif isinstance(gr, (int, float)) and gr > 1:
                     gr = gr / 100.0
@@ -2215,7 +2222,7 @@ Génère un JSON strict :
                 if isinstance(rel, str):
                     try:
                         rel = float(rel)
-                    except:
+                    except Exception:
                         rel = 0.5
                 s["relevance"] = rel
                 s["transformation_index"] = rel
@@ -2225,7 +2232,7 @@ Génère un JSON strict :
                     try:
                         gr_num = float(gr_clean)
                         gr = gr_num / 100.0 if gr_num > 1 else gr_num
-                    except:
+                    except Exception:
                         gr = 0.05
                 elif isinstance(gr, (int, float)) and abs(gr) > 1:
                     gr = gr / 100.0
@@ -2990,7 +2997,7 @@ async def analyze_contribution_with_ai(contribution: SkillContribution) -> Dict[
         try:
             result = json.loads(response)
             return result
-        except:
+        except Exception:
             return {
                 "is_valid": True,
                 "confidence_score": 0.65,
@@ -3223,7 +3230,7 @@ Propose 5 passerelles professionnelles réalistes."""))
             if isinstance(result, list):
                 return result[:5]
             return result.get("passerelles", result.get("pathways", []))[:5]
-        except:
+        except Exception:
             return []
     except Exception as e:
         logging.error(f"Passerelles AI error: {e}")
@@ -5728,7 +5735,7 @@ Identifie :
         import json
         try:
             return json.loads(response)
-        except:
+        except Exception:
             return {"detected_skills": [], "detected_tools": [], "detected_practices": [], "confidence": 0.6, "summary": response[:300]}
     except Exception as e:
         logging.error(f"Ubuntoo AI analysis error: {e}")
@@ -7389,7 +7396,7 @@ async def create_trajectory_step(token: str, body: dict):
         "skills": body.get("skills", []), "visibility": body.get("visibility", "private"),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    await db.trajectory_steps.insert_one(step)
+    await db.trajectory_steps.insert_one({**step})
     return step
 
 @api_router.put("/trajectory/steps/{step_id}")
@@ -7476,27 +7483,67 @@ async def get_trajectory_synthesis(token: str):
     continuite = min(90, 45 + nb_steps * 6)
     alignement = min(88, 40 + nb_skills * 3 + nb_steps * 3)
 
-    synthesis = {
-        "analyse_narrative": f"Votre parcours comprend {nb_steps} étape(s) et mobilise {nb_skills} compétence(s) distincte(s). "
-                             f"{'Une diversité de contextes enrichit votre profil.' if has_variety else 'Votre trajectoire montre une spécialisation cohérente.'}",
-        "fil_conducteur": f"Un fil conducteur se dessine autour de vos compétences clés : {', '.join(dominant_skills[:4]) if dominant_skills else 'en cours de construction'}.",
-        "competences_dominantes": dominant_skills,
-        "forces_recurrentes": forces,
-        "competences_transferables": transferable,
-        "axes_evolution": [
-            "Approfondir vos compétences transférables dans de nouveaux contextes",
-            "Valider vos acquis via des certifications ou des illustrations concrètes",
-            "Explorer des passerelles métiers compatibles avec votre profil"
-        ],
-        "message_valorisant": "Votre parcours témoigne d'une richesse d'expériences et de compétences. Continuez à valoriser vos acquis !",
-        "scores": {
-            "coherence": coherence,
-            "adaptabilite": adaptabilite,
-            "transferabilite": transferabilite,
-            "continuite": continuite,
-            "alignement_metier": alignement
+    synthesis = None
+    # Véritable analyse IA du parcours (enrichie D'CLIC PRO), fallback template si échec
+    try:
+        profile = await db.profiles.find_one({"token_id": token_id}, {"_id": 0}) or {}
+        dclic_parts = [
+            f"MBTI: {profile['dclic_mbti']}" if profile.get("dclic_mbti") else None,
+            f"DISC: {profile['dclic_disc_label']}" if profile.get("dclic_disc_label") else None,
+            f"RIASEC: {profile['dclic_riasec_major']}" if profile.get("dclic_riasec_major") else None,
+        ]
+        dclic_ctx = ", ".join(p for p in dclic_parts if p)
+        steps_ctx = "\n".join(
+            f"- [{s.get('step_type') or s.get('type') or 'étape'}] {s.get('title') or s.get('titre') or ''} "
+            f"({s.get('organization') or s.get('organisme') or ''}, {s.get('start_date') or s.get('periode') or ''}) — "
+            f"compétences: {', '.join((s.get('skills') or s.get('competences') or [])[:6])}"
+            for s in steps[:25]
+        )
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"traj-synth-{uuid.uuid4()}",
+            system_message="Tu es un conseiller en évolution professionnelle français, expert en lecture de parcours. Tu produis des synthèses valorisantes, personnalisées et concrètes. Réponds UNIQUEMENT en JSON valide, sans markdown."
+        ).with_model("openai", "gpt-5.2")
+        prompt = f"""Analyse cette trajectoire professionnelle ({nb_steps} étapes) :
+{steps_ctx}
+{f'Profil de personnalité D CLIC PRO : {dclic_ctx}' if dclic_ctx else ''}
+
+Réponds avec ce JSON exact :
+{{"analyse_narrative":"Analyse personnalisée du parcours en 50-80 mots, citant des éléments concrets des étapes","fil_conducteur":"Le fil conducteur du parcours en 25-40 mots","competences_dominantes":["6-8 compétences réellement observées"],"forces_recurrentes":["3-5 forces récurrentes"],"competences_transferables":["3-5 compétences transférables vers d'autres métiers"],"axes_evolution":["3 axes d'évolution concrets et personnalisés"],"message_valorisant":"Message d'encouragement personnalisé en 25-40 mots","scores":{{"coherence":0-100,"adaptabilite":0-100,"transferabilite":0-100,"continuite":0-100,"alignement_metier":0-100}}}}"""
+        response = await run_llm_nonblocking(chat, UserMessage(text=prompt))
+        cleaned = response.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("```")[1].lstrip("json").strip()
+        candidate = json.loads(cleaned)
+        if candidate.get("analyse_narrative") and candidate.get("scores"):
+            synthesis = candidate
+            synthesis["source"] = "ia"
+    except Exception as e:
+        logging.warning(f"[Trajectory Synthesis] IA indisponible, fallback template: {e}")
+
+    if not synthesis:
+        synthesis = {
+            "analyse_narrative": f"Votre parcours comprend {nb_steps} étape(s) et mobilise {nb_skills} compétence(s) distincte(s). "
+                                 f"{'Une diversité de contextes enrichit votre profil.' if has_variety else 'Votre trajectoire montre une spécialisation cohérente.'}",
+            "fil_conducteur": f"Un fil conducteur se dessine autour de vos compétences clés : {', '.join(dominant_skills[:4]) if dominant_skills else 'en cours de construction'}.",
+            "competences_dominantes": dominant_skills,
+            "forces_recurrentes": forces,
+            "competences_transferables": transferable,
+            "axes_evolution": [
+                "Approfondir vos compétences transférables dans de nouveaux contextes",
+                "Valider vos acquis via des certifications ou des illustrations concrètes",
+                "Explorer des passerelles métiers compatibles avec votre profil"
+            ],
+            "message_valorisant": "Votre parcours témoigne d'une richesse d'expériences et de compétences. Continuez à valoriser vos acquis !",
+            "scores": {
+                "coherence": coherence,
+                "adaptabilite": adaptabilite,
+                "transferabilite": transferabilite,
+                "continuite": continuite,
+                "alignement_metier": alignement
+            },
+            "source": "template"
         }
-    }
 
     # Cache it
     await db.trajectory_synthesis.update_one(
@@ -8358,7 +8405,7 @@ OFFRE D'EMPLOI:
                         f"Compatibilité de {score}% — {len(matched)} compétence(s) en commun."
                     )
                 }
-            except:
+            except Exception:
                 pass
         except Exception as e:
             logging.error(f"AI offer scoring error: {e}")
@@ -9140,13 +9187,6 @@ async def search_france_travail_offres(token: str, body: dict = {}):
         },
         "matches": matches,
     }
-
-
-@api_router.get("/jobs/applications")
-async def jobs_applications(token: str):
-    token_doc = await get_current_token(token)
-    apps = await db.applications.find({"token_id": token_doc["id"]}, {"_id": 0}).sort("applied_at", -1).to_list(50)
-    return {"applications": apps, "total": len(apps)}
 
 
 @api_router.put("/jobs/applications/{app_id}/status")
