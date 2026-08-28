@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 50: Backend fixes for Strasbourg jobdating bug validated (6/6 pytest OK). recommended?city=Strasbourg returns 5 events with Transport Strasbourg (score 80) in head + Propreté Strasbourg (score 75). web-search returns 4 France Travail links (3 sectors + global). web-search works for arbitrary cities (Colmar) and returns [] when city empty. events endpoint = 20. Frontend Recommandés tab renders the 5 cards correctly with the Transport card first and displays 'événements trouvés par l'IA à Strasbourg' section. No console errors. BUT France Travail URLs (event_url) are NOT rendered as clickable <a> links in the webSearchResults block — only title/description/badges displayed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "JobDatingView.jsx webSearchResults block (lines 1060-1074)", "issue": "event_url (France Travail link) is NOT rendered as clickable anchor. Review request required 'les liens France Travail cliquables'. Currently only title, city, description, sectors, jobs_targeted are shown — no <a href={e.event_url}>. Users cannot click through to France Travail.", "selector": "webSearchResults grid item", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_jobdating_strasbourg.py",
+    "/app/test_reports/pytest/jobdating_strasbourg.xml"
+  ],
+  "action_items": [
+    "Add clickable anchor for event_url in JobDatingView.jsx webSearchResults rendering (~line 1060-1074): wrap card with <a href={e.event_url} target=\"_blank\" rel=\"noopener\"> or add a 'Voir sur France Travail' button. Both webSearchResults blocks (top ~line 897 and bottom ~line 1051) need the fix."
+  ],
+  "critical_code_review_comments": [
+    "Duplicated rendering of webSearchResults exists in JobDatingView.jsx at two places (line 897 and line 1051) — consider extracting to a shared component.",
+    "recommended endpoint returns match_score field but review request text uses 'score'; response contract OK, only report doc mismatch."
+  ],
+  "updated_files": ["/app/backend/tests/test_jobdating_strasbourg.py"],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "test_credentials": "michel / Solerys777! (token issued OK)",
+  "seed_data_creation": "None (used existing michel profile)",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend jobdating Strasbourg fixes fully validated. The only remaining issue is the missing clickable France Travail links in the frontend webSearchResults rendering. After main agent adds anchors, retest by opening Recommandés tab as michel, entering 'Strasbourg', and verifying anchors to mesevenementsemploi.francetravail.fr are clickable (target=_blank).",
+  "rca of the issue": "Backend fix: base_events catalog only had 1 Strasbourg event (Industrie 4.0, off-profile for michel who is transport/logistique). Adding 3 Strasbourg events (Transport, Propreté, Multi-secteurs) restores relevant results. web-search endpoint was placeholder returning []; now generates real France Travail URLs pre-filtered by profile sectors + city. Frontend: renders results but forgets to expose event_url as anchor."
+}

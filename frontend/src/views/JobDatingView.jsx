@@ -919,6 +919,11 @@ const JobDatingView = ({ token }) => {
                                       {(e.sectors || []).map((s, j) => <Badge key={j} variant="outline" className="text-[8px] text-indigo-600 border-indigo-200">{s}</Badge>)}
                                       {(e.jobs_targeted || []).slice(0, 3).map((j, k) => <Badge key={k} className="text-[8px] bg-slate-100 text-slate-600">{j}</Badge>)}
                                     </div>
+                                    {e.event_url && (
+                                      <a href={e.event_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 hover:underline" data-testid={`web-event-link-${i}`}>
+                                        <ExternalLink className="w-3 h-3" /> Voir sur France Travail
+                                      </a>
+                                    )}
                                   </div>
                                   <Badge className="text-[8px] bg-indigo-50 text-indigo-600 border border-indigo-200 shrink-0">{e.event_type || 'forum'}</Badge>
                                 </div>
@@ -1070,6 +1075,11 @@ const JobDatingView = ({ token }) => {
                         {(e.sectors || []).map((s, j) => <Badge key={j} variant="outline" className="text-[8px] text-indigo-600 border-indigo-200">{s}</Badge>)}
                         {(e.jobs_targeted || []).slice(0, 3).map((j, k) => <Badge key={k} className="text-[8px] bg-slate-100 text-slate-600">{j}</Badge>)}
                       </div>
+                      {e.event_url && (
+                        <a href={e.event_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 hover:underline" data-testid={`web-event-link-bottom-${i}`}>
+                          <ExternalLink className="w-3 h-3" /> Voir sur France Travail
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>

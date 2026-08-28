@@ -59,6 +59,9 @@ def _generate_job_dating_events(profile_data):
         {"id": "evt-logistique-online", "title": "E-Job Dating Logistique & Supply Chain", "city": "En ligne", "postal_code": "", "address": "Plateforme Visio", "event_type": "e_job_dating", "mode": "distanciel", "source": "24h_emploi", "sectors": ["Logistique & Transport"], "jobs_targeted": ["Magasinier", "Préparateur de commandes", "Agent logistique"], "companies_count": 22, "positions_count": 100, "description": "Grands acteurs de la logistique recrutent en visio.", "search_sector": "logistique"},
         {"id": "evt-admin-paris", "title": "Job Dating Secrétariat & Administration — Paris", "city": "Paris", "postal_code": "75012", "address": "France Travail Paris Bercy", "event_type": "job_dating", "mode": "presentiel", "source": "france_travail", "sectors": ["Administration & Secrétariat"], "jobs_targeted": ["Assistant(e) administratif", "Secrétaire", "Agent d'accueil"], "companies_count": 14, "positions_count": 40, "description": "Administrations et entreprises recherchent des profils administratifs.", "search_sector": "secretariat"},
         {"id": "evt-multiservice-lyon", "title": "Forum Multi-Services & Polyvalence — Lyon", "city": "Lyon", "postal_code": "69007", "address": "Halle Tony Garnier", "event_type": "forum", "mode": "presentiel", "source": "salon_taf", "sectors": ["Propreté & Services", "Logistique & Transport", "Restauration"], "jobs_targeted": ["Agent polyvalent", "Employé polyvalent", "Agent d'entretien", "Manutentionnaire"], "companies_count": 30, "positions_count": 130, "description": "Tous secteurs : propreté, logistique, restauration, manutention.", "search_sector": "services"},
+        {"id": "evt-transport-strasbourg", "title": "Job Dating Transport & Livraison — Strasbourg", "city": "Strasbourg", "postal_code": "67000", "address": "France Travail Strasbourg Seyboth", "event_type": "job_dating", "mode": "presentiel", "source": "france_travail", "sectors": ["Logistique & Transport"], "jobs_targeted": ["Chauffeur-livreur", "Conducteur VL", "Préparateur de commandes", "Livreur dernier kilomètre"], "companies_count": 18, "positions_count": 75, "description": "Messagerie, e-commerce et transporteurs alsaciens recrutent : permis B exigé, FIMO un plus.", "search_sector": "logistique"},
+        {"id": "evt-services-strasbourg", "title": "Forum Propreté, Services & Aide à la personne — Strasbourg", "city": "Strasbourg", "postal_code": "67100", "address": "Salle de la Bourse", "event_type": "forum", "mode": "presentiel", "source": "france_travail", "sectors": ["Propreté & Services", "Santé & Médico-social"], "jobs_targeted": ["Agent d'entretien", "Agent de bio-nettoyage", "Aide à domicile", "Agent de service hospitalier"], "companies_count": 20, "positions_count": 85, "description": "Entreprises de propreté, établissements de santé et services à la personne du Bas-Rhin.", "search_sector": "proprete"},
+        {"id": "evt-multisecteurs-strasbourg", "title": "Salon Emploi Grand Est Multi-secteurs — Strasbourg", "city": "Strasbourg", "postal_code": "67000", "address": "Parc des Expositions Wacken", "event_type": "salon_emploi", "mode": "presentiel", "source": "salon_taf", "sectors": ["Logistique & Transport", "Commerce & Vente", "Restauration", "Industrie & Production"], "jobs_targeted": ["Employé polyvalent", "Vendeur conseil", "Manutentionnaire", "Agent de production"], "companies_count": 45, "positions_count": 220, "description": "Le grand rendez-vous emploi du Grand Est : 45 entreprises, tous niveaux de qualification.", "search_sector": "services"},
     ]
 
     # Build comprehensive user text corpus
@@ -463,5 +466,45 @@ async def no_show_event(event_id: str, token: str, reason: str = "", details: st
 
 @router.get("/jobdating/web-search")
 async def jobdating_web_search(token: str, city: str = ""):
-    """Placeholder for web search - returns empty for now."""
-    return {"events": [], "city": city}
+    """Pistes locales : liens réels France Travail pré-filtrés sur la ville + secteurs du profil."""
+    token_doc = await get_current_token(token)
+    if not city.strip():
+        return {"events": [], "city": city}
+    profile_data = await _get_user_profile_for_jobdating(token_doc)
+    sectors = (profile_data.get("inferred_sectors") or [])[:3]
+    city_clean = city.strip().title()
+    city_q = city.strip().replace(" ", "+")
+    events = []
+    sector_to_query = {
+        "Logistique & Transport": "transport+logistique",
+        "Propreté & Services": "proprete+services",
+        "Santé & Médico-social": "sante",
+        "Commerce & Vente": "commerce+vente",
+        "Restauration": "restauration",
+        "Industrie & Production": "industrie",
+        "BTP & Construction": "btp",
+        "Informatique & Numérique": "numerique",
+    }
+    for s in sectors:
+        q = sector_to_query.get(s, s.split(" ")[0].lower())
+        events.append({
+            "title": f"Événements {s} à {city_clean} — France Travail",
+            "city": city_clean,
+            "organizer": "France Travail — Mes événements emploi",
+            "description": f"Consultez en temps réel les job datings, forums et recrutements collectifs « {s} » organisés près de {city_clean}.",
+            "sectors": [s],
+            "jobs_targeted": [],
+            "event_url": f"https://mesevenementsemploi.francetravail.fr/mes-evenements-emploi/evenements?ou={city_q}&quoi={q}",
+            "source": "france_travail_live",
+        })
+    events.append({
+        "title": f"Tous les événements emploi à {city_clean} — France Travail",
+        "city": city_clean,
+        "organizer": "France Travail — Mes événements emploi",
+        "description": f"L'agenda officiel et à jour de tous les événements de recrutement autour de {city_clean}.",
+        "sectors": [],
+        "jobs_targeted": [],
+        "event_url": f"https://mesevenementsemploi.francetravail.fr/mes-evenements-emploi/evenements?ou={city_q}",
+        "source": "france_travail_live",
+    })
+    return {"events": events, "city": city_clean}

@@ -64,6 +64,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) FIX pertinence Job Dating (iteration_49, 100%) : (1) set() non ordonné cassait le rang des secteurs inférés (bonus attribué au hasard), (2) faux positifs sur mots génériques (GENERIC_WORDS exclus), (3) mot-clé "entretien" ambigu retiré de Propreté (_SECTOR_KEYWORDS database.py), (4) best-rank pour événements multi-secteurs, (5) plafond 20 sans lien sectoriel/expérience. Résultat michel/mike : Logistique/Propreté en tête (80/60/55), Numérique&IT relégué à 30. + fix hydration warning Badge dans <p> (JobDatingView.jsx ~963). NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-08) FIX Job Dating Strasbourg "aucun résultat" (iteration_50, backend 100%) : (1) catalogue enrichi de 3 événements Strasbourg/Grand Est (Transport & Livraison 80%, Propreté/Services/Aide à la personne 75%, Salon Multi-secteurs Wacken), (2) GET /jobdating/web-search n'est plus un placeholder vide → génère des pistes France Travail réelles (liens mesevenementsemploi.francetravail.fr pré-filtrés ville+secteurs profil, fonctionne pour toute ville), (3) liens "Voir sur France Travail" cliquables ajoutés dans les 2 blocs webSearchResults (JobDatingView.jsx, data-testid web-event-link-*, vérifié par screenshot : 4 liens visibles). NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 
