@@ -2601,11 +2601,11 @@ async def get_user_evolution_analysis(token: str):
     # Gather skills from profile + passport + cv_skills
     user_skills = set()
     for s in (profile or {}).get("skills", []):
-        user_skills.add(s.get("name", ""))
+        user_skills.add(s if isinstance(s, str) else s.get("name", ""))
     for s in (profile or {}).get("cv_skills", []):
         user_skills.add(s if isinstance(s, str) else s.get("name", ""))
     for c in (passport or {}).get("competences", []):
-        user_skills.add(c.get("name", ""))
+        user_skills.add(c if isinstance(c, str) else c.get("name", ""))
     for sf in (passport or {}).get("savoir_faire", []):
         user_skills.add(sf if isinstance(sf, str) else sf.get("name", ""))
     user_skills.discard("")
@@ -2614,14 +2614,18 @@ async def get_user_evolution_analysis(token: str):
     has_cv = bool(user_skills) or bool((passport or {}).get("experiences"))
 
     # Find relevant job indices from sectors (fuzzy keyword matching)
+    import re as _re
     relevant_jobs = []
     seen_jobs = set()
     for sector in user_sectors:
-        # Extract keywords from sector for better matching
-        keywords = [w for w in sector.lower().split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
+        if not isinstance(sector, str):
+            continue
+        # Extract keywords from sector for better matching (sans ponctuation)
+        clean_sector = _re.sub(r"[^\w\sàâäéèêëîïôöùûüç-]", " ", sector.lower())
+        keywords = [w for w in clean_sector.split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
         for kw in keywords[:2]:
             jobs = await db.job_evolution_indices.find(
-                {"sector": {"$regex": kw, "$options": "i"}},
+                {"sector": {"$regex": _re.escape(kw), "$options": "i"}},
                 {"_id": 0}
             ).to_list(10)
             for j in jobs:
@@ -2632,10 +2636,10 @@ async def get_user_evolution_analysis(token: str):
 
     # Also try matching by user's job title / metier_cible from passport
     metier_cible = (passport or {}).get("metier_cible", "") or (passport or {}).get("career_project", "")
-    metier_words = metier_cible.strip().split() if metier_cible else []
+    metier_words = metier_cible.strip().split() if isinstance(metier_cible, str) and metier_cible else []
     if metier_words and len(relevant_jobs) < 3:
         extra = await db.job_evolution_indices.find(
-            {"job_name": {"$regex": metier_words[0], "$options": "i"}},
+            {"job_name": {"$regex": _re.escape(metier_words[0]), "$options": "i"}},
             {"_id": 0}
         ).to_list(5)
         for j in extra:

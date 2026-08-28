@@ -60,6 +60,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-08) FIX "Analyse IA" de Ma Trajectoire (compte michel) : GET /api/trajectory/synthesis générait un texte TEMPLATE sans IA. Désormais vraie analyse LLM (gpt-5.2 via emergentintegrations, contexte = 25 étapes + profil D'CLIC PRO), champ synthesis.source='ia'|'template' (fallback). Cache conservé (DELETE /api/trajectory/synthesis/cache pour régénérer). Testé : narrative personnalisée citant SOLIBAT/ACJ Transport/CHU, 11-13s.
 - [x] (2026-08) AUDIT COMPLET OPC (iteration_47, 100% backend 17/17 + frontend 8/8 modules) : Tableau de bord, Référentiel vivant, Cartographie, Transitions, Émergentes, Certifications RNCP, Intelligence territoriale, Moteur prédictif tous fonctionnels. 4 endpoints IA individuels < 60s. Analyse complète job+polling OK (63s). Vrais chemins : /api/observatory/dashboard et /api/referentiel/rncp/stats. NÉCESSITE REDÉPLOIEMENT (avec fixes détection CV + analyse-complete + trajectoire IA).
 
+- [x] (2026-08) FIX Marché > Évolution "vide" (ben en prod) / "pas personnalisé" (michel) — iteration_48, 100% : GET /api/evolution-index/user-profile crashait en 500 (regex MongoDB invalide — parenthèses dans les secteurs injectées brutes dans $regex). Fix server.py ~2618 : nettoyage ponctuation + re.escape() (secteurs + metier_cible) + robustesse skills string. Le frontend masquait le 500 → affichage vide/générique. Résultat : michel/mike obtiennent exposition 45 + métiers "(votre profil)" personnalisés. + Panneau explicatif "Comment lire ces résultats ?" ajouté à l'onglet Détectées CV. NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

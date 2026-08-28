@@ -1,0 +1,22 @@
+{
+  "summary": "Verified regex-escape fix for GET /api/evolution-index/user-profile. Backend + Frontend both PASS. Michel (sectors with parentheses) gets 200 with personalized relevant_jobs (Chauffeur-livreur, Préparateur de commandes, Aide-soignant(e), Infirmier(e) libéral(e), Agent d'entretien) and evolution_exposure=45.0 (not default 50). Mike (also sectors with parentheses) also 200 with same personalized set. Dashboard endpoint returns 14 sectors + summary + top_transforming + most_stable. Frontend Évolution tab renders evolution-index-view, exposure card=45/100 Évolutif, titles contain '(votre profil)' (hasUserData=true), no generic jobs (Analyste Cybersécurité/Data Analyst/Développeur Web) present. Sub-tabs 'Par secteur' and 'Guide' render without errors. Observatoire regression OK.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_evolution_index.py",
+    "/app/test_reports/pytest/evolution_index_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Sub-tabs 'Par secteur' and 'Guide' inside EvolutionIndexView lack data-testid attributes (only 'evolution-exposure-card' present) — makes future test targeting fragile.",
+    "Frontend still swallows 500 responses (fetch r.ok→null) hiding backend errors; consider surfacing an error banner instead of a generic view."
+  ],
+  "updated_files": ["/app/backend/tests/test_evolution_index.py"],
+  "success_rate": {"backend": "100% (3/3)", "frontend": "100%"},
+  "test_credentials": "michel/Solerys777!, mike/Solerys777! (both via POST /api/auth/login {pseudo,password})",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Regex fix in server.py ~line 2615 for /api/evolution-index/user-profile confirmed working with sectors containing parentheses. Frontend EvolutionIndexView correctly toggles hasUserData → '(votre profil)' title. Consider asking main agent to add data-testids to Vue d'ensemble / Par secteur / Guide sub-tabs.",
+  "rca of the issue": "Fix already applied by main agent before this iteration: re.escape() + ponctuation cleanup on sector/metier_cible keywords injected into pymongo $regex. Independently confirmed: michel + mike both return 200 with personalized relevant_jobs matching their trajectoire sectors (Transport/Logistique, Santé, Propreté/Services)."
+}
