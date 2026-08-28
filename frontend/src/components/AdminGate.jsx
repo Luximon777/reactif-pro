@@ -18,7 +18,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL || ""}/api`;
 
 const GATE_PASSWORDS = {
   admin: "Choukette@777",
-  programmeur: "Reactif@pro2026!",
+  programmeur: "DevReactif#2026!",
   invite: "Reactif@pro2026!",
 };
 

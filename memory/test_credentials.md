@@ -12,5 +12,5 @@
 
 ## Admin Gate
 - Admin: Choukette@777
-- Programmeur: Reactif@pro2026!
+- Programmeur (Dev): DevReactif#2026!
 - Invité: Reactif@pro2026!
