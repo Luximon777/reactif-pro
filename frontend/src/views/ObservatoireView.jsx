@@ -1876,6 +1876,18 @@ const CvDetectedTab = ({ data, token, onRefresh }) => {
 
   return (
     <div className="space-y-6" data-testid="cv-detected-tab">
+      {/* Panneau explicatif */}
+      <Card className="card-base bg-violet-50/60 border-violet-200">
+        <CardContent className="pt-5 pb-4" data-testid="cv-detected-explanation">
+          <p className="text-sm font-semibold text-violet-900 mb-2">💡 Comment lire ces résultats ?</p>
+          <ul className="text-xs text-slate-700 space-y-1.5">
+            <li><strong>Ce que fait l'analyse :</strong> l'IA relit votre CV et votre passeport pour repérer vos compétences <em>transversales</em> (mobilisables dans plusieurs métiers) qui sont en croissance sur le marché de l'emploi.</li>
+            <li><strong>Le score (0-100) :</strong> c'est le <em>potentiel d'émergence</em> de la compétence — à quel point elle est demandée et en croissance sur le marché. Ce n'est <em>pas</em> votre niveau de maîtrise.</li>
+            <li><strong>Niveau « confirmée » :</strong> compétence déjà bien reconnue sur le marché → valorisez-la immédiatement dans vos candidatures.</li>
+            <li><strong>Niveau « émergente » :</strong> compétence en plein essor → un atout différenciant pour l'avenir, à documenter avec des preuves S.A.R.E.</li>
+          </ul>
+        </CardContent>
+      </Card>
       <Card className="card-base">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
