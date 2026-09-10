@@ -5127,6 +5127,23 @@ async def get_referentiel_metiers_filtered(token: str = None, filiere: str = Non
     return {"metiers": metiers_list}
 
 
+_FR_STOPWORDS = {"de", "du", "des", "le", "la", "les", "un", "une", "et", "en", "au", "aux", "a", "à", "d", "l", "pour", "sur", "dans", "ou"}
+
+
+def _search_word_patterns(q: str) -> list:
+    """Découpe une requête en motifs regex tolérants : stopwords ignorés, racine souple (cuisine→cuisi matche cuisinier)."""
+    import re as _re
+    patterns = []
+    for w in q.lower().replace("'", " ").replace("’", " ").split():
+        w = w.strip("-,.()")
+        if len(w) < 2 or w in _FR_STOPWORDS:
+            continue
+        if len(w) >= 6:
+            w = w[:5]
+        patterns.append(_re.escape(w))
+    return patterns
+
+
 @api_router.get("/referentiel/search")
 async def referentiel_search(token: str = None, q: str = None, filiere: str = None, secteur: str = None):
     """Pyramidal search across filières, secteurs, métiers, compétences"""
@@ -5142,11 +5159,17 @@ async def referentiel_search(token: str = None, q: str = None, filiere: str = No
     if secteur and secteur != "all":
         metier_query["sector_name"] = secteur
 
-    if q:
-        regex = {"$regex": q, "$options": "i"}
+    q_patterns = _search_word_patterns(q) if q else []
+
+    def _word_query(fields):
+        if len(q_patterns) > 1:
+            return {"$and": [{"$or": [{f: {"$regex": p, "$options": "i"}} for f in fields]} for p in q_patterns]}
+        return {"$or": [{f: {"$regex": q_patterns[0], "$options": "i"}} for f in fields]}
+
+    if q and q_patterns:
         # Search filières
         filieres_found = await db.opc_filieres.find(
-            {"$or": [{"nom": regex}, {"code": regex}, {"secteurs": regex}]},
+            _word_query(["nom", "code", "secteurs"]),
             {"_id": 0}
         ).to_list(20)
         for f in filieres_found:
@@ -5157,13 +5180,7 @@ async def referentiel_search(token: str = None, q: str = None, filiere: str = No
             })
 
         # Search métiers
-        metier_search = {**metier_query, "$or": [
-            {"metier": regex},
-            {"mission": regex},
-            {"sector_name": regex},
-            {"savoir_faire": regex},
-            {"savoir_etre": regex},
-        ]}
+        metier_search = {**metier_query, **_word_query(["metier", "mission", "sector_name", "savoir_faire", "savoir_etre"])}
         metiers_found = await db.opc_metiers.find(metier_search, {"_id": 0}).to_list(50)
     else:
         metiers_found = await db.opc_metiers.find(metier_query, {"_id": 0}).to_list(50)
@@ -5205,9 +5222,12 @@ async def referentiel_search(token: str = None, q: str = None, filiere: str = No
 
     # Also search ROME France Travail
     results_rome = []
-    if q:
-        rome_regex = {"$regex": q, "$options": "i"}
-        rome_found = await db.rome_metiers.find({"libelle": rome_regex}, {"_id": 0}).to_list(20)
+    if q and q_patterns:
+        if len(q_patterns) > 1:
+            rome_query = {"$and": [{"libelle": {"$regex": p, "$options": "i"}} for p in q_patterns]}
+        else:
+            rome_query = {"libelle": {"$regex": q_patterns[0], "$options": "i"}}
+        rome_found = await db.rome_metiers.find(rome_query, {"_id": 0}).to_list(20)
         for r in rome_found:
             results_rome.append({
                 "code_rome": r["code_rome"],
@@ -5218,8 +5238,7 @@ async def referentiel_search(token: str = None, q: str = None, filiere: str = No
     # Fallback: search the living OPC referential (referentiel_opc) when the
     # static collections return nothing (e.g. fresh production database)
     if q and not results_metiers:
-        import re as _re
-        words = [_re.escape(w.strip()) for w in q.split() if len(w.strip()) >= 2]
+        words = _search_word_patterns(q)
         fields = ["metier", "secteur", "filiere", "mission", "hard_skills", "soft_skills"]
         if words:
             if len(words) > 1:
@@ -9985,11 +10004,11 @@ async def search_referentiel_opc(q: str = ""):
     if not q or len(q) < 2:
         return {"results": [], "total": 0}
 
-    # Split query into words and build AND logic (ALL words must match)
-    words = [w.strip() for w in q.split() if len(w.strip()) >= 2]
-    if not words:
+    # Split query into tolerant word patterns (stopwords ignorés, racines souples)
+    escaped_words = _search_word_patterns(q)
+    if not escaped_words:
         return {"results": [], "total": 0}
-    escaped_words = [re_module.escape(w) for w in words]
+    words = escaped_words
 
     search_fields = [
         "metier", "secteur", "filiere", "mission", "hard_skills", "soft_skills",

@@ -72,6 +72,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-09) FIX OPC "synchronisation/rubriques ne fonctionnent pas" avec peter7 en PROD (iteration_53, 100%) : diagnostic → la synchro et toutes les rubriques fonctionnent (vérifié Preview + prod via screenshot). Vrai problème : la BASE PROD n'avait aucune donnée RNCP (opc_certifications=0, seed_rncp.py exécuté seulement sur Preview) → stats vides (— / 0). Fix : migrations.py seed_rncp_if_empty() lance run_etl() (ETL data.gouv.fr France Compétences) en tâche de fond au démarrage si opc_certifications<1000. Skip validé sur Preview (30 022 certs), logique testée avec mocks. La prod se remplira automatiquement au prochain déploiement (~2-5 min après démarrage). NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-09) FIX recherche Référentiel vivant "chef de cuisine" → 0 résultat (iteration_54, 100%) : helper _search_word_patterns (server.py ~5133) — stopwords FR ignorés + racine souple mots >=6 lettres (cuisine→cuisi matche cuisinier). Appliqué à GET /referentiel/search (principal + fallback + ROME) et GET /opc/referentiel/search. Frontend vérifié : 5 résultats avec fiche terrain. Le sync peter7 fonctionnait déjà (badge 12 comp. = synchro OK). NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

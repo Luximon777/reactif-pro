@@ -1,0 +1,19 @@
+{
+  "summary": "Validated bug fix for Référentiel vivant search accepting French stopwords + racine souple. Backend: 10/10 pytest passed on /api/referentiel/search and /api/opc/referentiel/search covering 'chef de cuisine', 'chef cuisinier' (non-regression), 'cuisinier', 'la cuisine' (stopword), 'xyzinexistant' (no 500), 'chauffeur', 'vente', empty q with filiere=all. Frontend: peter7 login + /opc + Référentiel vivant + search 'chef de cuisine' → 5 résultat(s) counter, fiche 'Remplacement Chef cuisinier' (Contributions terrain) affichée; 'chef cuisinier' non-regression OK (5 résultats).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_referentiel_search.py",
+    "/app/test_reports/pytest/referentiel_search.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_referentiel_search.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "peter7 / Solerys777!",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Referentiel search now supports FR stopwords ('de','la','du','pour'...) and root matching for words>=6 letters (cuisine→cuisinier). Endpoints validated: /api/referentiel/search (with token), /api/opc/referentiel/search (public). Response schema: metiers[] items have field 'nom' (not 'intitule'/'titre'). data-testid='opc-search-total' works.",
+  "rca of the issue": "N/A - fix already applied by main agent; validated end-to-end."
+}
