@@ -8,6 +8,9 @@ Tests:
 5. Gate state API endpoint works correctly
 """
 
+from conftest import TEST_USER_PASSWORD
+import os
+ADMIN_GATE_PASSWORD = os.environ.get("ADMIN_GATE_PASSWORD", "")
 import pytest
 import requests
 import os
@@ -30,7 +33,7 @@ class TestGateStateAPI:
         """POST /api/admin/gate-state with correct password sets spaces_open"""
         response = requests.post(
             f"{BASE_URL}/api/admin/gate-state",
-            json={"password": "Choukette@777", "spaces_open": True}
+            json={"password": ADMIN_GATE_PASSWORD, "spaces_open": True}
         )
         assert response.status_code == 200
         data = response.json()
@@ -53,7 +56,7 @@ class TestGateStateAPI:
         """POST /api/admin/gate-state can set spaces_open to false"""
         response = requests.post(
             f"{BASE_URL}/api/admin/gate-state",
-            json={"password": "Choukette@777", "spaces_open": False}
+            json={"password": ADMIN_GATE_PASSWORD, "spaces_open": False}
         )
         assert response.status_code == 200
         data = response.json()
@@ -63,7 +66,7 @@ class TestGateStateAPI:
         # Reset to True for other tests
         requests.post(
             f"{BASE_URL}/api/admin/gate-state",
-            json={"password": "Choukette@777", "spaces_open": True}
+            json={"password": ADMIN_GATE_PASSWORD, "spaces_open": True}
         )
 
 
@@ -74,7 +77,7 @@ class TestUserAuthentication:
         """Login with mike7/Solerys777! returns valid token"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"pseudo": "mike7", "password": "Solerys777!"}
+            json={"pseudo": "mike7", "password": TEST_USER_PASSWORD}
         )
         assert response.status_code == 200
         data = response.json()
@@ -90,7 +93,7 @@ class TestUserAuthentication:
         """Login with pierre7/Solerys777! returns valid token"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"pseudo": "pierre7", "password": "Solerys777!"}
+            json={"pseudo": "pierre7", "password": TEST_USER_PASSWORD}
         )
         assert response.status_code == 200
         data = response.json()
@@ -125,7 +128,7 @@ class TestTokenVerification:
         # First login to get a token
         login_response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"pseudo": "mike7", "password": "Solerys777!"}
+            json={"pseudo": "mike7", "password": TEST_USER_PASSWORD}
         )
         token = login_response.json()["token"]
         
@@ -153,7 +156,7 @@ class TestProfileAccess:
         # First login to get a token
         login_response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"pseudo": "mike7", "password": "Solerys777!"}
+            json={"pseudo": "mike7", "password": TEST_USER_PASSWORD}
         )
         token = login_response.json()["token"]
         

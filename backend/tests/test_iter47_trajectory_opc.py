@@ -6,6 +6,7 @@ Tests:
    → synthesis.source == 'ia', analyse_narrative personnalisée, 5-scores present, cache on 2nd call
 3) OPC endpoints used by OpcDediePage.jsx for mike
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import time
 import pytest
@@ -17,7 +18,7 @@ assert BASE_URL, "REACT_APP_BACKEND_URL missing"
 TIMEOUT_IA = 90
 
 
-def _login(pseudo, password="Solerys777!"):
+def _login(pseudo, password=TEST_USER_PASSWORD):
     r = requests.post(f"{BASE_URL}/api/auth/login",
                       json={"pseudo": pseudo, "password": password},
                       timeout=45)

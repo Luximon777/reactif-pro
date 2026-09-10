@@ -4,6 +4,7 @@ Comprehensive tests for iteration 29:
 - Jobdating module (extracted from server.py)
 - CK1 enrichment for all 68 fiches in referentiel_opc
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -49,7 +50,7 @@ class TestROMESuggestions:
         """Login as pierre7 and get token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "pierre7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         return response.json()["token"]
@@ -78,7 +79,7 @@ class TestJobdatingModule:
         """Login as pierre7 and get token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "pierre7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         return response.json()["token"]
@@ -206,7 +207,7 @@ class TestAuthentication:
         """POST /api/auth/login - login with pierre7"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "pierre7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         data = response.json()
@@ -220,7 +221,7 @@ class TestAuthentication:
         """POST /api/auth/login - login with mike7"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "mike7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         data = response.json()

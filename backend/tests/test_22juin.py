@@ -3,6 +3,7 @@ Tests de régression — Travail du 22 juin 2026.
 Vérifie que toutes les fonctionnalités implémentées fonctionnent.
 Lancer: pytest /app/backend/tests/test_22juin.py -v
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import pytest
 import httpx
@@ -12,8 +13,8 @@ if not API_URL.startswith("http"):
     API_URL = "http://localhost:8001"
 API = f"{API_URL}/api"
 
-PETER7_CREDS = {"pseudo": "peter7", "password": "Solerys777!"}
-MIKE7_CREDS = {"pseudo": "mike7", "password": "Solerys777!"}
+PETER7_CREDS = {"pseudo": "peter7", "password": TEST_USER_PASSWORD}
+MIKE7_CREDS = {"pseudo": "mike7", "password": TEST_USER_PASSWORD}
 
 
 @pytest.fixture

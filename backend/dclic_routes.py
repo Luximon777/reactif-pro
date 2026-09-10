@@ -2,7 +2,7 @@
 D'CLIC PRO — Routes API (Version GitHub intégrale)
 Source: GitHub Luximon777/declic-pro — intégré dans Ré'Actif Pro
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -538,7 +538,7 @@ def register_dclic_routes(app, db):
 
     # ── POST /claim ──
     @router.post("/claim")
-    async def claim_code(access_code: str = "", user_id: str = "", body: dict = {}):
+    async def claim_code(access_code: str = "", user_id: str = "", body: dict = Body(default_factory=dict)):
         # Support both query params and body
         code = (access_code or body.get("access_code", "")).upper().strip()
         uid = user_id or body.get("user_id", "")
@@ -557,7 +557,7 @@ def register_dclic_routes(app, db):
 
     # ── POST /api/profile/import-dclic (on main app, not dclic router) ──
     @app.post("/api/profile/import-dclic")
-    async def import_dclic_profile(token: str = "", body: dict = {}):
+    async def import_dclic_profile(token: str = "", body: dict = Body(default_factory=dict)):
         if not token:
             raise HTTPException(status_code=401, detail="Token requis")
 

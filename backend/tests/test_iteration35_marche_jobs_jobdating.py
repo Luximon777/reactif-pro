@@ -4,6 +4,7 @@ Iteration 35 - Backend regression tests for:
 2. Jobs matching France Travail first
 3. Job Dating register + history with full event details
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import time
 import pytest
@@ -11,7 +12,7 @@ import requests
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://cv-analyzer-53.preview.emergentagent.com").rstrip("/")
 USER = "mike9"
-PASSWORD = "Solerys777!"
+PASSWORD = TEST_USER_PASSWORD
 
 
 @pytest.fixture(scope="module")

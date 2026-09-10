@@ -427,18 +427,33 @@ function DashboardModule({ stats, rncpStats, onRefresh, refreshLoading }) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
-              { name: "France Compétences (RNCP/RS)", status: "connecté", count: `${rncpStats?.total_certifications?.toLocaleString() || "30 022"} fiches`, color: "emerald" },
-              { name: "France Travail (ROME 4.0)", status: "connecté", count: "1 911 fiches", color: "emerald" },
-              { name: "Base RE'ACTIF PRO", status: "connecté", count: "20 filières, 289 métiers", color: "emerald" },
-            ].map((src, i) => (
-              <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border border-${src.color}-200 bg-${src.color}-50/30`}>
-                <CheckCircle2 className={`w-4 h-4 text-${src.color}-600 shrink-0`} />
-                <div>
-                  <div className="text-xs font-semibold text-slate-700">{src.name}</div>
-                  <div className="text-[10px] text-slate-500">{src.count}</div>
+              { name: "France Compétences (RNCP/RS)", count: `${rncpStats?.total_certifications?.toLocaleString() || "30 022"} fiches`, cls: "border-emerald-200 bg-emerald-50/30", icon: "text-emerald-600" },
+              { name: "France Travail (ROME 4.0)", count: "1 911 fiches", cls: "border-emerald-200 bg-emerald-50/30", icon: "text-emerald-600" },
+              { name: "Base RE'ACTIF PRO", count: "20 filières, 289 métiers", cls: "border-emerald-200 bg-emerald-50/30", icon: "text-emerald-600" },
+              { name: "EURES — Portail européen de l'emploi", count: "Offres & mobilité dans 31 pays européens", cls: "border-blue-200 bg-blue-50/30", icon: "text-blue-600", url: "https://eures.europa.eu/index_fr" },
+              { name: "ESCO — Référentiel européen des compétences", count: "13 890 compétences, 3 008 métiers", cls: "border-blue-200 bg-blue-50/30", icon: "text-blue-600", url: "https://esco.ec.europa.eu/fr" },
+              { name: "CEDEFOP — Skills Intelligence", count: "Tendances emploi-compétences UE", cls: "border-blue-200 bg-blue-50/30", icon: "text-blue-600", url: "https://www.cedefop.europa.eu/fr/tools/skills-intelligence" },
+            ].map((src, i) => {
+              const inner = (
+                <>
+                  <CheckCircle2 className={`w-4 h-4 ${src.icon} shrink-0`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-slate-700">{src.name}</div>
+                    <div className="text-[10px] text-slate-500">{src.count}</div>
+                  </div>
+                  {src.url && <ExternalLink className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                </>
+              );
+              return src.url ? (
+                <a key={i} href={src.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-3 p-3 rounded-lg border ${src.cls} hover:shadow-sm transition-shadow`} data-testid={`opc-source-${i}`}>
+                  {inner}
+                </a>
+              ) : (
+                <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${src.cls}`} data-testid={`opc-source-${i}`}>
+                  {inner}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

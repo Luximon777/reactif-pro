@@ -1,4 +1,5 @@
 """Tests for Evolution Index endpoints - regex escape fix regression."""
+from conftest import TEST_USER_PASSWORD
 import os
 import pytest
 import requests
@@ -17,12 +18,12 @@ def _login(pseudo, password):
 
 @pytest.fixture(scope="module")
 def michel_token():
-    return _login("michel", "Solerys777!")
+    return _login("michel", TEST_USER_PASSWORD)
 
 
 @pytest.fixture(scope="module")
 def mike_token():
-    return _login("mike", "Solerys777!")
+    return _login("mike", TEST_USER_PASSWORD)
 
 
 # --- Evolution Index user profile ---

@@ -528,7 +528,7 @@ async def seed_if_empty():
 
     # Offres
     offres_to_insert = []
-    rng = random.Random(42)
+    rng = random.Random(42)  # déterministe volontairement : données de démo reproductibles (pas un usage de sécurité)
     for code_rome, intitule, loc, contrat, secteur, demandees, emergents in OFFRES_TEMPLATES:
         for _ in range(rng.randint(2, 5)):
             offres_to_insert.append({

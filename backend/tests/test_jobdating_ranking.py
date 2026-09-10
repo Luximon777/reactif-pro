@@ -1,4 +1,5 @@
 """Backend tests for job dating ranking after RCA fix (best sector rank, GENERIC_WORDS filter, cap 20)."""
+from conftest import TEST_USER_PASSWORD
 import os
 import pytest
 import requests
@@ -21,7 +22,7 @@ def _load_backend_url():
 BASE_URL = _load_backend_url()
 
 
-def _login(pseudo: str, password: str = "Solerys777!"):
+def _login(pseudo: str, password: str = TEST_USER_PASSWORD):
     r = requests.post(f"{BASE_URL}/api/auth/login", json={"pseudo": pseudo, "password": password}, timeout=30)
     assert r.status_code == 200, f"login failed for {pseudo}: {r.status_code} {r.text}"
     data = r.json()

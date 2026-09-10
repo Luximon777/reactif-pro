@@ -7,6 +7,7 @@ Tests des fonctionnalités:
 - 10/10 expériences prouvées, 10/10 avec contrat
 - Toutes les expériences ont statut 'Expert' (pas 'En attente')
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -20,7 +21,7 @@ class TestPeter7Peter9Authentication:
         """Test login with peter7 credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         data = response.json()
@@ -32,7 +33,7 @@ class TestPeter7Peter9Authentication:
         """Test login with peter9 credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter9",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         data = response.json()
@@ -49,7 +50,7 @@ class TestPeter7CoffreDocuments:
         """Get peter7 token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         self.token = response.json()["token"]
@@ -104,7 +105,7 @@ class TestPeter7CertificationStatus:
         """Get peter7 token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         self.token = response.json()["token"]
@@ -188,7 +189,7 @@ class TestPeter9CoffreDocuments:
         """Get peter9 token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter9",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         self.token = response.json()["token"]
@@ -221,7 +222,7 @@ class TestSkillIllustrations:
         """Get peter7 token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200
         self.token = response.json()["token"]

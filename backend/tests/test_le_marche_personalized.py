@@ -4,6 +4,7 @@ Test suite for Le Marché personalized features:
 - GET /api/referentiel/explorer/suggestions - Personalized job suggestions
 - GET /api/evolution-index/user-profile - Enhanced evolution data with passport
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -11,7 +12,7 @@ import os
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-MIKE7_CREDS = {"pseudo": "mike7", "password": "Solerys777!"}
+MIKE7_CREDS = {"pseudo": "mike7", "password": TEST_USER_PASSWORD}
 
 
 class TestLeMarchePersonalized:

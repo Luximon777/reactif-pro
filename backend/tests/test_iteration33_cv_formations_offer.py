@@ -8,6 +8,7 @@ Bug fix validation:
 - POST /api/cv/generate-models with job_offer returns job_offer_used / target_job / ats_keywords
 - GET /api/cv/models exposes the same fields
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import time
 import pytest
@@ -16,7 +17,7 @@ import requests
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://cv-analyzer-53.preview.emergentagent.com").rstrip("/")
 
 PSEUDO = "mike9"
-PASSWORD = "Solerys777!"
+PASSWORD = TEST_USER_PASSWORD
 
 EXPECTED_FORMATIONS = [
     "Titre professionnel Conseiller en Insertion Professionnelle (CIP)",

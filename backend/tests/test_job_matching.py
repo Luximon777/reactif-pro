@@ -5,6 +5,7 @@ Test Job Matching endpoints:
 - GET /api/jobs/matching/preferences - Get saved preferences
 - POST /api/jobs/france-travail/search - France Travail job search
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -13,7 +14,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from test_credentials.md
 TEST_PSEUDO = "mike7"
-TEST_PASSWORD = "Solerys777!"
+TEST_PASSWORD = TEST_USER_PASSWORD
 
 
 class TestJobMatchingEndpoints:

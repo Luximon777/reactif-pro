@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only validation of OPC Dashboard 'Sources de données connectées' card. All 6 sources render with correct data-testid opc-source-0..5. First 3 (France Compétences RNCP/RS, France Travail ROME 4.0, Base RE'ACTIF PRO) are non-clickable DIVs styled in emerald green. Last 3 European sources (EURES, ESCO, CEDEFOP) are proper <a> anchors with target=_blank and exact expected href values, styled in blue with visible ExternalLink icon. Dashboard KPIs, Actualiser button and Répartition RNCP par niveau still render (no regression). Tailwind classes render correctly (no broken styling).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_details": {
+    "opc-source-0": "DIV — France Compétences (RNCP/RS) — 30,022 fiches — non-clickable OK",
+    "opc-source-1": "DIV — France Travail (ROME 4.0) — 1 911 fiches — non-clickable OK",
+    "opc-source-2": "DIV — Base RE'ACTIF PRO — 20 filières, 289 métiers — non-clickable OK",
+    "opc-source-3": "A href=https://eures.europa.eu/index_fr target=_blank OK",
+    "opc-source-4": "A href=https://esco.ec.europa.eu/fr target=_blank OK",
+    "opc-source-5": "A href=https://www.cedefop.europa.eu/fr/tools/skills-intelligence target=_blank OK"
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "test_credentials": "mike / Solerys777! (POST /api/auth/login returned 200)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "OPC Sources card refactor validated. 6 sources with correct testids, hrefs, targets, and tag types. Regression: dashboard stats + Actualiser button + Répartition RNCP display OK. The header search input at top of OPC layout has same input tag as Referentiel search — when writing Playwright fill('input'), disambiguate."
+}

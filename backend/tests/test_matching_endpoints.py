@@ -5,6 +5,7 @@ Test suite for Matching Candidat / Offre endpoints
 - POST /api/matching/match-profile - Match user profile with analyzed offer
 - GET /api/matching/history - Get user's analysis history
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -14,7 +15,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
 TEST_PSEUDO = "mike7"
-TEST_PASSWORD = "Solerys777!"
+TEST_PASSWORD = TEST_USER_PASSWORD
 
 # France Travail test URL
 FT_TEST_URL = "https://candidat.francetravail.fr/offres/recherche/detail/209YQWY"

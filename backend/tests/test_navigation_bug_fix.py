@@ -8,6 +8,7 @@ Tests:
 - Reactif contact API
 """
 
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -21,7 +22,7 @@ class TestAuthAPI:
         """Test login with marc19/Solerys777! credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudonyme": "marc19",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         

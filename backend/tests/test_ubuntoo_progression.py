@@ -7,6 +7,7 @@ Endpoints tested:
 - PUT  /api/social/users/profile   : profile completion -> Explorateur criteria
 - GET  /api/social/posts           : feed regression
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import uuid
 import pytest
@@ -42,7 +43,7 @@ def _sso(http, reactif_token):
 @pytest.fixture(scope="module")
 def peter_ubuntoo_jwt(http):
     """peter7 — already accepted charter, level Explorateur."""
-    r = _reactif_login(http, "peter7", "Solerys777!")
+    r = _reactif_login(http, "peter7", TEST_USER_PASSWORD)
     if r.status_code != 200:
         pytest.skip(f"peter7 Ré'Actif login failed: {r.status_code} {r.text[:200]}")
     tok = r.json().get("token")
@@ -75,7 +76,7 @@ def fresh_user(http):
 # ---------- SSO ----------
 class TestSSO:
     def test_sso_with_valid_reactif_token(self, http):
-        r = _reactif_login(http, "peter7", "Solerys777!")
+        r = _reactif_login(http, "peter7", TEST_USER_PASSWORD)
         if r.status_code != 200:
             pytest.skip("peter7 login unavailable")
         reactif_tok = r.json()["token"]

@@ -1,4 +1,5 @@
 """Backend tests for Ubuntoo Social (SSO from Ré'Actif Pro + all /api/social endpoints + WS)."""
+from conftest import TEST_USER_PASSWORD
 import os
 import json
 import time
@@ -13,8 +14,8 @@ API = f"{BASE_URL}/api"
 SOCIAL = f"{API}/social"
 
 USERS = {
-    "mike9": {"pseudo": "mike9", "password": "Solerys777!"},
-    "peter7": {"pseudo": "peter7", "password": "Solerys777!"},
+    "mike9": {"pseudo": "mike9", "password": TEST_USER_PASSWORD},
+    "peter7": {"pseudo": "peter7", "password": TEST_USER_PASSWORD},
 }
 
 

@@ -2,6 +2,7 @@
 D'CLIC PRO Import Flow Tests
 Tests the complete flow: Submit test → Get code → Retrieve profile → Import to passport → Verify
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -22,7 +23,7 @@ SAMPLE_ANSWERS = {
 }
 
 # Test credentials
-TEST_USER = {"pseudo": "mike7", "password": "Solerys777!"}
+TEST_USER = {"pseudo": "mike7", "password": TEST_USER_PASSWORD}
 
 
 class TestDclicSubmit:

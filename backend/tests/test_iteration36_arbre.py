@@ -1,5 +1,6 @@
 """Iteration 36 — Tests for the new /api/passport/arbre endpoints
    Covers: GET (saved), GET (prefill=1) and POST + persistence."""
+from conftest import TEST_USER_PASSWORD
 import os
 import requests
 import pytest
@@ -11,7 +12,7 @@ LEVEL_KEYS = ["savoir_faire", "savoir_etre", "qualites", "valeurs", "vertus"]
 
 @pytest.fixture(scope="module")
 def token():
-    r = requests.post(f"{API}/auth/login", json={"pseudo": "mike9", "password": "Solerys777!"}, timeout=30)
+    r = requests.post(f"{API}/auth/login", json={"pseudo": "mike9", "password": TEST_USER_PASSWORD}, timeout=30)
     assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
     tok = r.json().get("token")
     assert tok, "no token in login response"

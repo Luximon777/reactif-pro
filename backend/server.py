@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks, Body
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -1263,7 +1263,7 @@ async def jobs_matching_early(token: str):
 
 
 @api_router.post("/jobs/matching/search")
-async def jobs_matching_search_post(token: str, body: dict = {}):
+async def jobs_matching_search_post(token: str, body: dict = Body(default_factory=dict)):
     """Recherche d'offres avec scoring avancé basé sur les filtres utilisateur."""
     token_doc = await get_current_token(token)
     profile = await db.profiles.find_one({"token_id": token_doc["id"]}, {"_id": 0})
@@ -1330,7 +1330,7 @@ async def jobs_applications_early(token: str):
 
 
 @api_router.post("/jobs/apply")
-async def jobs_apply_early(token: str, body: dict = {}):
+async def jobs_apply_early(token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     job_title = body.get("job_title", "") or body.get("job_id", "")
     if not job_title:
@@ -6906,8 +6906,8 @@ async def get_gate_state():
 
 @api_router.post("/admin/gate-state")
 async def set_gate_state(body: GateStateRequest):
-    ADMIN_PASSWORD = "Choukette@777"
-    if body.password != ADMIN_PASSWORD:
+    ADMIN_PASSWORD = os.environ.get("ADMIN_GATE_PASSWORD")
+    if not ADMIN_PASSWORD or body.password != ADMIN_PASSWORD:
         raise HTTPException(status_code=403, detail="Mot de passe administrateur incorrect")
     await db.admin_config.update_one(
         {"key": "gate_state"},
@@ -8146,7 +8146,7 @@ async def get_actualisation_status():
 
 
 @api_router.post("/referentiel/actualiser")
-async def actualiser_referentiel(body: dict = {}):
+async def actualiser_referentiel(body: dict = Body(default_factory=dict)):
     return {"status": "ok", "message": "Actualisation lancée en arrière-plan"}
 
 
@@ -8283,7 +8283,7 @@ async def on_startup():
 
 # --- 1. Coach Step Chat (interactive IA conversation) ---
 @api_router.post("/coach/step-chat")
-async def coach_step_chat(token: str, body: dict = {}):
+async def coach_step_chat(token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     message = body.get("message", "")
     step_id = body.get("step_id", 1)
@@ -8327,7 +8327,7 @@ async def coach_step_chat(token: str, body: dict = {}):
 
 # --- CV Offer Match Check (quick score before generation) ---
 @api_router.post("/cv/check-offer-match")
-async def check_offer_match(token: str, body: dict = {}):
+async def check_offer_match(token: str, body: dict = Body(default_factory=dict)):
     """Calculate a quick matching score between user profile/CV and a job offer text."""
     token_doc = await get_current_token(token)
     offer_text = body.get("offer_text", "").strip()
@@ -8485,7 +8485,7 @@ OFFRE D'EMPLOI:
 
 # --- 2. CV Generate Models (background job) ---
 @api_router.post("/cv/generate-models")
-async def start_cv_generate_models(token: str, body: dict = {}, background_tasks: BackgroundTasks = None):
+async def start_cv_generate_models(token: str, body: dict = Body(default_factory=dict), background_tasks: BackgroundTasks = None):
     token_doc = await get_current_token(token)
     model_types = body.get("model_types", [])
     job_offer = body.get("job_offer", "")
@@ -8704,7 +8704,7 @@ async def jobs_matching_preferences(token: str):
 
 
 @api_router.post("/jobs/matching/preferences")
-async def save_matching_preferences(token: str, body: dict = {}):
+async def save_matching_preferences(token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     await db.matching_prefs.update_one(
         {"token_id": token_doc["id"]},
@@ -8895,7 +8895,7 @@ async def matching_history(token: str):
 
 
 @api_router.post("/matching/analyze-offer-url")
-async def analyze_offer_url(token: str, body: dict = {}):
+async def analyze_offer_url(token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     url = body.get("url", "").strip()
     if not url.startswith("http"):
@@ -8942,7 +8942,7 @@ async def analyze_offer_url(token: str, body: dict = {}):
 
 
 @api_router.post("/matching/analyze-offer")
-async def analyze_offer_text(token: str, body: dict = {}):
+async def analyze_offer_text(token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     offer_text = body.get("text", "").strip()
     if len(offer_text) < 30:
@@ -8980,7 +8980,7 @@ async def analyze_offer_text(token: str, body: dict = {}):
 
 
 @api_router.post("/matching/match-profile")
-async def match_profile_with_offer(token: str, body: dict = {}):
+async def match_profile_with_offer(token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     analysis_id = body.get("analysis_id", "")
     if not analysis_id:
@@ -9088,7 +9088,7 @@ Retourne UNIQUEMENT un JSON valide:
 
 
 @api_router.post("/jobs/france-travail/search")
-async def search_france_travail_offres(token: str, body: dict = {}):
+async def search_france_travail_offres(token: str, body: dict = Body(default_factory=dict)):
     """Recherche d'offres d'emploi France Travail basée sur le profil utilisateur."""
     from opc.connecteurs.france_travail import FranceTravailClient
     token_doc = await get_current_token(token)
@@ -9194,7 +9194,7 @@ async def search_france_travail_offres(token: str, body: dict = {}):
 
 
 @api_router.put("/jobs/applications/{app_id}/status")
-async def update_application_status(app_id: str, token: str, body: dict = {}):
+async def update_application_status(app_id: str, token: str, body: dict = Body(default_factory=dict)):
     token_doc = await get_current_token(token)
     new_status = body.get("status", "")
     valid = ["en_preparation", "envoyee", "entretien", "acceptee", "refusee"]
@@ -9220,7 +9220,7 @@ async def delete_application(app_id: str, token: str):
 
 # --- 5. Notifications mark read ---
 @api_router.post("/notifications/mark-read")
-async def mark_notification_read(token: str, body: dict = {}):
+async def mark_notification_read(token: str, body: dict = Body(default_factory=dict)):
     notification_id = body.get("notification_id", "")
     if notification_id:
         await db.notifications.update_one({"id": notification_id}, {"$set": {"read": True}})
@@ -9228,7 +9228,7 @@ async def mark_notification_read(token: str, body: dict = {}):
 
 
 @api_router.post("/notifications/mark-all-read")
-async def mark_all_notifications_read(token: str = "", body: dict = {}):
+async def mark_all_notifications_read(token: str = "", body: dict = Body(default_factory=dict)):
     token_val = token or body.get("token", "")
     if token_val:
         token_doc = await get_current_token(token_val)
@@ -9361,7 +9361,7 @@ async def emerging_market_correlation(token: str):
 
 # --- 8. Experience Proof (contributeur sociétal) ---
 @api_router.post("/passport/experience-proof")
-async def add_experience_proof(token: str, body: dict = {}):
+async def add_experience_proof(token: str, body: dict = Body(default_factory=dict)):
     """Add a concrete example/proof to a passport experience, contributing to OPC."""
     token_doc = await get_current_token(token)
     exp_id = body.get("experience_id", "")

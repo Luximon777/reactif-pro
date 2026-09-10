@@ -4,6 +4,7 @@ Bug: Les preuves S.A.R.E affichaient 'Aucun contenu S.A.R.E disponible' car les 
 dans coffre_documents ne correspondaient pas aux vrais IDs du passeport.
 Fix: Migration dynamique qui lit les vrais IDs d'expériences et crée coffre docs + skill_illustrations avec les bons IDs.
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -18,7 +19,7 @@ class TestSAREFix:
         """Login peter7 et récupérer le token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200, f"Login peter7 failed: {response.text}"
         data = response.json()
@@ -30,7 +31,7 @@ class TestSAREFix:
         """Login peter9 et récupérer le token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "peter9",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         assert response.status_code == 200, f"Login peter9 failed: {response.text}"
         data = response.json()

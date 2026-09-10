@@ -7,6 +7,7 @@ Validates:
 - web-search without city returns events=[]
 - events endpoint returns 20 events
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import pytest
 import requests
@@ -17,7 +18,7 @@ BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://cv-analyzer-53.previ
 @pytest.fixture(scope="module")
 def token():
     r = requests.post(f"{BASE_URL}/api/auth/login",
-                      json={"pseudo": "michel", "password": "Solerys777!"}, timeout=30)
+                      json={"pseudo": "michel", "password": TEST_USER_PASSWORD}, timeout=30)
     assert r.status_code == 200, r.text
     tok = r.json().get("token")
     assert tok

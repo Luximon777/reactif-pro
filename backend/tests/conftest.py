@@ -1,36 +1,11 @@
-"""Shared fixtures for all tests."""
 import os
-import pytest
+import sys
+from dotenv import load_dotenv
 
-API_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://cv-analyzer-53.preview.emergentagent.com")
-BASE = f"{API_URL}/api"
+# Ensure tests/ is on sys.path so `from conftest import ...` works when
+# pytest is invoked from /app/backend (tests/ is a package with __init__.py).
+sys.path.insert(0, os.path.dirname(__file__))
 
-TEST_USER = {"pseudo": "test_regression", "password": "TestReg2026!"}
-ADMIN_USER = {"pseudo": "admin@reactifpro.fr", "password": "Choukette@777"}
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-
-@pytest.fixture(scope="session")
-def api():
-    return BASE
-
-
-@pytest.fixture(scope="session")
-def user_token(api):
-    """Create test user and return token."""
-    import requests
-    # Register (may already exist)
-    requests.post(f"{api}/auth/register", json={**TEST_USER, "role": "particulier"})
-    r = requests.post(f"{api}/auth/login", json=TEST_USER)
-    assert r.status_code == 200, f"Login failed: {r.text}"
-    data = r.json()
-    assert "token" in data
-    return data["token"]
-
-
-@pytest.fixture(scope="session")
-def admin_token(api):
-    """Login as admin and return token."""
-    import requests
-    r = requests.post(f"{api}/auth/login", json=ADMIN_USER)
-    assert r.status_code == 200, f"Admin login failed: {r.text}"
-    return r.json()["token"]
+TEST_USER_PASSWORD = os.environ.get("TEST_USER_PASSWORD", "")

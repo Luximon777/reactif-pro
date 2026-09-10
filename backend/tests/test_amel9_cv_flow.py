@@ -2,6 +2,7 @@
 Iteration 41 - Reproduce production bug (amel9): upload CV -> verify formations extracted.
 Backend E2E flow via /api/cv/analyze-text (text path, no multipart).
 """
+from conftest import TEST_USER_PASSWORD
 import os
 import time
 import pytest
@@ -10,7 +11,7 @@ import requests
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://cv-analyzer-53.preview.emergentagent.com").rstrip("/")
 CV_PATH = "/tmp/cv_amel.txt"
 PSEUDO = "amel9"
-PWD = "Solerys777!"
+PWD = TEST_USER_PASSWORD
 
 EXPECTED_TITLES = [
     "BTS",  # BTS SAM

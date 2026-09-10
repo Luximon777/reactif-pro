@@ -6,6 +6,7 @@ Tests:
 - GET /api/jobs/rome-suggestions?token=TOKEN - suggestions for user with profile (pierre7)
 - GET /api/jobs/rome-suggestions?token=TOKEN - message for user with empty profile (mike7)
 """
+from conftest import TEST_USER_PASSWORD
 import pytest
 import requests
 import os
@@ -83,7 +84,7 @@ class TestRomeSuggestions:
         """Login as pierre7 (user with experiences)"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "pierre7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         if response.status_code != 200:
             pytest.skip(f"Could not login as pierre7: {response.status_code} - {response.text}")
@@ -94,7 +95,7 @@ class TestRomeSuggestions:
         """Login as mike7 (user with empty profile)"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "mike7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         if response.status_code != 200:
             pytest.skip(f"Could not login as mike7: {response.status_code} - {response.text}")
@@ -160,7 +161,7 @@ class TestRomeIntegration:
         """Get a user token for testing"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "pseudo": "mike7",
-            "password": "Solerys777!"
+            "password": TEST_USER_PASSWORD
         })
         if response.status_code != 200:
             pytest.skip(f"Could not login: {response.status_code}")
