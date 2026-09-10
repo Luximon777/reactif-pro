@@ -19,10 +19,30 @@ async def run_migrations(db):
     await migrate_illustrations_add_skill_type(db)
     await migrate_fiches_opc_skill_type(db)
     await migrate_remove_ubuntoo_global_competences(db)
+    await seed_rncp_if_empty(db)
     # Note: seed_peter7_demo_data and seed_referentiel_opc are called from server.py on_startup
     # AFTER user creation to ensure peter7/peter9 tokens exist
 
     logger.info("[Migrations] Migrations terminées.")
+
+
+async def seed_rncp_if_empty(db):
+    """Prod : lance l'ETL RNCP (data.gouv.fr) en tâche de fond si la base est vide."""
+    import asyncio
+    count = await db.opc_certifications.count_documents({})
+    if count >= 1000:
+        return
+    logger.info(f"[Migration] opc_certifications={count} — lancement ETL RNCP en arrière-plan")
+
+    async def _bg():
+        try:
+            from seed_rncp import run_etl
+            await run_etl()
+            logger.info("[Migration] ETL RNCP terminé")
+        except Exception as e:
+            logger.error(f"[Migration] ETL RNCP échoué: {e}")
+
+    asyncio.create_task(_bg())
 
 
 async def migrate_remove_ubuntoo_global_competences(db):

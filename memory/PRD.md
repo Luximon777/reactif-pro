@@ -70,6 +70,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-08) OPC — Sources de données connectées enrichies (iteration_52, 100%) : ajout de 3 sources européennes cliquables (EURES eures.europa.eu/index_fr, ESCO esco.ec.europa.eu/fr, CEDEFOP Skills Intelligence) à côté des 3 sources françaises. Cartes bleues avec lien target=_blank + icône ExternalLink (OpcDediePage.jsx ~422, data-testid opc-source-0..5). Classes Tailwind dynamiques refactorées en classes explicites. Affichage informatif (pas d'API temps réel intégrée). NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-09) FIX OPC "synchronisation/rubriques ne fonctionnent pas" avec peter7 en PROD (iteration_53, 100%) : diagnostic → la synchro et toutes les rubriques fonctionnent (vérifié Preview + prod via screenshot). Vrai problème : la BASE PROD n'avait aucune donnée RNCP (opc_certifications=0, seed_rncp.py exécuté seulement sur Preview) → stats vides (— / 0). Fix : migrations.py seed_rncp_if_empty() lance run_etl() (ETL data.gouv.fr France Compétences) en tâche de fond au démarrage si opc_certifications<1000. Skip validé sur Preview (30 022 certs), logique testée avec mocks. La prod se remplira automatiquement au prochain déploiement (~2-5 min après démarrage). NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

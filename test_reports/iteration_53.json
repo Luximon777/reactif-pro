@@ -1,0 +1,25 @@
+{
+  "summary": "Re-validation OPC avec peter7 (compte du bug report) + validation du fix migration seed_rncp_if_empty. Backend: 7/7 tests pytest passent (login peter7, /api/referentiel/rncp/stats total>=30000, /api/observatory/dashboard, /api/profile?token=... utilise pour sync, /api/referentiel/search, /api/admin/gate-state avec spaces_open, vérification absence log '[Migration] ETL RNCP en arrière-plan' -> skip correct). Migration seed_rncp_if_empty testée avec mocks Python (count=0 -> asyncio.create_task appelé, count=30022 -> skip). Frontend E2E: login peter7 via API + localStorage -> /opc -> bouton opc-sync-profile clické -> toast 'Profil de peter7 synchronisé — 12 compétences, 5 secteurs' confirmé (screenshot). Dashboard OPC affiche les 6 stats attendues (5307 RNCP, 1459 RS, 53,893 blocs, 66,491 mappings, 1911 ROME, 69 métiers OPC) + graphique répartition par niveau (Niveau 7=1894, 6=1317, 4=782, 5=681, 3=632, 8) rempli. Rubriques Référentiel vivant, Certifications RNCP, Transitions, Compétences émergentes se chargent toutes sans erreur console/DOM.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_peter7_opc_seed.py",
+    "/app/test_reports/pytest/peter7_seed.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "OpcDediePage.jsx: 1476 lignes (>700) — envisager split en sous-composants (rubriques) pour maintenabilité",
+    "Migration seed_rncp_if_empty: pas de garde contre lancement multiple si backend redémarre pendant l'ETL (edge case prod - acceptable pour un seed one-shot mais à documenter)",
+    "Budget LLM Claude déjà dépassé en logs (litellm.BadRequestError Budget exceeded: 72.03/72.00) — non bloquant pour ce test mais impactera fonctionnalités IA OPC en prod"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_peter7_opc_seed.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "peter7 / Solerys777! (login OK, profile_id retourné), admin Choukette@777 (gate-state OK)",
+  "seed_data_creation": "Aucune donnée seed créée. La base Preview contient déjà 30,022 opc_certifications (skip migration vérifié).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Le fix seed_rncp_if_empty s'active seulement si opc_certifications < 1000 docs. En Preview c'est skippé (30k docs). Le déploiement prod déclenchera automatiquement le seed en background (~2-5 min). Aucun problème détecté sur peter7 en Preview — synchro et rubriques 100% fonctionnelles. Test reprodutible: pytest /app/backend/tests/test_peter7_opc_seed.py.",
+  "rca of the issue": "Bug prod initial: opc_certifications collection vide en prod car seed_rncp.py n'avait été lancé qu'en Preview. Fix: migration automatique au démarrage qui déclenche run_etl() en background asyncio.create_task si count<1000. Vérifié: skip en Preview (30022 docs), déclenchement en prod (via mock count=0 -> create_task appelé)."
+}
