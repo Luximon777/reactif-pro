@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 56 — Validation du fix Cloudflare 502 via job asynchrone + badges cliquables cartographie exhaustive. BACKEND : POST /api/observatory/ia/cartographie-exhaustive/async retourne {job_id, status:'running'} en <5s. Polling GET /api/observatory/ia/analyse-complete/status?job_id= → completed en ~60s avec result contenant categories, total_metiers=40, source_stats {rome_matches:50, opc_matches:0, rncp_matches:60}, sources_detail.rome[50] (code_rome+libelle), sources_detail.opc[] (vide pour 'restauration' seul), sources_detail.rncp[60] (code+intitule+niveau_libelle). FRONTEND E2E via URL publique : /opc → contexte 'restauration' → Moteur prédictif → clic Cartographie exhaustive → toast succès 'Cartographie exhaustive générée : 40 métiers identifiés' (plus AUCUN 502). Badges cliquables OK : rome→50 fiches listées avec codes+libellés+domaine, rncp→60 certifs avec codes+intitulés+niveaux, opc→vide (0 matches). Toggle off (re-clic) ferme le panneau. Le fix Cloudflare 502 et la feature badges cliquables sont donc TOUS DEUX VALIDÉS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/observatory/ia/cartographie-exhaustive/async", "issue": "Pour la requête minimale 'restauration', opc_matches=0 alors que rome=50 et rncp=60. En iteration_55 avec contexte plus long ('Restauration commerciale, Traiteur/événementiel, Hôtellerie...') opc=5. Le helper search_word_patterns ne matche pas 'restauration' contre les titres OPC (probablement indexés sur 'cuisinier','chef','serveur'). Non bloquant mais l'utilisateur voit un badge '0 métiers OPC' — envisager d'enrichir soit le contexte injecté soit les mots-clés OPC."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration56_cartographie_async.py",
+    "/app/test_reports/pytest/iteration56.xml"
+  ],
+  "action_items": [
+    "(Optionnel, non bloquant) Améliorer le matching OPC pour requête courte ('restauration') afin que le badge 'X métiers OPC' remonte >0 comme les deux autres badges."
+  ],
+  "critical_code_review_comments": [
+    "observatory_ia_routes.py : bonne implémentation du pattern job asynchrone symétrique à /ia/analyse-complete (opc_ia_jobs collection partagée, kind='cartographie'). Le GET /status?job_id= mutualisé est correct.",
+    "OpcDediePage.jsx loadCartographieExhaustive: polling 4s × 60 = 240s max, chaque GET timeout 15s + try/catch pour tolérance réseau — robuste. Le pattern est propre.",
+    "Badges convertis en <button> avec data-testid et état visuel actif (bg-{color}-600 text-white). Panneau détaillé max-h-64 overflow-y-auto scrollable — UX correcte."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration56_cartographie_async.py"],
+  "success_rate": {"backend": "100% (async endpoint OK, sources_detail présent, plus de 502)", "frontend": "100% (cartographie rendue, 3 badges cliquables, panneau détaillé opérationnel, toggle off OK)"},
+  "test_credentials": "peter7 / Solerys777!",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Fix Cloudflare 502 iteration_55 résolu par pattern job asynchrone + badges cliquables ROME/OPC/RNCP fonctionnels. Reste un point mineur d'enrichissement des matches OPC pour requêtes courtes (opc=0 pour 'restauration' seul, mais 5 pour contexte long).",
+  "rca of the issue": "Le 502 Cloudflare venait du timeout edge ~60s alors que l'appel LLM cartographie prenait 65-90s. Fix appliqué : nouvel endpoint POST /ia/cartographie-exhaustive/async retourne immédiatement {job_id, status:'running'}, exécute la génération en asyncio.create_task, stocke le résultat dans opc_ia_jobs. Le frontend poll GET /ia/analyse-complete/status?job_id= toutes les 4s (jusqu'à 240s). Aucun appel HTTP ne dépasse désormais 30s. Test E2E confirme succès complet en ~60s avec 40 métiers rendus et badges cliquables opérationnels."
+}

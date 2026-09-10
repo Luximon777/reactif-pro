@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 55 — Validation du fix _fetch_all_matching_data (word-pattern search) via helper mutualisé database.search_word_patterns. Backend 4/4 pytest OK. Couche data directe : chef de cuisine → rome=50, opc=5, rncp=60 ; contexte complet 'Restauration commerciale, Traiteur/événementiel, Hôtellerie...' → rome=50, opc=5, rncp=60 (attendus 50/5/60 : parfait) ; empty query → tout vide sans erreur. Endpoint /api/observatory/ia/cartographie-exhaustive appelé via localhost:8001 renvoie source_stats {rome_matches:50, opc_matches:5, rncp_matches:60} + total_metiers=58. Régression Référentiel : /api/referentiel/search?q='chef de cuisine' OK ; /api/opc/referentiel/search?q='chef cuisinier' OK. Frontend : /opc → Moteur prédictif → clic 'Cartographie exhaustive' échoue via URL publique — Cloudflare renvoie 502 (edge timeout ~60s) car l'appel LLM prend ~65-90s. Le fix backend est validé mais l'UX publique reste cassée à cause du timeout d'infra.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/observatory/ia/cartographie-exhaustive", "issue": "L'endpoint fonctionne correctement (source_stats 50/5/60 confirmés en localhost) mais dépasse ~60s d'exécution LLM → Cloudflare edge coupe la requête publique avec un 502 avant réception. La cartographie n'est jamais rendue côté frontend via URL publique."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "OPC → Moteur prédictif → Cartographie exhaustive", "issue": "Console navigateur : 'Failed to load resource: 502'. Le résultat cartographie-exhaustive-results n'apparaît jamais (attendu 110s). Le backend a bien produit source_stats correct (validé via localhost), mais Cloudflare a coupé avant. À corriger côté backend : passer cet endpoint en pattern job asynchrone (comme /api/observatory/ia/analyse-complete) ou réduire le prompt/max_tokens pour rester sous 55s.", "affected_selectors": ["[data-testid='cartographie-exhaustive-results']", "[data-testid='opc-metier-context']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration55_cartographie_fix.py",
+    "/app/test_reports/pytest/iteration55.xml"
+  ],
+  "action_items": [
+    "Le fix _fetch_all_matching_data (word-pattern search) est validé : source_stats renvoie bien 50/5/60. Ne rien changer sur la logique.",
+    "URGENT côté UX : /api/observatory/ia/cartographie-exhaustive prend ~65-90s et est coupé par Cloudflare (502) avant la réponse. Transformer cet endpoint en job asynchrone (POST → job_id, GET polling) sur le modèle de /api/observatory/ia/analyse-complete, OU réduire la charge LLM (max_tokens, catégories max=6, moins de RNCP en contexte) pour rentrer sous 55s. Sans cela, les badges ROME/OPC/RNCP ne s'afficheront jamais côté utilisateur via l'URL publique.",
+    "Frontend : afficher un message d'erreur explicite en cas de 502 (actuellement toast affiche 'Erreur: Request failed with status code 502')."
+  ],
+  "critical_code_review_comments": [
+    "observatory_ia_routes.py:206 côté frontend (axios timeout 120000) est cohérent, mais l'infra proxy (Cloudflare) coupe à 60s. Le timeout côté client ne sauve pas la requête.",
+    "search_word_patterns dans database.py est bien mutualisé (import propre depuis observatory_ia_routes.py et server.py) — RAS."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration55_cartographie_fix.py"],
+  "success_rate": {"backend": "100%", "frontend": "0% (E2E cartographie coupé par Cloudflare 502)"},
+  "test_credentials": "peter7 / Solerys777!",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Fix backend confirmé : source_stats = {rome:50, opc:5, rncp:60} pour le contexte restauration complet. Le test frontend E2E échoue à cause du timeout Cloudflare ~60s sur l'endpoint synchrone cartographie-exhaustive (LLM ~65-90s). Une fois passé en background job ou optimisé, re-tester via /opc → Moteur prédictif → Cartographie exhaustive.",
+  "rca of the issue": "RCA du bug original (badges 0/0/0) : _fetch_all_matching_data faisait un regex sur la phrase entière → 0 match. Fix appliqué : search_word_patterns() découpe la requête en racines (5 premières lettres, stopwords FR ignorés) et fait un $or entre mots × champs. Résultat validé : rome=50, opc=5, rncp=60. Reste un problème d'UX distinct : Cloudflare 502 avant la fin du LLM sur URL publique."
+}

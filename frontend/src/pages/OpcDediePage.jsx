@@ -203,13 +203,24 @@ export default function OpcDediePage({ token, onBack }) {
     }
     setLoading(l => ({ ...l, cartographie: true }));
     try {
-      const res = await axios.post(`${API}/observatory/ia/cartographie-exhaustive?${tokenParam}`, { contexte_metier: metierContext }, { timeout: 120000 });
-      if (res.data && !res.data.error) {
-        setCartographie(res.data);
-        toast.success(`Cartographie exhaustive générée : ${res.data.total_metiers || 0} métiers identifiés`);
+      const start = await axios.post(`${API}/observatory/ia/cartographie-exhaustive/async?${tokenParam}`, { contexte_metier: metierContext }, { timeout: 30000 });
+      const jobId = start.data.job_id;
+      let result = null;
+      let failMsg = null;
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        try {
+          const st = await axios.get(`${API}/observatory/ia/analyse-complete/status`, { params: { job_id: jobId }, timeout: 15000 });
+          if (st.data.status === "completed") { result = st.data.result; break; }
+          if (st.data.status === "failed") { failMsg = st.data.error || st.data.result?.error; break; }
+        } catch { /* réseau transitoire — on continue */ }
+      }
+      if (result && !result.error) {
+        setCartographie(result);
+        toast.success(`Cartographie exhaustive générée : ${result.total_metiers || 0} métiers identifiés`);
         setActiveModule("predictif");
       } else {
-        toast.error(res.data?.error || "Erreur de génération");
+        toast.error(failMsg || "Erreur de génération — réessayez avec un domaine plus précis");
       }
     } catch (e) {
       toast.error(`Erreur: ${e.message}`);
@@ -1214,6 +1225,7 @@ const ICON_MAP = {
 
 function CartographieExhaustiveDisplay({ data }) {
   const [openCats, setOpenCats] = useState({});
+  const [openSource, setOpenSource] = useState(null);
   const toggleCat = (idx) => setOpenCats(prev => ({ ...prev, [idx]: !prev[idx] }));
 
   if (!data || !data.categories) return null;
@@ -1252,12 +1264,41 @@ function CartographieExhaustiveDisplay({ data }) {
         </div>
       </div>
 
-      {/* Source stats */}
+      {/* Source stats — cliquables pour voir le détail */}
       {data.source_stats && (
-        <div className="flex gap-3 text-[10px]">
-          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200">{data.source_stats.rome_matches} fiches ROME</span>
-          <span className="bg-violet-50 text-violet-700 px-2 py-1 rounded-full border border-violet-200">{data.source_stats.opc_matches} métiers OPC</span>
-          <span className="bg-red-50 text-red-700 px-2 py-1 rounded-full border border-red-200">{data.source_stats.rncp_matches} certifications RNCP</span>
+        <div className="flex flex-wrap gap-3 text-[10px]">
+          <button onClick={() => setOpenSource(openSource === "rome" ? null : "rome")} className={`px-2 py-1 rounded-full border transition-colors ${openSource === "rome" ? "bg-blue-600 text-white border-blue-600" : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"}`} data-testid="carto-source-rome">{data.source_stats.rome_matches} fiches ROME ▾</button>
+          <button onClick={() => setOpenSource(openSource === "opc" ? null : "opc")} className={`px-2 py-1 rounded-full border transition-colors ${openSource === "opc" ? "bg-violet-600 text-white border-violet-600" : "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100"}`} data-testid="carto-source-opc">{data.source_stats.opc_matches} métiers OPC ▾</button>
+          <button onClick={() => setOpenSource(openSource === "rncp" ? null : "rncp")} className={`px-2 py-1 rounded-full border transition-colors ${openSource === "rncp" ? "bg-red-600 text-white border-red-600" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"}`} data-testid="carto-source-rncp">{data.source_stats.rncp_matches} certifications RNCP ▾</button>
+        </div>
+      )}
+
+      {/* Détail de la source sélectionnée */}
+      {openSource && data.sources_detail && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 max-h-64 overflow-y-auto" data-testid="carto-source-detail">
+          {openSource === "rome" && (data.sources_detail.rome || []).map((r, i) => (
+            <div key={i} className="flex items-center gap-2 py-1 border-b border-slate-100 last:border-0 text-xs">
+              <Badge variant="outline" className="text-[9px] text-blue-700 border-blue-300 shrink-0">{r.code_rome}</Badge>
+              <span className="text-slate-700">{r.libelle}</span>
+              <span className="text-[9px] text-slate-400 ml-auto shrink-0">{r.domaine_nom || r.grand_domaine_nom}</span>
+            </div>
+          ))}
+          {openSource === "opc" && (data.sources_detail.opc || []).map((m, i) => (
+            <div key={i} className="flex items-center gap-2 py-1 border-b border-slate-100 last:border-0 text-xs">
+              <span className="font-medium text-slate-800">{m.metier}</span>
+              <span className="text-[9px] text-slate-400 ml-auto shrink-0">{m.filiere_nom || m.sector_name}</span>
+            </div>
+          ))}
+          {openSource === "rncp" && (data.sources_detail.rncp || []).map((c, i) => (
+            <div key={i} className="flex items-center gap-2 py-1 border-b border-slate-100 last:border-0 text-xs">
+              <Badge variant="outline" className="text-[9px] text-red-700 border-red-300 shrink-0">{c.code}</Badge>
+              <span className="text-slate-700">{c.intitule}</span>
+              <span className="text-[9px] text-slate-400 ml-auto shrink-0">{c.niveau_libelle}</span>
+            </div>
+          ))}
+          {openSource && !(data.sources_detail[openSource] || []).length && (
+            <p className="text-xs text-slate-500 italic">Aucun détail disponible — relancez la cartographie pour charger les listes.</p>
+          )}
         </div>
       )}
 

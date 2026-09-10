@@ -17,6 +17,25 @@ gridfs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="proof_documents")
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 
 
+_FR_STOPWORDS = {"de", "du", "des", "le", "la", "les", "un", "une", "et", "en", "au", "aux", "a", "à", "d", "l", "pour", "sur", "dans", "ou"}
+
+
+def search_word_patterns(q: str) -> list:
+    """Découpe une requête en motifs regex tolérants : stopwords ignorés, racine souple (cuisine→cuisi matche cuisinier)."""
+    import re as _re
+    patterns = []
+    for w in q.lower().replace("'", " ").replace("’", " ").replace("/", " ").replace(",", " ").split():
+        w = w.strip("-.()")
+        if len(w) < 2 or w in _FR_STOPWORDS:
+            continue
+        if len(w) >= 6:
+            w = w[:5]
+        p = _re.escape(w)
+        if p not in patterns:
+            patterns.append(p)
+    return patterns
+
+
 async def get_current_token(token: str) -> dict:
     token_doc = await db.tokens.find_one({"token": token}, {"_id": 0})
     if not token_doc:

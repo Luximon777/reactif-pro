@@ -74,6 +74,9 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-09) FIX recherche Référentiel vivant "chef de cuisine" → 0 résultat (iteration_54, 100%) : helper _search_word_patterns (server.py ~5133) — stopwords FR ignorés + racine souple mots >=6 lettres (cuisine→cuisi matche cuisinier). Appliqué à GET /referentiel/search (principal + fallback + ROME) et GET /opc/referentiel/search. Frontend vérifié : 5 résultats avec fiche terrain. Le sync peter7 fonctionnait déjà (badge 12 comp. = synchro OK). NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-09) FIX badges "0 fiches ROME/OPC/RNCP" cartographie + Cloudflare 502 (iteration_56, 100%) : _fetch_all_matching_data en recherche tolérante par mots + sources_detail dans la réponse ; nouveau POST /observatory/ia/cartographie-exhaustive/async (job+polling, plus de 502) ; badges CLIQUABLES (carto-source-rome/opc/rncp) ouvrant un panneau détaillé scrollable (codes ROME, métiers OPC, certifs RNCP+niveaux).
+- [x] (2026-09) FIX base métiers OPC incomplète : opc_metiers n'avait que 69 métiers (Filière Industrielle uniquement, seuil re-seed <10 trop bas). migrations.py re-seed désormais si count < taille du seed → 289 métiers / 20 filières chargés (dont Hôtellerie-Restauration). "restauration"→14 métiers, "cuisinier"→48 résultats. S'appliquera aussi en prod au prochain déploiement. NÉCESSITE REDÉPLOIEMENT.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

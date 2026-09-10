@@ -5127,21 +5127,7 @@ async def get_referentiel_metiers_filtered(token: str = None, filiere: str = Non
     return {"metiers": metiers_list}
 
 
-_FR_STOPWORDS = {"de", "du", "des", "le", "la", "les", "un", "une", "et", "en", "au", "aux", "a", "à", "d", "l", "pour", "sur", "dans", "ou"}
-
-
-def _search_word_patterns(q: str) -> list:
-    """Découpe une requête en motifs regex tolérants : stopwords ignorés, racine souple (cuisine→cuisi matche cuisinier)."""
-    import re as _re
-    patterns = []
-    for w in q.lower().replace("'", " ").replace("’", " ").split():
-        w = w.strip("-,.()")
-        if len(w) < 2 or w in _FR_STOPWORDS:
-            continue
-        if len(w) >= 6:
-            w = w[:5]
-        patterns.append(_re.escape(w))
-    return patterns
+from database import search_word_patterns as _search_word_patterns
 
 
 @api_router.get("/referentiel/search")

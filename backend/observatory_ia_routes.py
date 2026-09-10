@@ -524,29 +524,35 @@ Règles :
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def _fetch_all_matching_data(query: str) -> Dict[str, Any]:
-    """Fetch ALL matching ROME, OPC, and RNCP data for a query — no limits."""
-    q_re = {"$regex": query, "$options": "i"}
+    """Fetch ALL matching ROME, OPC, and RNCP data for a query — recherche tolérante par mots."""
+    from database import search_word_patterns
     data: Dict[str, Any] = {"query": query, "rome": [], "opc": [], "rncp": []}
     if not query:
         return data
+    patterns = search_word_patterns(query)[:8]
+    if not patterns:
+        return data
+
+    def _any_word(fields):
+        return {"$or": [{f: {"$regex": p, "$options": "i"}} for f in fields for p in patterns]}
 
     # ALL matching ROME metiers
     rome_list = await _db.rome_metiers.find(
-        {"$or": [{"libelle": q_re}, {"grand_domaine_nom": q_re}, {"domaine_nom": q_re}]},
+        _any_word(["libelle", "grand_domaine_nom", "domaine_nom"]),
         {"_id": 0, "code_rome": 1, "libelle": 1, "grand_domaine_nom": 1, "domaine_nom": 1}
     ).limit(50).to_list(50)
     data["rome"] = rome_list
 
     # ALL matching OPC metiers
     opc_list = await _db.opc_metiers.find(
-        {"$or": [{"metier": q_re}, {"savoir_faire": q_re}, {"mission": q_re}, {"sector_name": q_re}]},
+        _any_word(["metier", "savoir_faire", "mission", "sector_name"]),
         {"_id": 0, "metier": 1, "filiere_nom": 1, "sector_name": 1, "mission": 1, "savoir_faire": 1}
     ).limit(30).to_list(30)
     data["opc"] = opc_list
 
     # RNCP certifications matching
     rncp_list = await _db.opc_certifications.find(
-        {"intitule": q_re, "statut": "ACTIVE"},
+        {**_any_word(["intitule"]), "statut": "ACTIVE"},
         {"_id": 0, "code": 1, "intitule": 1, "niveau_libelle": 1}
     ).limit(60).to_list(60)
     data["rncp"] = rncp_list
@@ -626,9 +632,37 @@ RÈGLES:
             "opc_matches": len(all_data["opc"]),
             "rncp_matches": len(all_data["rncp"]),
         }
+        data["sources_detail"] = {
+            "rome": all_data["rome"],
+            "opc": [{"metier": m.get("metier"), "filiere_nom": m.get("filiere_nom"), "sector_name": m.get("sector_name")} for m in all_data["opc"]],
+            "rncp": all_data["rncp"],
+        }
         return data
 
     return {"error": "Impossible de générer la cartographie exhaustive — réessayez avec un domaine plus précis."}
+
+
+@router.post("/ia/cartographie-exhaustive/async")
+async def ia_cartographie_exhaustive_async(body: IaRequest = IaRequest(), token: str = None):
+    """Version tâche de fond (évite le timeout proxy 60s)."""
+    import asyncio
+    job_id = str(uuid.uuid4())
+    await _db.opc_ia_jobs.insert_one({
+        "job_id": job_id, "status": "running", "kind": "cartographie",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    async def _bg():
+        try:
+            result = await ia_cartographie_exhaustive(body, token)
+            status = "failed" if (isinstance(result, dict) and result.get("error")) else "completed"
+            await _db.opc_ia_jobs.update_one({"job_id": job_id}, {"$set": {"status": status, "result": result}})
+        except Exception as e:
+            logger.error(f"[OPC IA] cartographie job {job_id} failed: {e}")
+            await _db.opc_ia_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e)}})
+
+    asyncio.create_task(_bg())
+    return {"job_id": job_id, "status": "running"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
