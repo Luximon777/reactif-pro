@@ -673,7 +673,7 @@ async def verify_token(token: str):
 @api_router.post("/auth/switch-role")
 async def switch_role(token: str, new_role: str):
     """Switch user role"""
-    if new_role not in ["particulier", "entreprise", "partenaire"]:
+    if new_role not in ["particulier", "entreprise", "partenaire", "vsi"]:
         raise HTTPException(status_code=400, detail="Rôle invalide")
     
     await db.tokens.update_one({"token": token}, {"$set": {"role": new_role}})

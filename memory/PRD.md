@@ -77,6 +77,8 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-09) FIX badges "0 fiches ROME/OPC/RNCP" cartographie + Cloudflare 502 (iteration_56, 100%) : _fetch_all_matching_data en recherche tolérante par mots + sources_detail dans la réponse ; nouveau POST /observatory/ia/cartographie-exhaustive/async (job+polling, plus de 502) ; badges CLIQUABLES (carto-source-rome/opc/rncp) ouvrant un panneau détaillé scrollable (codes ROME, métiers OPC, certifs RNCP+niveaux).
 - [x] (2026-09) FIX base métiers OPC incomplète : opc_metiers n'avait que 69 métiers (Filière Industrielle uniquement, seuil re-seed <10 trop bas). migrations.py re-seed désormais si count < taille du seed → 289 métiers / 20 filières chargés (dont Hôtellerie-Restauration). "restauration"→14 métiers, "cuisinier"→48 résultats. S'appliquera aussi en prod au prochain déploiement. NÉCESSITE REDÉPLOIEMENT.
 
+- [x] (2026-09) Compte VSI créé : vsi_demo / VsiDemo2026! (rôle vsi). Fix associé : /auth/switch-role accepte désormais le rôle "vsi" (le backend le refusait, le rôle n'était appliqué que côté frontend). Vérifié E2E : carte "Certification officielle des Soft Skills — Parcours VSI" → login → dashboard Parcours VSI (4 phases + coach). NÉCESSITE REDÉPLOIEMENT (+ recréer le compte en prod via l'inscription).
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 

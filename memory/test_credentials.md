@@ -14,3 +14,4 @@
 - Admin: Choukette@777
 - Programmeur (Dev): DevReactif#2026!
 - Invité: Reactif@pro2026!
+- vsi_demo / VsiDemo2026! (rôle vsi, espace Parcours VSI)
