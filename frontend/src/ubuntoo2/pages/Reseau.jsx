@@ -10,6 +10,8 @@ import { Search, UserPlus, Check, X, Eye, Loader2, Users, MessageSquare, HandHea
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { u2, timeAgo } from "../api";
+import MentoratTab from "./MentoratTab";
+import { BadgeChip } from "./BadgesSection";
 
 const Avatar = ({ name }) => (
   <div className="h-10 w-10 rounded-full bg-[#E09F3E]/20 text-[#A84624] flex items-center justify-center text-sm font-bold shrink-0">
@@ -32,6 +34,11 @@ const MemberProfileDialog = ({ member, open, onOpenChange }) => {
           {m.headline && <DialogDescription>{m.headline}</DialogDescription>}
         </DialogHeader>
         <div className="space-y-3 text-sm">
+          {(m.badges?.length > 0 || m.mentoring_role === "mentor" || m.mentoring_role === "both") && (
+            <div className="flex flex-wrap gap-1.5">
+              {(m.badges || []).map(b => <BadgeChip key={b} badgeId={b} small />)}
+            </div>
+          )}
           {m.projet && <div><div className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1">Projet professionnel</div><p className="text-stone-700">{m.projet}</p></div>}
           {m.experiences?.length > 0 && <div><div className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1">Expériences</div>{m.experiences.map((e, i) => <p key={i} className="text-stone-700">{e.title}{e.organization ? ` — ${e.organization}` : ""}</p>)}</div>}
           {m.competences?.length > 0 && <div><div className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1.5">Compétences</div><div className="flex flex-wrap gap-1.5">{m.competences.map((c, i) => <Badge key={i} variant="outline" className="rounded-full text-xs border-[#E2DFD8]">{c}</Badge>)}</div></div>}
@@ -82,7 +89,7 @@ const ConnectDialog = ({ member, open, onOpenChange, onSent }) => {
 };
 
 export default function Reseau() {
-  const [tab, setTab] = useState("contacts");
+  const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get("tab") || "contacts");
   const [contacts, setContacts] = useState([]);
   const [received, setReceived] = useState([]);
   const [sent, setSent] = useState([]);
@@ -136,12 +143,13 @@ export default function Reseau() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="rounded-xl bg-stone-100 w-full grid grid-cols-3">
+        <TabsList className="rounded-xl bg-stone-100 w-full grid grid-cols-4">
           <TabsTrigger value="contacts" className="rounded-lg text-xs sm:text-sm" data-testid="tab-contacts">Contacts ({contacts.length})</TabsTrigger>
           <TabsTrigger value="demandes" className="rounded-lg text-xs sm:text-sm" data-testid="tab-demandes">
             Demandes {received.length > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-[#C85A32] text-white text-[10px] font-bold inline-flex items-center justify-center">{received.length}</span>}
           </TabsTrigger>
           <TabsTrigger value="recherche" className="rounded-lg text-xs sm:text-sm" data-testid="tab-recherche">Rechercher</TabsTrigger>
+          <TabsTrigger value="mentorat" className="rounded-lg text-xs sm:text-sm" data-testid="tab-mentorat">Mentorat</TabsTrigger>
         </TabsList>
 
         <TabsContent value="contacts" className="space-y-2 mt-4">
@@ -228,6 +236,10 @@ export default function Reseau() {
             </Card>
           ))}
           {!searching && members.length === 0 && <p className="text-sm text-stone-400 text-center py-6">Aucun membre trouvé.</p>}
+        </TabsContent>
+
+        <TabsContent value="mentorat">
+          <MentoratTab />
         </TabsContent>
       </Tabs>
 

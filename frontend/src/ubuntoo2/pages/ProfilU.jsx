@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Users, Globe, RefreshCw, Save, Loader2, HandHeart } from "lucide-react";
+import { Lock, Users, Globe, RefreshCw, Save, Loader2, HandHeart, Award } from "lucide-react";
 import { toast } from "sonner";
 import { u2, HELP_OFFERS, PRIVACY_LEVELS } from "../api";
+import { BadgesGrid } from "./BadgesSection";
 
 const PRIVACY_ICONS = { prive: Lock, reseau: Users, public: Globe };
 const FIELD_LABELS = {
@@ -39,10 +40,14 @@ const PrivacySelect = ({ value, onChange, field }) => (
 
 export default function ProfilU() {
   const [profile, setProfile] = useState(null);
+  const [badges, setBadges] = useState([]);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => { u2.get("/me").then(r => setProfile(r.data)).catch(() => {}); }, []);
+  useEffect(() => {
+    u2.get("/me").then(r => setProfile(r.data)).catch(() => {});
+    u2.get("/badges").then(r => setBadges(r.data)).catch(() => {});
+  }, []);
 
   const save = async () => {
     setSaving(true);
@@ -155,6 +160,16 @@ export default function ProfilU() {
           </div>
         </CardContent>
       </Card>
+
+      {badges.length > 0 && (
+        <Card className="rounded-2xl border border-[#E2DFD8] shadow-none bg-white">
+          <CardContent className="p-5">
+            <h3 className="text-base font-semibold u2-heading flex items-center gap-1.5 mb-3"><Award className="w-4 h-4 text-[#E09F3E]" />Mes badges UBUNTOO</h3>
+            <BadgesGrid badges={badges} />
+            <p className="text-[11px] text-stone-400 mt-3">Les badges matérialisent une contribution ou un engagement — pas une compétition entre membres.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

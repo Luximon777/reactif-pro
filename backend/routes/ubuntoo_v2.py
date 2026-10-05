@@ -12,6 +12,15 @@ POST_TYPES = ["question", "experience", "information", "ressource", "opportunite
 REPORT_REASONS = ["Comportement inapproprié", "Discrimination", "Harcèlement", "Spam", "Fraude", "Contenu commercial non autorisé", "Fausse information professionnelle", "Atteinte à la confidentialité"]
 PRIVACY_FIELDS = ["projet", "experiences", "competences", "soft_skills", "interests", "help_offers"]
 
+BADGES = {
+    "bienvenue": {"label": "Bienvenue UBUNTOO", "desc": "Profil complété et première participation"},
+    "explorateur": {"label": "Explorateur métier", "desc": "Participation à plusieurs échanges sur des métiers"},
+    "contributeur": {"label": "Contributeur", "desc": "Partage régulier de ressources utiles"},
+    "mentor": {"label": "Mentor", "desc": "Participation active à un accompagnement"},
+    "ambassadeur": {"label": "Ambassadeur", "desc": "Contribution durable à la communauté"},
+    "passeport_pro": {"label": "Passeport professionnel", "desc": "Parcours ou compétences vérifiées via Ré'Actif Pro"},
+}
+
 SEED_COMMUNITIES = [
     ("metiers", "Informatique", "Développement, réseaux, data, cybersécurité : échangez entre professionnels du numérique."),
     ("metiers", "Industrie", "Production, maintenance, qualité : la communauté des métiers industriels."),
@@ -74,6 +83,9 @@ async def _get_or_create_profile(token_doc: dict) -> dict:
         "soft_skills": se,
         "interests": interests,
         "help_offers": [],
+        "mentoring_role": "none",
+        "mentoring_topics": [],
+        "mentoring_goal": "",
         "privacy": {f: "reseau" for f in PRIVACY_FIELDS},
         "created_at": now_iso(),
     }
@@ -89,7 +101,9 @@ async def _are_contacts(a: str, b: str) -> bool:
 
 
 def _filter_profile(prof: dict, is_self: bool, is_contact: bool) -> dict:
-    out = {"token_id": prof["token_id"], "display_name": prof.get("display_name", ""), "headline": "", "is_contact": is_contact}
+    out = {"token_id": prof["token_id"], "display_name": prof.get("display_name", ""), "headline": "", "is_contact": is_contact,
+           "mentoring_role": prof.get("mentoring_role", "none"), "badges": prof.get("badges_earned", []),
+           "mentoring_topics": prof.get("mentoring_topics", [])}
     privacy = prof.get("privacy", {})
     def visible(field):
         lvl = privacy.get(field, "reseau")
@@ -119,8 +133,11 @@ async def get_me(token: str):
 async def update_me(token: str, body: dict):
     token_doc = await get_current_token(token)
     await _get_or_create_profile(token_doc)
-    allowed = {"display_name", "headline", "projet", "competences", "soft_skills", "interests", "help_offers", "privacy"}
+    allowed = {"display_name", "headline", "projet", "competences", "soft_skills", "interests", "help_offers", "privacy",
+               "mentoring_role", "mentoring_topics", "mentoring_goal"}
     update = {k: v for k, v in body.items() if k in allowed}
+    if "mentoring_role" in update and update["mentoring_role"] not in ("none", "mentor", "mentee", "both"):
+        update.pop("mentoring_role")
     if "privacy" in update:
         update["privacy"] = {f: v for f, v in update["privacy"].items() if f in PRIVACY_FIELDS and v in ("prive", "reseau", "public")}
     if update:
@@ -196,18 +213,25 @@ async def request_connection(token: str, body: dict):
     target = await db.ubuntoo2_profiles.find_one({"token_id": to_id})
     if not target:
         raise HTTPException(status_code=404, detail="Membre introuvable")
+    kind = body.get("kind") if body.get("kind") in ("standard", "mentorat") else "standard"
+    kind_filter = {"kind": "mentorat"} if kind == "mentorat" else {"kind": {"$ne": "mentorat"}}
     existing = await db.ubuntoo2_connections.find_one({
-        "status": {"$in": ["pending", "accepted"]},
+        "status": {"$in": ["pending", "accepted"]}, **kind_filter,
         "$or": [{"from_id": me, "to_id": to_id}, {"from_id": to_id, "to_id": me}]})
     if existing:
-        raise HTTPException(status_code=400, detail="Une demande ou une relation existe déjà avec ce membre.")
+        raise HTTPException(status_code=400, detail="Une demande ou une relation de ce type existe déjà avec ce membre.")
     my_prof = await _get_or_create_profile(token_doc)
     conn = {"id": str(uuid.uuid4()), "from_id": me, "to_id": to_id, "message": message,
-            "status": "pending", "created_at": now_iso()}
+            "kind": kind, "status": "pending", "created_at": now_iso()}
+    if kind == "mentorat":
+        as_role = body.get("as_role") if body.get("as_role") in ("mentor", "mentee") else "mentee"
+        conn["mentor_id"] = me if as_role == "mentor" else to_id
+        conn["mentee_id"] = to_id if as_role == "mentor" else me
     await db.ubuntoo2_connections.insert_one({**conn})
-    await _notify(to_id, "connection_request",
-                  f"{my_prof.get('display_name')} souhaite entrer en contact avec vous" + (f" : « {message} »" if message else "."),
-                  "/ubuntoo/reseau")
+    notif_text = (f"{my_prof.get('display_name')} vous propose un accompagnement mentorat" if kind == "mentorat" and conn.get("mentor_id") == me
+                  else f"{my_prof.get('display_name')} souhaite être accompagné(e) par vous (mentorat)" if kind == "mentorat"
+                  else f"{my_prof.get('display_name')} souhaite entrer en contact avec vous")
+    await _notify(to_id, "connection_request", notif_text + (f" : « {message} »" if message else "."), "/ubuntoo/reseau")
     return conn
 
 
@@ -237,8 +261,9 @@ async def respond_connection(conn_id: str, token: str, body: dict):
     await db.ubuntoo2_connections.update_one({"id": conn_id}, {"$set": {"status": new_status, "responded_at": now_iso()}})
     if action == "accept":
         my_prof = await _get_or_create_profile(token_doc)
+        label = "votre proposition de mentorat" if conn.get("kind") == "mentorat" else "votre demande de mise en relation"
         await _notify(conn["from_id"], "connection_accepted",
-                      f"{my_prof.get('display_name')} a accepté votre demande de mise en relation.", "/ubuntoo/reseau")
+                      f"{my_prof.get('display_name')} a accepté {label}.", "/ubuntoo/reseau")
     return {"status": new_status}
 
 
@@ -249,8 +274,12 @@ async def list_contacts(token: str):
     conns = await db.ubuntoo2_connections.find(
         {"status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).sort("responded_at", -1).to_list(300)
     out = []
+    seen = set()
     for c in conns:
         other = c["to_id"] if c["from_id"] == me else c["from_id"]
+        if other in seen:
+            continue
+        seen.add(other)
         prof = await db.ubuntoo2_profiles.find_one({"token_id": other}, {"_id": 0})
         if prof:
             card = _filter_profile(prof, False, True)
@@ -512,6 +541,133 @@ async def mark_notifications_read(token: str):
     return {"status": "ok"}
 
 
+# ============== MENTORAT ==============
+
+def _match_score(my: dict, other: dict) -> tuple:
+    mine = set(x.lower() for x in (my.get("competences", []) + my.get("interests", []) + my.get("mentoring_topics", [])) if x)
+    theirs = set(x.lower() for x in (other.get("competences", []) + other.get("interests", []) + other.get("mentoring_topics", [])) if x)
+    common = mine & theirs
+    score = min(100, 30 + len(common) * 15)
+    reasons = sorted(common)[:4]
+    if "mentorat" in [h.lower() for h in other.get("help_offers", [])]:
+        score = min(100, score + 10)
+        reasons.append("Disponible pour le mentorat")
+    return score, reasons
+
+
+@router.get("/mentoring/matches")
+async def mentoring_matches(token: str):
+    token_doc = await get_current_token(token)
+    me = token_doc["id"]
+    my_prof = await _get_or_create_profile(token_doc)
+    my_role = my_prof.get("mentoring_role", "none")
+    if my_role == "none":
+        return {"role": "none", "matches": []}
+    target_roles = []
+    if my_role in ("mentee", "both"):
+        target_roles.append(("mentor", ["mentor", "both"]))
+    if my_role in ("mentor", "both"):
+        target_roles.append(("mentee", ["mentee", "both"]))
+    out = []
+    seen = set()
+    for as_what, roles in target_roles:
+        candidates = await db.ubuntoo2_profiles.find(
+            {"token_id": {"$ne": me}, "mentoring_role": {"$in": roles}}, {"_id": 0}).to_list(100)
+        for c in candidates:
+            if c["token_id"] in seen:
+                continue
+            seen.add(c["token_id"])
+            score, reasons = _match_score(my_prof, c)
+            card = _filter_profile(c, False, await _are_contacts(me, c["token_id"]))
+            card["match_score"] = score
+            card["match_reasons"] = reasons
+            card["propose_as"] = as_what
+            existing = await db.ubuntoo2_connections.find_one({
+                "status": {"$in": ["pending", "accepted"]}, "kind": "mentorat",
+                "$or": [{"from_id": me, "to_id": c["token_id"]}, {"from_id": c["token_id"], "to_id": me}]})
+            card["connection_status"] = ("contact" if existing and existing["status"] == "accepted"
+                                         else "pending" if existing else "none")
+            out.append(card)
+    out.sort(key=lambda x: -x["match_score"])
+    return {"role": my_role, "matches": out[:20]}
+
+
+@router.get("/mentoring/relations")
+async def mentoring_relations(token: str):
+    token_doc = await get_current_token(token)
+    me = token_doc["id"]
+    conns = await db.ubuntoo2_connections.find(
+        {"kind": "mentorat", "status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).to_list(50)
+    mentors, mentores = [], []
+    for c in conns:
+        if c.get("mentor_id") == me:
+            other = c.get("mentee_id")
+            bucket = mentores
+        else:
+            other = c.get("mentor_id")
+            bucket = mentors
+        prof = await db.ubuntoo2_profiles.find_one({"token_id": other}, {"_id": 0})
+        if prof:
+            bucket.append(_filter_profile(prof, False, True))
+    return {"mentors": mentors, "mentores": mentores}
+
+
+# ============== BADGES ==============
+
+async def _compute_badges(token_id: str) -> list:
+    prof = await db.ubuntoo2_profiles.find_one({"token_id": token_id}, {"_id": 0}) or {}
+    posts = await db.ubuntoo2_posts.find({"author_id": token_id}, {"_id": 0, "type": 1, "community_id": 1, "utile_by": 1}).to_list(500)
+    replies_count = await db.ubuntoo2_replies.count_documents({"author_id": token_id})
+    my_comms = await db.ubuntoo2_communities.find({"members": token_id}, {"_id": 0, "id": 1, "category": 1}).to_list(100)
+    contributions = len(posts) + replies_count
+    profil_complet = bool(prof.get("headline") or prof.get("projet")) and bool(prof.get("competences") or prof.get("help_offers"))
+
+    metier_comm_ids = {c["id"] for c in my_comms if c.get("category") == "metiers"}
+    all_metier_ids = {c["id"] for c in await db.ubuntoo2_communities.find({"category": "metiers"}, {"_id": 0, "id": 1}).to_list(100)}
+    metier_posts = sum(1 for p in posts if p.get("community_id") in all_metier_ids)
+    metier_replies = 0
+    if all_metier_ids:
+        metier_post_ids = [p["id"] for p in await db.ubuntoo2_posts.find({"community_id": {"$in": list(all_metier_ids)}}, {"_id": 0, "id": 1}).to_list(1000)]
+        if metier_post_ids:
+            metier_replies = await db.ubuntoo2_replies.count_documents({"author_id": token_id, "post_id": {"$in": metier_post_ids}})
+
+    utiles_recus = sum(len(p.get("utile_by", [])) for p in posts)
+    ressources = sum(1 for p in posts if p.get("type") in ("ressource", "information", "opportunite"))
+    is_mentor = await db.ubuntoo2_connections.count_documents({"kind": "mentorat", "status": "accepted", "mentor_id": token_id}) > 0
+
+    has_proof = await db["proof_documents.files"].count_documents({"metadata.token_id": token_id}) > 0
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0, "completeness_score": 1})
+    passeport_ok = has_proof or (passport or {}).get("completeness_score", 0) >= 70
+
+    earned = {
+        "bienvenue": profil_complet and (contributions >= 1 or len(my_comms) >= 1),
+        "explorateur": (metier_posts + metier_replies) >= 3 or len(metier_comm_ids) >= 2,
+        "contributeur": (ressources + replies_count) >= 5 or utiles_recus >= 3,
+        "mentor": is_mentor,
+        "ambassadeur": contributions >= 15 and len(my_comms) >= 3,
+        "passeport_pro": passeport_ok,
+    }
+    existing = await db.ubuntoo2_badges.find_one({"token_id": token_id}, {"_id": 0}) or {"token_id": token_id, "earned": {}}
+    newly = []
+    for bid, ok in earned.items():
+        if ok and bid not in existing["earned"]:
+            existing["earned"][bid] = now_iso()
+            newly.append(bid)
+    if newly:
+        await db.ubuntoo2_badges.update_one({"token_id": token_id}, {"$set": {"earned": existing["earned"]}}, upsert=True)
+        await db.ubuntoo2_profiles.update_one({"token_id": token_id}, {"$set": {"badges_earned": list(existing["earned"].keys())}})
+        for bid in newly:
+            await _notify(token_id, "badge", f"Badge obtenu : « {BADGES[bid]['label']} » — {BADGES[bid]['desc']}.", "/ubuntoo/profil")
+    return [{"id": bid, **BADGES[bid], "earned": bid in existing["earned"], "earned_at": existing["earned"].get(bid)}
+            for bid in BADGES]
+
+
+@router.get("/badges")
+async def get_badges(token: str):
+    token_doc = await get_current_token(token)
+    return await _compute_badges(token_doc["id"])
+
+
 # ============== TABLEAU DE BORD ==============
 
 @router.get("/dashboard")
@@ -520,8 +676,9 @@ async def dashboard(token: str):
     me = token_doc["id"]
     prof = await _get_or_create_profile(token_doc)
     await _seed_communities()
-    contacts_count = await db.ubuntoo2_connections.count_documents(
-        {"status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]})
+    conns_all = await db.ubuntoo2_connections.find(
+        {"status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0, "from_id": 1, "to_id": 1}).to_list(500)
+    contacts_count = len({(c["to_id"] if c["from_id"] == me else c["from_id"]) for c in conns_all})
     pending_received = await db.ubuntoo2_connections.count_documents({"to_id": me, "status": "pending"})
     my_comms = await db.ubuntoo2_communities.find({"members": me}, {"_id": 0, "id": 1, "name": 1, "category": 1}).to_list(20)
     convs = await db.ubuntoo2_conversations.find({"participants": me}, {"_id": 0}).sort("last_message_at", -1).to_list(3)
@@ -538,13 +695,26 @@ async def dashboard(token: str):
         unread_msgs = await db.ubuntoo2_messages.count_documents(
             {"conversation_id": {"$in": my_conv_ids}, "sender_id": {"$ne": me}, "read": False})
     recent_contacts = []
+    seen_rc = set()
     recent_conns = await db.ubuntoo2_connections.find(
-        {"status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).sort("responded_at", -1).to_list(3)
+        {"status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).sort("responded_at", -1).to_list(10)
     for c in recent_conns:
         other = c["to_id"] if c["from_id"] == me else c["from_id"]
+        if other in seen_rc or len(recent_contacts) >= 3:
+            continue
+        seen_rc.add(other)
         op = await db.ubuntoo2_profiles.find_one({"token_id": other}, {"_id": 0, "display_name": 1, "headline": 1, "token_id": 1})
         if op:
             recent_contacts.append(op)
+    badges = await _compute_badges(me)
+    mentoring_conns = await db.ubuntoo2_connections.find(
+        {"kind": "mentorat", "status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).to_list(20)
+    mentor_names, mentore_names = [], []
+    for c in mentoring_conns:
+        other = c.get("mentee_id") if c.get("mentor_id") == me else c.get("mentor_id")
+        op = await db.ubuntoo2_profiles.find_one({"token_id": other}, {"_id": 0, "display_name": 1})
+        if op:
+            (mentore_names if c.get("mentor_id") == me else mentor_names).append(op["display_name"])
     return {
         "display_name": prof.get("display_name"),
         "contacts_count": contacts_count,
@@ -555,4 +725,6 @@ async def dashboard(token: str):
         "contributions_count": posts_count + replies_count,
         "unread_notifications": unread_notifs,
         "unread_messages": unread_msgs,
+        "badges": [b for b in badges if b["earned"]],
+        "mentoring": {"role": prof.get("mentoring_role", "none"), "mentors": mentor_names, "mentores": mentore_names},
     }

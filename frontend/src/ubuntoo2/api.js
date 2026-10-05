@@ -34,6 +34,15 @@ export const PRIVACY_LEVELS = [
   { value: "public", label: "Professionnel", desc: "Visible par tous les membres" },
 ];
 
+export const BADGES_META = {
+  bienvenue: { label: "Bienvenue UBUNTOO", icon: "Sprout", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  explorateur: { label: "Explorateur métier", icon: "Compass", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  contributeur: { label: "Contributeur", icon: "HandHeart", cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  mentor: { label: "Mentor", icon: "GraduationCap", cls: "bg-violet-50 text-violet-700 border-violet-200" },
+  ambassadeur: { label: "Ambassadeur", icon: "Award", cls: "bg-amber-50 text-amber-800 border-amber-300" },
+  passeport_pro: { label: "Passeport professionnel", icon: "ShieldCheck", cls: "bg-[#2E7D5B]/10 text-[#2E7D5B] border-[#2E7D5B]/30" },
+};
+
 export const timeAgo = (iso) => {
   if (!iso) return "";
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;

@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Compass, MessageSquare, HandHeart, ChevronRight, UserPlus, Loader2 } from "lucide-react";
+import { Users, Compass, MessageSquare, HandHeart, ChevronRight, UserPlus, Loader2, GraduationCap, Award } from "lucide-react";
 import { u2, timeAgo, CATEGORIES } from "../api";
+import { BadgeChip } from "./BadgesSection";
 
 export default function Accueil() {
   const [data, setData] = useState(null);
@@ -127,6 +128,43 @@ export default function Accueil() {
             </div>
           ) : (
             <p className="text-sm text-stone-400">Aucune conversation. La messagerie s'ouvre entre contacts acceptés.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Mentorat */}
+      <Card className="rounded-2xl border border-[#E2DFD8] shadow-none bg-white">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-base font-semibold u2-heading flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-violet-600" />Mon mentor / mes mentorés</h3>
+            <Button variant="ghost" size="sm" className="text-xs text-[#C85A32]" onClick={() => navigate("/ubuntoo/reseau?tab=mentorat")} data-testid="go-mentorat-btn">Mentorat</Button>
+          </div>
+          {(data.mentoring?.mentors?.length > 0 || data.mentoring?.mentores?.length > 0) ? (
+            <div className="space-y-1 text-sm text-stone-700" data-testid="mentoring-summary">
+              {data.mentoring.mentors.length > 0 && <p>Mon mentor : <span className="font-medium">{data.mentoring.mentors.join(", ")}</span></p>}
+              {data.mentoring.mentores.length > 0 && <p>Mes mentoré(e)s : <span className="font-medium">{data.mentoring.mentores.join(", ")}</span></p>}
+            </div>
+          ) : (
+            <p className="text-sm text-stone-400">
+              {data.mentoring?.role === "none" ? "Indiquez si vous souhaitez être accompagné(e) ou devenir mentor." : "Aucune relation de mentorat pour le moment — consultez les suggestions."}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Badges */}
+      <Card className="rounded-2xl border border-[#E2DFD8] shadow-none bg-white">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-base font-semibold u2-heading flex items-center gap-1.5"><Award className="w-4 h-4 text-[#E09F3E]" />Mes badges</h3>
+            <Button variant="ghost" size="sm" className="text-xs text-[#C85A32]" onClick={() => navigate("/ubuntoo/profil")} data-testid="go-badges-btn">Voir tout</Button>
+          </div>
+          {data.badges?.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5" data-testid="my-badges">
+              {data.badges.map(b => <BadgeChip key={b.id} badgeId={b.id} />)}
+            </div>
+          ) : (
+            <p className="text-sm text-stone-400">Complétez votre profil et participez à une communauté pour obtenir votre premier badge.</p>
           )}
         </CardContent>
       </Card>
