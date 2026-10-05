@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import {
   Compass, Sparkles, Loader2, ArrowRight, CheckCircle2, Plus,
   GraduationCap, ExternalLink, Lightbulb, TrendingUp, Shuffle, Telescope, RefreshCw,
-  Search, Trash2, ThumbsUp, AlertTriangle
+  Search, Trash2, ThumbsUp, AlertTriangle, Handshake
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -240,7 +240,7 @@ export default function ReconversionExplorer({ open, onOpenChange, token, profil
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl" data-testid="reconversion-dialog">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Compass className="w-5 h-5 text-violet-600" />Explorer une nouvelle trajectoire
+            <Compass className="w-5 h-5 text-violet-600" />Projet reconversion
           </DialogTitle>
           <DialogDescription>La reconversion n'est pas une rupture : c'est une nouvelle lecture de votre expérience acquise.</DialogDescription>
         </DialogHeader>
@@ -384,6 +384,24 @@ export default function ReconversionExplorer({ open, onOpenChange, token, profil
               {metiers.length > 0 ? metiers.map((m, i) => (
                 <FicheMetier key={`${niveau}-${i}`} metier={m} niveau={activeNiveau} token={token} onAdded={onStepAdded} />
               )) : niveau !== "explorer" && <p className="text-sm text-slate-400 text-center py-4">Aucun métier proposé pour ce niveau.</p>}
+            </div>
+
+            {/* CTA consultant Ré'Actif Pro */}
+            <div className="rounded-2xl bg-gradient-to-r from-[#1e3a5f] to-[#2d5283] p-5 text-white" data-testid="consultant-cta">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex items-start gap-3">
+                  <Handshake className="w-6 h-6 shrink-0 mt-0.5 text-amber-300" />
+                  <div>
+                    <p className="text-sm font-semibold">Transformez cette exploration en projet concret</p>
+                    <p className="text-sm text-white/80 mt-1">Un consultant Ré'Actif Pro peut vous accompagner pour valider votre projet de reconversion, bâtir le plan d'action et mobiliser les financements.</p>
+                  </div>
+                </div>
+                <Button asChild className="rounded-xl bg-amber-400 text-slate-900 hover:bg-amber-300 font-semibold shrink-0" data-testid="contact-consultant-btn">
+                  <a href="mailto:contact@reactif.pro?subject=Projet%20reconversion%20%E2%80%94%20demande%20d%27accompagnement&body=Bonjour%2C%0A%0AJe%20viens%20d%27explorer%20mon%20projet%20de%20reconversion%20sur%20R%C3%A9%27Actif%20Pro%20et%20je%20souhaite%20%C3%AAtre%20accompagn%C3%A9(e)%20par%20un%20consultant.%0A%0AMerci%20de%20me%20recontacter.">
+                    Contacter un consultant
+                  </a>
+                </Button>
+              </div>
             </div>
 
             <div className="flex justify-between items-center pt-1">

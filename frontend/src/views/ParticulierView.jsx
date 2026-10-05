@@ -1804,7 +1804,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                         {refreshingTrajectory ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}Actualiser
                       </Button>
                       <Button variant="outline" size="sm" className="rounded-xl text-violet-700 border-violet-200 hover:bg-violet-50" onClick={() => setReconversionOpen(true)} data-testid="explore-reconversion-btn">
-                        <Compass className="w-3.5 h-3.5 mr-1.5" />Explorer une nouvelle trajectoire
+                        <Compass className="w-3.5 h-3.5 mr-1.5" />Projet reconversion
                       </Button>
                       <Button variant="outline" size="sm" className="rounded-xl" onClick={autoPopulate} disabled={autoPopulating}>
                         {autoPopulating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}Importer
