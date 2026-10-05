@@ -29,6 +29,7 @@ import CvAnalysisSection from "@/components/CvAnalysis/CvAnalysisSection";
 import CentresInteretSection from "@/components/CentresInteretSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
 import GpsDashboard from "@/components/GpsDashboard";
+import ReconversionExplorer from "@/components/ReconversionExplorer";
 import { QRCodeSVG } from "qrcode.react";
 import { toPng } from "html-to-image";
 import { motion } from "framer-motion";
@@ -214,7 +215,7 @@ const DclicBoostSection = ({ profile, token, passport }) => {
 };
 
 // ===== TIMELINE STEP CARD (modèle chronologique détaillé) =====
-const TimelineStepCard = ({ step, onEdit, onDelete, onVisibilityChange }) => {
+const TimelineStepCard = ({ step, onEdit, onDelete, onVisibilityChange, transition }) => {
   const config = STEP_TYPES[step.step_type] || STEP_TYPES.emploi;
   const StepIcon = config.icon;
   const visOpt = VISIBILITY_OPTIONS.find(v => v.value === step.visibility) || VISIBILITY_OPTIONS[0];
@@ -278,6 +279,15 @@ const TimelineStepCard = ({ step, onEdit, onDelete, onVisibilityChange }) => {
               </Button>
             </div>
           </div>
+
+          {transition?.est_changement && (
+            <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/70 p-3" data-testid={`coherence-${step.id}`}>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 mb-1">
+                <Compass className="w-3.5 h-3.5" />Changement de métier détecté{transition.nouveau_metier ? ` — ${transition.nouveau_metier}` : ""}
+              </div>
+              {transition.lien_coherence && <p className="text-xs text-violet-800 leading-relaxed"><span className="font-medium">Fil de cohérence :</span> {transition.lien_coherence}</p>}
+            </div>
+          )}
 
           {/* Body: Two columns */}
           <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -1010,6 +1020,8 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
     if (sub) setTrajSubTab(sub);
   }, [location.search]);
   const [steps, setSteps] = useState([]);
+  const [reconversionOpen, setReconversionOpen] = useState(false);
+  const [coherence, setCoherence] = useState(null);
   const [synthesis, setSynthesis] = useState(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);
   const [visibilitySettings, setVisibilitySettings] = useState(null);
@@ -1166,6 +1178,15 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
   useEffect(() => {
     if (steps.length > 0 && !synthesis && !loadingSynthesis) {
       loadSynthesis();
+    }
+  }, [steps]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Analyse de cohérence de la frise (détection changements de métier)
+  useEffect(() => {
+    if (steps.length >= 2 && !coherence) {
+      axios.get(`${API}/trajectoire/coherence?token=${token}`)
+        .then(r => { if (r.data?.has_data) setCoherence(r.data); })
+        .catch(() => {});
     }
   }, [steps]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1782,6 +1803,9 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                       <Button variant="outline" size="sm" className="rounded-xl text-amber-700 border-amber-200 hover:bg-amber-50" onClick={handleRefreshTrajectory} disabled={refreshingTrajectory} data-testid="refresh-trajectory-btn">
                         {refreshingTrajectory ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}Actualiser
                       </Button>
+                      <Button variant="outline" size="sm" className="rounded-xl text-violet-700 border-violet-200 hover:bg-violet-50" onClick={() => setReconversionOpen(true)} data-testid="explore-reconversion-btn">
+                        <Compass className="w-3.5 h-3.5 mr-1.5" />Explorer une nouvelle trajectoire
+                      </Button>
                       <Button variant="outline" size="sm" className="rounded-xl" onClick={autoPopulate} disabled={autoPopulating}>
                         {autoPopulating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}Importer
                       </Button>
@@ -1802,9 +1826,16 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                             try { await Promise.all(steps.map(s => axios.put(`${API}/trajectory/steps/${s.id}?token=${token}`, { visibility: nv }))); setSteps(p => p.map(s => ({ ...s, visibility: nv }))); toast.success(checked ? "Toutes visibles" : "Toutes privées"); } catch { toast.error("Erreur"); }
                           }} />
                       </div>
+                      {coherence?.fil_conducteur && (
+                        <div className="mb-5 flex items-start gap-2 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 px-4 py-3" data-testid="fil-conducteur-banner">
+                          <Sparkles className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" />
+                          <p className="text-sm text-slate-700"><span className="font-semibold text-violet-700">Cohérence de votre trajectoire :</span> {coherence.fil_conducteur}</p>
+                        </div>
+                      )}
                       <div className="relative space-y-5 before:absolute before:left-[7px] before:top-2 before:h-[calc(100%-12px)] before:w-px before:bg-slate-200">
                         {[...steps].sort((a, b) => (b.start_date || "0000").localeCompare(a.start_date || "0000")).map(step => (
-                          <TimelineStepCard key={step.id} step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} onVisibilityChange={updateStepVisibility} />
+                          <TimelineStepCard key={step.id} step={step} onEdit={s => { setEditingStep(s); setStepDialogOpen(true); }} onDelete={deleteStep} onVisibilityChange={updateStepVisibility}
+                            transition={coherence?.transitions?.find(t => t.step_id === step.id)} />
                         ))}
                       </div>
                     </>
@@ -1838,6 +1869,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                   )}
                 </CardContent>
               </Card>
+              <ReconversionExplorer open={reconversionOpen} onOpenChange={setReconversionOpen} token={token} profile={profile} onStepAdded={() => { loadTrajectory(); setCoherence(null); }} />
             </div>
           )}
 

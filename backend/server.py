@@ -7400,7 +7400,9 @@ async def create_trajectory_step(token: str, body: dict):
     step = {
         "id": str(uuid.uuid4()), "token_id": token_doc["id"],
         "title": body.get("title", ""), "description": body.get("description", ""),
-        "type": body.get("type", "experience"), "start_date": body.get("start_date"),
+        "type": body.get("type", "experience"),
+        "step_type": body.get("step_type", body.get("type", "emploi")),
+        "start_date": body.get("start_date"),
         "end_date": body.get("end_date"), "organization": body.get("organization", ""),
         "skills": body.get("skills", []), "visibility": body.get("visibility", "private"),
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -10366,6 +10368,8 @@ app.include_router(rncp_router)
 # Route modules extracted from server.py
 from routes.jobdating import router as jobdating_router
 app.include_router(jobdating_router)
+from routes.reconversion import router as reconversion_router
+app.include_router(reconversion_router)
 from routes.ubuntoo_social import router as ubuntoo_social_router
 app.include_router(ubuntoo_social_router)
 from routes.ubuntoo_progression import router as ubuntoo_progression_router

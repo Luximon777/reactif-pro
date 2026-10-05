@@ -79,6 +79,10 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-09) Compte VSI créé : vsi_demo / VsiDemo2026! (rôle vsi). Fix associé : /auth/switch-role accepte désormais le rôle "vsi" (le backend le refusait, le rôle n'était appliqué que côté frontend). Vérifié E2E : carte "Certification officielle des Soft Skills — Parcours VSI" → login → dashboard Parcours VSI (4 phases + coach). NÉCESSITE REDÉPLOIEMENT (+ recréer le compte en prod via l'inscription).
 
+## 🔜 PROCHAINE GRANDE FEATURE (spec complète : /app/memory/SPEC_RECONVERSION.md)
+- « Explorer une nouvelle trajectoire » dans Ma Trajectoire : 3 niveaux (Évoluer/Me reconvertir/Explorer autrement), fiches passerelles, ligne de cohérence IA, porte d'entrée D'CLIC PRO recommandée (non bloquante). À IMPLÉMENTER.
+- EN ATTENTE AUSSI : coach virtuel spécifique à l'espace VSI (prompt dédié au parcours VSI dans /api/coach/chat quand role=vsi + message d'accueil adapté) — travail interrompu, à reprendre.
+
 ## ⚠️ URL PREVIEW ACTUELLE
 https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est morte — cause des "Preview Unavailable")
 
