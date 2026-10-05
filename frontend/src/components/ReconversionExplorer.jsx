@@ -6,9 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   Compass, Sparkles, Loader2, ArrowRight, CheckCircle2, Plus,
-  GraduationCap, ExternalLink, Lightbulb, TrendingUp, Shuffle, Telescope, RefreshCw
+  GraduationCap, ExternalLink, Lightbulb, TrendingUp, Shuffle, Telescope, RefreshCw,
+  Search, Trash2, ThumbsUp, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +23,9 @@ const NIVEAUX = [
   { key: "explorer", label: "Explorer autrement", sub: "Hypothèses en rupture, à explorer", icon: Telescope, color: "bg-violet-600", light: "bg-violet-50 text-violet-700 border-violet-200" },
 ];
 
-const FicheMetier = ({ metier, niveau, token, onAdded }) => {
+const scoreStyle = (s) => s >= 70 ? "bg-emerald-600" : s >= 45 ? "bg-amber-500" : "bg-rose-500";
+
+const FicheMetier = ({ metier, niveau, token, onAdded, onRemove }) => {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -51,7 +55,15 @@ const FicheMetier = ({ metier, niveau, token, onAdded }) => {
       <CardContent className="p-5 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h4 className="text-base font-semibold text-slate-900">{metier.metier}</h4>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-base font-semibold text-slate-900">{metier.metier}</h4>
+              {typeof metier.score_matching === "number" && (
+                <Badge className={`rounded-full text-white text-xs ${scoreStyle(metier.score_matching)}`} data-testid="score-matching-badge">
+                  Matching {metier.score_matching}%
+                </Badge>
+              )}
+              {metier.saisie_utilisateur && <Badge variant="outline" className="rounded-full text-[11px] border-violet-200 text-violet-600">Votre saisie</Badge>}
+            </div>
             {metier.rome_code && (
               <a href={`https://candidat.francetravail.fr/metierscope/fiche-metier/${metier.rome_code}`} target="_blank" rel="noreferrer"
                 className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 mt-0.5">
@@ -59,12 +71,37 @@ const FicheMetier = ({ metier, niveau, token, onAdded }) => {
               </a>
             )}
           </div>
-          <Badge className={`rounded-full border text-xs ${niveau.light}`}>
-            {metier.transferables_count || (metier.sf_mobilisables?.length || 0)} compétences transférables possédées
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={`rounded-full border text-xs ${niveau.light}`}>
+              {metier.transferables_count || (metier.sf_mobilisables?.length || 0)} compétences transférables possédées
+            </Badge>
+            {onRemove && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemove(metier)} data-testid="remove-custom-metier-btn">
+                <Trash2 className="w-3.5 h-3.5 text-red-300" />
+              </Button>
+            )}
+          </div>
         </div>
 
+        {metier.verdict && <p className="text-sm font-medium text-slate-800 italic" data-testid="matching-verdict">{metier.verdict}</p>}
         <p className="text-sm text-slate-600 leading-relaxed">{metier.pourquoi}</p>
+
+        {(metier.points_forts?.length > 0 || metier.points_vigilance?.length > 0) && (
+          <div className="grid gap-3 md:grid-cols-2" data-testid="matching-diagnostic">
+            {metier.points_forts?.length > 0 && (
+              <div className="rounded-xl border border-emerald-100 p-3">
+                <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1.5 flex items-center gap-1"><ThumbsUp className="w-3.5 h-3.5" />Vos atouts</div>
+                <ul className="space-y-1">{metier.points_forts.map((a, i) => <li key={i} className="text-sm text-slate-600 flex items-start gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-emerald-500 shrink-0" />{a}</li>)}</ul>
+              </div>
+            )}
+            {metier.points_vigilance?.length > 0 && (
+              <div className="rounded-xl border border-amber-100 p-3">
+                <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1.5 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />Points de vigilance</div>
+                <ul className="space-y-1">{metier.points_vigilance.map((a, i) => <li key={i} className="text-sm text-slate-600 flex items-start gap-1.5"><ArrowRight className="w-3.5 h-3.5 mt-0.5 text-amber-400 shrink-0" />{a}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-xl bg-emerald-50/70 p-3">
@@ -110,6 +147,11 @@ export default function ReconversionExplorer({ open, onOpenChange, token, profil
   const [progress, setProgress] = useState(5);
   const [stepLabel, setStepLabel] = useState("");
   const [niveau, setNiveau] = useState("evoluer");
+  const [customMetiers, setCustomMetiers] = useState([]);
+  const [customInput, setCustomInput] = useState("");
+  const [customLoading, setCustomLoading] = useState(false);
+  const [customLabel, setCustomLabel] = useState("");
+  const customPollRef = useRef(null);
   const pollRef = useRef(null);
   const navigate = useNavigate();
   const hasDclic = !!profile?.dclic_imported;
@@ -117,10 +159,11 @@ export default function ReconversionExplorer({ open, onOpenChange, token, profil
   useEffect(() => {
     if (!open) return;
     axios.get(`${API}/trajectoire/explorer/latest?token=${token}`).then(res => {
+      setCustomMetiers(res.data?.custom_metiers || []);
       if (res.data?.has_data) { setResult(res.data.result); setScreen("result"); }
       else setScreen("gateway");
     }).catch(() => setScreen("gateway"));
-    return () => clearInterval(pollRef.current);
+    return () => { clearInterval(pollRef.current); clearInterval(customPollRef.current); };
   }, [open, token]);
 
   const poll = useCallback((jobId) => {
@@ -153,6 +196,40 @@ export default function ReconversionExplorer({ open, onOpenChange, token, profil
       toast.error(e.response?.data?.detail || "Impossible de lancer l'exploration");
       setScreen("gateway");
     }
+  };
+
+  const analyzeCustom = async () => {
+    const m = customInput.trim();
+    if (m.length < 3) { toast.error("Saisissez un intitulé de métier (3 caractères minimum)"); return; }
+    setCustomLoading(true); setCustomLabel("Lancement du diagnostic…");
+    try {
+      const res = await axios.post(`${API}/trajectoire/explorer/metier?token=${token}`, { metier: m });
+      const jobId = res.data.job_id;
+      clearInterval(customPollRef.current);
+      customPollRef.current = setInterval(async () => {
+        try {
+          const st = await axios.get(`${API}/trajectoire/explorer/status/${jobId}?token=${token}`);
+          setCustomLabel(st.data.step_label || "Analyse en cours…");
+          if (st.data.status === "completed") {
+            clearInterval(customPollRef.current);
+            setCustomMetiers(prev => [...prev, st.data.result]);
+            setCustomInput(""); setCustomLoading(false);
+            toast.success("Diagnostic de matching terminé");
+          } else if (st.data.status === "failed") {
+            clearInterval(customPollRef.current); setCustomLoading(false);
+            toast.error("Le diagnostic a échoué. Réessayez.");
+          }
+        } catch { /* retry next tick */ }
+      }, 3000);
+    } catch (e) {
+      setCustomLoading(false);
+      toast.error(e.response?.data?.detail || "Impossible de lancer le diagnostic");
+    }
+  };
+
+  const removeCustom = async (fiche) => {
+    setCustomMetiers(prev => prev.filter(f => f.analyzed_at !== fiche.analyzed_at));
+    try { await axios.delete(`${API}/trajectoire/explorer/metier?token=${token}&analyzed_at=${encodeURIComponent(fiche.analyzed_at)}`); } catch { /* silent */ }
   };
 
   const activeNiveau = NIVEAUX.find(n => n.key === niveau);
@@ -280,9 +357,33 @@ export default function ReconversionExplorer({ open, onOpenChange, token, profil
 
             {/* Fiches passerelles */}
             <div className="space-y-3">
+              {niveau === "explorer" && (
+                <Card className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 shadow-none" data-testid="custom-metier-card">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                      <Search className="w-4 h-4 text-violet-600" />Analyser un métier de votre choix
+                    </div>
+                    <p className="text-xs text-slate-500">Saisissez un métier qui vous attire : l'IA établit un diagnostic de matching avec votre trajectoire, vos savoir-faire et savoir-être.</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Input value={customInput} onChange={e => setCustomInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && !customLoading) analyzeCustom(); }}
+                        placeholder="Ex : fleuriste, développeur web, éducateur spécialisé…"
+                        className="rounded-xl bg-white flex-1 min-w-[220px]" disabled={customLoading} data-testid="custom-metier-input" />
+                      <Button className="rounded-xl bg-violet-600 hover:bg-violet-700" onClick={analyzeCustom} disabled={customLoading} data-testid="analyze-custom-metier-btn">
+                        {customLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+                        {customLoading ? "Diagnostic…" : "Analyser le matching"}
+                      </Button>
+                    </div>
+                    {customLoading && <p className="text-xs text-violet-600 flex items-center gap-1.5" data-testid="custom-metier-loading"><Sparkles className="w-3.5 h-3.5" />{customLabel}</p>}
+                  </CardContent>
+                </Card>
+              )}
+              {niveau === "explorer" && [...customMetiers].reverse().map((m, i) => (
+                <FicheMetier key={`custom-${m.analyzed_at || i}`} metier={m} niveau={activeNiveau} token={token} onAdded={onStepAdded} onRemove={removeCustom} />
+              ))}
               {metiers.length > 0 ? metiers.map((m, i) => (
                 <FicheMetier key={`${niveau}-${i}`} metier={m} niveau={activeNiveau} token={token} onAdded={onStepAdded} />
-              )) : <p className="text-sm text-slate-400 text-center py-4">Aucun métier proposé pour ce niveau.</p>}
+              )) : niveau !== "explorer" && <p className="text-sm text-slate-400 text-center py-4">Aucun métier proposé pour ce niveau.</p>}
             </div>
 
             <div className="flex justify-between items-center pt-1">

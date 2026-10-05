@@ -240,8 +240,89 @@ async def exploration_latest(token: str):
     token_doc = await get_current_token(token)
     doc = await db.reconversion_results.find_one({"token_id": token_doc["id"]}, {"_id": 0})
     if not doc:
-        return {"has_data": False, "result": None}
-    return {"has_data": True, "result": doc.get("result")}
+        return {"has_data": False, "result": None, "custom_metiers": []}
+    return {"has_data": bool(doc.get("result")), "result": doc.get("result"), "custom_metiers": doc.get("custom_metiers", [])}
+
+
+async def _run_metier_analysis(job_id: str, token_id: str, metier: str):
+    try:
+        await db.reconversion_jobs.update_one({"id": job_id}, {"$set": {"progress": 20, "step_label": f"Analyse du matching avec « {metier} »…"}})
+        p = await _gather_profile(token_id)
+        has_dclic = bool(p["dclic_txt"])
+        sys_msg = """Tu es un expert français de l'orientation professionnelle et du référentiel ROME.
+Tu réalises un DIAGNOSTIC DE MATCHING honnête entre un profil et un métier cible choisi par la personne.
+Sois réaliste : ni complaisant, ni décourageant. Formule les points de vigilance de façon constructive.
+Réponds UNIQUEMENT en JSON valide, en français."""
+        prompt = f"""PROFIL :
+EXPÉRIENCES (chronologiques) :
+{p['exp_text']}
+
+SAVOIR-FAIRE : {', '.join(p['sf'][:20]) or 'Non renseignés'}
+SAVOIR-ÊTRE : {', '.join(p['se'][:15]) or 'Non renseignés'}
+PROFIL D'CLIC PRO : {p['dclic_txt'] or 'Test non réalisé'}
+ASPIRATIONS : {p['aspirations'] or 'Non renseignées'}
+
+MÉTIER CIBLE SAISI PAR LA PERSONNE : « {metier} »
+
+Produis un diagnostic de matching complet en JSON :
+{{
+  "metier": "Intitulé normalisé du métier",
+  "score_matching": score 0-100 (réaliste : compétences transférables, écart technique, cohérence de trajectoire),
+  "verdict": "1 phrase de synthèse du matching (honnête et nuancée)",
+  "pourquoi": "Pourquoi ce métier mérite d'être exploré au regard de la trajectoire réelle (2-3 phrases)",
+  "points_forts": ["3-5 atouts concrets du profil pour ce métier"],
+  "points_vigilance": ["2-4 points de vigilance ou freins à anticiper"],
+  "sf_mobilisables": ["3-5 savoir-faire déjà possédés et mobilisables"],
+  "se_mobilisables": ["2-4 savoir-être mobilisables"],
+  "transferables_count": nombre de compétences transférables possédées (entier),
+  "manquantes": ["2-5 compétences techniques à acquérir"],
+  "reduire_ecart": ["3-4 actions concrètes : formation précise, certification, PMSMP (immersion), enquête métier, mentor UBUNTOO"],
+  "rome_code": "code ROME si connu, sinon null"
+}}"""
+        raw = await _llm(sys_msg, prompt)
+        fiche = _parse_json(raw)
+        if not fiche:
+            raise ValueError("Réponse IA illisible")
+        fiche["saisie_utilisateur"] = metier
+        fiche["dclic_utilise"] = has_dclic
+        fiche["analyzed_at"] = datetime.now(timezone.utc).isoformat()
+        await _enrich_rome([fiche])
+        await db.reconversion_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "completed", "progress": 100, "step_label": "Diagnostic terminé", "result": fiche}})
+        await db.reconversion_results.update_one(
+            {"token_id": token_id},
+            {"$push": {"custom_metiers": {"$each": [fiche], "$slice": -10}}, "$setOnInsert": {"token_id": token_id}},
+            upsert=True)
+    except Exception as e:
+        logging.error(f"[Reconversion] Metier job {job_id} failed: {e}")
+        await db.reconversion_jobs.update_one(
+            {"id": job_id}, {"$set": {"status": "failed", "error": str(e)[:300]}})
+
+
+@router.post("/explorer/metier")
+async def start_metier_analysis(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    metier = (body.get("metier") or "").strip()
+    if not metier or len(metier) < 3:
+        raise HTTPException(status_code=400, detail="Saisissez un intitulé de métier (3 caractères minimum).")
+    job_id = str(uuid.uuid4())
+    await db.reconversion_jobs.insert_one({
+        "id": job_id, "token_id": token_doc["id"], "kind": "metier", "metier": metier,
+        "status": "processing", "progress": 10, "step_label": "Lecture de votre profil…",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    asyncio.create_task(_run_metier_analysis(job_id, token_doc["id"], metier))
+    return {"job_id": job_id, "status": "processing"}
+
+
+@router.delete("/explorer/metier")
+async def delete_custom_metier(token: str, analyzed_at: str):
+    token_doc = await get_current_token(token)
+    await db.reconversion_results.update_one(
+        {"token_id": token_doc["id"]},
+        {"$pull": {"custom_metiers": {"analyzed_at": analyzed_at}}})
+    return {"status": "ok"}
 
 
 COHERENCE_SYS = """Tu es un conseiller en évolution professionnelle français.
