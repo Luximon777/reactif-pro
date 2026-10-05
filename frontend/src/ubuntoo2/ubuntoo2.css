@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+.u2-root {
+  --u2-terracotta: #C85A32;
+  --u2-terracotta-hover: #A84624;
+  --u2-ochre: #E09F3E;
+  --u2-sage: #2E7D5B;
+  --u2-sand: #FAF8F5;
+  --u2-border: #E2DFD8;
+  font-family: 'Inter', sans-serif;
+  background: var(--u2-sand);
+  min-height: 100vh;
+  color: #1C2430;
+}
+
+.u2-root h1, .u2-root h2, .u2-root h3, .u2-heading {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.u2-btn-primary {
+  background: var(--u2-terracotta);
+  color: #fff;
+  transition: background-color 0.2s;
+}
+.u2-btn-primary:hover { background: var(--u2-terracotta-hover); }
+
+@media (prefers-reduced-motion: reduce) {
+  .u2-root * { animation: none !important; transition: none !important; }
+}

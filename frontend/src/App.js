@@ -10,6 +10,7 @@ import SharedPassportPage from "@/pages/SharedPassportPage";
 import SharedTrajectoryPage from "@/pages/SharedTrajectoryPage";
 import DclicTestPage from "@/pages/DclicTestPage";
 import UbuntooSocialApp from "@/views/ubuntoo-social/UbuntooSocialApp";
+import UbuntooV2App from "@/ubuntoo2/UbuntooV2App";
 import UbuntooAncienApp from "@/views/ubuntoo-ancien/UbuntooAncienApp";
 import OpcPublicPage from "@/pages/OpcPublicPage";
 import OpcDediePage from "@/pages/OpcDediePage";
@@ -322,7 +323,8 @@ function AppContent() {
           <Route path="/passport/shared/:shareId" element={<SharedPassportPage />} />
           <Route path="/trajectoire/:shareId" element={<SharedTrajectoryPage />} />
           <Route path="/test-dclic" element={<DclicTestPage />} />
-          <Route path="/ubuntoo/*" element={<UbuntooSocialApp />} />
+          <Route path="/ubuntoo/*" element={<UbuntooV2App />} />
+          <Route path="/ubuntoo-v1/*" element={<UbuntooSocialApp />} />
           <Route path="/ubuntoo-ancien/*" element={<UbuntooAncienApp />} />
           <Route path="/observatoire" element={<OpcPublicPage />} />
           <Route path="/opc" element={<ProtectedRoute><OpcDedieWrapper /></ProtectedRoute>} />

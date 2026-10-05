@@ -10370,6 +10370,8 @@ from routes.jobdating import router as jobdating_router
 app.include_router(jobdating_router)
 from routes.reconversion import router as reconversion_router
 app.include_router(reconversion_router)
+from routes.ubuntoo_v2 import router as ubuntoo_v2_router
+app.include_router(ubuntoo_v2_router)
 from routes.ubuntoo_social import router as ubuntoo_social_router
 app.include_router(ubuntoo_social_router)
 from routes.ubuntoo_progression import router as ubuntoo_progression_router
