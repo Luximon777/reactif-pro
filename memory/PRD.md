@@ -80,7 +80,11 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 - [x] (2026-09) Compte VSI créé : vsi_demo / VsiDemo2026! (rôle vsi). Fix associé : /auth/switch-role accepte désormais le rôle "vsi" (le backend le refusait, le rôle n'était appliqué que côté frontend). Vérifié E2E : carte "Certification officielle des Soft Skills — Parcours VSI" → login → dashboard Parcours VSI (4 phases + coach). NÉCESSITE REDÉPLOIEMENT (+ recréer le compte en prod via l'inscription).
 
 ## 🔜 PROCHAINE GRANDE FEATURE (spec complète : /app/memory/SPEC_RECONVERSION.md)
-- « Explorer une nouvelle trajectoire » dans Ma Trajectoire : 3 niveaux (Évoluer/Me reconvertir/Explorer autrement), fiches passerelles, ligne de cohérence IA, porte d'entrée D'CLIC PRO recommandée (non bloquante). À IMPLÉMENTER.
+- [x] (2026-06, fork) « Explorer une nouvelle trajectoire » IMPLÉMENTÉE (iteration_57, 100% backend+frontend) :
+  - Backend `/app/backend/routes/reconversion.py` : POST /api/trajectoire/explorer (job asyncio + polling via GET /explorer/status/{job_id}, 2 appels gpt-5.2 parallèles, pas de 502), GET /explorer/latest (cache db.reconversion_results), GET /trajectoire/coherence (détection changements de métier dans la frise + fil_conducteur, cache par hash des étapes dans db.trajectoire_coherence), enrichissement codes ROME via rome_metiers.
+  - Frontend `/app/frontend/src/components/ReconversionExplorer.jsx` : dialog avec gateway D'CLIC PRO (recommandé, non bloquant), loading avec progression, résultat = ligne de cohérence + invariants + acquis + transférables + curseur 3 niveaux (Évoluer/Me reconvertir/Explorer autrement) + fiches passerelles (pourquoi, SF/SE mobilisables, manquantes, réduire l'écart, lien ROME France Travail) + CTA « Ajouter à ma trajectoire » (étape step_type=projet).
+  - ParticulierView : bouton « Explorer une nouvelle trajectoire » à côté d'Actualiser (data-testid=explore-reconversion-btn), bannière fil-conducteur-banner au-dessus de la frise, encarts violets « Changement de métier détecté + Fil de cohérence » sur les étapes concernées (TimelineStepCard prop transition).
+  - Fix : create_trajectory_step persiste désormais step_type. NÉCESSITE REDÉPLOIEMENT.
 - EN ATTENTE AUSSI : coach virtuel spécifique à l'espace VSI (prompt dédié au parcours VSI dans /api/coach/chat quand role=vsi + message d'accueil adapté) — travail interrompu, à reprendre.
 
 ## ⚠️ URL PREVIEW ACTUELLE

@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 57 — Validation complète feature 'Explorer une nouvelle trajectoire' (reconversion) + fil de cohérence dans la frise. BACKEND (5/5 PASS): POST /api/trajectoire/explorer retourne job_id, GET /explorer/status/{job_id} retourne {status, progress}, GET /explorer/latest?token=peter7 renvoie has_data=true avec ligne_coherence, invariants, acquis, competences_transferables, niveaux.{evoluer,reconvertir,explorer} (3 métiers chacun avec metier/pourquoi/sf_mobilisables/se_mobilisables/manquantes/reduire_ecart/rome_code). GET /coherence?token=peter7 retourne transitions[] + fil_conducteur. POST /api/trajectory/steps avec step_type='projet' est bien persisté (vérifié via GET + cleanup OK). FRONTEND (peter7): bouton explore-reconversion-btn présent + bannière fil-conducteur-banner + 3 encarts coherence-* dans la frise. Dialog reconversion-dialog s'ouvre immédiatement sur reconversion-result (cache). ligne-coherence, 3 boutons niveau-{evoluer,reconvertir,explorer}-btn fonctionnels, chaque niveau affiche 3 fiche-metier-{niveau} avec ROME, pourquoi, badges 'Vous possédez déjà' / 'Ce qu'il vous manque' / 'Comment réduire l'écart'. Clic sur add-metier-trajectoire-btn ajoute une étape 'Projet : ...' à la frise (step_type=projet, Parcours 13→14), bouton bascule en 'Ajouté à ma trajectoire'. Étape test supprimée en cleanup (DELETE /api/trajectory/steps/{id} → 200). FRONTEND (mike7): dialog affiche reconversion-gateway avec bannière VERTE 'Votre profil D'CLIC PRO sera intégré' (mike7 a D'CLIC, pas de dclic-gateway-banner orange, bouton 'Lancer l'exploration' visible). Flow conforme à la spécification.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration57_reconversion.py",
+    "/app/test_reports/pytest/iteration57.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "reconversion.py (routes): pattern job asynchrone + polling /status est propre et symétrique aux autres endpoints job (observatory_ia_routes). Cache /latest permet rendu immédiat sans relancer de LLM — bon choix UX/coût.",
+    "ParticulierView.jsx TimelineStepCard: encarts violets coherence-* conditionnels sur transition.est_changement, bannière fil-conducteur-banner chargée après GET /coherence (cache chaud peter7 → rendu rapide). RAS.",
+    "server.py create_trajectory_step: step_type est bien persisté (test backend + E2E confirmés). Pas de régression détectée.",
+    "AdminGate: pour tester les flows protégés via Playwright, il faut mettre reactif_admin_status='admin' en localStorage en plus du token — comportement attendu, non bloquant mais à documenter pour les futurs testeurs."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration57_reconversion.py"
+  ],
+  "success_rate": {"backend": "100% (5/5)", "frontend": "100% (dialog, résultat caché, 3 niveaux, add-metier, gateway mike7)"},
+  "test_credentials": "peter7 / Solerys777! (résultat reconversion déjà en cache, D'CLIC importé) ; mike7 / Solerys777! (a D'CLIC → bannière verte au lieu du gateway orange)",
+  "seed_data_creation": "Étape 'Projet : Chef de projet événementiel ...' ajoutée pendant le test E2E puis supprimée en cleanup (DELETE /api/trajectory/steps/{id} = 200). Compte peter7 revenu à son état initial (14→13 étapes).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Pour accéder au dashboard via Playwright: 1) POST /api/auth/login {pseudo,password}, 2) localStorage.setItem('reactif_token',...), 3) IMPORTANT: localStorage.setItem('reactif_admin_status','admin') sinon AdminGate bloque. 4) window.location.href='/dashboard/trajectoire?sub=trajectoire'. Le résultat de reconversion de peter7 est déjà en cache (has_data=true) donc dialog affiche immédiatement reconversion-result sans relancer de LLM. relaunch-exploration-btn testé en présence seulement (non cliqué pour éviter coût gpt-5.2). Backend tests dans /app/backend/tests/test_iteration57_reconversion.py.",
+  "rca of the issue": "Aucun bug trouvé. Feature complètement fonctionnelle, backend + frontend + persistence step_type OK."
+}
