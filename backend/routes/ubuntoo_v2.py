@@ -16,10 +16,16 @@ BADGES = {
     "bienvenue": {"label": "Bienvenue UBUNTOO", "desc": "Profil complété et première participation"},
     "explorateur": {"label": "Explorateur métier", "desc": "Participation à plusieurs échanges sur des métiers"},
     "contributeur": {"label": "Contributeur", "desc": "Partage régulier de ressources utiles"},
-    "mentor": {"label": "Mentor", "desc": "Participation active à un accompagnement"},
-    "ambassadeur": {"label": "Ambassadeur", "desc": "Contribution durable à la communauté"},
     "passeport_pro": {"label": "Passeport professionnel", "desc": "Parcours ou compétences vérifiées via Ré'Actif Pro"},
 }
+
+CHARTE_MENTOR = [
+    "J'adopte une posture d'écoute, de bienveillance et de non-jugement.",
+    "Je connais les limites de mon rôle : je partage mon expérience, je ne me substitue pas à un professionnel de l'accompagnement.",
+    "Je m'engage à la non-discrimination et au respect de chaque personne.",
+    "Je respecte la confidentialité des échanges avec mon mentoré.",
+    "J'oriente vers un professionnel lorsque la situation dépasse mon rôle.",
+]
 
 SEED_COMMUNITIES = [
     ("metiers", "Informatique", "Développement, réseaux, data, cybersécurité : échangez entre professionnels du numérique."),
@@ -103,6 +109,7 @@ async def _are_contacts(a: str, b: str) -> bool:
 def _filter_profile(prof: dict, is_self: bool, is_contact: bool) -> dict:
     out = {"token_id": prof["token_id"], "display_name": prof.get("display_name", ""), "headline": "", "is_contact": is_contact,
            "mentoring_role": prof.get("mentoring_role", "none"), "badges": prof.get("badges_earned", []),
+           "level": prof.get("level", "Membre"),
            "mentoring_topics": prof.get("mentoring_topics", [])}
     privacy = prof.get("privacy", {})
     def visible(field):
@@ -227,6 +234,9 @@ async def request_connection(token: str, body: dict):
         as_role = body.get("as_role") if body.get("as_role") in ("mentor", "mentee") else "mentee"
         conn["mentor_id"] = me if as_role == "mentor" else to_id
         conn["mentee_id"] = to_id if as_role == "mentor" else me
+        mentor_prog = await db.ubuntoo2_progression.find_one({"token_id": conn["mentor_id"]}, {"_id": 0, "mentor_status": 1})
+        if (mentor_prog or {}).get("mentor_status") not in ("mentor", "confirme"):
+            raise HTTPException(status_code=403, detail="Le mentorat nécessite un Mentor UBUNTOO validé (charte acceptée et candidature approuvée).")
     await db.ubuntoo2_connections.insert_one({**conn})
     notif_text = (f"{my_prof.get('display_name')} vous propose un accompagnement mentorat" if kind == "mentorat" and conn.get("mentor_id") == me
                   else f"{my_prof.get('display_name')} souhaite être accompagné(e) par vous (mentorat)" if kind == "mentorat"
@@ -570,11 +580,15 @@ async def mentoring_matches(token: str):
         target_roles.append(("mentee", ["mentee", "both"]))
     out = []
     seen = set()
+    validated_mentors = {p["token_id"] for p in await db.ubuntoo2_progression.find(
+        {"mentor_status": {"$in": ["mentor", "confirme"]}}, {"_id": 0, "token_id": 1}).to_list(500)}
     for as_what, roles in target_roles:
         candidates = await db.ubuntoo2_profiles.find(
             {"token_id": {"$ne": me}, "mentoring_role": {"$in": roles}}, {"_id": 0}).to_list(100)
         for c in candidates:
             if c["token_id"] in seen:
+                continue
+            if as_what == "mentor" and c["token_id"] not in validated_mentors:
                 continue
             seen.add(c["token_id"])
             score, reasons = _match_score(my_prof, c)
@@ -598,18 +612,265 @@ async def mentoring_relations(token: str):
     me = token_doc["id"]
     conns = await db.ubuntoo2_connections.find(
         {"kind": "mentorat", "status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).to_list(50)
-    mentors, mentores = [], []
+    relations = []
     for c in conns:
-        if c.get("mentor_id") == me:
-            other = c.get("mentee_id")
-            bucket = mentores
-        else:
-            other = c.get("mentor_id")
-            bucket = mentors
+        my_role = "mentor" if c.get("mentor_id") == me else "mentee"
+        other = c.get("mentee_id") if my_role == "mentor" else c.get("mentor_id")
         prof = await db.ubuntoo2_profiles.find_one({"token_id": other}, {"_id": 0})
         if prof:
-            bucket.append(_filter_profile(prof, False, True))
-    return {"mentors": mentors, "mentores": mentores}
+            relations.append({
+                "conn_id": c["id"], "my_role": my_role,
+                "other": _filter_profile(prof, False, True),
+                "objective": c.get("message", ""),
+                "mentorat_status": c.get("mentorat_status", "actif"),
+                "bilan": c.get("bilan", ""),
+                "feedback_given": bool(c.get("feedback")) if my_role == "mentee" else None,
+            })
+    mentors = [r["other"] for r in relations if r["my_role"] == "mentee" and r["mentorat_status"] == "actif"]
+    mentores = [r["other"] for r in relations if r["my_role"] == "mentor" and r["mentorat_status"] == "actif"]
+    return {"mentors": mentors, "mentores": mentores, "relations": relations}
+
+
+@router.post("/mentoring/relations/{conn_id}/terminate")
+async def terminate_mentorat(conn_id: str, token: str, body: dict):
+    token_doc = await get_current_token(token)
+    me = token_doc["id"]
+    conn = await db.ubuntoo2_connections.find_one({"id": conn_id, "kind": "mentorat", "status": "accepted",
+                                                   "$or": [{"from_id": me}, {"to_id": me}]})
+    if not conn:
+        raise HTTPException(status_code=404, detail="Mentorat introuvable")
+    if conn.get("mentorat_status") == "termine":
+        raise HTTPException(status_code=400, detail="Ce mentorat est déjà clôturé.")
+    bilan = (body.get("bilan") or "").strip()[:800]
+    await db.ubuntoo2_connections.update_one(
+        {"id": conn_id}, {"$set": {"mentorat_status": "termine", "bilan": bilan, "terminated_at": now_iso(), "terminated_by": me}})
+    other = conn["to_id"] if conn["from_id"] == me else conn["from_id"]
+    my_prof = await _get_or_create_profile(token_doc)
+    await _notify(other, "mentorat_termine", f"{my_prof.get('display_name')} a clôturé votre mentorat avec un bilan.", "/ubuntoo/reseau?tab=mentorat")
+    if conn.get("mentee_id") == other:
+        await _notify(other, "mentorat_feedback", "Vous pouvez donner un retour confidentiel sur la qualité de l'accompagnement.", "/ubuntoo/reseau?tab=mentorat")
+    return {"status": "termine"}
+
+
+@router.post("/mentoring/relations/{conn_id}/feedback")
+async def mentorat_feedback(conn_id: str, token: str, body: dict):
+    token_doc = await get_current_token(token)
+    me = token_doc["id"]
+    conn = await db.ubuntoo2_connections.find_one({"id": conn_id, "kind": "mentorat", "mentee_id": me})
+    if not conn:
+        raise HTTPException(status_code=404, detail="Mentorat introuvable (retour réservé au mentoré)")
+    if conn.get("feedback"):
+        raise HTTPException(status_code=400, detail="Retour déjà transmis.")
+    rating = body.get("rating")
+    if not isinstance(rating, int) or not 1 <= rating <= 5:
+        raise HTTPException(status_code=400, detail="Note entre 1 et 5 requise")
+    await db.ubuntoo2_connections.update_one(
+        {"id": conn_id},
+        {"$set": {"feedback": {"rating": rating, "comment": (body.get("comment") or "")[:500], "created_at": now_iso()}}})
+    return {"status": "ok", "message": "Merci, votre retour confidentiel a été enregistré."}
+
+
+# ============== PARCOURS DE PROGRESSION (rôles de confiance) ==============
+
+def _is_admin(token_doc: dict) -> bool:
+    return token_doc.get("role") == "admin" or (token_doc.get("pseudo") or "").lower() in ("admin@reactifpro.fr", "rh@reactifpro.fr")
+
+
+async def _get_prog(token_id: str) -> dict:
+    return await db.ubuntoo2_progression.find_one({"token_id": token_id}, {"_id": 0}) or \
+        {"token_id": token_id, "mentor_status": "none", "animateur": False, "ambassadeur_status": "none"}
+
+
+async def _compute_progression(token_id: str) -> dict:
+    prof = await db.ubuntoo2_profiles.find_one({"token_id": token_id}, {"_id": 0}) or {}
+    prog = await _get_prog(token_id)
+    posts = await db.ubuntoo2_posts.find({"author_id": token_id}, {"_id": 0, "type": 1, "utile_by": 1}).to_list(500)
+    replies_count = await db.ubuntoo2_replies.count_documents({"author_id": token_id})
+    my_comms_count = await db.ubuntoo2_communities.count_documents({"members": token_id})
+    created_comms = await db.ubuntoo2_communities.count_documents({"created_by": token_id})
+    accepted_conns = await db.ubuntoo2_connections.count_documents(
+        {"status": "accepted", "$or": [{"from_id": token_id}, {"to_id": token_id}]})
+    utiles_recus = sum(len(p.get("utile_by", [])) for p in posts)
+    ressources = sum(1 for p in posts if p.get("type") in ("ressource", "information", "opportunite"))
+    contributions = len(posts) + replies_count
+    participations = contributions + my_comms_count + accepted_conns
+    profil_complet = bool(prof.get("headline") or prof.get("projet")) and bool(prof.get("competences") or prof.get("help_offers"))
+
+    membre_actif = participations >= 3
+    contributeur = (ressources + replies_count) >= 5 or utiles_recus >= 3
+
+    mentorats_termines = await db.ubuntoo2_connections.count_documents(
+        {"kind": "mentorat", "mentor_id": token_id, "mentorat_status": "termine"})
+    mentorats_actifs = await db.ubuntoo2_connections.count_documents(
+        {"kind": "mentorat", "mentor_id": token_id, "status": "accepted", "mentorat_status": {"$ne": "termine"}})
+    fb = await db.ubuntoo2_connections.find(
+        {"kind": "mentorat", "mentor_id": token_id, "feedback": {"$exists": True}}, {"_id": 0, "feedback": 1}).to_list(50)
+    ratings = [f["feedback"]["rating"] for f in fb if f.get("feedback", {}).get("rating")]
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
+
+    mentor_status = prog.get("mentor_status", "none")
+    if mentor_status == "mentor" and mentorats_termines >= 2 and ratings and avg_rating >= 4:
+        mentor_status = "confirme"
+        await db.ubuntoo2_progression.update_one({"token_id": token_id}, {"$set": {"token_id": token_id, "mentor_status": "confirme"}}, upsert=True)
+        await _notify(token_id, "progression", "Vous êtes désormais Mentor confirmé UBUNTOO — merci pour la qualité de vos accompagnements. Vous pouvez accompagner les futurs mentors.", "/ubuntoo/profil")
+
+    animateur = prog.get("animateur", False)
+    animateur_eligible = contributeur and (created_comms >= 1 or (contributions >= 10 and my_comms_count >= 3))
+    if animateur_eligible and not animateur:
+        animateur = True
+        await db.ubuntoo2_progression.update_one({"token_id": token_id}, {"$set": {"token_id": token_id, "animateur": True}}, upsert=True)
+        await _notify(token_id, "progression", "Votre engagement dans l'animation de la communauté est reconnu : vous êtes Animateur UBUNTOO.", "/ubuntoo/profil")
+
+    ambassadeur_status = prog.get("ambassadeur_status", "none")
+    can_apply_ambassadeur = ambassadeur_status == "none" and (mentor_status == "confirme" or animateur)
+    can_apply_mentor = mentor_status == "none" and contributeur and profil_complet
+
+    if ambassadeur_status == "ambassadeur":
+        current = "Ambassadeur UBUNTOO"
+    elif mentor_status == "confirme":
+        current = "Mentor confirmé"
+    elif mentor_status == "mentor":
+        current = "Mentor UBUNTOO"
+    elif animateur:
+        current = "Animateur"
+    elif mentor_status == "candidat":
+        current = "Mentor candidat"
+    elif contributeur:
+        current = "Contributeur"
+    elif membre_actif:
+        current = "Membre actif"
+    else:
+        current = "Membre"
+    if prof.get("level") != current:
+        await db.ubuntoo2_profiles.update_one({"token_id": token_id}, {"$set": {"level": current}})
+
+    next_steps = []
+    if not profil_complet:
+        next_steps.append("Complétez votre profil (projet, compétences ou disponibilité pour aider).")
+    if not membre_actif:
+        next_steps.append("Participez : rejoignez une communauté, échangez, posez une question.")
+    elif not contributeur:
+        next_steps.append("Apportez des contributions utiles : expérience, ressource, opportunité ou réponse à un membre.")
+    if contributeur and mentor_status == "none":
+        next_steps.append("Devenez Mentor candidat : acceptez la charte du mentor et proposez un accompagnement.")
+    if mentor_status == "candidat":
+        next_steps.append("Votre candidature mentor est en cours d'examen par l'équipe UBUNTOO.")
+    if mentor_status == "mentor":
+        next_steps.append(f"Menez des mentorats à leur terme avec des retours positifs pour devenir Mentor confirmé ({mentorats_termines}/2 terminés).")
+    if contributeur and not animateur:
+        next_steps.append("Branche Animateur : créez ou animez une communauté, accueillez les nouveaux membres.")
+    if can_apply_ambassadeur:
+        next_steps.append("Vous pouvez candidater comme Ambassadeur UBUNTOO (validation par l'équipe).")
+    if ambassadeur_status == "candidat":
+        next_steps.append("Votre candidature Ambassadeur est en cours d'examen.")
+
+    return {
+        "current_label": current,
+        "levels": {
+            "membre": True, "membre_actif": membre_actif, "contributeur": contributeur,
+            "mentor_candidat": mentor_status in ("candidat", "mentor", "confirme"),
+            "mentor": mentor_status in ("mentor", "confirme"),
+            "mentor_confirme": mentor_status == "confirme",
+            "animateur": animateur,
+            "ambassadeur": ambassadeur_status == "ambassadeur",
+        },
+        "mentor_status": mentor_status,
+        "ambassadeur_status": ambassadeur_status,
+        "ambassadeur_mandat_end": prog.get("ambassadeur_mandat_end"),
+        "can_apply_mentor": can_apply_mentor,
+        "can_apply_ambassadeur": can_apply_ambassadeur,
+        "charte": CHARTE_MENTOR,
+        "contributions": {
+            "publications": len(posts), "reponses": replies_count, "utiles_recus": utiles_recus,
+            "ressources_partagees": ressources, "communautes": my_comms_count, "communautes_creees": created_comms,
+            "mentorats_actifs": mentorats_actifs, "mentorats_termines": mentorats_termines,
+            "note_moyenne_mentorat": avg_rating,
+        },
+        "next_steps": next_steps[:4],
+    }
+
+
+@router.get("/progression")
+async def get_progression(token: str):
+    token_doc = await get_current_token(token)
+    return await _compute_progression(token_doc["id"])
+
+
+@router.post("/progression/mentor-candidature")
+async def apply_mentor(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    if not body.get("accept_charte"):
+        raise HTTPException(status_code=400, detail="Vous devez accepter la charte du mentor UBUNTOO.")
+    prog_data = await _compute_progression(token_doc["id"])
+    if not prog_data["can_apply_mentor"]:
+        raise HTTPException(status_code=400, detail="Prérequis : niveau Contributeur atteint et profil renseigné.")
+    await db.ubuntoo2_progression.update_one(
+        {"token_id": token_doc["id"]},
+        {"$set": {"token_id": token_doc["id"], "mentor_status": "candidat", "charte_accepted_at": now_iso()}}, upsert=True)
+    prof = await _get_or_create_profile(token_doc)
+    await db.ubuntoo2_candidatures.insert_one({
+        "id": str(uuid.uuid4()), "token_id": token_doc["id"], "display_name": prof.get("display_name"),
+        "type": "mentor", "motivation": (body.get("motivation") or "")[:500],
+        "status": "pending", "created_at": now_iso()})
+    return {"status": "candidat", "message": "Candidature mentor enregistrée. Elle sera examinée par l'équipe UBUNTOO."}
+
+
+@router.post("/progression/ambassadeur-candidature")
+async def apply_ambassadeur(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    prog_data = await _compute_progression(token_doc["id"])
+    if not prog_data["can_apply_ambassadeur"]:
+        raise HTTPException(status_code=400, detail="Prérequis : être Mentor confirmé ou Animateur.")
+    await db.ubuntoo2_progression.update_one(
+        {"token_id": token_doc["id"]}, {"$set": {"token_id": token_doc["id"], "ambassadeur_status": "candidat"}}, upsert=True)
+    prof = await _get_or_create_profile(token_doc)
+    await db.ubuntoo2_candidatures.insert_one({
+        "id": str(uuid.uuid4()), "token_id": token_doc["id"], "display_name": prof.get("display_name"),
+        "type": "ambassadeur", "motivation": (body.get("motivation") or "")[:500],
+        "status": "pending", "created_at": now_iso()})
+    return {"status": "candidat", "message": "Candidature Ambassadeur transmise pour validation humaine."}
+
+
+@router.get("/admin/candidatures")
+async def list_candidatures(token: str):
+    token_doc = await get_current_token(token)
+    if not _is_admin(token_doc):
+        raise HTTPException(status_code=403, detail="Réservé à l'équipe UBUNTOO")
+    return await db.ubuntoo2_candidatures.find({"status": "pending"}, {"_id": 0}).sort("created_at", 1).to_list(100)
+
+
+@router.post("/admin/candidatures/{cand_id}/decide")
+async def decide_candidature(cand_id: str, token: str, body: dict):
+    token_doc = await get_current_token(token)
+    if not _is_admin(token_doc):
+        raise HTTPException(status_code=403, detail="Réservé à l'équipe UBUNTOO")
+    action = body.get("action")
+    if action not in ("approve", "reject"):
+        raise HTTPException(status_code=400, detail="Action invalide")
+    cand = await db.ubuntoo2_candidatures.find_one({"id": cand_id, "status": "pending"})
+    if not cand:
+        raise HTTPException(status_code=404, detail="Candidature introuvable")
+    await db.ubuntoo2_candidatures.update_one(
+        {"id": cand_id}, {"$set": {"status": "approved" if action == "approve" else "rejected", "decided_at": now_iso(), "decided_by": token_doc["id"]}})
+    uid = cand["token_id"]
+    if cand["type"] == "mentor":
+        if action == "approve":
+            await db.ubuntoo2_progression.update_one({"token_id": uid}, {"$set": {"mentor_status": "mentor"}}, upsert=True)
+            await _notify(uid, "progression", "Félicitations : votre candidature est validée, vous êtes Mentor UBUNTOO. Vous pouvez désormais accompagner des membres.", "/ubuntoo/reseau?tab=mentorat")
+        else:
+            await db.ubuntoo2_progression.update_one({"token_id": uid}, {"$set": {"mentor_status": "none"}}, upsert=True)
+            await _notify(uid, "progression", "Votre candidature mentor n'a pas été retenue pour le moment. Continuez à contribuer, vous pourrez candidater à nouveau.", "/ubuntoo/profil")
+    else:
+        if action == "approve":
+            from datetime import timedelta
+            mandat_end = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()
+            await db.ubuntoo2_progression.update_one(
+                {"token_id": uid}, {"$set": {"ambassadeur_status": "ambassadeur", "ambassadeur_mandat_end": mandat_end}}, upsert=True)
+            await _notify(uid, "progression", "La communauté vous accorde sa confiance : vous êtes Ambassadeur UBUNTOO pour un mandat de 12 mois.", "/ubuntoo/profil")
+        else:
+            await db.ubuntoo2_progression.update_one({"token_id": uid}, {"$set": {"ambassadeur_status": "none"}}, upsert=True)
+            await _notify(uid, "progression", "Votre candidature Ambassadeur n'a pas été retenue pour le moment.", "/ubuntoo/profil")
+    return {"status": "ok"}
 
 
 # ============== BADGES ==============
@@ -633,7 +894,6 @@ async def _compute_badges(token_id: str) -> list:
 
     utiles_recus = sum(len(p.get("utile_by", [])) for p in posts)
     ressources = sum(1 for p in posts if p.get("type") in ("ressource", "information", "opportunite"))
-    is_mentor = await db.ubuntoo2_connections.count_documents({"kind": "mentorat", "status": "accepted", "mentor_id": token_id}) > 0
 
     has_proof = await db["proof_documents.files"].count_documents({"metadata.token_id": token_id}) > 0
     passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0, "completeness_score": 1})
@@ -643,8 +903,6 @@ async def _compute_badges(token_id: str) -> list:
         "bienvenue": profil_complet and (contributions >= 1 or len(my_comms) >= 1),
         "explorateur": (metier_posts + metier_replies) >= 3 or len(metier_comm_ids) >= 2,
         "contributeur": (ressources + replies_count) >= 5 or utiles_recus >= 3,
-        "mentor": is_mentor,
-        "ambassadeur": contributions >= 15 and len(my_comms) >= 3,
         "passeport_pro": passeport_ok,
     }
     existing = await db.ubuntoo2_badges.find_one({"token_id": token_id}, {"_id": 0}) or {"token_id": token_id, "earned": {}}

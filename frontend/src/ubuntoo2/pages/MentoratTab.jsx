@@ -55,9 +55,15 @@ export default function MentoratTab() {
   const [topicInput, setTopicInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [matches, setMatches] = useState([]);
-  const [relations, setRelations] = useState({ mentors: [], mentores: [] });
+  const [relations, setRelations] = useState({ mentors: [], mentores: [], relations: [] });
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [requestMatch, setRequestMatch] = useState(null);
+  const [terminateRel, setTerminateRel] = useState(null);
+  const [bilan, setBilan] = useState("");
+  const [feedbackRel, setFeedbackRel] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [acting, setActing] = useState(false);
 
   const loadMatches = useCallback(async () => {
     setLoadingMatches(true);
@@ -117,13 +123,38 @@ export default function MentoratTab() {
 
   return (
     <div className="space-y-4 mt-4" data-testid="mentorat-tab">
-      {/* Relations actuelles */}
-      {(relations.mentors.length > 0 || relations.mentores.length > 0) && (
+      {/* Relations de mentorat */}
+      {relations.relations?.length > 0 && (
         <Card className="rounded-2xl border border-violet-200 shadow-none bg-violet-50/40">
           <CardContent className="p-4 space-y-2">
             <h3 className="text-sm font-semibold u2-heading flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-violet-600" />Mon mentorat</h3>
-            {relations.mentors.length > 0 && <p className="text-sm text-stone-700" data-testid="my-mentors">Mon mentor : <span className="font-medium">{relations.mentors.map(m => m.display_name).join(", ")}</span></p>}
-            {relations.mentores.length > 0 && <p className="text-sm text-stone-700" data-testid="my-mentores">Mes mentoré(e)s : <span className="font-medium">{relations.mentores.map(m => m.display_name).join(", ")}</span></p>}
+            <p className="text-[11px] text-stone-400">Demande → Acceptation → Objectif → Échanges → Actions → Bilan</p>
+            {relations.relations.map(r => (
+              <div key={r.conn_id} className="bg-white rounded-xl border border-[#E2DFD8] p-3 space-y-1.5" data-testid={`mentorat-relation-${r.conn_id}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold">{r.other?.display_name}</span>
+                  <Badge variant="outline" className="rounded-full text-[10px]">{r.my_role === "mentor" ? "Mon mentoré(e)" : "Mon mentor"}</Badge>
+                  <Badge className={`rounded-full text-[10px] border hover:bg-inherit ${r.mentorat_status === "termine" ? "bg-stone-100 text-stone-500 border-stone-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                    {r.mentorat_status === "termine" ? "Terminé" : "En cours"}
+                  </Badge>
+                </div>
+                {r.objective && <p className="text-xs text-stone-500">Objectif : {r.objective}</p>}
+                {r.bilan && <p className="text-xs text-stone-500 italic">Bilan : {r.bilan}</p>}
+                <div className="flex gap-2 flex-wrap">
+                  {r.mentorat_status !== "termine" && (
+                    <Button size="sm" variant="outline" className="rounded-xl h-7 text-xs" onClick={() => { setTerminateRel(r); setBilan(""); }} data-testid={`terminate-mentorat-${r.conn_id}`}>
+                      Clôturer avec un bilan
+                    </Button>
+                  )}
+                  {r.my_role === "mentee" && r.mentorat_status === "termine" && !r.feedback_given && (
+                    <Button size="sm" className="rounded-xl h-7 text-xs u2-btn-primary" onClick={() => { setFeedbackRel(r); setRating(0); setComment(""); }} data-testid={`feedback-mentorat-${r.conn_id}`}>
+                      Donner un retour confidentiel
+                    </Button>
+                  )}
+                  {r.my_role === "mentee" && r.feedback_given && <span className="text-[11px] text-emerald-600">Retour confidentiel transmis ✓</span>}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
@@ -147,6 +178,11 @@ export default function MentoratTab() {
       {role !== "none" && (
         <Card className="rounded-2xl border border-[#E2DFD8] shadow-none bg-white">
           <CardContent className="p-4 space-y-3">
+            {isActive("mentor") && (
+              <p className="text-[11px] text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2" data-testid="mentor-validation-hint">
+                Le statut « Mentor UBUNTOO » est un rôle de confiance validé : acceptez la charte et candidatez depuis Profil → Mon parcours UBUNTOO.
+              </p>
+            )}
             <div>
               <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Domaines de mentorat (métier, secteur, compétence…)</label>
               <div className="flex gap-2 mt-1.5">
@@ -219,6 +255,60 @@ export default function MentoratTab() {
       )}
 
       <MentoratRequestDialog match={requestMatch} open={!!requestMatch} onOpenChange={v => !v && setRequestMatch(null)} onSent={loadMatches} />
+
+      {/* Dialog clôture mentorat */}
+      <Dialog open={!!terminateRel} onOpenChange={v => !v && setTerminateRel(null)}>
+        <DialogContent className="max-w-md rounded-2xl" data-testid="terminate-dialog">
+          <DialogHeader>
+            <DialogTitle className="u2-heading">Clôturer le mentorat</DialogTitle>
+            <DialogDescription>Chaque mentorat a un début et une fin. Rédigez un court bilan des échanges et actions menées.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={bilan} onChange={e => setBilan(e.target.value)} rows={3} maxLength={800}
+            placeholder="Bilan : objectifs atteints, actions réalisées, suite envisagée…" className="rounded-xl text-sm" data-testid="bilan-input" />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setTerminateRel(null)}>Annuler</Button>
+            <Button className="rounded-xl u2-btn-primary" disabled={acting} data-testid="submit-terminate-btn" onClick={async () => {
+              setActing(true);
+              try {
+                await u2.post(`/mentoring/relations/${terminateRel.conn_id}/terminate`, { bilan });
+                toast.success("Mentorat clôturé avec bilan");
+                setTerminateRel(null); loadMatches();
+              } catch (e) { toast.error(e.response?.data?.detail || "Erreur"); }
+              finally { setActing(false); }
+            }}>Clôturer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog retour confidentiel */}
+      <Dialog open={!!feedbackRel} onOpenChange={v => !v && setFeedbackRel(null)}>
+        <DialogContent className="max-w-md rounded-2xl" data-testid="feedback-dialog">
+          <DialogHeader>
+            <DialogTitle className="u2-heading">Retour confidentiel sur l'accompagnement</DialogTitle>
+            <DialogDescription>Votre retour reste confidentiel. Il contribue à la reconnaissance des mentors de qualité.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-2 py-1" data-testid="rating-stars">
+            {[1, 2, 3, 4, 5].map(n => (
+              <button key={n} onClick={() => setRating(n)} data-testid={`rating-${n}`}
+                className={`h-10 w-10 rounded-xl border text-lg font-bold transition-colors ${rating >= n ? "bg-[#E09F3E] text-white border-transparent" : "bg-white border-[#E2DFD8] text-stone-300"}`}>★</button>
+            ))}
+          </div>
+          <Textarea value={comment} onChange={e => setComment(e.target.value)} rows={2} maxLength={500}
+            placeholder="Commentaire (facultatif)" className="rounded-xl text-sm" data-testid="feedback-comment-input" />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setFeedbackRel(null)}>Annuler</Button>
+            <Button className="rounded-xl u2-btn-primary" disabled={acting || rating === 0} data-testid="submit-feedback-btn" onClick={async () => {
+              setActing(true);
+              try {
+                const res = await u2.post(`/mentoring/relations/${feedbackRel.conn_id}/feedback`, { rating, comment });
+                toast.success(res.data.message);
+                setFeedbackRel(null); loadMatches();
+              } catch (e) { toast.error(e.response?.data?.detail || "Erreur"); }
+              finally { setActing(false); }
+            }}>Envoyer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

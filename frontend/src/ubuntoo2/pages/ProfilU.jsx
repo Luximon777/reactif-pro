@@ -9,6 +9,7 @@ import { Lock, Users, Globe, RefreshCw, Save, Loader2, HandHeart, Award } from "
 import { toast } from "sonner";
 import { u2, HELP_OFFERS, PRIVACY_LEVELS } from "../api";
 import { BadgesGrid } from "./BadgesSection";
+import ParcoursUbuntoo from "./ParcoursUbuntoo";
 
 const PRIVACY_ICONS = { prive: Lock, reseau: Users, public: Globe };
 const FIELD_LABELS = {
@@ -160,6 +161,8 @@ export default function ProfilU() {
           </div>
         </CardContent>
       </Card>
+
+      <ParcoursUbuntoo />
 
       {badges.length > 0 && (
         <Card className="rounded-2xl border border-[#E2DFD8] shadow-none bg-white">
