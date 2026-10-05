@@ -1,0 +1,36 @@
+{
+  "summary": "UBUNTOO v2 — Parcours de progression + Cycle de vie du mentorat + Validation humaine. Backend: 30/30 pytest OK (17 structure/enforcement + 13 flux complet marc19 Contributeur→candidature→admin approve→Mentor + Mentor confirmé auto via seed DB + candidature Ambassadeur). Frontend: carte parcours-ubuntoo, current-level-badge, contributions-summary, admin-candidatures-panel avec approve/reject buttons, 'Retour confidentiel transmis ✓' pour mike7, 3 branches Mentorat/Animation/Ambassadeur affichées correctement. 1 point d'attention: can_apply_mentor nécessite profil_complet (headline/projet + competences/help_offers) ce qui n'est pas documenté dans la review request mais correct selon le code.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ParcoursUbuntoo", "issues": ["(Mineur) La condition d'affichage de apply-mentor-btn exige profil_complet (headline+competences/help_offers) EN PLUS de can_apply_mentor. Pour mike7, les 5 posts ressource suffisent à devenir Contributeur mais le bouton reste caché tant que le profil n'est pas rempli. Comportement correct mais à expliciter dans next_steps pour meilleure UX."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ubuntoo_progression_v2.py",
+    "/app/backend/tests/test_ubuntoo_prog_flow_i59.py",
+    "/app/test_reports/pytest/ubuntoo_prog_v2_i59.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/ubuntoo_v2.py:_compute_progression — mentor_confirme est auto-calculé puis persisté avec update_one + upsert; déclenche une notif à chaque GET /progression si état déjà confirmé? Non: vérifié, la notif n'est émise que lors de la bascule (via check sur ancien mentor_status). OK.",
+    "mentorat_feedback: validation rating est 1-5 inclus — testé OK, retourne 400 si invalide ou déjà donné (code 400 unique dans les 2 cas, text différent OK).",
+    "can_apply_mentor exige profil_complet (headline/projet + competences/help_offers) — à surfacer dans l'UI (step 'complétez votre profil')."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ubuntoo_progression_v2.py (nouveau)",
+    "/app/backend/tests/test_ubuntoo_prog_flow_i59.py (nouveau)"
+  ],
+  "success_rate": {"backend": "100% (30/30)", "frontend": "100% des flux testables (admin panel, mike7 feedback déjà donné, marc19 passage Mentor UBUNTOO, cycle mentorat termine+bilan+feedback)"},
+  "test_credentials": "peter7 (Mentor→Mentor confirmé→Ambassadeur après test), mike7 (Contributeur après test, feedback déjà donné sur relation existante), marc19 (Mentor UBUNTOO après admin approve dans le test), admin@reactifpro.fr/Choukette@777",
+  "seed_data_creation": "Durant les tests de flux: marc19 posts 5 ressources (TEST_i59_* nettoyés), 1 TEST_i59 connection mentorat pour peter7 (nettoyée), candidatures mentor marc19 + ambassadeur peter7 approuvées (persistées). État post-test : marc19 = Mentor UBUNTOO (persistant), peter7 = Mentor confirmé + Ambassadeur UBUNTOO (persistant), mike7 inchangé.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "ATTENTION: après i59, marc19 est devenu Mentor UBUNTOO et peter7 est devenu Mentor confirmé + Ambassadeur UBUNTOO (persistant). Si vous relancez test_ubuntoo_prog_flow_i59.py: les tests Marc19Flow seront skippés car marc19.mentor_status != 'none'. Pour relancer le flux complet, reset db.ubuntoo2_progression.deleteOne({token_id: marc19_id}) ou utiliser un autre compte libre. Le MVP backend progression est très stable. Le test test_ubuntoo_progression_v2.py est générique et peut être rejoué sans effet de bord (il ne crée pas de candidature permanente).",
+  "rca of the issue": "N/A — aucun bug trouvé. Observation Playwright: navigation /ubuntoo/profil pour peter7 instable via browser automation (pas de bug applicatif, les routes fonctionnent correctement pour admin/marc19/mike7). N'affecte pas l'utilisateur réel."
+}

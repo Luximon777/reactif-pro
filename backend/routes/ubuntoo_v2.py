@@ -751,8 +751,10 @@ async def _compute_progression(token_id: str) -> dict:
         next_steps.append("Participez : rejoignez une communauté, échangez, posez une question.")
     elif not contributeur:
         next_steps.append("Apportez des contributions utiles : expérience, ressource, opportunité ou réponse à un membre.")
-    if contributeur and mentor_status == "none":
+    if can_apply_mentor:
         next_steps.append("Devenez Mentor candidat : acceptez la charte du mentor et proposez un accompagnement.")
+    elif contributeur and mentor_status == "none" and not profil_complet:
+        next_steps.append("Niveau Contributeur atteint : complétez votre profil pour pouvoir candidater comme Mentor.")
     if mentor_status == "candidat":
         next_steps.append("Votre candidature mentor est en cours d'examen par l'équipe UBUNTOO.")
     if mentor_status == "mentor":
