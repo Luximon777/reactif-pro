@@ -79,6 +79,12 @@ Plateforme full-stack d'analyse de compétences professionnelles avec :
 
 - [x] (2026-09) Compte VSI créé : vsi_demo / VsiDemo2026! (rôle vsi). Fix associé : /auth/switch-role accepte désormais le rôle "vsi" (le backend le refusait, le rôle n'était appliqué que côté frontend). Vérifié E2E : carte "Certification officielle des Soft Skills — Parcours VSI" → login → dashboard Parcours VSI (4 phases + coach). NÉCESSITE REDÉPLOIEMENT (+ recréer le compte en prod via l'inscription).
 
+## ✅ UBUNTOO v2 — Reconstruction complète (2026-06, fork) — iteration_58, 100% (34/34 backend + E2E frontend)
+Cahier des charges : /app/memory/CDC_UBUNTOO.md. Design : /app/design_guidelines.json (terracotta #C85A32, sand #FAF8F5, Plus Jakarta Sans, mobile first).
+- Backend `/app/backend/routes/ubuntoo_v2.py` (prefix /api/ubuntoo2, collections ubuntoo2_*) : profil auto-alimenté par le passeport Ré'Actif Pro (+/me/sync), confidentialité 3 niveaux par champ filtrée côté serveur (_filter_profile), recherche membres, mise en relation PAR CONSENTEMENT (POST /connections, respond accept/decline, notifs), contacts, messagerie individuelle réservée aux contacts (403 sinon), 22 communautés seedées (4 catégories) + création libre, posts 6 types + bouton « Utile » (pas de likes) + réponses, signalements (8 motifs), notifications, dashboard.
+- Frontend `/app/frontend/src/ubuntoo2/` : UbuntooV2App (header + nav desktop + bottom nav mobile 5 onglets + cloche notifs), pages Accueil/Reseau/Communautes/CommunauteDetail/MessagesU/ProfilU. Route /ubuntoo/* → nouvelle app (ancienne sur /ubuntoo-v1/*).
+- Phase 2 (backlog) : messagerie de groupe, mentorat, badges, opportunités, reco IA, intégration D'CLIC + Ma trajectoire, Carte Emploi, comptes employeurs. NÉCESSITE REDÉPLOIEMENT.
+
 ## 🔜 PROCHAINE GRANDE FEATURE (spec complète : /app/memory/SPEC_RECONVERSION.md)
 - [x] (2026-06, fork) « Explorer une nouvelle trajectoire » IMPLÉMENTÉE (iteration_57, 100% backend+frontend) :
   - Backend `/app/backend/routes/reconversion.py` : POST /api/trajectoire/explorer (job asyncio + polling via GET /explorer/status/{job_id}, 2 appels gpt-5.2 parallèles, pas de 502), GET /explorer/latest (cache db.reconversion_results), GET /trajectoire/coherence (détection changements de métier dans la frise + fil_conducteur, cache par hash des étapes dans db.trajectoire_coherence), enrichissement codes ROME via rome_metiers.
