@@ -1331,7 +1331,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            {viewMode === "accueil" ? "Mon Espace" : "Ma Trajectoire Professionnelle"}
+            {viewMode === "accueil" ? "Mon Espace" : "Ma Trajectoire Professionnelle - Projet de reconversion pro"}
           </h1>
           <p className="text-slate-500 mt-1 text-sm">{viewMode === "accueil" ? "Votre tableau de bord personnalisé" : "Visualisez votre parcours, valorisez vos acquis, contrôlez vos données"}</p>
         </div>
