@@ -4029,15 +4029,42 @@ async def _llm_call_with_retry(system_msg: str, user_msg: str, max_retries: int 
 def _extract_text_from_bytes(content: bytes, filename: str) -> str:
     """Extract text from file bytes (PDF, DOCX, TXT)"""
     text = ""
-    if filename.lower().endswith(".pdf"):
+    fname = filename.lower()
+    if fname.endswith(".pdf"):
         reader = PyPDF2.PdfReader(io.BytesIO(content))
         for page in reader.pages:
             text += (page.extract_text() or "") + "\n"
-    elif filename.lower().endswith((".docx", ".doc")):
+    elif fname.endswith(".docx"):
         import docx
         doc = docx.Document(io.BytesIO(content))
-        for para in doc.paragraphs:
-            text += para.text + "\n"
+        parts = [p.text for p in doc.paragraphs]
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    cell_text = cell.text.strip()
+                    if cell_text:
+                        parts.append(cell_text)
+        for section in doc.sections:
+            try:
+                parts.extend(p.text for p in section.header.paragraphs)
+                parts.extend(p.text for p in section.footer.paragraphs)
+            except Exception:
+                pass
+        text = "\n".join(x for x in parts if x and x.strip())
+        if len(text.strip()) < 50:
+            # Fallback XML brut : capture aussi les zones de texte / formes (w:txbxContent)
+            try:
+                import zipfile
+                import re as _re
+                with zipfile.ZipFile(io.BytesIO(content)) as z:
+                    xml = z.read("word/document.xml").decode("utf-8", errors="ignore")
+                xml_text = "\n".join(t for t in _re.findall(r"<w:t[^>]*>([^<]*)</w:t>", xml) if t.strip())
+                if len(xml_text.strip()) > len(text.strip()):
+                    text = xml_text
+            except Exception:
+                pass
+    elif fname.endswith(".doc"):
+        raise ValueError("Le format .doc (Word 97-2003) n'est pas pris en charge. Enregistrez votre CV au format .docx ou PDF puis ré-essayez.")
     else:
         text = content.decode("utf-8", errors="ignore")
     return text.strip()
@@ -4592,7 +4619,10 @@ async def extract_cv_text(token: str, file: UploadFile = File(...)):
     """Extract text from PDF/DOCX - lightweight, no AI, fast response"""
     await get_current_token(token)
     content = await file.read()
-    text = _extract_text_from_bytes(content, file.filename or "file.txt")
+    try:
+        text = _extract_text_from_bytes(content, file.filename or "file.txt")
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     if not text or len(text.strip()) < 10:
         raise HTTPException(status_code=400, detail="Impossible d'extraire du texte de ce fichier")
     return {"text": text, "length": len(text)}
@@ -4612,7 +4642,10 @@ async def extract_cv_text_base64(token: str, payload: CvBase64Payload):
         content = base64.b64decode(payload.data)
     except Exception:
         raise HTTPException(status_code=400, detail="Données invalides")
-    text = _extract_text_from_bytes(content, payload.filename)
+    try:
+        text = _extract_text_from_bytes(content, payload.filename)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     if not text or len(text.strip()) < 10:
         raise HTTPException(status_code=400, detail="Impossible d'extraire du texte de ce fichier")
     return {"text": text, "length": len(text)}

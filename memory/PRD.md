@@ -121,6 +121,20 @@ https://cv-analyzer-53.preview.emergentagent.com (l'ancienne skills-vault-16 est
 - P3: Micro-titres/badges (Ubuntoo)
 - P3: Compteur global preuves OPC
 
+## 🔐 AUDIT SÉCURITÉ (2026-06) — correctifs EN ATTENTE (décision utilisateur : « plus tard »)
+Verdict audit : FAIL — à corriger avant/at redéploiement idéalement :
+- CRITIQUE SEC-001 : mots de passe admin en dur + re-seedés à chaque boot (server.py ~8290-8314, .env ligne 10, _is_admin ubuntoo_v2.py). Fix : secrets via env, retirer le seed, ne plus accorder admin par email en dur.
+- ÉLEVÉ SEC-002 : endpoints privilégiés SANS auth : server.py:2065 validate_contribution et server.py:1575 update_beneficiaire. Fix : get_current_token + contrôle rôle.
+- MOYEN SEC-003 : tokens en query param sans expiration. Préférence utilisateur actée : expiration 30 jours avec prolongation auto à chaque utilisation.
+- MOYEN SEC-004 : hachage SHA-256 non salé (_hash_pw server.py:6782) → bcrypt avec migration au login (passer par integration_expert avant d'implémenter).
+- MOYEN SEC-005 : endpoints /cv/extract-text* sans limite de taille → cap taille + quotas.
+- P3 : CORS wildcard+credentials, énumération pseudo au register, pas de rate-limit login, /trajectory/access-log sans auth.
+
+## ✅ Correctif CV .docx (2026-06, testé) — EN ATTENTE DE REDÉPLOIEMENT (l'utilisateur déploiera lui-même)
+- RCA deployer : CV de syl67 en .docx mis en page en TABLEAUX → extraction ne lisait que doc.paragraphs → « pas assez de texte exploitable ». (Cause ≠ timeouts Atlas, qui concernaient un autre compte.)
+- Fix _extract_text_from_bytes (server.py ~4029) : .docx = paragraphes + tableaux + en-têtes/pieds + fallback XML w:t (zones de texte) ; .doc legacy → ValueError message clair ; endpoints extract-text* renvoient 400 propre. Testé : docx-tableaux → 182 chars extraits.
+- Contournement prod en attendant : ré-uploader en PDF (OCR vision OK).
+
 ## Note environnements
 - Les corrections sont faites sur Preview. L'utilisateur doit REDÉPLOYER pour les voir sur reactif.pro (production). Les comptes prod (ex: aurelie67) bénéficieront des correctifs lors du prochain upload de CV ou via le bouton "Actualiser" du passeport (refresh).
 - (2026-06) RCA prod « CV ne charge pas » : timeouts de lecture MongoDB Atlas intermittents (RCA deployer 39ff6a3a). Correctif résilience appliqué dans server.py : AsyncIOMotorClient avec retryReads/retryWrites + socketTimeoutMS 45s ; exception handler global NetworkTimeout/AutoReconnect/ConnectionFailure → 503 (au lieu de 500) ; helper mongo_retry (3 tentatives) sur /cv/analyze/status et le marquage d'échec du worker ; réconciliation au startup des cv_jobs orphelins (processing/analyzing → failed avec message de relance). DOIT ÊTRE REDÉPLOYÉ pour prendre effet en prod. Si timeouts persistants après redéploiement → ticket plateforme (deployment_id ad9b6b03-971a-42b8-b15b-ee401e317181).
