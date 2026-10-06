@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Search, UserPlus, Check, X, Eye, Loader2, Users, MessageSquare, HandHeart } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { u2, timeAgo } from "../api";
+import { u2, timeAgo, RECOGNITION_TYPES } from "../api";
 import MentoratTab from "./MentoratTab";
 import { BadgeChip } from "./BadgesSection";
 
@@ -45,6 +45,26 @@ const MemberProfileDialog = ({ member, open, onOpenChange }) => {
           {m.soft_skills?.length > 0 && <div><div className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1.5">Soft skills</div><div className="flex flex-wrap gap-1.5">{m.soft_skills.map((c, i) => <Badge key={i} variant="outline" className="rounded-full text-xs border-emerald-200 text-emerald-700">{c}</Badge>)}</div></div>}
           {m.help_offers?.length > 0 && <div><div className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1.5 flex items-center gap-1"><HandHeart className="w-3.5 h-3.5" />Disponible pour aider</div><div className="flex flex-wrap gap-1.5">{m.help_offers.map((c, i) => <Badge key={i} className="rounded-full text-xs bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-100">{c}</Badge>)}</div></div>}
           {!m.projet && !m.competences?.length && <p className="text-stone-400 text-sm">Ce membre limite la visibilité de son profil. Les informations « Réseau UBUNTOO » seront visibles après mise en relation acceptée.</p>}
+          {m.is_contact && (
+            <div className="rounded-xl border border-orange-100 bg-orange-50/50 p-3" data-testid="recognition-box">
+              <div className="text-xs font-semibold text-stone-700 mb-0.5">Cette personne vous a-t-elle été utile ?</div>
+              <p className="text-[11px] text-stone-500 mb-2">Reconnaissez sa contribution — ce n'est pas une note, c'est un merci qui compte pour ses badges.</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(RECOGNITION_TYPES).map(([k, label]) => (
+                  <button key={k} data-testid={`recognize-${k}`}
+                    onClick={async () => {
+                      try {
+                        const res = await u2.post("/recognitions", { to_id: m.token_id, type: k });
+                        toast.success(res.data.message);
+                      } catch (e) { toast.error(e.response?.data?.detail || "Erreur"); }
+                    }}
+                    className="rounded-full border border-orange-200 bg-white px-2.5 py-1 text-[11px] text-stone-700 hover:bg-orange-100 transition-colors">
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

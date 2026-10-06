@@ -50,9 +50,26 @@ export const PRIVACY_LEVELS = [
 
 export const BADGES_META = {
   bienvenue: { label: "Bienvenue UBUNTOO", icon: "Sprout", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  explorateur: { label: "Explorateur métier", icon: "Compass", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  contributeur: { label: "Contributeur", icon: "HandHeart", cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  profil_pro: { label: "Profil professionnel", icon: "UserCheck", cls: "bg-teal-50 text-teal-700 border-teal-200" },
+  premier_echange: { label: "Premier échange", icon: "MessageCircle", cls: "bg-sky-50 text-sky-700 border-sky-200" },
+  explorateur: { label: "Explorateur", icon: "Compass", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  coup_de_pouce: { label: "Coup de pouce", icon: "HandHeart", cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  partageur_experience: { label: "Partageur d'expérience", icon: "BookOpen", cls: "bg-amber-50 text-amber-800 border-amber-200" },
+  eclaireur_metier: { label: "Éclaireur métier", icon: "Lightbulb", cls: "bg-yellow-50 text-yellow-800 border-yellow-300" },
+  connecteur: { label: "Connecteur", icon: "Link2", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  partageur_opportunites: { label: "Partageur d'opportunités", icon: "Gift", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+  bienveillant: { label: "Bienveillant", icon: "Heart", cls: "bg-pink-50 text-pink-700 border-pink-200" },
+  esprit_collectif: { label: "Esprit collectif", icon: "UsersRound", cls: "bg-violet-50 text-violet-700 border-violet-200" },
   passeport_pro: { label: "Passeport professionnel", icon: "ShieldCheck", cls: "bg-[#2E7D5B]/10 text-[#2E7D5B] border-[#2E7D5B]/30" },
+};
+
+export const RECOGNITION_TYPES = {
+  partage_experience: "Partage d'expérience",
+  conseil: "Conseil",
+  information_metier: "Information métier",
+  mise_en_relation: "Mise en relation",
+  encouragement: "Encouragement",
+  partage_opportunite: "Partage d'opportunité",
 };
 
 export const timeAgo = (iso) => {

@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Compass, MessageSquare, HandHeart, ChevronRight, UserPlus, Loader2, GraduationCap, Award } from "lucide-react";
+import { Users, Compass, MessageSquare, HandHeart, ChevronRight, UserPlus, Loader2, GraduationCap, Award, Info, Sparkles, CheckCircle2 } from "lucide-react";
 import { u2, timeAgo, CATEGORIES } from "../api";
-import { BadgeChip } from "./BadgesSection";
+import { BadgeChip, ComprendreBadgesDialog } from "./BadgesSection";
 import { LoadFail } from "../LoadFail";
 
 export default function Accueil() {
   const [data, setData] = useState(null);
+  const [comprendreOpen, setComprendreOpen] = useState(false);
   const navigate = useNavigate();
 
   const load = () => {
@@ -42,6 +43,41 @@ export default function Accueil() {
           </div>
           <ChevronRight className="w-4 h-4 text-amber-600" />
         </button>
+      )}
+
+      {/* Point de départ : mon parcours de contribution */}
+      {data.progression && (
+        <div className="rounded-2xl bg-gradient-to-br from-[#C85A32] to-[#A84525] p-5 text-white" data-testid="contribution-path-card">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/70 font-semibold"><Sparkles className="w-3.5 h-3.5" />Mon parcours de contribution</div>
+              <div className="text-xl font-extrabold u2-heading mt-1" data-testid="home-current-level">Vous êtes {data.progression.current_label}</div>
+              <p className="text-sm text-white/85 mt-1">Tout le monde possède quelque chose à transmettre — chaque contribution compte.</p>
+            </div>
+            <div className="flex gap-1.5">
+              {(data.progression.parcours || []).map(p => (
+                <span key={p.id} title={p.label} className={`h-2.5 w-2.5 rounded-full ${p.complete ? "bg-emerald-300" : "bg-white/30"}`} />
+              ))}
+            </div>
+          </div>
+          {data.progression.next_steps?.length > 0 && (
+            <div className="mt-3 space-y-1.5" data-testid="home-suggestions">
+              {data.progression.next_steps.slice(0, 2).map((s, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-white/90">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" />{s}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-4 flex gap-2 flex-wrap">
+            <Button size="sm" className="rounded-xl bg-white text-[#C85A32] hover:bg-orange-50 font-semibold" onClick={() => navigate("/ubuntoo/profil")} data-testid="home-badges-btn">
+              <Award className="w-4 h-4 mr-1.5" />Mes badges & parcours
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-xl border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => setComprendreOpen(true)} data-testid="home-comprendre-btn">
+              <Info className="w-4 h-4 mr-1.5" />Comprendre les badges
+            </Button>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-3 gap-3">
@@ -174,6 +210,7 @@ export default function Accueil() {
       </Card>
 
       <p className="text-xs text-stone-400 text-center px-4">Sur Ubuntoo, pas de course aux likes : valorisez les contributions réellement utiles.</p>
+      <ComprendreBadgesDialog open={comprendreOpen} onOpenChange={setComprendreOpen} />
     </div>
   );
 }

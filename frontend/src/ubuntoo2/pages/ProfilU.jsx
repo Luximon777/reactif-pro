@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Users, Globe, RefreshCw, Save, Loader2, HandHeart, Award } from "lucide-react";
+import { Lock, Users, Globe, RefreshCw, Save, Loader2, HandHeart, Award, Info, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { u2, HELP_OFFERS, PRIVACY_LEVELS } from "../api";
-import { BadgesGrid } from "./BadgesSection";
+import { BadgesGrid, ComprendreBadgesDialog } from "./BadgesSection";
 import ParcoursUbuntoo from "./ParcoursUbuntoo";
 import { LoadFail } from "../LoadFail";
 
@@ -42,14 +42,15 @@ const PrivacySelect = ({ value, onChange, field }) => (
 
 export default function ProfilU() {
   const [profile, setProfile] = useState(null);
-  const [badges, setBadges] = useState([]);
+  const [badgesData, setBadgesData] = useState(null);
+  const [comprendreOpen, setComprendreOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   const loadProfile = () => {
     setProfile(null);
     u2.get("/me").then(r => setProfile(r.data)).catch(() => setProfile("error"));
-    u2.get("/badges").then(r => setBadges(r.data)).catch(() => {});
+    u2.get("/badges").then(r => setBadgesData(r.data)).catch(() => {});
   };
   useEffect(loadProfile, []);
 
@@ -168,15 +169,47 @@ export default function ProfilU() {
 
       <ParcoursUbuntoo />
 
-      {badges.length > 0 && (
+      {badgesData && (
         <Card className="rounded-2xl border border-[#E2DFD8] shadow-none bg-white">
-          <CardContent className="p-5">
-            <h3 className="text-base font-semibold u2-heading flex items-center gap-1.5 mb-3"><Award className="w-4 h-4 text-[#E09F3E]" />Mes badges UBUNTOO</h3>
-            <BadgesGrid badges={badges} />
-            <p className="text-[11px] text-stone-400 mt-3">Les badges matérialisent une contribution ou un engagement — pas une compétition entre membres.</p>
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-base font-semibold u2-heading flex items-center gap-1.5"><Award className="w-4 h-4 text-[#E09F3E]" />Mes badges & mon parcours de contribution</h3>
+              <Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => setComprendreOpen(true)} data-testid="comprendre-badges-btn">
+                <Info className="w-3.5 h-3.5 mr-1.5" />Comprendre les badges
+              </Button>
+            </div>
+
+            {/* Mon parcours de contribution — 4 chemins vers Contributeur */}
+            <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-3" data-testid="contribution-paths">
+              <div className="text-xs font-semibold text-stone-700 mb-0.5">Devenir Contributeur — plusieurs chemins possibles</div>
+              <p className="text-[11px] text-stone-500 mb-2.5">Le rôle Contributeur est accessible à tous : il dépend des contributions réellement apportées, pas du diplôme ni du statut. Complétez l'un de ces parcours :</p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {badgesData.parcours.map(p => (
+                  <div key={p.id} className={`rounded-lg border p-2.5 ${p.complete ? "bg-emerald-50 border-emerald-200" : "bg-white border-stone-100"}`} data-testid={`parcours-${p.id}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-700">{p.label}</span>
+                      {p.complete && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                    </div>
+                    <p className="text-[10px] text-stone-400 mb-1.5">{p.desc}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {p.badges.map(s => (
+                        <span key={s.id} className={`text-[10px] rounded-full px-2 py-0.5 border ${s.earned ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-stone-50 text-stone-400 border-stone-200"}`}>
+                          {s.earned ? "✓ " : `${s.progress.current}/${s.progress.target} `}{s.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <BadgesGrid badges={badgesData.badges}
+              onDisplayChange={(id, displayed) => setBadgesData(d => ({ ...d, badges: d.badges.map(b => b.id === id ? { ...b, displayed } : b) }))} />
+            <p className="text-[11px] text-stone-400">Les badges reconnaissent ce que vous apportez aux autres — pas une compétition. Cliquez sur un badge pour voir sa fiche complète et choisir de l'afficher sur votre profil.</p>
           </CardContent>
         </Card>
       )}
+      <ComprendreBadgesDialog open={comprendreOpen} onOpenChange={setComprendreOpen} />
     </div>
   );
 }

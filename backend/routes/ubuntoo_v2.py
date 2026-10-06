@@ -12,11 +12,122 @@ POST_TYPES = ["question", "experience", "information", "ressource", "opportunite
 REPORT_REASONS = ["Comportement inapproprié", "Discrimination", "Harcèlement", "Spam", "Fraude", "Contenu commercial non autorisé", "Fausse information professionnelle", "Atteinte à la confidentialité"]
 PRIVACY_FIELDS = ["projet", "experiences", "competences", "soft_skills", "interests", "help_offers"]
 
+RECOGNITION_TYPES = {
+    "partage_experience": "Partage d'expérience",
+    "conseil": "Conseil",
+    "information_metier": "Information métier",
+    "mise_en_relation": "Mise en relation",
+    "encouragement": "Encouragement",
+    "partage_opportunite": "Partage d'opportunité",
+}
+
 BADGES = {
-    "bienvenue": {"label": "Bienvenue UBUNTOO", "desc": "Profil complété et première participation"},
-    "explorateur": {"label": "Explorateur métier", "desc": "Participation à plusieurs échanges sur des métiers"},
-    "contributeur": {"label": "Contributeur", "desc": "Partage régulier de ressources utiles"},
-    "passeport_pro": {"label": "Passeport professionnel", "desc": "Parcours ou compétences vérifiées via Ré'Actif Pro"},
+    # --- Premiers badges accessibles à tous (automatiques) ---
+    "bienvenue": {
+        "label": "Bienvenue UBUNTOO", "categorie": "premiers", "target": 1, "validation_humaine": False,
+        "desc": "Marque votre entrée dans la communauté UBUNTOO.",
+        "pourquoi": "Chaque parcours commence par un premier pas. Ce badge célèbre votre arrivée.",
+        "comment": "Créer son profil et découvrir les principes de la communauté.",
+        "actions": ["Accéder à UBUNTOO avec votre compte Ré'Actif Pro"],
+        "valorise": "Votre entrée dans la communauté.",
+        "etape_suivante": "Complétez votre profil professionnel pour faciliter les mises en relation."},
+    "profil_pro": {
+        "label": "Profil professionnel", "categorie": "premiers", "target": 1, "validation_humaine": False,
+        "desc": "Votre profil contient les informations essentielles.",
+        "pourquoi": "Un profil renseigné facilite les mises en relation pertinentes.",
+        "comment": "Compléter les informations essentielles de son profil (projet, compétences ou disponibilité pour aider).",
+        "actions": ["Renseigner votre projet professionnel", "Ajouter des compétences ou une disponibilité pour aider"],
+        "valorise": "Votre identité professionnelle au sein du réseau.",
+        "etape_suivante": "Participez à votre premier échange avec un membre ou une communauté."},
+    "premier_echange": {
+        "label": "Premier échange", "categorie": "premiers", "target": 1, "validation_humaine": False,
+        "desc": "Vous êtes passé(e) de l'observation à la participation.",
+        "pourquoi": "Encourager le premier pas vers les autres.",
+        "comment": "Participer à son premier échange : publication, réponse, message ou mise en relation acceptée.",
+        "actions": ["Publier dans une communauté", "Répondre à un membre", "Envoyer un message", "Accepter une mise en relation"],
+        "valorise": "Votre passage à l'action dans la communauté.",
+        "etape_suivante": "Découvrez différentes communautés avec le badge Explorateur."},
+    "explorateur": {
+        "label": "Explorateur", "categorie": "premiers", "target": 2, "validation_humaine": False,
+        "desc": "Vous découvrez différentes communautés, métiers et expériences.",
+        "pourquoi": "Valoriser la curiosité et l'ouverture professionnelle.",
+        "comment": "Rejoindre au moins 2 communautés (métiers, situations, territoires ou thématiques).",
+        "actions": ["Rejoindre des communautés", "Découvrir des métiers et des expériences"],
+        "valorise": "Votre curiosité professionnelle.",
+        "etape_suivante": "Choisissez une façon de contribuer : aider, partager, connecter ou animer."},
+    # --- Badges de contribution ---
+    "coup_de_pouce": {
+        "label": "Coup de pouce", "categorie": "contribution", "target": 3, "validation_humaine": False,
+        "desc": "Reconnaît une aide concrète apportée à un autre membre.",
+        "pourquoi": "Reconnaître votre capacité à contribuer à la réussite des autres.",
+        "comment": "Répondre utilement à une demande, partager une information pertinente ou aider quelqu'un dans une démarche. Les aides sont reconnues par les membres (bouton « Utile » ou reconnaissance directe).",
+        "actions": ["Réponses marquées « Utile » par d'autres membres", "Reconnaissances « Conseil » ou « Information métier » reçues"],
+        "valorise": "Votre entraide concrète.",
+        "etape_suivante": "Avec le badge Bienveillant, vous complétez le Parcours entraide vers Contributeur."},
+    "partageur_experience": {
+        "label": "Partageur d'expérience", "categorie": "contribution", "target": 2, "validation_humaine": False,
+        "desc": "Reconnaît le partage d'expériences utiles aux autres.",
+        "pourquoi": "Votre vécu (reconversion, métier, formation, entretien, intégration) peut éclairer le chemin des autres.",
+        "comment": "Publier des témoignages d'expérience dans les communautés, ou être reconnu(e) par des membres pour un partage d'expérience.",
+        "actions": ["Publications de type « Expérience »", "Reconnaissances « Partage d'expérience » reçues"],
+        "valorise": "La transmission de votre vécu professionnel.",
+        "etape_suivante": "Avec Éclaireur métier, vous complétez le Parcours expérience vers Contributeur."},
+    "eclaireur_metier": {
+        "label": "Éclaireur métier", "categorie": "contribution", "target": 3, "validation_humaine": False,
+        "desc": "Vous aidez les autres à mieux comprendre un métier.",
+        "pourquoi": "Faire découvrir les réalités d'un métier ou d'un secteur aide les personnes en orientation ou en reconversion.",
+        "comment": "Participer aux échanges dans les communautés métiers : présenter son métier, expliquer un secteur, détailler les compétences nécessaires.",
+        "actions": ["Publications et réponses dans les communautés Métiers"],
+        "valorise": "Votre connaissance de terrain des métiers.",
+        "etape_suivante": "Avec Partageur d'expérience, vous complétez le Parcours expérience vers Contributeur."},
+    "connecteur": {
+        "label": "Connecteur", "categorie": "contribution", "target": 2, "validation_humaine": False,
+        "desc": "Reconnaît la capacité à mettre utilement des personnes en relation.",
+        "pourquoi": "« Je connais quelqu'un qui pourrait vous aider » : le réseau est une richesse qui se partage, toujours avec le consentement des personnes.",
+        "comment": "Être reconnu(e) pour des mises en relation utiles, ou développer un réseau actif de contacts acceptés.",
+        "actions": ["Reconnaissances « Mise en relation » reçues", "Mises en relation acceptées"],
+        "valorise": "Votre rôle de facilitateur de rencontres professionnelles.",
+        "etape_suivante": "Avec Partageur d'opportunités, vous complétez le Parcours réseau vers Contributeur."},
+    "partageur_opportunites": {
+        "label": "Partageur d'opportunités", "categorie": "contribution", "target": 3, "validation_humaine": False,
+        "desc": "Reconnaît le partage d'opportunités professionnelles utiles.",
+        "pourquoi": "Une offre, une formation, une immersion ou un événement partagé peut changer la trajectoire de quelqu'un.",
+        "comment": "Publier des opportunités (emploi, formation, PMSMP, alternance, événement, job dating) dans les communautés.",
+        "actions": ["Publications de type « Opportunité »", "Reconnaissances « Partage d'opportunité » reçues"],
+        "valorise": "Votre contribution à l'accès à l'emploi des autres.",
+        "etape_suivante": "Avec Connecteur, vous complétez le Parcours réseau vers Contributeur."},
+    "bienveillant": {
+        "label": "Bienveillant", "categorie": "contribution", "target": 3, "validation_humaine": False,
+        "desc": "Reconnaît une attitude constructive et respectueuse dans les échanges.",
+        "pourquoi": "La qualité des interactions compte plus que leur volume.",
+        "comment": "Être reconnu(e) par d'autres membres pour vos encouragements et votre attitude constructive.",
+        "actions": ["Reconnaissances « Encouragement » reçues de membres différents"],
+        "valorise": "Votre contribution au climat d'entraide de la communauté.",
+        "etape_suivante": "Avec Coup de pouce, vous complétez le Parcours entraide vers Contributeur."},
+    "esprit_collectif": {
+        "label": "Esprit collectif", "categorie": "contribution", "target": 5, "validation_humaine": False,
+        "desc": "Reconnaît une participation régulière et constructive à une communauté.",
+        "pourquoi": "Les communautés vivent grâce à ceux qui y participent dans la durée.",
+        "comment": "Participer régulièrement à une même communauté (publications et réponses).",
+        "actions": ["Participations (publications + réponses) dans une même communauté"],
+        "valorise": "Votre engagement durable dans un collectif.",
+        "etape_suivante": "Avec Premier échange, vous complétez le Parcours communauté vers Contributeur."},
+    # --- Badge vérifié ---
+    "passeport_pro": {
+        "label": "Passeport professionnel", "categorie": "verifie", "target": 1, "validation_humaine": True,
+        "desc": "Parcours ou compétences vérifiées via Ré'Actif Pro.",
+        "pourquoi": "Relier votre engagement communautaire à votre identité professionnelle vérifiée.",
+        "comment": "Déposer une preuve (diplôme, certificat, attestation) dans votre coffre-fort Ré'Actif Pro ou atteindre un passeport de compétences complet.",
+        "actions": ["Preuve vérifiée déposée dans Ré'Actif Pro", "Passeport de compétences complété à 70 %"],
+        "valorise": "La fiabilité de votre parcours documenté.",
+        "etape_suivante": "Vos badges de contribution complètent ce socle vérifié — sans jamais se substituer à une certification de compétence."},
+}
+
+PARCOURS_CONTRIBUTEUR = {
+    "entraide": {"label": "Parcours entraide", "desc": "Aider concrètement les autres membres", "badges": ["coup_de_pouce", "bienveillant"]},
+    "experience": {"label": "Parcours expérience", "desc": "Transmettre son vécu et faire découvrir les métiers", "badges": ["partageur_experience", "eclaireur_metier"]},
+    "reseau": {"label": "Parcours réseau", "desc": "Connecter les personnes et partager des opportunités", "badges": ["connecteur", "partageur_opportunites"]},
+    "communaute": {"label": "Parcours communauté", "desc": "Faire vivre une communauté dans la durée", "badges": ["premier_echange", "esprit_collectif"]},
 }
 
 CHARTE_MENTOR = [
@@ -107,8 +218,11 @@ async def _are_contacts(a: str, b: str) -> bool:
 
 
 def _filter_profile(prof: dict, is_self: bool, is_contact: bool) -> dict:
+    earned_badges = prof.get("badges_earned", [])
+    displayed = prof.get("displayed_badges")
+    public_badges = [b for b in earned_badges if (not isinstance(displayed, list)) or b in displayed]
     out = {"token_id": prof["token_id"], "display_name": prof.get("display_name", ""), "headline": "", "is_contact": is_contact,
-           "mentoring_role": prof.get("mentoring_role", "none"), "badges": prof.get("badges_earned", []),
+           "mentoring_role": prof.get("mentoring_role", "none"), "badges": public_badges,
            "level": prof.get("level", "Membre"),
            "mentoring_topics": prof.get("mentoring_topics", [])}
     privacy = prof.get("privacy", {})
@@ -697,7 +811,9 @@ async def _compute_progression(token_id: str) -> dict:
     profil_complet = bool(prof.get("headline") or prof.get("projet")) and bool(prof.get("competences") or prof.get("help_offers"))
 
     membre_actif = participations >= 3
-    contributeur = (ressources + replies_count) >= 5 or utiles_recus >= 3
+    badges = await _compute_badges(token_id)
+    parcours = _parcours_state(badges)
+    contributeur = any(p["complete"] for p in parcours) or (ressources + replies_count) >= 5 or utiles_recus >= 3
 
     mentorats_termines = await db.ubuntoo2_connections.count_documents(
         {"kind": "mentorat", "mentor_id": token_id, "mentorat_status": "termine"})
@@ -789,6 +905,8 @@ async def _compute_progression(token_id: str) -> dict:
             "note_moyenne_mentorat": avg_rating,
         },
         "next_steps": next_steps[:4],
+        "badges": badges,
+        "parcours": parcours,
     }
 
 
@@ -880,52 +998,153 @@ async def decide_candidature(cand_id: str, token: str, body: dict):
 async def _compute_badges(token_id: str) -> list:
     prof = await db.ubuntoo2_profiles.find_one({"token_id": token_id}, {"_id": 0}) or {}
     posts = await db.ubuntoo2_posts.find({"author_id": token_id}, {"_id": 0, "type": 1, "community_id": 1, "utile_by": 1}).to_list(500)
-    replies_count = await db.ubuntoo2_replies.count_documents({"author_id": token_id})
+    my_replies = await db.ubuntoo2_replies.find({"author_id": token_id}, {"_id": 0, "post_id": 1, "utile_by": 1}).to_list(1000)
+    replies_count = len(my_replies)
     my_comms = await db.ubuntoo2_communities.find({"members": token_id}, {"_id": 0, "id": 1, "category": 1}).to_list(100)
-    contributions = len(posts) + replies_count
+    accepted_conns = await db.ubuntoo2_connections.count_documents(
+        {"status": "accepted", "$or": [{"from_id": token_id}, {"to_id": token_id}]})
+    msgs_sent = await db.ubuntoo2_messages.count_documents({"sender_id": token_id})
     profil_complet = bool(prof.get("headline") or prof.get("projet")) and bool(prof.get("competences") or prof.get("help_offers"))
 
-    metier_comm_ids = {c["id"] for c in my_comms if c.get("category") == "metiers"}
+    # Reconnaissances reçues par type (confirmées par d'autres membres)
+    reco = {}
+    async for r in db.ubuntoo2_recognitions.aggregate([
+            {"$match": {"to_id": token_id}},
+            {"$group": {"_id": "$type", "n": {"$sum": 1}}}]):
+        reco[r["_id"]] = r["n"]
+
+    utiles_sur_reponses = sum(len(r.get("utile_by", [])) for r in my_replies)
+
     all_metier_ids = {c["id"] for c in await db.ubuntoo2_communities.find({"category": "metiers"}, {"_id": 0, "id": 1}).to_list(100)}
     metier_posts = sum(1 for p in posts if p.get("community_id") in all_metier_ids)
     metier_replies = 0
-    if all_metier_ids:
-        metier_post_ids = [p["id"] for p in await db.ubuntoo2_posts.find({"community_id": {"$in": list(all_metier_ids)}}, {"_id": 0, "id": 1}).to_list(1000)]
-        if metier_post_ids:
-            metier_replies = await db.ubuntoo2_replies.count_documents({"author_id": token_id, "post_id": {"$in": metier_post_ids}})
+    if all_metier_ids and my_replies:
+        metier_post_ids = {p["id"] for p in await db.ubuntoo2_posts.find(
+            {"community_id": {"$in": list(all_metier_ids)}}, {"_id": 0, "id": 1}).to_list(2000)}
+        metier_replies = sum(1 for r in my_replies if r.get("post_id") in metier_post_ids)
 
-    utiles_recus = sum(len(p.get("utile_by", [])) for p in posts)
-    ressources = sum(1 for p in posts if p.get("type") in ("ressource", "information", "opportunite"))
+    # Participations par communauté (esprit collectif = régularité dans UNE communauté)
+    per_comm = {}
+    for p in posts:
+        per_comm[p.get("community_id")] = per_comm.get(p.get("community_id"), 0) + 1
+    if my_replies:
+        reply_post_ids = list({r["post_id"] for r in my_replies})
+        posts_of_replies = await db.ubuntoo2_posts.find({"id": {"$in": reply_post_ids}}, {"_id": 0, "id": 1, "community_id": 1}).to_list(2000)
+        post_comm = {p["id"]: p.get("community_id") for p in posts_of_replies}
+        for r in my_replies:
+            cid = post_comm.get(r["post_id"])
+            if cid:
+                per_comm[cid] = per_comm.get(cid, 0) + 1
+    max_comm_participations = max(per_comm.values()) if per_comm else 0
+
+    exp_posts = sum(1 for p in posts if p.get("type") == "experience")
+    oppo_posts = sum(1 for p in posts if p.get("type") == "opportunite")
 
     has_proof = await db["proof_documents.files"].count_documents({"metadata.token_id": token_id}) > 0
     passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0, "completeness_score": 1})
     passeport_ok = has_proof or (passport or {}).get("completeness_score", 0) >= 70
 
-    earned = {
-        "bienvenue": profil_complet and (contributions >= 1 or len(my_comms) >= 1),
-        "explorateur": (metier_posts + metier_replies) >= 3 or len(metier_comm_ids) >= 2,
-        "contributeur": (ressources + replies_count) >= 5 or utiles_recus >= 3,
-        "passeport_pro": passeport_ok,
+    progress = {
+        "bienvenue": 1,
+        "profil_pro": 1 if profil_complet else 0,
+        "premier_echange": min(1, len(posts) + replies_count + msgs_sent + accepted_conns),
+        "explorateur": len(my_comms),
+        "coup_de_pouce": utiles_sur_reponses + reco.get("conseil", 0) + reco.get("information_metier", 0),
+        "partageur_experience": max(exp_posts, reco.get("partage_experience", 0)),
+        "eclaireur_metier": metier_posts + metier_replies,
+        "connecteur": max(reco.get("mise_en_relation", 0), accepted_conns // 3),
+        "partageur_opportunites": max(oppo_posts, reco.get("partage_opportunite", 0)),
+        "bienveillant": reco.get("encouragement", 0),
+        "esprit_collectif": max_comm_participations,
+        "passeport_pro": 1 if passeport_ok else 0,
     }
+
     existing = await db.ubuntoo2_badges.find_one({"token_id": token_id}, {"_id": 0}) or {"token_id": token_id, "earned": {}}
     newly = []
-    for bid, ok in earned.items():
-        if ok and bid not in existing["earned"]:
+    for bid, meta in BADGES.items():
+        if progress.get(bid, 0) >= meta["target"] and bid not in existing["earned"]:
             existing["earned"][bid] = now_iso()
             newly.append(bid)
     if newly:
         await db.ubuntoo2_badges.update_one({"token_id": token_id}, {"$set": {"earned": existing["earned"]}}, upsert=True)
         await db.ubuntoo2_profiles.update_one({"token_id": token_id}, {"$set": {"badges_earned": list(existing["earned"].keys())}})
         for bid in newly:
-            await _notify(token_id, "badge", f"Badge obtenu : « {BADGES[bid]['label']} » — {BADGES[bid]['desc']}.", "/ubuntoo/profil")
-    return [{"id": bid, **BADGES[bid], "earned": bid in existing["earned"], "earned_at": existing["earned"].get(bid)}
-            for bid in BADGES]
+            await _notify(token_id, "badge", f"Badge obtenu : « {BADGES[bid]['label']} » — {BADGES[bid]['desc']}", "/ubuntoo/profil")
+
+    displayed = prof.get("displayed_badges")
+    return [{
+        "id": bid, **BADGES[bid],
+        "earned": bid in existing["earned"],
+        "earned_at": existing["earned"].get(bid),
+        "progress": {"current": min(progress.get(bid, 0), BADGES[bid]["target"]), "target": BADGES[bid]["target"]},
+        "displayed": (bid in displayed) if isinstance(displayed, list) else True,
+    } for bid in BADGES]
+
+
+def _parcours_state(badges: list) -> list:
+    earned_ids = {b["id"] for b in badges if b["earned"]}
+    by_id = {b["id"]: b for b in badges}
+    out = []
+    for pid, p in PARCOURS_CONTRIBUTEUR.items():
+        steps = [{"id": bid, "label": by_id[bid]["label"], "earned": bid in earned_ids,
+                  "progress": by_id[bid]["progress"]} for bid in p["badges"]]
+        out.append({"id": pid, "label": p["label"], "desc": p["desc"], "badges": steps,
+                    "complete": all(s["earned"] for s in steps)})
+    return out
 
 
 @router.get("/badges")
 async def get_badges(token: str):
     token_doc = await get_current_token(token)
-    return await _compute_badges(token_doc["id"])
+    badges = await _compute_badges(token_doc["id"])
+    return {"badges": badges, "parcours": _parcours_state(badges),
+            "recognition_types": RECOGNITION_TYPES}
+
+
+@router.put("/badges/display")
+async def set_badge_display(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    badge_id = body.get("badge_id")
+    if badge_id not in BADGES:
+        raise HTTPException(status_code=400, detail="Badge inconnu")
+    prof = await _get_or_create_profile(token_doc)
+    displayed = prof.get("displayed_badges")
+    if not isinstance(displayed, list):
+        doc = await db.ubuntoo2_badges.find_one({"token_id": token_doc["id"]}, {"_id": 0}) or {"earned": {}}
+        displayed = list(doc.get("earned", {}).keys())
+    if body.get("displayed"):
+        if badge_id not in displayed:
+            displayed.append(badge_id)
+    else:
+        displayed = [b for b in displayed if b != badge_id]
+    await db.ubuntoo2_profiles.update_one({"token_id": token_doc["id"]}, {"$set": {"displayed_badges": displayed}})
+    return {"displayed_badges": displayed}
+
+
+@router.post("/recognitions")
+async def give_recognition(token: str, body: dict):
+    token_doc = await get_current_token(token)
+    me = token_doc["id"]
+    to_id = body.get("to_id")
+    rtype = body.get("type")
+    if rtype not in RECOGNITION_TYPES:
+        raise HTTPException(status_code=400, detail="Type de reconnaissance invalide")
+    if not to_id or to_id == me:
+        raise HTTPException(status_code=400, detail="Destinataire invalide")
+    target = await db.ubuntoo2_profiles.find_one({"token_id": to_id}, {"_id": 0, "display_name": 1})
+    if not target:
+        raise HTTPException(status_code=404, detail="Membre introuvable")
+    existing = await db.ubuntoo2_recognitions.find_one({"from_id": me, "to_id": to_id, "type": rtype})
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà reconnu cette contribution pour ce membre.")
+    await db.ubuntoo2_recognitions.insert_one({
+        "id": str(uuid.uuid4()), "from_id": me, "to_id": to_id, "type": rtype, "created_at": now_iso()})
+    my_prof = await _get_or_create_profile(token_doc)
+    await _notify(to_id, "reconnaissance",
+                  f"{my_prof.get('display_name')} a reconnu votre contribution : « {RECOGNITION_TYPES[rtype]} ». Merci pour votre aide !",
+                  "/ubuntoo/profil")
+    await _compute_badges(to_id)
+    return {"status": "ok", "message": f"Contribution « {RECOGNITION_TYPES[rtype]} » reconnue."}
 
 
 # ============== TABLEAU DE BORD ==============
@@ -966,7 +1185,7 @@ async def dashboard(token: str):
         op = await db.ubuntoo2_profiles.find_one({"token_id": other}, {"_id": 0, "display_name": 1, "headline": 1, "token_id": 1})
         if op:
             recent_contacts.append(op)
-    badges = await _compute_badges(me)
+    badges_prog = await _compute_progression(me)
     mentoring_conns = await db.ubuntoo2_connections.find(
         {"kind": "mentorat", "status": "accepted", "$or": [{"from_id": me}, {"to_id": me}]}, {"_id": 0}).to_list(20)
     mentor_names, mentore_names = [], []
@@ -985,6 +1204,8 @@ async def dashboard(token: str):
         "contributions_count": posts_count + replies_count,
         "unread_notifications": unread_notifs,
         "unread_messages": unread_msgs,
-        "badges": [b for b in badges if b["earned"]],
+        "badges": [b for b in badges_prog["badges"] if b["earned"] and b["displayed"]],
+        "progression": {"current_label": badges_prog["current_label"], "next_steps": badges_prog["next_steps"][:3],
+                        "parcours": badges_prog["parcours"]},
         "mentoring": {"role": prof.get("mentoring_role", "none"), "mentors": mentor_names, "mentores": mentore_names},
     }
