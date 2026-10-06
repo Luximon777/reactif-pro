@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Routes, Route, NavLink, useNavigate } from "react-router-dom";
-import { Home, Users, Compass, MessageSquare, User, Bell, ArrowLeft, HeartHandshake } from "lucide-react";
+import { Home, Users, Compass, MessageSquare, User, Bell, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -77,21 +77,18 @@ export default function UbuntooV2App() {
   return (
     <div className="u2-root">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#E2DFD8]">
+      <div className="u2-rainbow-bar sticky top-0 z-50" />
+      <header className="sticky top-1 z-40 bg-white/95 backdrop-blur-md border-b border-[#E2DFD8]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Button variant="ghost" size="icon" className="rounded-full shrink-0" onClick={() => navigate("/dashboard")} data-testid="back-to-reactif-btn" title="Retour à Ré'Actif Pro">
               <ArrowLeft className="w-4 h-4 text-stone-500" />
             </Button>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="h-8 w-8 rounded-xl bg-[#C85A32] flex items-center justify-center shrink-0">
-                <HeartHandshake className="w-4.5 h-4.5 text-white w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-base font-extrabold u2-heading tracking-tight leading-none">UBUNTOO</div>
-                <div className="text-[10px] text-stone-400 truncate hidden sm:block">« Je suis parce que nous sommes »</div>
-              </div>
-            </div>
+            <button className="u2-logo flex items-center gap-2 min-w-0" onClick={() => navigate("/ubuntoo")} data-testid="ubuntoo-logo-btn">
+              <img src="https://customer-assets-lxgj4vgw.emergentagent.net/job_90063908-4547-4619-a39d-4ae3b0877c31/artifacts/1830d271f095cb13_Capture%20d%27%C3%A9cran%202026-03-03%20091313.png"
+                alt="Ubuntoo" className="h-9 w-auto shrink-0" />
+              <span className="text-[10px] text-stone-400 truncate hidden md:block italic">« Je suis parce que nous sommes »</span>
+            </button>
           </div>
           {/* Desktop nav */}
           <nav className="hidden sm:flex items-center gap-1">

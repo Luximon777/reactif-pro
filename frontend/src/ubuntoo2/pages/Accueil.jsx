@@ -29,9 +29,9 @@ export default function Accueil() {
   ];
 
   return (
-    <div className="space-y-5" data-testid="ubuntoo-accueil">
+    <div className="space-y-5 u2-animate" data-testid="ubuntoo-accueil">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold u2-heading tracking-tight">Bonjour {data.display_name} 👋🏾</h1>
+        <h1 className="text-2xl sm:text-3xl font-extrabold u2-heading tracking-tight">Bonjour <span className="u2-rainbow-text">{data.display_name}</span> 👋🏾</h1>
         <p className="text-sm text-stone-500 mt-1">De qui ou de quoi avez-vous besoin pour avancer aujourd'hui ?</p>
       </div>
 
@@ -47,7 +47,7 @@ export default function Accueil() {
 
       {/* Point de départ : mon parcours de contribution */}
       {data.progression && (
-        <div className="rounded-2xl bg-gradient-to-br from-[#C85A32] to-[#A84525] p-5 text-white" data-testid="contribution-path-card">
+        <div className="rounded-2xl u2-hero-rainbow p-5 text-white u2-lift" data-testid="contribution-path-card">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/70 font-semibold"><Sparkles className="w-3.5 h-3.5" />Mon parcours de contribution</div>
@@ -70,7 +70,7 @@ export default function Accueil() {
             </div>
           )}
           <div className="mt-4 flex gap-2 flex-wrap">
-            <Button size="sm" className="rounded-xl bg-white text-[#C85A32] hover:bg-orange-50 font-semibold" onClick={() => navigate("/ubuntoo/profil")} data-testid="home-badges-btn">
+            <Button size="sm" className="rounded-xl bg-white text-[#2c2250] hover:bg-orange-50 font-semibold" onClick={() => navigate("/ubuntoo/profil")} data-testid="home-badges-btn">
               <Award className="w-4 h-4 mr-1.5" />Mes badges & parcours
             </Button>
             <Button size="sm" variant="outline" className="rounded-xl border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => setComprendreOpen(true)} data-testid="home-comprendre-btn">
@@ -85,7 +85,7 @@ export default function Accueil() {
           const Icon = s.icon;
           return (
             <button key={s.label} onClick={() => navigate(s.to)} data-testid={s.testid}
-              className="rounded-2xl bg-white border border-[#E2DFD8] p-4 text-left hover:border-orange-300 transition-colors">
+              className="rounded-2xl bg-white border border-[#E2DFD8] p-4 text-left u2-lift hover:border-orange-300">
               <Icon className="w-5 h-5 text-[#C85A32] mb-2" />
               <div className="text-2xl font-extrabold u2-heading">{s.value}</div>
               <div className="text-xs text-stone-500 leading-tight mt-0.5">{s.label}</div>

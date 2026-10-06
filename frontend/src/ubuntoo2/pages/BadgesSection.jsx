@@ -110,7 +110,7 @@ export const BadgesGrid = ({ badges, onDisplayChange }) => {
                 const pct = Math.round((b.progress.current / b.progress.target) * 100);
                 return (
                   <button key={b.id} onClick={() => setSelected(b)} data-testid={`badge-card-${b.id}`}
-                    className={`rounded-xl border p-3 text-left transition-colors hover:border-orange-300 ${b.earned ? "bg-white border-[#E2DFD8]" : "bg-stone-50/60 border-stone-100"}`}>
+                    className={`rounded-xl border p-3 text-left u2-lift hover:border-orange-300 ${b.earned ? "bg-white border-[#E2DFD8]" : "bg-stone-50/60 border-stone-100"}`}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className={`h-8 w-8 rounded-lg border flex items-center justify-center ${b.earned ? meta.cls : "bg-stone-100 text-stone-300 border-stone-200"}`}>
                         {b.earned ? <Icon className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}

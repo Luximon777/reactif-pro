@@ -24,6 +24,62 @@
 }
 .u2-btn-primary:hover { background: var(--u2-terracotta-hover); }
 
+/* ===== Identité arc-en-ciel Ubuntoo (logo) ===== */
+.u2-rainbow-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #E8442E, #F58220, #F5C518, #3BA55D, #2E86DE, #6C4AB6, #5B2E90);
+  background-size: 200% 100%;
+  animation: u2-rainbow-slide 8s linear infinite;
+}
+@keyframes u2-rainbow-slide {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+.u2-rainbow-text {
+  background: linear-gradient(90deg, #E8442E, #F58220, #3BA55D, #2E86DE, #6C4AB6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.u2-hero-rainbow {
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(245,130,32,0.45), transparent 50%),
+    radial-gradient(ellipse at 50% 120%, rgba(59,165,93,0.4), transparent 55%),
+    radial-gradient(ellipse at 95% 10%, rgba(108,74,182,0.5), transparent 55%),
+    linear-gradient(135deg, #1e2a4a, #2c2250);
+}
+
+/* Entrées en scène */
+@keyframes u2-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.u2-animate > * {
+  animation: u2-fade-up 0.45s ease-out both;
+}
+.u2-animate > *:nth-child(2) { animation-delay: 0.07s; }
+.u2-animate > *:nth-child(3) { animation-delay: 0.14s; }
+.u2-animate > *:nth-child(4) { animation-delay: 0.21s; }
+.u2-animate > *:nth-child(5) { animation-delay: 0.28s; }
+.u2-animate > *:nth-child(6) { animation-delay: 0.35s; }
+.u2-animate > *:nth-child(7) { animation-delay: 0.42s; }
+
+/* Micro-interactions */
+.u2-lift { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.u2-lift:hover { transform: translateY(-3px); box-shadow: 0 10px 24px -12px rgba(28,36,48,0.25); }
+@keyframes u2-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.u2-pop { animation: u2-pop 0.4s ease-out both; }
+@keyframes u2-wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+.u2-logo:hover img { animation: u2-wiggle 0.5s ease-in-out; }
+
 @media (prefers-reduced-motion: reduce) {
   .u2-root * { animation: none !important; transition: none !important; }
 }
