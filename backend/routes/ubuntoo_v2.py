@@ -121,6 +121,14 @@ BADGES = {
         "actions": ["Preuve vérifiée déposée dans Ré'Actif Pro", "Passeport de compétences complété à 70 %"],
         "valorise": "La fiabilité de votre parcours documenté.",
         "etape_suivante": "Vos badges de contribution complètent ce socle vérifié — sans jamais se substituer à une certification de compétence."},
+    "contributeur_opc": {
+        "label": "Contributeur OPC", "categorie": "verifie", "target": 2, "validation_humaine": True,
+        "desc": "Vos compétences certifiées alimentent anonymement l'Observatoire Prédictif des Compétences.",
+        "pourquoi": "En certifiant vos compétences et en acceptant leur partage anonyme, vous aidez tout un territoire à anticiper l'évolution des métiers et des compétences. Votre expérience individuelle devient une intelligence collective — sans jamais révéler votre identité.",
+        "comment": "Certifier au moins une expérience ou compétence dans votre coffre-fort Ré'Actif Pro, puis donner votre consentement au partage anonyme avec l'OPC (ou contribuer une preuve certifiée).",
+        "actions": ["Expérience ou compétence certifiée dans Ré'Actif Pro", "Consentement OPC activé ou contribution anonyme transmise"],
+        "valorise": "Votre contribution anonyme et solidaire à la connaissance des métiers.",
+        "etape_suivante": "Chaque nouvelle compétence certifiée enrichit anonymement l'observatoire — et renforce votre passeport professionnel."},
 }
 
 PARCOURS_CONTRIBUTEUR = {
@@ -1041,8 +1049,15 @@ async def _compute_badges(token_id: str) -> list:
     oppo_posts = sum(1 for p in posts if p.get("type") == "opportunite")
 
     has_proof = await db["proof_documents.files"].count_documents({"metadata.token_id": token_id}) > 0
-    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0, "completeness_score": 1})
+    passport = await db.passports.find_one({"token_id": token_id}, {"_id": 0, "completeness_score": 1, "experiences.is_certified": 1})
     passeport_ok = has_proof or (passport or {}).get("completeness_score", 0) >= 70
+
+    # Contribution anonyme à l'OPC : compétences certifiées + consentement/contribution
+    certified_count = sum(1 for e in (passport or {}).get("experiences", []) if e.get("is_certified"))
+    opc_consent_doc = await db.opc_consents.find_one({"token_id": token_id}, {"_id": 0, "opc_consent": 1})
+    opc_contribs = await db.opc_contributions.count_documents({"token_id": token_id})
+    opc_sharing = bool((opc_consent_doc or {}).get("opc_consent")) or opc_contribs > 0
+    opc_progress = (1 if certified_count > 0 else 0) + (1 if opc_sharing else 0)
 
     progress = {
         "bienvenue": 1,
@@ -1057,6 +1072,7 @@ async def _compute_badges(token_id: str) -> list:
         "bienveillant": reco.get("encouragement", 0),
         "esprit_collectif": max_comm_participations,
         "passeport_pro": 1 if passeport_ok else 0,
+        "contributeur_opc": opc_progress,
     }
 
     existing = await db.ubuntoo2_badges.find_one({"token_id": token_id}, {"_id": 0}) or {"token_id": token_id, "earned": {}}

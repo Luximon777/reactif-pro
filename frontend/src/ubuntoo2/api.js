@@ -61,6 +61,7 @@ export const BADGES_META = {
   bienveillant: { label: "Bienveillant", icon: "Heart", cls: "bg-pink-50 text-pink-700 border-pink-200" },
   esprit_collectif: { label: "Esprit collectif", icon: "UsersRound", cls: "bg-violet-50 text-violet-700 border-violet-200" },
   passeport_pro: { label: "Passeport professionnel", icon: "ShieldCheck", cls: "bg-[#2E7D5B]/10 text-[#2E7D5B] border-[#2E7D5B]/30" },
+  contributeur_opc: { label: "Contributeur OPC", icon: "Telescope", cls: "bg-blue-50 text-blue-800 border-blue-300" },
 };
 
 export const RECOGNITION_TYPES = {
