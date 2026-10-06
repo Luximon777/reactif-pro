@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { LoadFail } from "../LoadFail";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Users, Send, Flag, MessageCircle, HandHeart, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -150,7 +151,7 @@ export default function CommunauteDetail() {
         u2.get(`/communities/${commId}/posts`, filter ? { post_type: filter } : {}),
       ]);
       setComm(c.data); setPosts(p.data);
-    } catch { /* silent */ }
+    } catch { setComm(prev => prev || "error"); }
   }, [commId, filter]);
 
   useEffect(() => { load(); }, [load]);
@@ -174,6 +175,7 @@ export default function CommunauteDetail() {
     finally { setPublishing(false); }
   };
 
+  if (comm === "error") return <LoadFail onRetry={load} />;
   if (!comm) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#C85A32]" /></div>;
 
   return (

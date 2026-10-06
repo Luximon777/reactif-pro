@@ -6,15 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Users, Compass, MessageSquare, HandHeart, ChevronRight, UserPlus, Loader2, GraduationCap, Award } from "lucide-react";
 import { u2, timeAgo, CATEGORIES } from "../api";
 import { BadgeChip } from "./BadgesSection";
+import { LoadFail } from "../LoadFail";
 
 export default function Accueil() {
   const [data, setData] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    u2.get("/dashboard").then(r => setData(r.data)).catch(() => {});
-  }, []);
+  const load = () => {
+    setData(null);
+    u2.get("/dashboard").then(r => setData(r.data)).catch(() => setData("error"));
+  };
+  useEffect(load, []);
 
+  if (data === "error") return <LoadFail onRetry={load} />;
   if (!data) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#C85A32]" /></div>;
 
   const stats = [

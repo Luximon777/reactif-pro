@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LoadFail } from "../LoadFail";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GraduationCap, HandHeart, Loader2, Save, UserPlus, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -79,7 +80,7 @@ export default function MentoratTab() {
     u2.get("/me").then(r => {
       setProfile(r.data);
       if (r.data.mentoring_role !== "none") loadMatches();
-    }).catch(() => {});
+    }).catch(() => setProfile("error"));
   }, [loadMatches]);
 
   const toggleRole = (role) => {
@@ -116,6 +117,7 @@ export default function MentoratTab() {
     finally { setSaving(false); }
   };
 
+  if (profile === "error") return <LoadFail onRetry={() => window.location.reload()} />;
   if (!profile) return <div className="flex justify-center py-10"><Loader2 className="w-7 h-7 animate-spin text-[#C85A32]" /></div>;
 
   const role = profile.mentoring_role || "none";

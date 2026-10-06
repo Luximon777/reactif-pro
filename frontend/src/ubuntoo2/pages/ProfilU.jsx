@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { u2, HELP_OFFERS, PRIVACY_LEVELS } from "../api";
 import { BadgesGrid } from "./BadgesSection";
 import ParcoursUbuntoo from "./ParcoursUbuntoo";
+import { LoadFail } from "../LoadFail";
 
 const PRIVACY_ICONS = { prive: Lock, reseau: Users, public: Globe };
 const FIELD_LABELS = {
@@ -45,10 +46,12 @@ export default function ProfilU() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    u2.get("/me").then(r => setProfile(r.data)).catch(() => {});
+  const loadProfile = () => {
+    setProfile(null);
+    u2.get("/me").then(r => setProfile(r.data)).catch(() => setProfile("error"));
     u2.get("/badges").then(r => setBadges(r.data)).catch(() => {});
-  }, []);
+  };
+  useEffect(loadProfile, []);
 
   const save = async () => {
     setSaving(true);
@@ -82,6 +85,7 @@ export default function ProfilU() {
 
   const setPrivacy = (field, value) => setProfile(p => ({ ...p, privacy: { ...p.privacy, [field]: value } }));
 
+  if (profile === "error") return <LoadFail onRetry={loadProfile} />;
   if (!profile) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#C85A32]" /></div>;
 
   return (

@@ -2,10 +2,24 @@ import axios from "axios";
 import { API } from "@/App";
 
 export const token = () => localStorage.getItem("reactif_token");
+
+const http = axios.create();
+let redirecting = false;
+http.interceptors.response.use(
+  r => r,
+  err => {
+    if (err.response?.status === 401 && !redirecting) {
+      redirecting = true;
+      window.location.href = "/?session=expiree";
+    }
+    return Promise.reject(err);
+  }
+);
+
 export const u2 = {
-  get: (path, params = {}) => axios.get(`${API}/ubuntoo2${path}`, { params: { token: token(), ...params } }),
-  post: (path, body = {}, params = {}) => axios.post(`${API}/ubuntoo2${path}`, body, { params: { token: token(), ...params } }),
-  put: (path, body = {}) => axios.put(`${API}/ubuntoo2${path}`, body, { params: { token: token() } }),
+  get: (path, params = {}) => http.get(`${API}/ubuntoo2${path}`, { params: { token: token(), ...params } }),
+  post: (path, body = {}, params = {}) => http.post(`${API}/ubuntoo2${path}`, body, { params: { token: token(), ...params } }),
+  put: (path, body = {}) => http.put(`${API}/ubuntoo2${path}`, body, { params: { token: token() } }),
 };
 
 export const POST_TYPES = {
