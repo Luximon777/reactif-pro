@@ -7698,11 +7698,15 @@ async def auto_populate_trajectory(token: str):
     existing = await db.trajectory_steps.find({"token_id": token_id}).to_list(200)
     existing_titles = {e.get("title", "").lower() for e in existing}
     imported = 0
+    already = 0
     for exp in experiences:
         if not isinstance(exp, dict):
             continue
         title = exp.get("title") or exp.get("titre") or exp.get("poste") or ""
-        if not title or title.lower() in existing_titles:
+        if not title:
+            continue
+        if title.lower() in existing_titles:
+            already += 1
             continue
         step = {
             "id": str(uuid.uuid4()),
@@ -7720,7 +7724,7 @@ async def auto_populate_trajectory(token: str):
         }
         await db.trajectory_steps.insert_one(step)
         imported += 1
-    return {"imported": imported}
+    return {"imported": imported, "already": already}
 
 
 @api_router.post("/trajectory/access-log")

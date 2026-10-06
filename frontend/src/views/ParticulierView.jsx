@@ -1203,9 +1203,15 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
     setAutoPopulating(true);
     try {
       const res = await axios.post(`${API}/trajectory/auto-populate?token=${token}`);
-      toast.success(`${res.data.imported} étape(s) importée(s) depuis vos données`);
-      loadTrajectory();
-    } catch (e) { toast.error("Erreur lors de l'import"); }
+      if (res.data.imported > 0) {
+        toast.success(`${res.data.imported} étape(s) importée(s) depuis vos données`);
+        loadTrajectory();
+      } else if (res.data.already > 0) {
+        toast.info(`Vos ${res.data.already} expérience(s) sont déjà dans votre trajectoire — rien de nouveau à importer. Utilisez « Actualiser » pour tout resynchroniser depuis votre passeport.`);
+      } else {
+        toast.info("Aucune expérience à importer : uploadez d'abord votre CV ou ajoutez des expériences à votre passeport.");
+      }
+    } catch (e) { toast.error(e.response?.data?.detail || "Erreur lors de l'import"); }
     setAutoPopulating(false);
   };
 
