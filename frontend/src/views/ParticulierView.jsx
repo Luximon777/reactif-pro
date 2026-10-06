@@ -1366,7 +1366,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-amber-600 focus:text-amber-700 focus:bg-amber-50 cursor-pointer"
-                onClick={() => handleResetProfile("experiences")}
+                onClick={() => openResetModal("experiences")}
                 disabled={resettingProfile}
                 data-testid="reset-experiences-btn"
               >

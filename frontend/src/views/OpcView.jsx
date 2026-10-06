@@ -470,7 +470,7 @@ const OpcView = ({ token, isPublic = false }) => {
     setIaLoading(endpoint);
     try {
       const tokenParam = token ? `token=${token}` : "";
-      const contextQuery = searchContext?.query || (isSearchActive ? query : "");
+      const contextQuery = searchContext?.query || "";
       const body = contextQuery ? { contexte_metier: contextQuery } : {};
       const res = await axios.post(`${API}/observatory/ia/${endpoint}?${tokenParam}`, body, { timeout: 60000 });
       if (res.data && !res.data.error) {

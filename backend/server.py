@@ -32,9 +32,17 @@ async def run_llm_nonblocking(chat, message):
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
+# MongoDB connection — résilient aux timeouts transitoires (Atlas prod)
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(
+    mongo_url,
+    retryReads=True,
+    retryWrites=True,
+    socketTimeoutMS=45000,
+    connectTimeoutMS=20000,
+    serverSelectionTimeoutMS=20000,
+    maxPoolSize=50,
+)
 db = client[os.environ['DB_NAME']]
 gridfs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="proof_documents")
 
@@ -43,6 +51,26 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+from pymongo.errors import NetworkTimeout, AutoReconnect, ConnectionFailure
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(NetworkTimeout)
+@app.exception_handler(AutoReconnect)
+@app.exception_handler(ConnectionFailure)
+async def mongo_transient_error_handler(request, exc):
+    logging.warning(f"[Mongo] Timeout transitoire sur {request.url.path}: {exc}")
+    return JSONResponse(status_code=503, content={"detail": "Base de données momentanément indisponible. Réessayez dans quelques secondes."})
+
+
+async def mongo_retry(coro_factory, attempts: int = 3):
+    for i in range(attempts):
+        try:
+            return await coro_factory()
+        except (NetworkTimeout, AutoReconnect, ConnectionFailure):
+            if i == attempts - 1:
+                raise
+            await asyncio.sleep(1.0 * (i + 1))
 
 # ============== MODELS ==============
 
@@ -4360,7 +4388,13 @@ Structure: {"cv_classique": "texte complet", "cv_competences": "texte complet", 
 
     except Exception as e:
         logging.error(f"CV analysis job {job_id} failed: {e}")
-        await db.cv_jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "error": str(e), "step": "Erreur"}})
+        err_msg = str(e)
+        try:
+            await mongo_retry(lambda: db.cv_jobs.update_one(
+                {"job_id": job_id},
+                {"$set": {"status": "failed", "error": err_msg, "step": "Erreur"}}))
+        except Exception as mark_err:
+            logging.error(f"CV job {job_id}: impossible de marquer l'échec: {mark_err}")
 
 
 
@@ -4612,7 +4646,7 @@ async def analyze_cv_text(token: str, payload: CvTextPayload):
 async def get_cv_analysis_status(token: str, job_id: str):
     """Poll for CV analysis job status"""
     token_doc = await get_current_token(token)
-    job = await db.cv_jobs.find_one({"job_id": job_id, "token_id": token_doc["id"]}, {"_id": 0})
+    job = await mongo_retry(lambda: db.cv_jobs.find_one({"job_id": job_id, "token_id": token_doc["id"]}, {"_id": 0}))
     if not job:
         raise HTTPException(status_code=404, detail="Job non trouvé")
     return {
@@ -8220,6 +8254,16 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def on_startup():
     try:
+        # Réconciliation : les jobs CV actifs ne survivent pas à un redémarrage → marquer orphelins en échec
+        try:
+            stale = await db.cv_jobs.update_many(
+                {"status": {"$in": ["processing", "analyzing"]}},
+                {"$set": {"status": "failed", "step": "Erreur",
+                          "error": "Analyse interrompue par un redémarrage du serveur. Relancez l'upload de votre CV."}})
+            if stale.modified_count:
+                logger.info(f"[Startup] {stale.modified_count} job(s) CV orphelin(s) réconcilié(s)")
+        except Exception as rec_err:
+            logger.warning(f"[Startup] Réconciliation cv_jobs impossible: {rec_err}")
         # Run migrations first (ensures data schema integrity)
         from migrations import run_migrations
         await run_migrations(db)
