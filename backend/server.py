@@ -4031,9 +4031,25 @@ def _extract_text_from_bytes(content: bytes, filename: str) -> str:
     text = ""
     fname = filename.lower()
     if fname.endswith(".pdf"):
-        reader = PyPDF2.PdfReader(io.BytesIO(content))
-        for page in reader.pages:
-            text += (page.extract_text() or "") + "\n"
+        try:
+            reader = PyPDF2.PdfReader(io.BytesIO(content))
+            for page in reader.pages:
+                try:
+                    text += (page.extract_text() or "") + "\n"
+                except Exception:
+                    continue
+        except Exception:
+            text = ""
+        if len(text.strip()) < 50:
+            # Fallback PyMuPDF : bien plus robuste sur les PDF mal formés
+            try:
+                import fitz
+                with fitz.open(stream=content, filetype="pdf") as doc:
+                    mu_text = "\n".join(page.get_text() for page in doc)
+                if len(mu_text.strip()) > len(text.strip()):
+                    text = mu_text
+            except Exception:
+                pass
     elif fname.endswith(".docx"):
         import docx
         doc = docx.Document(io.BytesIO(content))

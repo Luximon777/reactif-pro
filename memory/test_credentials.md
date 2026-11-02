@@ -15,3 +15,4 @@
 - Programmeur (Dev): DevReactif#2026!
 - Invité: Reactif@pro2026!
 - vsi_demo / VsiDemo2026! (rôle vsi, espace Parcours VSI)
+- chitra_test / Solerys777! (compte de test preview — CV réel de Chitra Dorffer analysé, 9 expériences, contrôleuse de gestion)
