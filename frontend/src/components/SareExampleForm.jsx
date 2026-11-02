@@ -13,6 +13,7 @@ export const SareExampleForm = ({ exp, token, competences, onSaved, onClose }) =
   const [situation, setSituation] = useState("");
   const [action, setAction] = useState("");
   const [resultat, setResultat] = useState("");
+  const [enseignement, setEnseignement] = useState("");
   const [saving, setSaving] = useState(false);
 
   const hardSkills = [...new Set((competences || []).filter(c => c.nature === "savoir_faire").map(c => c.name))];
@@ -32,6 +33,7 @@ export const SareExampleForm = ({ exp, token, competences, onSaved, onClose }) =
         `Action : ${action.trim()}`,
       ];
       if (resultat.trim()) parts.push(`Résultat : ${resultat.trim()}`);
+      if (enseignement.trim()) parts.push(`Enseignement : ${enseignement.trim()}`);
       await axios.post(`${API}/passport/illustrations?token=${token}`, {
         experience_id: exp.id,
         soft_skill: skill,
@@ -39,14 +41,14 @@ export const SareExampleForm = ({ exp, token, competences, onSaved, onClose }) =
         sare_situation: situation.trim(),
         sare_action: action.trim(),
         sare_resultat: resultat.trim(),
-        sare_enseignement: "",
+        sare_enseignement: enseignement.trim(),
         opc_consent: true,
       });
       await axios.post(`${API}/passport/experience-proof?token=${token}`, {
         experience_id: exp.id,
         proof: parts.join("\n"),
       });
-      toast.success("Exemple S.A.R enregistré — merci pour votre contribution à l'OPC !");
+      toast.success("Exemple S.A.R.E enregistré — merci pour votre contribution à l'OPC !");
       if (onSaved) onSaved();
     } catch {
       toast.error("Erreur lors de l'enregistrement");
@@ -64,8 +66,8 @@ export const SareExampleForm = ({ exp, token, competences, onSaved, onClose }) =
             <Award className="w-4 h-4 text-amber-700" />
           </div>
           <div>
-            <p className="text-xs font-bold text-amber-900">Méthode S.A.R — Illustrez cette expérience</p>
-            <p className="text-[10px] text-amber-700">Situation, Action, Résultat : racontez un fait concret qui prouve une compétence.</p>
+            <p className="text-xs font-bold text-amber-900">Méthode S.A.R.E — Illustrez cette expérience</p>
+            <p className="text-[10px] text-amber-700">Situation, Action, Résultat, Enseignement : racontez un fait concret qui prouve une compétence.</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600" onClick={onClose} data-testid={`sare-close-${exp.id}`}>
@@ -73,8 +75,8 @@ export const SareExampleForm = ({ exp, token, competences, onSaved, onClose }) =
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5">
-        {[["S", "Situation"], ["A", "Action"], ["R", "Résultat"]].map(([l, t]) => (
+      <div className="grid grid-cols-4 gap-1.5">
+        {[["S", "Situation"], ["A", "Action"], ["R", "Résultat"], ["E", "Enseignement"]].map(([l, t]) => (
           <div key={l} className="bg-white/70 rounded-lg px-2 py-1.5 text-center border border-amber-100">
             <p className="text-sm font-black text-amber-800">{l}</p>
             <p className="text-[9px] text-amber-600 leading-tight">{t}</p>
@@ -146,17 +148,26 @@ export const SareExampleForm = ({ exp, token, competences, onSaved, onClose }) =
           placeholder="Cela a permis de... / Le résultat mesurable a été..."
           className={taCls} data-testid={`sare-resultat-${exp.id}`} />
       </div>
+      <div>
+        <label className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 mb-0.5">
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-100 text-[10px] font-black">E</span>
+          Enseignement — Ce que ça dit de vous
+        </label>
+        <textarea value={enseignement} onChange={e => setEnseignement(e.target.value)}
+          placeholder="Cela montre que je suis capable de... / Cette situation démontre ma..."
+          className={taCls} data-testid={`sare-enseignement-${exp.id}`} />
+      </div>
 
       <div className="bg-white border border-dashed border-amber-200 rounded-lg p-2">
         <p className="text-[10px] text-amber-700 leading-relaxed">
-          <span className="font-bold">Exemple :</span> "Lors d'un pic d'activité, nous avions un retard important. J'ai priorisé les tâches et redistribué les missions. Nous avons rattrapé le retard en 3 jours sans erreur."
+          <span className="font-bold">Exemple :</span> "Lors d'un pic d'activité, nous avions un retard important. J'ai priorisé les tâches et redistribué les missions. Nous avons rattrapé le retard en 3 jours sans erreur. Cela montre ma capacité à gérer le stress et rester efficace sous pression."
         </p>
       </div>
 
       <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 w-full" onClick={handleSave}
         disabled={saving || !skill || !situation.trim() || !action.trim()} data-testid={`sare-save-${exp.id}`}>
         {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Check className="w-3 h-3 mr-1" />}
-        Enregistrer l'exemple S.A.R
+        Enregistrer l'exemple S.A.R.E
       </Button>
     </div>
   );

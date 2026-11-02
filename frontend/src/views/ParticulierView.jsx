@@ -1646,7 +1646,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                                   </div>
                                   <div>
                                     <span className="text-[10px] font-semibold text-amber-800">Ajouter un exemple concret</span>
-                                    <p className="text-[9px] text-amber-600 mt-0.5">Guidé par la méthode S.A.R — Situation, Action, Résultat</p>
+                                    <p className="text-[9px] text-amber-600 mt-0.5">Guidé par la méthode S.A.R.E — choisissez un savoir-faire ou savoir-être, puis apportez votre preuve</p>
                                   </div>
                                 </div>
                               </div>
