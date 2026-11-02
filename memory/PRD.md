@@ -153,3 +153,9 @@ Verdict audit : FAIL — à corriger avant/at redéploiement idéalement :
 ## Note environnements
 - Les corrections sont faites sur Preview. L'utilisateur doit REDÉPLOYER pour les voir sur reactif.pro (production). Les comptes prod (ex: aurelie67) bénéficieront des correctifs lors du prochain upload de CV ou via le bouton "Actualiser" du passeport (refresh).
 - (2026-06) RCA prod « CV ne charge pas » : timeouts de lecture MongoDB Atlas intermittents (RCA deployer 39ff6a3a). Correctif résilience appliqué dans server.py : AsyncIOMotorClient avec retryReads/retryWrites + socketTimeoutMS 45s ; exception handler global NetworkTimeout/AutoReconnect/ConnectionFailure → 503 (au lieu de 500) ; helper mongo_retry (3 tentatives) sur /cv/analyze/status et le marquage d'échec du worker ; réconciliation au startup des cv_jobs orphelins (processing/analyzing → failed avec message de relance). DOIT ÊTRE REDÉPLOYÉ pour prendre effet en prod. Si timeouts persistants après redéploiement → ticket plateforme (deployment_id ad9b6b03-971a-42b8-b15b-ee401e317181).
+
+## 2026-06 — Exemple concret guidé S.A.R (Trajectoire)
+- Dans Trajectoire > Expériences professionnelles, « Ajouter un exemple concret » ouvre désormais un formulaire guidé méthode S.A.R (Situation/Action/Résultat) au lieu d'un simple prompt navigateur.
+- L'utilisateur identifie d'abord le savoir-faire ou savoir-être illustré (liste issue du passeport, groupée par nature) puis remplit S/A/R champ par champ.
+- Sauvegarde double : illustration S.A.R.E (coffre-fort + OPC) + exemple concret affiché sur l'expérience (badge « Documentée »).
+- Composant : frontend/src/components/SareExampleForm.jsx ; intégration dans views/ParticulierView.jsx.

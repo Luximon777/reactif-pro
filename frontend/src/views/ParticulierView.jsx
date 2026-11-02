@@ -30,6 +30,7 @@ import CentresInteretSection from "@/components/CentresInteretSection";
 import JobMatchingSection from "@/components/JobMatchingSection";
 import GpsDashboard from "@/components/GpsDashboard";
 import ReconversionExplorer from "@/components/ReconversionExplorer";
+import SareExampleForm from "@/components/SareExampleForm";
 import { QRCodeSVG } from "qrcode.react";
 import { toPng } from "html-to-image";
 import { motion } from "framer-motion";
@@ -1021,6 +1022,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
   }, [location.search]);
   const [steps, setSteps] = useState([]);
   const [reconversionOpen, setReconversionOpen] = useState(false);
+  const [sareFormIdx, setSareFormIdx] = useState(null);
   const [coherence, setCoherence] = useState(null);
   const [synthesis, setSynthesis] = useState(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);
@@ -1623,23 +1625,19 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                                   <FileText className="w-3 h-3 text-emerald-600" />
                                   <span className="text-[10px] font-semibold text-emerald-700">Exemple concret</span>
                                 </div>
-                                <p className="text-xs text-slate-600 leading-relaxed">{exp.proof || exp.exemple_concret}</p>
+                                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{exp.proof || exp.exemple_concret}</p>
                               </div>
+                            ) : sareFormIdx === i ? (
+                              <SareExampleForm
+                                exp={exp}
+                                token={token}
+                                competences={passport?.competences || []}
+                                onSaved={() => { setSareFormIdx(null); loadData(true); }}
+                                onClose={() => setSareFormIdx(null)}
+                              />
                             ) : (
                               <div className="mt-2.5 bg-amber-50/60 rounded-lg border border-amber-200/40 border-dashed p-2.5 cursor-pointer hover:bg-amber-50 transition-colors"
-                                onClick={() => {
-                                  const proof = window.prompt(
-                                    `Illustrez cette expérience par un exemple concret :\n\n"${exp.title}" chez ${exp.organization}\n\nDécrivez une situation précise, l'action que vous avez menée, et le résultat obtenu (méthode SAR).`
-                                  );
-                                  if (proof && proof.trim()) {
-                                    axios.post(`${API}/passport/experience-proof?token=${token}`, {
-                                      experience_id: exp.id, proof: proof.trim()
-                                    }).then(() => {
-                                      toast.success("Exemple ajouté — merci pour votre contribution à l'OPC !");
-                                      loadData(true);
-                                    }).catch(() => toast.error("Erreur lors de l'ajout"));
-                                  }
-                                }}
+                                onClick={() => setSareFormIdx(i)}
                                 data-testid={`add-proof-${i}`}
                               >
                                 <div className="flex items-center gap-2">
@@ -1648,7 +1646,7 @@ const ParticulierView = ({ token, section, onOpenDclic, onDclicReset, viewMode, 
                                   </div>
                                   <div>
                                     <span className="text-[10px] font-semibold text-amber-800">Ajouter un exemple concret</span>
-                                    <p className="text-[9px] text-amber-600 mt-0.5">Situation, Action, Résultat — votre contribution enrichit l'Observatoire</p>
+                                    <p className="text-[9px] text-amber-600 mt-0.5">Guidé par la méthode S.A.R — Situation, Action, Résultat</p>
                                   </div>
                                 </div>
                               </div>
