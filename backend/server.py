@@ -2672,8 +2672,14 @@ async def get_user_evolution_analysis(token: str):
             if score > 0:
                 scored.append((score, j))
         scored.sort(key=lambda x: -x[0])
+        very_strong = [s for s in scored if s[0] >= 3]
         strong = [s for s in scored if s[0] >= 2]
-        picked = strong[:6] if len(strong) >= 3 else scored[:6]
+        if len(very_strong) >= 3:
+            picked = very_strong[:6]
+        elif len(strong) >= 3:
+            picked = strong[:6]
+        else:
+            picked = scored[:6]
         for _score, j in picked:
             jn = j.get("job_name", "")
             if jn not in seen_jobs:
@@ -6051,6 +6057,29 @@ async def get_cross_reference_data():
 
 # ============== SEED DATA ==============
 
+def _finance_gestion_job_indices():
+    now = datetime.now(timezone.utc).isoformat()
+    return [
+        {"id": str(uuid.uuid4()), "job_name": "Contrôleur de gestion", "sector": "Finance / Gestion", "evolution_index": 64.0, "index_level": "en_transformation", "new_skills_count": 7, "skill_frequency_score": 0.62, "task_evolution_score": 0.60, "new_tools_score": 0.70, "job_posting_evolution": 0.55, "declining_skills_count": 2, "emerging_skills": ["Data visualisation (Power BI)", "Automatisation reporting", "IA prédictive budgétaire", "ERP cloud", "Rolling forecast"], "stable_skills": ["Budget", "Reporting", "Analyse des écarts", "Clôture mensuelle", "Excel avancé"], "declining_skills": ["Reporting manuel Excel seul", "Consolidation papier"], "recommended_skills": ["Power BI / Tableau", "SAP S/4HANA", "Python pour la finance", "RPA finance"], "recommended_trainings": ["Data analyse pour contrôleurs de gestion", "Pilotage de la performance digitalisé"], "job_passerelles": ["Responsable contrôle de gestion", "DAF", "FP&A Manager", "Data Analyst Finance"], "last_calculated": now, "data_sources": ["contributions", "offres_emploi", "experts"], "confidence_level": 0.88},
+        {"id": str(uuid.uuid4()), "job_name": "Analyste financier", "sector": "Finance / Gestion", "evolution_index": 70.0, "index_level": "en_transformation", "new_skills_count": 8, "skill_frequency_score": 0.68, "task_evolution_score": 0.65, "new_tools_score": 0.75, "job_posting_evolution": 0.60, "declining_skills_count": 2, "emerging_skills": ["Modélisation IA", "Analyse ESG", "Python / SQL finance", "Dashboards temps réel"], "stable_skills": ["Analyse financière", "Valorisation", "Modélisation Excel", "Comptabilité"], "declining_skills": ["Rapports statiques", "Saisie manuelle de données"], "recommended_skills": ["Power BI", "Python (pandas)", "Critères ESG", "Bloomberg/Refinitiv"], "recommended_trainings": ["Finance durable et ESG", "IA appliquée à l'analyse financière"], "job_passerelles": ["Contrôleur de gestion", "Credit Manager", "Responsable FP&A", "Consultant finance"], "last_calculated": now, "data_sources": ["offres_emploi", "experts"], "confidence_level": 0.85},
+        {"id": str(uuid.uuid4()), "job_name": "Responsable administratif et financier (RAF)", "sector": "Finance / Gestion", "evolution_index": 58.0, "index_level": "en_transformation", "new_skills_count": 6, "skill_frequency_score": 0.55, "task_evolution_score": 0.54, "new_tools_score": 0.62, "job_posting_evolution": 0.48, "declining_skills_count": 2, "emerging_skills": ["Dématérialisation complète", "Facturation électronique", "Pilotage cash temps réel", "SIRH intégré"], "stable_skills": ["Comptabilité générale", "Gestion de trésorerie", "Fiscalité", "Management d'équipe", "Juridique social"], "declining_skills": ["Processus papier", "Double saisie comptable"], "recommended_skills": ["ERP cloud (Sage, Cegid)", "Power BI Finance", "Factur-X"], "recommended_trainings": ["Facture électronique obligatoire 2026", "Transformation digitale de la fonction finance"], "job_passerelles": ["DAF", "Secrétaire général", "Directeur de gestion"], "last_calculated": now, "data_sources": ["contributions", "offres_emploi"], "confidence_level": 0.84},
+        {"id": str(uuid.uuid4()), "job_name": "Auditeur financier / interne", "sector": "Finance / Gestion", "evolution_index": 66.0, "index_level": "en_transformation", "new_skills_count": 7, "skill_frequency_score": 0.63, "task_evolution_score": 0.60, "new_tools_score": 0.72, "job_posting_evolution": 0.55, "declining_skills_count": 2, "emerging_skills": ["Audit data analytics", "Audit continu automatisé", "Audit ESG/CSRD", "Détection de fraude par IA"], "stable_skills": ["Normes d'audit", "Contrôle interne", "Analyse des risques", "Comptabilité"], "declining_skills": ["Échantillonnage manuel", "Tests 100% documentaires"], "recommended_skills": ["ACL/IDEA", "SQL", "Référentiel CSRD", "Process mining"], "recommended_trainings": ["Audit à l'ère de la data", "Reporting de durabilité CSRD"], "job_passerelles": ["Responsable audit interne", "Risk Manager", "Contrôleur de gestion", "Consultant"], "last_calculated": now, "data_sources": ["offres_emploi", "experts"], "confidence_level": 0.82},
+        {"id": str(uuid.uuid4()), "job_name": "Trésorier d'entreprise", "sector": "Finance / Gestion", "evolution_index": 56.0, "index_level": "en_transformation", "new_skills_count": 5, "skill_frequency_score": 0.52, "task_evolution_score": 0.50, "new_tools_score": 0.60, "job_posting_evolution": 0.45, "declining_skills_count": 1, "emerging_skills": ["Cash forecasting IA", "TMS cloud", "Paiements instantanés", "Cybersécurité des paiements"], "stable_skills": ["Gestion de trésorerie", "Relations bancaires", "Change et couverture", "Prévisions de cash"], "declining_skills": ["Suivi de trésorerie sur tableur seul"], "recommended_skills": ["TMS (Kyriba)", "API bancaires", "Détection de fraude aux paiements"], "recommended_trainings": ["Trésorerie digitale", "Sécurisation des paiements"], "job_passerelles": ["Responsable trésorerie groupe", "DAF", "Credit Manager"], "last_calculated": now, "data_sources": ["experts"], "confidence_level": 0.78},
+        {"id": str(uuid.uuid4()), "job_name": "Credit Manager / Gestionnaire recouvrement", "sector": "Finance / Gestion", "evolution_index": 50.0, "index_level": "en_transformation", "new_skills_count": 4, "skill_frequency_score": 0.46, "task_evolution_score": 0.48, "new_tools_score": 0.55, "job_posting_evolution": 0.42, "declining_skills_count": 1, "emerging_skills": ["Scoring client automatisé", "Relance automatisée", "Open banking données clients"], "stable_skills": ["Analyse de solvabilité", "Recouvrement", "Négociation", "Droit commercial"], "declining_skills": ["Relance courrier papier"], "recommended_skills": ["Logiciels de credit management", "Analyse data clients"], "recommended_trainings": ["Credit management digitalisé", "Prévention du risque client"], "job_passerelles": ["Responsable crédit clients", "Trésorier", "RAF"], "last_calculated": now, "data_sources": ["offres_emploi"], "confidence_level": 0.75},
+        {"id": str(uuid.uuid4()), "job_name": "Assistant de gestion PME", "sector": "Finance / Gestion", "evolution_index": 54.0, "index_level": "en_transformation", "new_skills_count": 5, "skill_frequency_score": 0.50, "task_evolution_score": 0.52, "new_tools_score": 0.60, "job_posting_evolution": 0.46, "declining_skills_count": 2, "emerging_skills": ["Pré-comptabilité automatisée", "Facturation électronique", "Outils no-code de gestion"], "stable_skills": ["Devis-factures", "Suivi de trésorerie", "Administratif", "Relation fournisseurs"], "declining_skills": ["Saisie comptable manuelle", "Classement papier"], "recommended_skills": ["Pennylane/Tiime", "Factur-X", "Tableaux de bord simples"], "recommended_trainings": ["Facture électronique obligatoire 2026", "Digitaliser la gestion d'une PME"], "job_passerelles": ["Comptable", "Office Manager", "Responsable administratif"], "last_calculated": now, "data_sources": ["offres_emploi"], "confidence_level": 0.76},
+    ]
+
+
+async def ensure_evolution_catalog_enriched():
+    """Ajoute les métiers Finance/Gestion au catalogue d'évolution s'ils manquent (idempotent, non destructif)."""
+    for job in _finance_gestion_job_indices():
+        await db.job_evolution_indices.update_one(
+            {"job_name": job["job_name"]},
+            {"$setOnInsert": job},
+            upsert=True,
+        )
+
+
 @api_router.post("/seed")
 async def seed_database():
     """Seed database with demo data"""
@@ -6484,7 +6513,7 @@ async def seed_database():
         {"id": str(uuid.uuid4()), "sector_name": "Comptabilité, Finance & RH", "evolution_index": 58.0, "index_level": "en_transformation", "jobs_count": 18, "jobs_in_transformation": 9, "jobs_stable": 7, "jobs_emerging": 2, "top_emerging_skills": [{"skill": "Facturation électronique", "growth": "+95%"}, {"skill": "HR Analytics", "growth": "+52%"}, {"skill": "IA comptable", "growth": "+45%"}], "top_declining_skills": [{"skill": "Saisie manuelle", "decline": "-35%"}], "skill_gap_areas": ["IA", "Dématérialisation"], "hiring_trend": "stable", "innovation_intensity": 0.60, "predicted_evolution_6m": 62.0, "predicted_evolution_12m": 65.0, "last_updated": datetime.now(timezone.utc).isoformat()},
     ]
     
-    await db.job_evolution_indices.insert_many(demo_job_indices)
+    await db.job_evolution_indices.insert_many(demo_job_indices + _finance_gestion_job_indices())
     await db.sector_evolution_indices.insert_many(demo_sector_indices)
     
     # Seed Ubuntoo Intelligence Data
@@ -8399,6 +8428,10 @@ async def on_startup():
             await seed_referentiel_opc(db)
         except Exception as e:
             logger.warning(f"[Seed] Demo data seeding error: {e}")
+        try:
+            await ensure_evolution_catalog_enriched()
+        except Exception as e:
+            logger.warning(f"[Seed] Evolution catalog enrichment error: {e}")
     except Exception as e:
         logger.error(f"[Startup error] {e}")
 

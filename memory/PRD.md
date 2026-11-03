@@ -165,3 +165,10 @@ Verdict audit : FAIL — à corriger avant/at redéploiement idéalement :
 - Fix : matching prioritaire par MÉTIER (intitulés d'expériences + projet pro), scoring pondéré (mot exact=2, partiel=1), filtre des correspondances faibles ; secteur en simple complément si <3 métiers trouvés.
 - Vérifié : chitra_test → Data Analyst, Comptable, Assistant Administratif, Analyste Cybersécurité ; pas de régression peter7/mike7.
 - NON DÉPLOYÉ en production (comme S.A.R.E guidé) — à inclure au prochain déploiement.
+
+## 2026-06 — Enrichissement catalogue Évolution (Finance/Gestion)
+- Ajout de 7 métiers Finance/Gestion au catalogue job_evolution_indices : Contrôleur de gestion, Analyste financier, RAF, Auditeur financier/interne, Trésorier d'entreprise, Credit Manager, Assistant de gestion PME.
+- Fonction ensure_evolution_catalog_enriched() exécutée au démarrage (upsert idempotent par job_name, non destructif pour la prod).
+- Scoring affiné : tiers de pertinence (score>=3 prioritaire, puis >=2, sinon tous).
+- Résultat chitra : Contrôleur de gestion, Analyste financier, RAF, Data Analyst. Pas de régression peter7/mike7.
+- Déploiement production relancé (2e du jour) avec ces changements.
