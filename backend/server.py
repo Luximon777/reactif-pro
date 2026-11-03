@@ -2641,40 +2641,62 @@ async def get_user_evolution_analysis(token: str):
 
     has_cv = bool(user_skills) or bool((passport or {}).get("experiences"))
 
-    # Find relevant job indices from sectors (fuzzy keyword matching)
+    # Find relevant job indices — PRIORITY 1: match by métier (experience titles + career project)
     import re as _re
     relevant_jobs = []
     seen_jobs = set()
-    for sector in user_sectors:
-        if not isinstance(sector, str):
-            continue
-        # Extract keywords from sector for better matching (sans ponctuation)
-        clean_sector = _re.sub(r"[^\w\sàâäéèêëîïôöùûüç-]", " ", sector.lower())
-        keywords = [w for w in clean_sector.split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
-        for kw in keywords[:2]:
-            jobs = await db.job_evolution_indices.find(
-                {"sector": {"$regex": _re.escape(kw), "$options": "i"}},
-                {"_id": 0}
-            ).to_list(10)
-            for j in jobs:
-                jn = j.get("job_name", "")
-                if jn not in seen_jobs:
-                    seen_jobs.add(jn)
-                    relevant_jobs.append(j)
-
-    # Also try matching by user's job title / metier_cible from passport
-    metier_cible = (passport or {}).get("metier_cible", "") or (passport or {}).get("career_project", "")
-    metier_words = metier_cible.strip().split() if isinstance(metier_cible, str) and metier_cible else []
-    if metier_words and len(relevant_jobs) < 3:
-        extra = await db.job_evolution_indices.find(
-            {"job_name": {"$regex": _re.escape(metier_words[0]), "$options": "i"}},
-            {"_id": 0}
-        ).to_list(5)
-        for j in extra:
+    _generic = {"responsable", "cadre", "chargé", "chargée", "charge", "assistant", "assistante",
+                "agent", "adjoint", "adjointe", "employé", "employée", "stagiaire", "junior", "senior",
+                "product", "dans", "avec", "pour", "département", "departement"}
+    metier_sources = [e.get("title", "") for e in (passport or {}).get("experiences", []) if e.get("title")]
+    _mc = (passport or {}).get("metier_cible", "") or (passport or {}).get("career_project", "")
+    if isinstance(_mc, str) and _mc:
+        metier_sources.append(_mc)
+    metier_kws = set()
+    for src in metier_sources:
+        clean = _re.sub(r"[^\w\sàâäéèêëîïôöùûüç-]", " ", src.lower())
+        for w in clean.split():
+            if len(w) > 3 and w not in _generic:
+                metier_kws.add(w)
+    if metier_kws:
+        all_catalog_jobs = await db.job_evolution_indices.find({}, {"_id": 0}).to_list(300)
+        scored = []
+        for j in all_catalog_jobs:
+            jwords = [w for w in _re.sub(r"[^\w\sàâäéèêëîïôöùûüç-]", " ", j.get("job_name", "").lower()).split() if len(w) > 3]
+            score = 0
+            for kw in metier_kws:
+                if any(kw == jw for jw in jwords):
+                    score += 2
+                elif any(kw in jw or jw in kw for jw in jwords):
+                    score += 1
+            if score > 0:
+                scored.append((score, j))
+        scored.sort(key=lambda x: -x[0])
+        strong = [s for s in scored if s[0] >= 2]
+        picked = strong[:6] if len(strong) >= 3 else scored[:6]
+        for _score, j in picked:
             jn = j.get("job_name", "")
             if jn not in seen_jobs:
                 seen_jobs.add(jn)
                 relevant_jobs.append(j)
+
+    # PRIORITY 2: complement with sector matching only if métier matches are insufficient
+    if len(relevant_jobs) < 3:
+        for sector in user_sectors:
+            if not isinstance(sector, str):
+                continue
+            clean_sector = _re.sub(r"[^\w\sàâäéèêëîïôöùûüç-]", " ", sector.lower())
+            keywords = [w for w in clean_sector.split() if len(w) > 3 and w not in ("dans", "avec", "pour", "les", "des")]
+            for kw in keywords[:2]:
+                jobs = await db.job_evolution_indices.find(
+                    {"sector": {"$regex": _re.escape(kw), "$options": "i"}},
+                    {"_id": 0}
+                ).to_list(10)
+                for j in jobs:
+                    jn = j.get("job_name", "")
+                    if jn not in seen_jobs:
+                        seen_jobs.add(jn)
+                        relevant_jobs.append(j)
 
     # Find skills at risk
     skills_at_risk = []

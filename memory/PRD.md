@@ -159,3 +159,9 @@ Verdict audit : FAIL — à corriger avant/at redéploiement idéalement :
 - L'utilisateur identifie d'abord le savoir-faire ou savoir-être illustré (liste issue du passeport, groupée par nature) puis remplit S/A/R champ par champ.
 - Sauvegarde double : illustration S.A.R.E (coffre-fort + OPC) + exemple concret affiché sur l'expérience (badge « Documentée »).
 - Composant : frontend/src/components/SareExampleForm.jsx ; intégration dans views/ParticulierView.jsx.
+
+## 2026-06 — Fix diagnostic Marché > Évolution (pertinence profil)
+- Bug : /api/evolution-index/user-profile matchait les métiers par SECTEURS (ex. chitra = contrôleuse de gestion → chauffeur-livreur, technicien maintenance).
+- Fix : matching prioritaire par MÉTIER (intitulés d'expériences + projet pro), scoring pondéré (mot exact=2, partiel=1), filtre des correspondances faibles ; secteur en simple complément si <3 métiers trouvés.
+- Vérifié : chitra_test → Data Analyst, Comptable, Assistant Administratif, Analyste Cybersécurité ; pas de régression peter7/mike7.
+- NON DÉPLOYÉ en production (comme S.A.R.E guidé) — à inclure au prochain déploiement.
